@@ -1,0 +1,36 @@
+[package]
+name = "ccmux"
+version = "0.1.0"
+edition = "2021"
+description = "Claude Code-aware terminal multiplexer"
+license = "MIT"
+repository = "https://github.com/brendanbecker/ccmux"
+
+[dependencies]
+# TUI framework
+ratatui = "0.29"
+crossterm = "0.28"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# PTY handling
+portable-pty = "0.8"
+
+# File watching for hot-reload config
+notify = "7.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+pretty_assertions = "1.4"

@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://featmgmt.dev/schemas/bug-report.schema.json",
+  "title": "Bug Report",
+  "description": "Schema for bug_report.json files in featmgmt work items",
+  "type": "object",
+  "required": [
+    "bug_id",
+    "title",
+    "component",
+    "severity",
+    "priority",
+    "status",
+    "reported_date",
+    "updated_date",
+    "description",
+    "steps_to_reproduce",
+    "expected_behavior",
+    "actual_behavior"
+  ],
+  "properties": {
+    "bug_id": {
+      "type": "string",
+      "pattern": "^BUG-\\d{3,}$",
+      "description": "Unique bug identifier (e.g., BUG-001, BUG-042)"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 200,
+      "description": "Concise, descriptive bug title"
+    },
+    "component": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Affected component or module"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low"],
+      "description": "Bug severity level"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["P0", "P1", "P2", "P3"],
+      "description": "Bug priority (P0=critical, P1=high, P2=medium, P3=low)"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["new", "in_progress", "blocked", "resolved", "verified", "closed", "wont_fix"],
+      "description": "Current bug status"
+    },
+    "reported_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date bug was reported (YYYY-MM-DD)"
+    },
+    "updated_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date bug was last updated (YYYY-MM-DD)"
+    },
+    "assigned_to": {
+      "type": ["string", "null"],
+      "description": "Agent or person assigned to this bug"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Tags for categorization and filtering"
+    },
+    "affected_versions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Software versions affected by this bug"
+    },
+    "environment": {
+      "type": "string",
+      "description": "Environment where bug was observed (e.g., production, staging, test)"
+    },
+    "reproducibility": {
+      "type": "string",
+      "enum": ["always", "sometimes", "rare", "unknown"],
+      "description": "How reliably the bug can be reproduced"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Detailed bug description"
+    },
+    "steps_to_reproduce": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "description": "Steps to reproduce the bug"
+    },
+    "expected_behavior": {
+      "type": "string",
+      "minLength": 5,
+      "description": "What should happen"
+    },
+    "actual_behavior": {
+      "type": "string",
+      "minLength": 5,
+      "description": "What actually happens"
+    },
+    "evidence": {
+      "type": "object",
+      "description": "Evidence supporting the bug report",
+      "additionalProperties": true
+    },
+    "root_cause": {
+      "type": "string",
+      "description": "Identified root cause (if known)"
+    },
+    "impact": {
+      "type": "string",
+      "description": "Business or user impact of the bug"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,261 @@
+{
+  "document": {
+    "title": "Architectural Blueprint for ccmux: A Semantic Terminal Multiplexer for Claude Code",
+    "source_path": "/home/becker/projects/tools/ccmux/docs/research/gemini_research.md",
+    "parse_date": "2026-01-07"
+  },
+  "crates": {
+    "core": [
+      {
+        "name": "portable-pty",
+        "purpose": "Cross-platform PTY management",
+        "source": "WezTerm project",
+        "docs": "https://docs.rs/portable-pty",
+        "section": "1.1",
+        "notes": "Trait-based system (PtySystem) for Unix/Windows abstraction"
+      },
+      {
+        "name": "alacritty_terminal",
+        "purpose": "Terminal state parsing and ANSI escape handling",
+        "source": "Alacritty emulator",
+        "docs": "https://docs.rs/alacritty_terminal/latest/alacritty_terminal/",
+        "section": "1.2",
+        "notes": "Recommended over vt100 for correctness; handles alternate screen buffer"
+      },
+      {
+        "name": "ratatui",
+        "purpose": "Terminal UI rendering (immediate-mode)",
+        "source": "Community (formerly tui-rs)",
+        "docs": "https://docs.rs/ratatui/latest/ratatui/struct.Terminal.html",
+        "section": "1.3",
+        "notes": "Internal diffing algorithm; supports TrueColor"
+      },
+      {
+        "name": "tokio",
+        "purpose": "Async runtime for I/O and supervision",
+        "section": "1.1.2, 7.1",
+        "notes": "AsyncFd for PTY integration; JoinSet for supervision"
+      }
+    ],
+    "configuration": [
+      {
+        "name": "notify",
+        "purpose": "Filesystem monitoring for config hot-reload",
+        "section": "5.1"
+      },
+      {
+        "name": "notify-debouncer-full",
+        "purpose": "Debounce filesystem events from atomic writes",
+        "docs": "https://docs.rs/notify-debouncer-full/latest/notify_debouncer_full/",
+        "section": "5.1",
+        "notes": "Handles Create/Rename/Delete flurries"
+      },
+      {
+        "name": "arc_swap",
+        "purpose": "Lock-free atomic configuration swapping",
+        "section": "5.2",
+        "notes": "Critical for 60fps - avoids RwLock frame spikes"
+      }
+    ],
+    "integration": [
+      {
+        "name": "mcp-rust-sdk",
+        "alias": "rmcp",
+        "purpose": "MCP server implementation for Claude tool exposure",
+        "docs": "https://docs.rs/mcp_rust_sdk",
+        "section": "6.1"
+      },
+      {
+        "name": "ractor",
+        "purpose": "Actor framework for supervision trees",
+        "section": "7.1",
+        "notes": "Alternative: tokio JoinSet"
+      }
+    ],
+    "alternatives_considered": [
+      {
+        "name": "vt100",
+        "purpose": "Terminal state parsing",
+        "verdict": "Rejected",
+        "reason": "Less robust alternate screen buffer handling; fewer active contributors"
+      }
+    ]
+  },
+  "architectural_patterns": {
+    "daemon_client_separation": {
+      "section": "3.1",
+      "description": "Server (daemon) owns PTY handles and terminal state with no UI. Client connects via Unix Domain Socket for rendering.",
+      "rationale": "Client crash doesn't kill sessions; daemon runs as systemd service or detached"
+    },
+    "actor_model_supervision": {
+      "section": "7.1",
+      "hierarchy": ["Root Supervisor", "Session Supervisor", "Pane Actor"],
+      "policies": {
+        "depth_limit": "Hard limit (e.g., 3) to prevent recursive spawning",
+        "crash_restart": "Up to 3 times with --resume",
+        "backoff": "Exponential to prevent CPU thrashing"
+      }
+    },
+    "adapter_pattern": {
+      "section": "1.3.1",
+      "description": "Bridge alacritty_terminal::Cell to ratatui::Cell with renderable_cells() iterator",
+      "optimization": "Dirty rect tracking - skip copy for unchanged PTYs"
+    },
+    "pty_actor": {
+      "section": "1.1.3",
+      "description": "Encapsulate PTY in actor with two Tokio tasks: PTY->Parser pump, User->PTY pump"
+    }
+  },
+  "claude_code_detection": {
+    "visual_telemetry_states": {
+      "section": "2.1",
+      "states": [
+        {"name": "Channelling", "indicator": "Channelling...", "confidence": "0.8-1.0", "meaning": "Retrieval"},
+        {"name": "Synthesizing", "indicator": "Synthesizing...", "confidence": "0.6-0.9", "meaning": "Reasoning/bridging"},
+        {"name": "Discombobulating", "indicator": "Discombobulating...", "confidence": "0.2-0.6", "meaning": "High entropy/uncertainty"},
+        {"name": "Waiting", "indicator": "Static prompt", "meaning": "Awaiting user input"}
+      ],
+      "detection_algorithm": [
+        "Maintain small look-back buffer of raw bytes",
+        "Scan for \\r (carriage return) followed by keywords",
+        "Transition PaneState on match"
+      ]
+    },
+    "output_formats": {
+      "section": "2.2",
+      "recommended": "--output-format stream-json",
+      "alternatives": ["--output-format json (non-interactive)"]
+    },
+    "session_resume": {
+      "section": "2.3",
+      "command": "claude --resume <session_id>",
+      "storage": "~/.claude/"
+    }
+  },
+  "crash_recovery": {
+    "persistence_mechanisms": {
+      "section": "3.2.2",
+      "options": [
+        {"name": "Write-Ahead Log (WAL)", "pros": "Bit-perfect recovery", "cons": "High I/O overhead"},
+        {"name": "Snapshotting", "example": "Zellij uses KDL", "cons": "Point-in-time only"},
+        {"name": "Hybrid (Recommended)", "topology": "SQLite/JSON on change", "visual_state": "Skip - use Claude --resume"}
+      ]
+    },
+    "orphaned_pty_adoption": {
+      "section": "3.3",
+      "techniques": [
+        {"name": "SCM_RIGHTS", "description": "Pass open PTY FDs via UDS on graceful restart"},
+        {"name": "Holder Process", "description": "Tiny stable process holds PTY master; daemon connects to holder", "reference": "shpool"}
+      ]
+    }
+  },
+  "hot_reload": {
+    "section": "5",
+    "file_watching": "notify + notify-debouncer-full",
+    "state_swapping": "ArcSwap for lock-free reads",
+    "migration_strategy": {
+      "name": "Adopt or Kill",
+      "description": "Orphaned processes move to detached list rather than killed"
+    }
+  },
+  "mcp_integration": {
+    "section": "6.1",
+    "tools_exposed": ["create_pane(command: str)", "read_pane_output(pane_id: int)", "list_panes()"],
+    "workflow": [
+      "ccmux starts internal MCP server (stdio or websocket)",
+      "Pass MCP config when spawning Claude",
+      "Claude calls tools for deterministic layout changes"
+    ],
+    "fallback": {
+      "name": "Sideband Protocol",
+      "format": "<ccmux-action type=\"spawn\" layout=\"vertical\">command</ccmux-action>",
+      "section": "6.2"
+    }
+  },
+  "code_blocks": [
+    {
+      "id": "pty_actor",
+      "section": "1.1.3",
+      "lines": "34-62",
+      "language": "rust",
+      "description": "PtyActor spawn_shell implementation with portable-pty"
+    },
+    {
+      "id": "arcswap_config",
+      "section": "5.2",
+      "lines": "277-289",
+      "language": "rust",
+      "description": "ArcSwap static CONFIG with atomic swap example"
+    },
+    {
+      "id": "sideband_xml",
+      "section": "6.2",
+      "lines": "328-331",
+      "language": "xml",
+      "description": "ccmux-action sideband protocol format"
+    },
+    {
+      "id": "alacritty_adapter",
+      "section": "code_examples",
+      "lines": "396-440",
+      "language": "rust",
+      "description": "render_grid_to_buffer adapter function"
+    },
+    {
+      "id": "hotreload_watcher",
+      "section": "code_examples",
+      "lines": "444-473",
+      "language": "rust",
+      "description": "Config watcher with notify-debouncer-full"
+    }
+  ],
+  "tables": [
+    {
+      "id": "parser_comparison",
+      "section": "1.2.1",
+      "lines": "72-79",
+      "columns": ["Feature", "alacritty_terminal", "vt100"],
+      "rows": 6
+    },
+    {
+      "id": "multiplexer_comparison",
+      "section": "4.5",
+      "lines": "250-257",
+      "columns": ["Feature", "tmux", "Zellij", "ccmux (Target)"],
+      "rows": 6
+    }
+  ],
+  "key_terms": {
+    "PTY": "Pseudo-Terminal - OS primitive allowing user-space terminal emulation",
+    "SCM_RIGHTS": "Unix mechanism to pass file descriptors between processes via UDS",
+    "UDS": "Unix Domain Socket - IPC mechanism for daemon/client communication",
+    "SIGWINCH": "Signal sent to process when terminal window size changes",
+    "Alternate Screen Buffer": "Secondary terminal buffer used by TUI apps (vim, etc.)",
+    "MCP": "Model Context Protocol - structured LLM-tool interaction protocol",
+    "KDL": "KDL Document Language - configuration format used by Zellij",
+    "WAL": "Write-Ahead Log - persistence technique for crash recovery",
+    "stream-json": "Claude Code output format with newline-delimited JSON events"
+  },
+  "links": {
+    "crate_docs": [
+      "https://docs.rs/portable-pty",
+      "https://docs.rs/alacritty_terminal/latest/alacritty_terminal/",
+      "https://docs.rs/ratatui/latest/ratatui/struct.Terminal.html",
+      "https://docs.rs/notify-debouncer-full/latest/notify_debouncer_full/",
+      "https://docs.rs/mcp_rust_sdk"
+    ],
+    "projects": [
+      "https://github.com/alacritty/alacritty",
+      "https://github.com/zed-industries/zed/blob/main/crates/terminal/src/terminal.rs",
+      "https://github.com/zellij-org/zellij/blob/main/zellij-utils/assets/config/default.kdl",
+      "https://github.com/shell-pool/shpool"
+    ],
+    "claude_code_docs": [
+      "https://code.claude.com/docs/en/headless",
+      "https://code.claude.com/docs/en/cli-reference",
+      "https://code.claude.com/docs/en/settings"
+    ]
+  },
+  "references_count": 48,
+  "references_range": "lines 479-528"
+}

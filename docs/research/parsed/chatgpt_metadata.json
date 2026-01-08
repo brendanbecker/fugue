@@ -1,0 +1,251 @@
+{
+  "document": {
+    "title": "ccmux Deep Research",
+    "source_path": "/home/becker/projects/tools/ccmux/docs/research/chatgpt_research.pdf",
+    "total_pages": 49,
+    "parse_date": "2026-01-07"
+  },
+  "crates": {
+    "pty_management": [
+      {
+        "name": "portable-pty",
+        "purpose": "Cross-platform PTY spawning and management",
+        "source": "WezTerm project",
+        "usage": "native_pty_system().openpty(size), slave.spawn_command(cmd), master.try_clone_reader(), master.resize()",
+        "sections": ["1.2.1", "1.3"]
+      }
+    ],
+    "terminal_parsing": [
+      {
+        "name": "vt100",
+        "purpose": "VT100/ANSI escape sequence parsing, screen buffer management",
+        "usage": "Parser::new(rows, cols, scrollback), parser.process(&bytes), screen.cell(row, col)",
+        "recommended": true,
+        "sections": ["1.2.2", "1.3"]
+      },
+      {
+        "name": "alacritty_terminal",
+        "purpose": "Advanced terminal parsing with deep color support",
+        "usage": "Grid model, vte crate under the hood",
+        "recommended": false,
+        "notes": "Heavier dependency, not as straightforward for TUI integration",
+        "sections": ["1.2.2"]
+      },
+      {
+        "name": "vte",
+        "purpose": "Low-level escape sequence parser",
+        "usage": "Used by alacritty_terminal internally",
+        "sections": ["1.2.2"]
+      }
+    ],
+    "tui_rendering": [
+      {
+        "name": "ratatui",
+        "purpose": "Terminal UI rendering with styled text and widgets",
+        "usage": "Custom Widget impl, Buffer manipulation, double-buffering for diff rendering",
+        "sections": ["1.2.3", "1.3"]
+      },
+      {
+        "name": "tui-term",
+        "purpose": "Ready-made PseudoTerminal widget for vt100 + Ratatui",
+        "usage": "PseudoTerminal::new(screen)",
+        "sections": ["1.2.7"]
+      },
+      {
+        "name": "cockpit",
+        "purpose": "Example crate implementing mini-tmux with PTY + vt100 + Ratatui",
+        "usage": "Reference implementation with PaneWidget",
+        "sections": ["1.2.7"]
+      }
+    ],
+    "file_watching": [
+      {
+        "name": "notify",
+        "purpose": "Cross-platform file system event watching",
+        "usage": "RecommendedWatcher with debounce, watch directory for atomic renames",
+        "platforms": "inotify (Linux), Kqueue (macOS), ReadDirectoryChangesW (Windows)",
+        "sections": ["5.1", "5.2"]
+      }
+    ],
+    "serialization": [
+      {
+        "name": "serde",
+        "purpose": "Config parsing with defaults and validation",
+        "usage": "#[serde(default)] for missing fields, toml/json deserialization",
+        "sections": ["5.6"]
+      },
+      {
+        "name": "toml",
+        "purpose": "TOML config file parsing",
+        "sections": ["5.6"]
+      },
+      {
+        "name": "serde_json",
+        "purpose": "JSON parsing for Claude Code output and state files",
+        "sections": ["2.2.2", "3.4"]
+      }
+    ],
+    "async_runtime": [
+      {
+        "name": "tokio",
+        "purpose": "Async PTY reading and event loop",
+        "usage": "Spawn dedicated task per pane for PTY reading",
+        "sections": ["1.3", "4.9"]
+      }
+    ],
+    "graphics": [
+      {
+        "name": "sixel-tokenizer",
+        "purpose": "Parse sixel image protocol (Zellij)",
+        "source": "zellij-org/sixel-tokenizer",
+        "sections": ["4.4"]
+      }
+    ]
+  },
+  "architectural_patterns": {
+    "terminal_emulation": {
+      "description": "portable-pty + vt100 + Ratatui stack",
+      "components": [
+        "PTY spawning via portable-pty",
+        "ANSI parsing via vt100 Parser/Screen",
+        "Rendering via custom Ratatui widget",
+        "Window resize via master.resize() + SIGWINCH"
+      ],
+      "sections": ["1.3"]
+    },
+    "client_server_model": {
+      "description": "Tmux-style server process holds PTYs, UI client connects via IPC",
+      "benefits": [
+        "UI crash doesn't kill sessions",
+        "Detach/reattach capability",
+        "Multiple clients possible"
+      ],
+      "implementation": "Fork at startup: parent=server, child=UI. Unix socket IPC.",
+      "sections": ["3.3", "4.9"]
+    },
+    "crash_recovery": {
+      "description": "Periodic checkpointing + Claude session resume",
+      "components": [
+        "State file: ~/.ccmux/last_session.json",
+        "Atomic writes (temp + rename)",
+        "Per-pane: type, command, cwd, session_id, screen snapshot",
+        "Claude resume: --resume <session_id>"
+      ],
+      "sections": ["3.3"]
+    },
+    "config_hot_reload": {
+      "description": "File watching with debounced apply",
+      "components": [
+        "notify crate for file watching",
+        "Debounce 50-100ms for rapid saves",
+        "Watch directory for atomic renames",
+        "Validate before apply, keep old on error"
+      ],
+      "sections": ["5.1", "5.2", "5.6"]
+    }
+  },
+  "claude_code_detection": {
+    "state_indicators": {
+      "thinking": "Likely spinner (|/-\\) via carriage return, or streaming JSON with status field",
+      "waiting": "Permission prompts like 'Allow tool execution? (y/n)'",
+      "complete": "Final message or done event in JSON mode",
+      "crashed": "Process exit with non-zero code or error text"
+    },
+    "cli_flags": {
+      "--resume/-r": "Resume session by ID or name",
+      "--print/-p": "Non-interactive one-shot mode",
+      "--output-format": "text|json|stream-json",
+      "--include-partial-messages": "Stream partial results",
+      "--session-id": "Specify session ID",
+      "--fork-session": "Branch from existing session",
+      "--debug": "Enable debug output"
+    },
+    "state_storage": {
+      "location": "~/.claude.json",
+      "format": "JSON with conversation messages, tool context, session ID",
+      "update_frequency": "~1.5 writes/second during session",
+      "atomic_write": "Write to temp, rename to .claude.json"
+    },
+    "session_id_retrieval": [
+      "Parse ~/.claude.json for 'id' field",
+      "Watch ~/.claude/debug/ for new UUID-named files",
+      "Run with --debug and capture 'Session ID: ...' output"
+    ],
+    "isolation_strategy": "Set separate HOME directory per Claude instance to avoid ~/.claude.json conflicts"
+  },
+  "key_terms": {
+    "PTY": "Pseudoterminal - kernel-provided pair for terminal emulation",
+    "master/slave": "Controller/controlled ends of PTY (legacy terminology)",
+    "SIGWINCH": "Signal sent to child process when terminal size changes",
+    "vt100": "Terminal standard, also name of Rust parsing crate",
+    "alternate screen buffer": "Separate screen used by fullscreen programs (vim, less)",
+    "OSC": "Operating System Command - escape sequences for titles, clipboard",
+    "SGR": "Select Graphic Rendition - escape codes for colors/attributes",
+    "WAL": "Write-Ahead Log - continuous output logging for recovery",
+    "CRIU": "Checkpoint/Restore In Userspace - Linux process freezing",
+    "abduco/dtach": "Minimal session attach/detach tools",
+    "MCP": "Model Context Protocol - Claude's tool server communication"
+  },
+  "links": {
+    "documentation": [
+      {"name": "portable-pty docs", "url": "https://docs.rs/portable-pty/latest/portable_pty/"},
+      {"name": "vt100 docs", "url": "https://docs.rs/vt100/latest/vt100/"},
+      {"name": "Ratatui FAQ", "url": "https://ratatui.rs/faq/"},
+      {"name": "Claude Code CLI reference", "url": "https://code.claude.com/docs/en/cli-reference"},
+      {"name": "Claude Code settings", "url": "https://code.claude.com/docs/en/settings"},
+      {"name": "WezTerm multiplexing", "url": "https://wezterm.org/multiplexing.html"},
+      {"name": "Alacritty config", "url": "https://alacritty.org/config-alacritty.html"}
+    ],
+    "github_issues": [
+      {"name": "Claude Code excessive file I/O", "url": "https://github.com/anthropics/claude-code/issues/14634"},
+      {"name": "Claude Code multiple sessions bug", "url": "https://github.com/anthropics/claude-code/issues/16595"},
+      {"name": "Claude SDK session management", "url": "https://github.com/anthropics/claude-agent-sdk-python/issues/458"},
+      {"name": "Alacritty config reload", "url": "https://github.com/alacritty/alacritty/issues/7981"},
+      {"name": "abduco state preservation", "url": "https://github.com/martanne/abduco/issues/32"}
+    ],
+    "references": [
+      {"name": "Zellij vs Tmux comparison", "url": "https://rrmartins.medium.com/zellij-vs-tmux-complete-comparison-or-almost-8e5b57d234ae"},
+      {"name": "Claude Code cheatsheet", "url": "https://shipyard.build/blog/claude-code-cheat-sheet/"},
+      {"name": "Claude Code environment variables", "url": "https://gist.github.com/unkn0wncode/f87295d055dd0f0e8082358a0b5cc467"},
+      {"name": "CRIU documentation", "url": "https://access.redhat.com/articles/2455211"},
+      {"name": "abduco project", "url": "https://www.brain-dump.org/projects/abduco/"}
+    ]
+  },
+  "code_blocks": [
+    {
+      "id": "pty_spawning",
+      "language": "rust",
+      "description": "Spawning a process in PTY with portable-pty",
+      "page": 5,
+      "snippet": "let pty_system = native_pty_system();\nlet size = PtySize { rows: 24, cols: 80, pixel_width: 0, pixel_height: 0 };\nlet mut pty_pair = pty_system.openpty(size).expect(\"Failed to open PTY\");\nlet slave = pty_pair.slave;\nlet mut cmd = CommandBuilder::new(\"bash\");\ncmd.env(\"TERM\", \"xterm-256color\");\nlet child = slave.spawn_command(cmd).expect(\"Failed to spawn\");"
+    },
+    {
+      "id": "vt100_rendering",
+      "language": "rust",
+      "description": "Ratatui widget rendering vt100 Screen",
+      "page": 6,
+      "snippet": "impl<'a> Widget for TerminalPane<'a> {\n    fn render(self, area: Rect, buf: &mut Buffer) {\n        for row in 0..max_rows {\n            for col in 0..max_cols {\n                if let Some(cell) = self.screen.cell(row, col) {\n                    let styled = buf.get_mut(area.x + col as u16, area.y + row as u16);\n                    styled.set_symbol(&cell.contents().to_string());\n                    styled.set_fg(map_color(cell.fgcolor()));\n                }\n            }\n        }\n    }\n}"
+    },
+    {
+      "id": "claude_print_mode",
+      "language": "rust",
+      "description": "Launching Claude Code in non-interactive JSON mode",
+      "page": 18,
+      "snippet": "let mut cmd = Command::new(\"claude\");\ncmd.arg(\"-p\")\n   .arg(\"--resume\").arg(session_name)\n   .arg(\"--output-format\").arg(\"stream-json\")\n   .arg(\"--include-partial-messages\")\n   .arg(\"Implement the auth module\");\ncmd.env(\"ANTHROPIC_API_KEY\", api_key);"
+    },
+    {
+      "id": "session_snapshot",
+      "language": "rust",
+      "description": "Session state structure for crash recovery",
+      "page": 28,
+      "snippet": "struct PaneStateSnapshot {\n    pane_id: usize,\n    kind: PaneKind,\n    command: String,\n    cwd: Option<String>,\n    screen: ScreenSnapshot,\n    scrollback: Vec<String>,\n    session_id: Option<String>,\n}\n\nstruct SessionSnapshot {\n    panes: Vec<PaneStateSnapshot>,\n    layout: LayoutInfo,\n    timestamp: u64,\n}"
+    },
+    {
+      "id": "config_watch",
+      "language": "rust",
+      "description": "File watching with notify crate",
+      "page": 43,
+      "snippet": "let mut watcher = notify::recommended_watcher(move |res: Result<Event, _>| {\n    match res {\n        Ok(event) => tx.send(event).unwrap(),\n        Err(e) => eprintln!(\"Watch error: {:?}\", e),\n    }\n})?;\nwatcher.watch(path, RecursiveMode::NonRecursive)?;"
+    }
+  ]
+}

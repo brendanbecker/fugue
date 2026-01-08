@@ -1,0 +1,189 @@
+{
+  "document": {
+    "title": "Architectural Blueprint for ccmux: A Semantic Terminal Multiplexer for Claude Code",
+    "source_path": "/home/becker/projects/tools/ccmux/docs/research/gemini_research.md",
+    "total_lines": 528,
+    "estimated_total_tokens": 8500,
+    "parsing_metadata": {
+      "parsed_at": "2026-01-07",
+      "target_chunk_size": "400-900 tokens"
+    }
+  },
+  "sections": [
+    {
+      "id": "1",
+      "title": "Terminal Emulation in Rust",
+      "level": 2,
+      "line_range": [3, 119],
+      "token_estimate": 1450,
+      "children": [
+        {
+          "id": "1.1",
+          "title": "PTY Spawning and Management",
+          "level": 3,
+          "line_range": [7, 63],
+          "token_estimate": 700,
+          "children": [
+            {"id": "1.1.1", "title": "State of the Art: portable-pty", "level": 4, "line_range": [11, 27], "token_estimate": 180},
+            {"id": "1.1.2", "title": "Bidirectional I/O and Resizing", "level": 4, "line_range": [28, 45], "token_estimate": 180},
+            {"id": "1.1.3", "title": "Implementation Strategy for ccmux", "level": 4, "line_range": [46, 63], "token_estimate": 340}
+          ]
+        },
+        {
+          "id": "1.2",
+          "title": "Terminal State Parsing",
+          "level": 3,
+          "line_range": [64, 90],
+          "token_estimate": 420,
+          "children": [
+            {"id": "1.2.1", "title": "alacritty_terminal vs. vt100", "level": 4, "line_range": [68, 79], "token_estimate": 280},
+            {"id": "1.2.2", "title": "Data Structures and Storage", "level": 4, "line_range": [80, 90], "token_estimate": 140}
+          ]
+        },
+        {
+          "id": "1.3",
+          "title": "Rendering Through Ratatui",
+          "level": 3,
+          "line_range": [91, 111],
+          "token_estimate": 280,
+          "children": [
+            {"id": "1.3.1", "title": "Adapter Pattern Implementation", "level": 4, "line_range": [95, 111], "token_estimate": 220}
+          ]
+        },
+        {"id": "1.4", "title": "Terminal Capabilities", "level": 3, "line_range": [112, 119], "token_estimate": 120}
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Claude Code Internals",
+      "level": 2,
+      "line_range": [120, 176],
+      "token_estimate": 850,
+      "children": [
+        {"id": "2.1", "title": "State Detection via Visual Telemetry", "level": 3, "line_range": [127, 146], "token_estimate": 320},
+        {"id": "2.2", "title": "Output Structure", "level": 3, "line_range": [147, 159], "token_estimate": 200},
+        {"id": "2.3", "title": "Session Resume", "level": 3, "line_range": [160, 167], "token_estimate": 140},
+        {"id": "2.4", "title": "Programmatic Interaction", "level": 3, "line_range": [168, 176], "token_estimate": 100}
+      ]
+    },
+    {
+      "id": "3",
+      "title": "Crash Recovery for Terminal Multiplexers",
+      "level": 2,
+      "line_range": [177, 218],
+      "token_estimate": 680,
+      "children": [
+        {"id": "3.1", "title": "Architecture: The Daemon-Client Separation", "level": 3, "line_range": [181, 191], "token_estimate": 180},
+        {
+          "id": "3.2",
+          "title": "Persistence Strategies",
+          "level": 3,
+          "line_range": [192, 208],
+          "token_estimate": 280,
+          "children": [
+            {"id": "3.2.1", "title": "State That Must Be Persisted", "level": 4, "line_range": [195, 200], "token_estimate": 80},
+            {"id": "3.2.2", "title": "Persistence Mechanisms", "level": 4, "line_range": [201, 208], "token_estimate": 200}
+          ]
+        },
+        {"id": "3.3", "title": "Adopting Orphaned PTYs", "level": 3, "line_range": [209, 218], "token_estimate": 180}
+      ]
+    },
+    {
+      "id": "4",
+      "title": "Prior Art in Terminal Multiplexers",
+      "level": 2,
+      "line_range": [219, 258],
+      "token_estimate": 520,
+      "children": [
+        {"id": "4.1", "title": "tmux", "level": 3, "line_range": [224, 229], "token_estimate": 80},
+        {"id": "4.2", "title": "Zellij", "level": 3, "line_range": [230, 236], "token_estimate": 100},
+        {"id": "4.3", "title": "WezTerm Mux", "level": 3, "line_range": [237, 243], "token_estimate": 100},
+        {"id": "4.4", "title": "shpool", "level": 3, "line_range": [244, 247], "token_estimate": 80},
+        {"id": "4.5", "title": "Comparison Matrix", "level": 3, "line_range": [248, 258], "token_estimate": 160}
+      ]
+    },
+    {
+      "id": "5",
+      "title": "Hot-Reload Configuration Patterns",
+      "level": 2,
+      "line_range": [259, 299],
+      "token_estimate": 480,
+      "children": [
+        {"id": "5.1", "title": "File Watching", "level": 3, "line_range": [263, 269], "token_estimate": 100},
+        {"id": "5.2", "title": "Atomic State Swapping", "level": 3, "line_range": [270, 290], "token_estimate": 260},
+        {"id": "5.3", "title": "State Migration", "level": 3, "line_range": [291, 299], "token_estimate": 120}
+      ]
+    },
+    {
+      "id": "6",
+      "title": "Claude Code Skills for Structured Output",
+      "level": 2,
+      "line_range": [300, 339],
+      "token_estimate": 520,
+      "children": [
+        {
+          "id": "6.1",
+          "title": "Teaching Structured Output via MCP",
+          "level": 3,
+          "line_range": [304, 322],
+          "token_estimate": 260,
+          "children": [
+            {"id": "6.1.1", "title": "ccmux as an MCP Server", "level": 4, "line_range": [308, 322], "token_estimate": 200}
+          ]
+        },
+        {"id": "6.2", "title": "Fallback Protocol: The Sideband", "level": 3, "line_range": [323, 334], "token_estimate": 160},
+        {"id": "6.3", "title": "Reliability", "level": 3, "line_range": [335, 339], "token_estimate": 80}
+      ]
+    },
+    {
+      "id": "7",
+      "title": "Recursion and Orchestration Patterns",
+      "level": 2,
+      "line_range": [340, 368],
+      "token_estimate": 400,
+      "children": [
+        {"id": "7.1", "title": "Supervision Trees (The Actor Model)", "level": 3, "line_range": [344, 361], "token_estimate": 260},
+        {"id": "7.2", "title": "Resource Management", "level": 3, "line_range": [362, 368], "token_estimate": 120}
+      ]
+    },
+    {
+      "id": "deliverables",
+      "title": "Deliverables",
+      "level": 2,
+      "line_range": [369, 388],
+      "token_estimate": 280,
+      "children": [
+        {"id": "phase1", "title": "Phase 1: Foundation (The Blind Multiplexer)", "level": 3, "line_range": [371, 376], "token_estimate": 80},
+        {"id": "phase2", "title": "Phase 2: Claude Awareness", "level": 3, "line_range": [377, 382], "token_estimate": 80},
+        {"id": "phase3", "title": "Phase 3: Robustness (The Platform)", "level": 3, "line_range": [383, 388], "token_estimate": 80}
+      ]
+    },
+    {
+      "id": "code_examples",
+      "title": "Code Examples",
+      "level": 2,
+      "line_range": [389, 474],
+      "token_estimate": 900,
+      "children": [
+        {"id": "code1", "title": "Alacritty to Ratatui Adapter", "level": 3, "line_range": [391, 441], "token_estimate": 520},
+        {"id": "code2", "title": "Hot-Reload Config with ArcSwap", "level": 3, "line_range": [442, 474], "token_estimate": 380}
+      ]
+    },
+    {
+      "id": "conclusion",
+      "title": "Conclusion",
+      "level": 2,
+      "line_range": [475, 478],
+      "token_estimate": 180,
+      "children": []
+    },
+    {
+      "id": "references",
+      "title": "Works Cited",
+      "level": 3,
+      "line_range": [479, 528],
+      "token_estimate": 1200,
+      "children": []
+    }
+  ]
+}

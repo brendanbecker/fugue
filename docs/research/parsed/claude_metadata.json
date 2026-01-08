@@ -1,0 +1,121 @@
+{
+  "document": {
+    "title": "Building ccmux: A Claude Code-Aware Terminal Multiplexer in Rust",
+    "source_path": "/home/becker/projects/tools/ccmux/docs/research/claude_research.md"
+  },
+  "crates": {
+    "core_stack": [
+      {"name": "portable-pty", "version": "0.9", "purpose": "Cross-platform PTY management", "source": "WezTerm ecosystem", "section": "1.1"},
+      {"name": "vt100", "version": "0.16", "purpose": "Terminal state parsing with diff support", "section": "1.2"},
+      {"name": "ratatui", "version": "0.29", "purpose": "TUI rendering framework", "section": "1.3"},
+      {"name": "crossterm", "version": "0.28", "purpose": "Terminal backend for ratatui", "section": "1.4"},
+      {"name": "tui-term", "version": "0.2", "purpose": "Render vt100 screens in ratatui", "section": "1.3"},
+      {"name": "tokio", "version": "1", "features": ["full"], "purpose": "Async runtime", "section": "1.4"}
+    ],
+    "persistence": [
+      {"name": "bincode", "purpose": "Fast serialization (~24B overhead, ~0.1us)", "section": "3.1"},
+      {"name": "okaywal", "purpose": "Write-ahead log for operations", "section": "3.2"}
+    ],
+    "configuration": [
+      {"name": "notify", "purpose": "File watching with platform backends", "section": "5.1"},
+      {"name": "serde_valid", "purpose": "Config validation with constraints", "section": "5.3"}
+    ],
+    "resources": [
+      {"name": "cgroups-rs", "purpose": "Resource limits (memory, CPU, processes)", "section": "7.4"}
+    ],
+    "alternatives_mentioned": [
+      {"name": "alacritty_terminal", "purpose": "Fuller xterm emulation", "tradeoff": "More complex API, requires EventListener", "section": "1.2"},
+      {"name": "htmlparser", "purpose": "Streaming XML tag parsing", "section": "6.3"}
+    ]
+  },
+  "code_blocks": [
+    {"language": "rust", "purpose": "PTY spawn and read pattern", "lines": [15, 43], "section": "1.1"},
+    {"language": "rust", "purpose": "vt100 parser with diff", "lines": [51, 65], "section": "1.2"},
+    {"language": "rust", "purpose": "Ratatui PseudoTerminal render", "lines": [74, 82], "section": "1.3"},
+    {"language": "toml", "purpose": "Recommended dependencies", "lines": [88, 96], "section": "1.4"},
+    {"language": "bash", "purpose": "stream-json usage", "lines": [118, 127], "section": "2.2"},
+    {"language": "text", "purpose": "Claude session directory structure", "lines": [135, 144], "section": "2.3"},
+    {"language": "rust", "purpose": "TerminalState struct", "lines": [171, 189], "section": "3.1"},
+    {"language": "rust", "purpose": "WAL and checkpoint pattern", "lines": [203, 218], "section": "3.2"},
+    {"language": "rust", "purpose": "ClaudeSessionInfo struct", "lines": [225, 239], "section": "3.3"},
+    {"language": "text", "purpose": "Recommended ccmux crate structure", "lines": [291, 297], "section": "4.4"},
+    {"language": "rust", "purpose": "File watcher with debounce", "lines": [309, 345], "section": "5.1"},
+    {"language": "rust", "purpose": "Config diff categorization", "lines": [352, 377], "section": "5.2"},
+    {"language": "rust", "purpose": "serde_valid config validation", "lines": [381, 404], "section": "5.3"},
+    {"language": "xml", "purpose": "ccmux protocol examples", "lines": [416, 431], "section": "6.1"},
+    {"language": "markdown", "purpose": "SKILL.md definition", "lines": [437, 456], "section": "6.2"},
+    {"language": "rust", "purpose": "Streaming XML parser", "lines": [462, 490], "section": "6.3"},
+    {"language": "xml", "purpose": "Flat nesting with parent refs", "lines": [497, 505], "section": "6.4"},
+    {"language": "rust", "purpose": "Depth enforcement", "lines": [515, 537], "section": "7.1"},
+    {"language": "rust", "purpose": "SessionTree supervision", "lines": [541, 563], "section": "7.2"},
+    {"language": "rust", "purpose": "cgroups resource limits", "lines": [577, 596], "section": "7.4"},
+    {"language": "rust", "purpose": "Fan-out orchestration", "lines": [601, 612], "section": "7.5"}
+  ],
+  "key_terms": {
+    "architectural_patterns": [
+      "client-server model",
+      "multi-crate workspace",
+      "hybrid checkpoint + WAL",
+      "OTP supervision",
+      "one_for_one strategy",
+      "simple_one_for_one strategy",
+      "fan-out orchestration"
+    ],
+    "claude_code_specific": [
+      "stream-json output format",
+      "JSONL session files",
+      "session resume via --resume",
+      "SKILL.md protocol definition",
+      "PTY-based state detection",
+      "ASCII flower spinner"
+    ],
+    "terminal_concepts": [
+      "PTY master/slave",
+      "escape sequence parsing",
+      "contents_diff()",
+      "scrollback buffer",
+      "alternate screen",
+      "SIGWINCH",
+      "bracketed paste mode"
+    ]
+  },
+  "paths": {
+    "claude_storage": [
+      "~/.claude/",
+      "~/.claude/projects/[encoded-path]/[uuid].jsonl",
+      "~/.claude/history.jsonl",
+      "~/.claude/settings.json",
+      "~/.claude/CLAUDE.md"
+    ],
+    "skills": [
+      ".claude/skills/ccmux/SKILL.md",
+      "~/.claude/skills/ccmux/SKILL.md"
+    ]
+  },
+  "environment_variables": [
+    {"name": "ANTHROPIC_API_KEY", "purpose": "API authentication"},
+    {"name": "CLAUDE_CONFIG_DIR", "purpose": "Relocate ~/.claude directory"},
+    {"name": "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "purpose": "Disable telemetry"},
+    {"name": "FORCE_COLOR", "value": "0", "purpose": "Disable colored output for parsing"},
+    {"name": "MAX_THINKING_TOKENS", "purpose": "Control thinking budget"},
+    {"name": "CCMUX_SESSION_DEPTH", "purpose": "Track recursion depth"},
+    {"name": "CCMUX_PARENT_ID", "purpose": "Track parent session for tree"}
+  ],
+  "cli_commands": [
+    {"command": "claude -p --output-format stream-json \"query\"", "purpose": "Structured streaming output"},
+    {"command": "claude --continue", "alias": "-c", "purpose": "Resume most recent session"},
+    {"command": "claude --resume <session-id>", "alias": "-r", "purpose": "Resume specific session"},
+    {"command": "claude --session-id \"uuid\"", "purpose": "Start with explicit ID"}
+  ],
+  "recommended_defaults": {
+    "max_depth": 5,
+    "max_concurrent_sessions": "8-16",
+    "session_timeout_seconds": 300,
+    "restart_intensity": "3 per 60s",
+    "memory_per_session_gb": 2,
+    "checkpoint_interval_seconds": "30-60",
+    "debounce_delay_ms": 50,
+    "render_throttle_ms": 16,
+    "parser_timeout_seconds": 5
+  }
+}

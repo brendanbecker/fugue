@@ -1,0 +1,27 @@
+{
+  "$schema": "./settings.schema.json",
+  "version": "0.1.0",
+  "session": {
+    "auto_save_interval_seconds": 30,
+    "max_scrollback_lines": 10000,
+    "crash_recovery": true
+  },
+  "claude_code": {
+    "detect_state": true,
+    "highlight_thinking": true,
+    "auto_resume_on_crash": true
+  },
+  "layout": {
+    "default_split": "horizontal",
+    "border_style": "rounded"
+  },
+  "keybindings": {
+    "prefix": "Ctrl+b",
+    "split_horizontal": "prefix + -",
+    "split_vertical": "prefix + |",
+    "navigate_left": "prefix + h",
+    "navigate_right": "prefix + l",
+    "navigate_up": "prefix + k",
+    "navigate_down": "prefix + j"
+  }
+}

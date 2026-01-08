@@ -1,0 +1,40 @@
+{
+  "version": "1.0.0",
+  "project_name": "ccmux",
+  "project_type": "standard",
+  "duplicate_similarity_threshold": 0.75,
+  "available_tags": [
+    "terminal",
+    "pty",
+    "tui",
+    "ratatui",
+    "claude-code",
+    "session-management",
+    "crash-recovery",
+    "orchestration",
+    "config",
+    "rendering",
+    "parsing",
+    "performance",
+    "security",
+    "documentation",
+    "bug",
+    "enhancement",
+    "feature-request"
+  ],
+  "component_detection_keywords": {
+    "pty": ["pty", "portable-pty", "spawn", "process"],
+    "terminal": ["terminal", "vt100", "ansi", "escape"],
+    "tui": ["ratatui", "crossterm", "widget", "render"],
+    "session": ["session", "state", "persistence", "recovery"],
+    "claude": ["claude", "claude-code", "detection", "resume"],
+    "config": ["config", "settings", "hot-reload", "notify"],
+    "orchestration": ["spawn", "child", "parent", "tree", "recursion"]
+  },
+  "severity_keywords": {
+    "critical": ["crash", "data loss", "security", "down", "broken", "unavailable"],
+    "high": ["error", "broken", "not working", "fails"],
+    "medium": ["issue", "problem", "incorrect"],
+    "low": ["typo", "cosmetic", "minor", "suggestion"]
+  }
+}

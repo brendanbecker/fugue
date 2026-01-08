@@ -1,0 +1,233 @@
+{
+  "document": {
+    "title": "ccmux Deep Research",
+    "source_path": "/home/becker/projects/tools/ccmux/docs/research/chatgpt_research.pdf",
+    "total_pages": 49,
+    "estimated_total_tokens": 12000,
+    "parsing_metadata": {
+      "parsed_at": "2026-01-07",
+      "target_chunk_size": "400-900 tokens",
+      "format": "PDF"
+    }
+  },
+  "sections": [
+    {
+      "id": "1",
+      "title": "Terminal Emulation in Rust",
+      "level": 1,
+      "page_range": [1, 12],
+      "token_estimate": 3200,
+      "children": [
+        {
+          "id": "1.1",
+          "title": "Executive Summary",
+          "level": 2,
+          "page_range": [1, 2],
+          "token_estimate": 300
+        },
+        {
+          "id": "1.2",
+          "title": "Detailed Analysis",
+          "level": 2,
+          "page_range": [2, 11],
+          "token_estimate": 2600,
+          "children": [
+            {"id": "1.2.1", "title": "PTY Spawning", "level": 3, "page_range": [2, 4], "token_estimate": 500},
+            {"id": "1.2.2", "title": "Terminal State Parsing (vt100, alacritty_terminal, vte)", "level": 3, "page_range": [4, 6], "token_estimate": 600},
+            {"id": "1.2.3", "title": "Rendering with Ratatui", "level": 3, "page_range": [6, 7], "token_estimate": 400},
+            {"id": "1.2.4", "title": "Tmux Implementation Details", "level": 3, "page_range": [7, 8], "token_estimate": 300},
+            {"id": "1.2.5", "title": "Zellij Implementation", "level": 3, "page_range": [8, 9], "token_estimate": 300},
+            {"id": "1.2.6", "title": "WezTerm Implementation", "level": 3, "page_range": [9, 10], "token_estimate": 300},
+            {"id": "1.2.7", "title": "Integration with Ratatui", "level": 3, "page_range": [10, 11], "token_estimate": 200}
+          ]
+        },
+        {
+          "id": "1.3",
+          "title": "Recommended Approach for ccmux",
+          "level": 2,
+          "page_range": [11, 12],
+          "token_estimate": 300
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Claude Code Internals",
+      "level": 1,
+      "page_range": [12, 24],
+      "token_estimate": 3000,
+      "children": [
+        {
+          "id": "2.1",
+          "title": "Executive Summary",
+          "level": 2,
+          "page_range": [12, 13],
+          "token_estimate": 350
+        },
+        {
+          "id": "2.2",
+          "title": "Detailed Analysis",
+          "level": 2,
+          "page_range": [13, 22],
+          "token_estimate": 2400,
+          "children": [
+            {"id": "2.2.1", "title": "State Detection (Thinking/Waiting/Complete)", "level": 3, "page_range": [13, 15], "token_estimate": 400},
+            {"id": "2.2.2", "title": "Output Structure & Hidden Data", "level": 3, "page_range": [15, 16], "token_estimate": 300},
+            {"id": "2.2.3", "title": "Session Resume Implementation", "level": 3, "page_range": [16, 17], "token_estimate": 350},
+            {"id": "2.2.4", "title": "Session State Storage Details", "level": 3, "page_range": [17, 18], "token_estimate": 350},
+            {"id": "2.2.5", "title": "Interacting Programmatically", "level": 3, "page_range": [18, 19], "token_estimate": 300},
+            {"id": "2.2.6", "title": "CLI Flags of Interest", "level": 3, "page_range": [19, 20], "token_estimate": 250},
+            {"id": "2.2.7", "title": "Directory Structure", "level": 3, "page_range": [20, 21], "token_estimate": 200},
+            {"id": "2.2.10", "title": "Environment Variables", "level": 3, "page_range": [21, 22], "token_estimate": 250}
+          ]
+        },
+        {
+          "id": "2.3",
+          "title": "Recommended Approach for ccmux Integration",
+          "level": 2,
+          "page_range": [22, 24],
+          "token_estimate": 250
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "title": "Crash Recovery for Terminal Multiplexers",
+      "level": 1,
+      "page_range": [24, 32],
+      "token_estimate": 2200,
+      "children": [
+        {
+          "id": "3.1",
+          "title": "Executive Summary",
+          "level": 2,
+          "page_range": [24, 25],
+          "token_estimate": 300
+        },
+        {
+          "id": "3.2",
+          "title": "Detailed Analysis",
+          "level": 2,
+          "page_range": [25, 30],
+          "token_estimate": 1500,
+          "children": [
+            {"id": "3.2.1", "title": "State That Must Be Persisted", "level": 3, "page_range": [25, 26], "token_estimate": 300},
+            {"id": "3.2.2", "title": "Persistence Strategies", "level": 3, "page_range": [26, 27], "token_estimate": 350},
+            {"id": "3.2.3", "title": "Adopting Orphaned PTYs", "level": 3, "page_range": [27, 28], "token_estimate": 300},
+            {"id": "3.2.4", "title": "Tmux's Approach", "level": 3, "page_range": [28, 29], "token_estimate": 250},
+            {"id": "3.2.6", "title": "CRIU Overview", "level": 3, "page_range": [29, 30], "token_estimate": 300}
+          ]
+        },
+        {
+          "id": "3.3",
+          "title": "Recommended Approach (Crash Recovery in ccmux)",
+          "level": 2,
+          "page_range": [30, 32],
+          "token_estimate": 400
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "title": "Prior Art in Terminal Multiplexers",
+      "level": 1,
+      "page_range": [32, 40],
+      "token_estimate": 2000,
+      "children": [
+        {
+          "id": "4.1",
+          "title": "Executive Summary",
+          "level": 2,
+          "page_range": [32, 33],
+          "token_estimate": 250
+        },
+        {
+          "id": "4.2",
+          "title": "Comparison Matrix",
+          "level": 2,
+          "page_range": [33, 34],
+          "token_estimate": 300
+        },
+        {
+          "id": "4.3",
+          "title": "Pain Points from Users",
+          "level": 2,
+          "page_range": [34, 35],
+          "token_estimate": 300
+        },
+        {
+          "id": "4.4",
+          "title": "Crate Structure of Zellij",
+          "level": 2,
+          "page_range": [35, 36],
+          "token_estimate": 250
+        },
+        {
+          "id": "4.9",
+          "title": "Recommended Approach (drawing from prior art)",
+          "level": 2,
+          "page_range": [36, 38],
+          "token_estimate": 400
+        },
+        {
+          "id": "4.12",
+          "title": "Open Questions",
+          "level": 2,
+          "page_range": [38, 40],
+          "token_estimate": 500
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "title": "Hot-Reload Configuration Patterns",
+      "level": 1,
+      "page_range": [40, 49],
+      "token_estimate": 1600,
+      "children": [
+        {
+          "id": "5.1",
+          "title": "Executive Summary",
+          "level": 2,
+          "page_range": [40, 41],
+          "token_estimate": 250
+        },
+        {
+          "id": "5.2",
+          "title": "File Watching Implementation",
+          "level": 2,
+          "page_range": [41, 43],
+          "token_estimate": 300
+        },
+        {
+          "id": "5.3",
+          "title": "Applying Config Changes",
+          "level": 2,
+          "page_range": [43, 44],
+          "token_estimate": 250
+        },
+        {
+          "id": "5.4",
+          "title": "Debouncing Rapid Changes",
+          "level": 2,
+          "page_range": [44, 45],
+          "token_estimate": 200
+        },
+        {
+          "id": "5.6",
+          "title": "Validation and Defaults",
+          "level": 2,
+          "page_range": [45, 46],
+          "token_estimate": 250
+        },
+        {
+          "id": "5.7",
+          "title": "Examples in Other Projects",
+          "level": 2,
+          "page_range": [46, 48],
+          "token_estimate": 350
+        }
+      ]
+    }
+  ]
+}
