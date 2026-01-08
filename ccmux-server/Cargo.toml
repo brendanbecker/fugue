@@ -16,6 +16,7 @@ ccmux-utils = { path = "../ccmux-utils" }
 
 # PTY management
 portable-pty = "0.9"
+parking_lot = "0.12"
 
 # Terminal parsing
 vt100 = "0.15"

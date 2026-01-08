@@ -157,6 +157,7 @@ dependencies = [
  "notify",
  "notify-debouncer-full",
  "okaywal",
+ "parking_lot",
  "portable-pty",
  "rmcp",
  "serde",
