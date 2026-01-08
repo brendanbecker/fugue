@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-011",
+  "title": "Client Connection - Unix Socket Client",
+  "component": "ccmux-client",
+  "priority": "P1",
+  "status": "completed",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["client", "connection", "ipc"],
+  "estimated_effort": "medium",
+  "dependencies": ["FEAT-007"],
+  "description": "Unix socket client connecting to ccmux-server, async message framing, connection state management, and reconnection logic.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Enables client applications to communicate with ccmux-server via Unix sockets with robust connection handling and automatic recovery"
+}

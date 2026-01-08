@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-009",
+  "title": "Client UI - Ratatui Terminal Interface",
+  "component": "ccmux-client",
+  "priority": "P1",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["client", "ui", "tui"],
+  "estimated_effort": "large",
+  "dependencies": ["FEAT-007", "FEAT-011"],
+  "description": "Ratatui-based terminal UI with pane rendering using tui-term, status bar, borders, and Claude state indicators.",
+  "business_value": "high",
+  "technical_complexity": "high",
+  "user_impact": "Provides the primary user interface for interacting with ccmux, enabling visual management of multiple Claude sessions with real-time state feedback"
+}

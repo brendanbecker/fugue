@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-004",
+  "title": "Worktree-Aware Orchestration",
+  "component": "orchestration",
+  "priority": "P2",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["orchestration", "session-management", "claude-code"],
+  "estimated_effort": "xl",
+  "dependencies": [],
+  "description": "Workers spawn in isolated git worktrees for parallel development. Orchestrator reads WAVES.md from scan-prioritize agent, spawns wave 1 workers in parallel (each in own worktree), on completion triggers merge queue followed by tests and retrospective, then spawns wave 2.",
+  "business_value": "high",
+  "technical_complexity": "high",
+  "user_impact": "Enables true parallel agent development with isolated workspaces, preventing merge conflicts and enabling concurrent feature development across multiple Claude Code instances"
+}

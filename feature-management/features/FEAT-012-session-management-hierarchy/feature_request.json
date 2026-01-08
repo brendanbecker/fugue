@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-012",
+  "title": "Session Management - Session/Window/Pane Hierarchy",
+  "component": "ccmux-server",
+  "priority": "P1",
+  "status": "completed",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["server", "session", "data-model"],
+  "estimated_effort": "medium",
+  "dependencies": ["FEAT-007"],
+  "description": "Session/Window/Pane hierarchy data model, CRUD operations, active selection tracking, and protocol type conversion.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Enables core session management capabilities with organized window/pane structure for terminal multiplexer functionality"
+}

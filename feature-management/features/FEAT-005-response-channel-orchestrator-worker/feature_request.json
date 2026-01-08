@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-005",
+  "title": "Response Channel for Orchestrator-Worker Communication",
+  "component": "orchestration",
+  "priority": "P1",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["orchestration", "ipc", "claude-integration"],
+  "estimated_effort": "medium",
+  "dependencies": [],
+  "description": "Orchestrator can respond to worker input prompts without switching panes using /reply command. Only delivers to sessions in input-wait state (AwaitingConfirmation). Not an interrupt mechanism.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Enables seamless orchestrator-worker communication without context switching, improving multi-agent workflow efficiency"
+}

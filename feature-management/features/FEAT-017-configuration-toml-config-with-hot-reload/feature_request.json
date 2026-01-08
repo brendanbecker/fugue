@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-017",
+  "title": "Configuration - TOML Config with Hot Reload",
+  "component": "ccmux-server",
+  "priority": "P2",
+  "status": "completed",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["server", "config", "hot-reload"],
+  "estimated_effort": "medium",
+  "dependencies": ["FEAT-008"],
+  "description": "TOML configuration with hot-reload via notify, lock-free access using ArcSwap, and validation.",
+  "business_value": "medium",
+  "technical_complexity": "medium",
+  "user_impact": "Enables runtime configuration changes without restart, with validated settings and XDG-compliant file locations"
+}

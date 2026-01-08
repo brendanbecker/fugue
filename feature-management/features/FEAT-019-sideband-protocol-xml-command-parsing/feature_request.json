@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-019",
+  "title": "Sideband Protocol - XML Command Parsing from Claude Output",
+  "component": "ccmux-server",
+  "priority": "P2",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["server", "sideband", "claude-integration"],
+  "estimated_effort": "medium",
+  "dependencies": ["FEAT-014"],
+  "description": "Parse XML-style commands from Claude output (`<ccmux:spawn>`, `<ccmux:input>`) for lightweight Claude-ccmux communication.",
+  "business_value": "medium",
+  "technical_complexity": "medium",
+  "user_impact": "Enables Claude to communicate with ccmux via structured XML commands embedded in terminal output, allowing dynamic pane spawning, input injection, and UI control"
+}

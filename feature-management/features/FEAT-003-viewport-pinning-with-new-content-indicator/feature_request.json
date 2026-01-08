@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-003",
+  "title": "Viewport Pinning with New Content Indicator",
+  "component": "tui",
+  "priority": "P2",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["tui", "ratatui", "rendering", "terminal"],
+  "estimated_effort": "medium",
+  "dependencies": [],
+  "description": "When user scrolls up in a pane, new output buffers without yanking viewport. Visual indicator shows number of new lines below with click/keypress to jump to bottom. Supports both smooth scroll and instant jump options.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Users can review previous output without losing context when new content arrives, significantly improving the experience when monitoring long-running processes or reviewing Claude Code output."
+}

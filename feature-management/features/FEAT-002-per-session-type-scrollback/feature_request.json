@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-002",
+  "title": "Per-Session-Type Scrollback Configuration",
+  "component": "config",
+  "priority": "P1",
+  "status": "new",
+  "type": "enhancement",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["config", "terminal", "pty", "performance"],
+  "estimated_effort": "medium",
+  "dependencies": [],
+  "description": "Support per-session-type buffer sizes instead of global-only scrollback. Enable configuration like: scrollback: { orchestrator: 50000, worker: 500, default: 1000 }. Also support runtime override at spawn time via <ccmux:spawn scrollback=\"10000\"> directive.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Enables fine-grained memory management for multi-agent orchestration scenarios where orchestrator sessions need large scrollback buffers while ephemeral worker sessions need minimal memory footprint."
+}

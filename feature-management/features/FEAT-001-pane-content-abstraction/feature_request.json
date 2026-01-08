@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-001",
+  "title": "Pane Content Abstraction (Terminal vs Canvas)",
+  "component": "session/pane",
+  "priority": "P1",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["terminal", "tui", "ratatui", "rendering", "enhancement"],
+  "estimated_effort": "large",
+  "dependencies": [],
+  "description": "Panes should not be tightly coupled to PTY sessions. Design for multiple content types using a PaneContent enum that supports Terminal (PTY + vt100 parser + buffer) and Canvas (structured interactive widget) variants. This enables spawning rich interactive views like diff viewers and test results viewers via sideband commands.",
+  "business_value": "high",
+  "technical_complexity": "high",
+  "user_impact": "Enables rich interactive content beyond terminal output, allowing Claude Code to spawn structured widgets like diff viewers and test result displays for improved developer experience."
+}

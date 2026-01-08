@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-016",
+  "title": "Persistence - Checkpoint and WAL for Crash Recovery",
+  "component": "ccmux-server",
+  "priority": "P2",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["server", "persistence", "recovery"],
+  "estimated_effort": "large",
+  "dependencies": ["FEAT-012"],
+  "description": "Checkpoint + WAL persistence using okaywal and bincode for crash recovery, session state serialization.",
+  "business_value": "medium",
+  "technical_complexity": "high",
+  "user_impact": "Enables reliable session recovery after server crashes or restarts, preserving terminal state and scrollback buffers"
+}

@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-007",
+  "title": "Protocol Layer - IPC Message Types and Codec",
+  "component": "ccmux-protocol",
+  "priority": "P1",
+  "status": "completed",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["protocol", "ipc", "foundation"],
+  "estimated_effort": "medium",
+  "dependencies": [],
+  "description": "Client/server IPC message types (ClientMessage, ServerMessage), shared data types (SessionInfo, PaneInfo, ClaudeState), and tokio codec for length-prefixed bincode framing.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Enables reliable client-server communication as the foundation for all ccmux functionality"
+}

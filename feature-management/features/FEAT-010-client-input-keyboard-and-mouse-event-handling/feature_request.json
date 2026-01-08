@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-010",
+  "title": "Client Input - Keyboard and Mouse Event Handling",
+  "component": "ccmux-client",
+  "priority": "P1",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["client", "input", "keybindings"],
+  "estimated_effort": "medium",
+  "dependencies": ["FEAT-009"],
+  "description": "Keyboard and mouse event handling via crossterm, prefix key support (tmux-style), and input routing to active pane.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Enables intuitive keyboard-driven navigation and mouse interaction for pane management, essential for terminal multiplexer usability"
+}

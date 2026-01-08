@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-014",
+  "title": "Terminal Parsing - ANSI/VT100 State Machine",
+  "component": "ccmux-server",
+  "priority": "P1",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["server", "terminal", "parsing"],
+  "estimated_effort": "medium",
+  "dependencies": ["FEAT-013"],
+  "description": "ANSI/VT100 terminal state parsing using vt100 crate, screen buffer management, and escape sequence handling.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Enables accurate terminal rendering with proper ANSI escape sequence handling, cursor tracking, and efficient diff-based updates"
+}

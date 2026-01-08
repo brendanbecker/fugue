@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-018",
+  "title": "MCP Server - Model Context Protocol Integration",
+  "component": "ccmux-server",
+  "priority": "P2",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["server", "mcp", "claude-integration"],
+  "estimated_effort": "large",
+  "dependencies": ["FEAT-012", "FEAT-015"],
+  "description": "Model Context Protocol server exposing tools for Claude to interact with ccmux (list panes, send input, create panes).",
+  "business_value": "medium",
+  "technical_complexity": "high",
+  "user_impact": "Enables Claude to directly interact with ccmux sessions, allowing AI-driven terminal automation and orchestration"
+}

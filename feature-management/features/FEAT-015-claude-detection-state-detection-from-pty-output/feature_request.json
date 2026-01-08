@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-015",
+  "title": "Claude Detection - State Detection from PTY Output",
+  "component": "ccmux-server",
+  "priority": "P1",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["server", "claude", "detection"],
+  "estimated_effort": "large",
+  "dependencies": ["FEAT-014"],
+  "description": "Detect Claude Code state from PTY output (thinking, idle, tool use), capture session IDs, and emit state change events.",
+  "business_value": "high",
+  "technical_complexity": "high",
+  "user_impact": "Enables visual state indicators and intelligent orchestration based on Claude Code activity state"
+}

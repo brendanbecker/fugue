@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-006",
+  "title": "Per-Session Log Levels and Storage",
+  "component": "logging",
+  "priority": "P2",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["session-management", "config", "performance"],
+  "estimated_effort": "medium",
+  "dependencies": [],
+  "description": "Per-session logging with configurable levels (spawns, signals, prompts, full) stored in .ccmux/logs/{session_id}/. Includes log rotation, structured format, runtime level changes, and audit trail separation.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Enables fine-grained debugging and audit capabilities per session without impacting global log verbosity or storage"
+}

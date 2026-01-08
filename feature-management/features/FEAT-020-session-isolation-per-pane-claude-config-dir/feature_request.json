@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-020",
+  "title": "Session Isolation - Per-Pane CLAUDE_CONFIG_DIR",
+  "component": "ccmux-server",
+  "priority": "P1",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["server", "isolation", "claude-integration"],
+  "estimated_effort": "small",
+  "dependencies": ["FEAT-013", "FEAT-015"],
+  "description": "CLAUDE_CONFIG_DIR per pane for concurrent Claude instances, preventing config file conflicts.",
+  "business_value": "high",
+  "technical_complexity": "low",
+  "user_impact": "Enables running multiple concurrent Claude instances without configuration conflicts, supporting parallel development workflows"
+}

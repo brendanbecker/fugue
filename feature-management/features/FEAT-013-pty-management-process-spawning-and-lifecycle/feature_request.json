@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-013",
+  "title": "PTY Management - Process Spawning and Lifecycle",
+  "component": "ccmux-server",
+  "priority": "P1",
+  "status": "completed",
+  "type": "new_feature",
+  "created_date": "2026-01-08",
+  "updated_date": "2026-01-08",
+  "assigned_to": null,
+  "tags": ["server", "pty", "process"],
+  "estimated_effort": "medium",
+  "dependencies": [],
+  "description": "PTY spawning via portable-pty, process lifecycle management (spawn/kill/wait), resize support, and async I/O.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Enables core terminal functionality with proper PTY handling, process management, and responsive terminal resizing"
+}
