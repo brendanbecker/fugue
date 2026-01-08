@@ -173,6 +173,7 @@ name = "ccmux-utils"
 version = "0.1.0"
 dependencies = [
  "directories",
+ "libc",
  "thiserror 1.0.69",
  "tracing",
  "tracing-subscriber",

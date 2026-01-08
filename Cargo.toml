@@ -38,6 +38,9 @@ bytes = "1"
 # XDG paths
 directories = "5"
 
+# System calls (for getuid)
+libc = "0.2"
+
 [profile.release]
 lto = true
 codegen-units = 1
