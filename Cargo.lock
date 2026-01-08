@@ -164,6 +164,7 @@ dependencies = [
  "portable-pty",
  "rmcp",
  "serde",
+ "tempfile",
  "tokio",
  "tokio-util",
  "toml",
