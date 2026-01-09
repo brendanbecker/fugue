@@ -161,7 +161,8 @@ mod tests {
         let (tx, _rx) = mpsc::channel(10);
         let client_id = registry.register_client(tx);
 
-        HandlerContext::new(session_manager, pty_manager, registry, client_id)
+        let (pane_closed_tx, _) = mpsc::channel(10);
+        HandlerContext::new(session_manager, pty_manager, registry, client_id, pane_closed_tx)
     }
 
     fn create_test_message() -> OrchestrationMessage {

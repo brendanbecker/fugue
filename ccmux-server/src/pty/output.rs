@@ -73,6 +73,13 @@ impl PollerHandle {
     }
 }
 
+/// Notification sent when a pane's PTY process exits
+#[derive(Debug, Clone)]
+pub struct PaneClosedNotification {
+    pub session_id: Uuid,
+    pub pane_id: Uuid,
+}
+
 /// PTY output poller that reads from a PTY and broadcasts to session clients
 ///
 /// Each pane gets its own poller instance that runs in a background task.
@@ -98,6 +105,8 @@ pub struct PtyOutputPoller {
     cancel_token: CancellationToken,
     /// Last time we received data (for timeout flush)
     last_data_time: Instant,
+    /// Channel to notify server when pane closes (for cleanup)
+    pane_closed_tx: Option<mpsc::Sender<PaneClosedNotification>>,
 }
 
 impl PtyOutputPoller {
@@ -110,7 +119,21 @@ impl PtyOutputPoller {
         pty_reader: Arc<Mutex<Box<dyn Read + Send>>>,
         registry: Arc<ClientRegistry>,
     ) -> PollerHandle {
-        Self::spawn_with_config(pane_id, session_id, pty_reader, registry, OutputPollerConfig::default())
+        Self::spawn_with_cleanup(pane_id, session_id, pty_reader, registry, None)
+    }
+
+    /// Spawn a new output poller with a cleanup notification channel
+    ///
+    /// When the PTY process exits, the poller will send a notification through
+    /// the provided channel so the server can clean up the pane from session state.
+    pub fn spawn_with_cleanup(
+        pane_id: Uuid,
+        session_id: Uuid,
+        pty_reader: Arc<Mutex<Box<dyn Read + Send>>>,
+        registry: Arc<ClientRegistry>,
+        pane_closed_tx: Option<mpsc::Sender<PaneClosedNotification>>,
+    ) -> PollerHandle {
+        Self::spawn_with_config(pane_id, session_id, pty_reader, registry, OutputPollerConfig::default(), pane_closed_tx)
     }
 
     /// Spawn a new output poller with custom configuration
@@ -120,6 +143,7 @@ impl PtyOutputPoller {
         pty_reader: Arc<Mutex<Box<dyn Read + Send>>>,
         registry: Arc<ClientRegistry>,
         config: OutputPollerConfig,
+        pane_closed_tx: Option<mpsc::Sender<PaneClosedNotification>>,
     ) -> PollerHandle {
         let cancel_token = CancellationToken::new();
         let poller = Self {
@@ -131,6 +155,7 @@ impl PtyOutputPoller {
             config,
             cancel_token: cancel_token.clone(),
             last_data_time: Instant::now(),
+            pane_closed_tx,
         };
 
         let join_handle = tokio::spawn(poller.run());
@@ -218,6 +243,23 @@ impl PtyOutputPoller {
             exit_code: None, // We don't have access to the exit code here
         };
         self.registry.broadcast_to_session(self.session_id, close_msg).await;
+
+        // Notify server to clean up the pane from session state
+        // (only if we have a cleanup channel - this allows the server to
+        // remove zombie panes and empty sessions)
+        if let Some(tx) = &self.pane_closed_tx {
+            let notification = PaneClosedNotification {
+                session_id: self.session_id,
+                pane_id: self.pane_id,
+            };
+            if let Err(e) = tx.send(notification).await {
+                warn!(
+                    pane_id = %self.pane_id,
+                    error = %e,
+                    "Failed to send pane cleanup notification"
+                );
+            }
+        }
 
         info!(
             pane_id = %self.pane_id,
@@ -376,16 +418,37 @@ enum ReadResult {
 ///
 /// Provides a central place to track, start, and stop output pollers.
 /// Use this to ensure pollers are properly cleaned up when panes close.
-#[derive(Default)]
 pub struct PollerManager {
     /// Active pollers by pane ID
     handles: std::collections::HashMap<Uuid, PollerHandle>,
+    /// Channel to notify server when panes close
+    pane_closed_tx: Option<mpsc::Sender<PaneClosedNotification>>,
+}
+
+impl Default for PollerManager {
+    fn default() -> Self {
+        Self {
+            handles: std::collections::HashMap::new(),
+            pane_closed_tx: None,
+        }
+    }
 }
 
 impl PollerManager {
     /// Create a new empty poller manager
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Create a new poller manager with a cleanup notification channel
+    ///
+    /// When a pane's PTY process exits, the poller will send a notification
+    /// through this channel so the server can clean up the pane from session state.
+    pub fn with_cleanup_channel(pane_closed_tx: mpsc::Sender<PaneClosedNotification>) -> Self {
+        Self {
+            handles: std::collections::HashMap::new(),
+            pane_closed_tx: Some(pane_closed_tx),
+        }
     }
 
     /// Start a new poller for a pane
@@ -422,6 +485,7 @@ impl PollerManager {
             pty_reader,
             registry,
             config,
+            self.pane_closed_tx.clone(),
         );
 
         self.handles.insert(pane_id, handle);
@@ -664,6 +728,7 @@ mod tests {
             reader,
             registry,
             config,
+            None, // No cleanup channel for test
         );
 
         // Should work with custom config

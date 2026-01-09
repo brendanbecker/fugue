@@ -4,10 +4,10 @@
 **Last Updated**: 2026-01-09
 
 ## Summary Statistics
-- Total Bugs: 1
+- Total Bugs: 3
 - New: 1
 - In Progress: 0
-- Resolved: 0
+- Resolved: 1
 
 ## Bugs by Priority
 
@@ -15,9 +15,26 @@
 
 *No P0 bugs*
 
-### P1 - High Priority (0)
+### P1 - High Priority (1)
 
-*No P1 bugs*
+#### BUG-004: Client hangs when reattaching to session with dead pane [RESOLVED]
+
+**Status**: Resolved
+**Filed**: 2026-01-09
+**Resolved**: 2026-01-09
+**Component**: ccmux-server
+
+**Description**:
+Client becomes unresponsive when attaching to a session whose pane's shell has exited. The session/pane remained in server state as zombies after the PTY output poller exited.
+
+**Root Cause**:
+PTY output poller only broadcast `PaneClosed` to clients but did not clean up pane/session from server state, leaving zombie sessions that could be attached to but had no active output poller.
+
+**Resolution**:
+Added automatic cleanup when PTY processes exit:
+- New `PaneClosedNotification` channel from output pollers
+- `run_pane_cleanup_loop()` task removes dead panes, empty windows, empty sessions
+- All new panes get cleanup channel via `HandlerContext`
 
 ### P2 - Medium Priority (1)
 
@@ -69,4 +86,5 @@ fn test_ensure_dir_nested() {
 
 | Date | Bug ID | Action | Description |
 |------|--------|--------|-------------|
+| 2026-01-09 | BUG-004 | Filed & Resolved | Zombie panes causing client hang |
 | 2026-01-09 | BUG-002 | Filed | Flaky test due to shared temp directory |

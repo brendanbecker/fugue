@@ -20,4 +20,4 @@ pub use buffer::{
 pub use config::PtyConfig;
 pub use handle::PtyHandle;
 pub use manager::PtyManager;
-pub use output::{OutputPollerConfig, PollerHandle, PollerManager, PtyOutputPoller};
+pub use output::{OutputPollerConfig, PaneClosedNotification, PollerHandle, PollerManager, PtyOutputPoller};

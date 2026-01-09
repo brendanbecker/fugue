@@ -10,12 +10,12 @@ mod pane;
 mod session;
 
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{mpsc, RwLock};
 use uuid::Uuid;
 
 use ccmux_protocol::{ClientMessage, ErrorCode, ServerMessage};
 
-use crate::pty::PtyManager;
+use crate::pty::{PaneClosedNotification, PtyManager};
 use crate::registry::{ClientId, ClientRegistry};
 use crate::session::SessionManager;
 
@@ -31,6 +31,8 @@ pub struct HandlerContext {
     pub registry: Arc<ClientRegistry>,
     /// The client making this request
     pub client_id: ClientId,
+    /// Channel to notify when panes close (for cleanup)
+    pub pane_closed_tx: mpsc::Sender<PaneClosedNotification>,
 }
 
 /// Result of handling a message
@@ -54,12 +56,14 @@ impl HandlerContext {
         pty_manager: Arc<RwLock<PtyManager>>,
         registry: Arc<ClientRegistry>,
         client_id: ClientId,
+        pane_closed_tx: mpsc::Sender<PaneClosedNotification>,
     ) -> Self {
         Self {
             session_manager,
             pty_manager,
             registry,
             client_id,
+            pane_closed_tx,
         }
     }
 
@@ -160,7 +164,10 @@ mod tests {
         let (tx, _rx) = mpsc::channel(10);
         let client_id = registry.register_client(tx);
 
-        HandlerContext::new(session_manager, pty_manager, registry, client_id)
+        // Create cleanup channel (receiver is dropped in tests)
+        let (pane_closed_tx, _pane_closed_rx) = mpsc::channel(10);
+
+        HandlerContext::new(session_manager, pty_manager, registry, client_id, pane_closed_tx)
     }
 
     #[tokio::test]

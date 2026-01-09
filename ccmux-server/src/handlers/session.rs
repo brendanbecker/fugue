@@ -82,11 +82,12 @@ impl HandlerContext {
 
                             // Start output poller to broadcast PTY output to clients
                             let reader = handle.clone_reader();
-                            let _poller_handle = PtyOutputPoller::spawn(
+                            let _poller_handle = PtyOutputPoller::spawn_with_cleanup(
                                 pane_id,
                                 session_id,
                                 reader,
                                 self.registry.clone(),
+                                Some(self.pane_closed_tx.clone()),
                             );
                             info!("Output poller started for pane {}", pane_id);
                         }
@@ -311,7 +312,8 @@ mod tests {
         let (tx, _rx) = mpsc::channel(10);
         let client_id = registry.register_client(tx);
 
-        HandlerContext::new(session_manager, pty_manager, registry, client_id)
+        let (pane_closed_tx, _) = mpsc::channel(10);
+        HandlerContext::new(session_manager, pty_manager, registry, client_id, pane_closed_tx)
     }
 
     #[tokio::test]

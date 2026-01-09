@@ -40,7 +40,7 @@ use persistence::{
     parse_compression_method, PersistenceConfig, PersistenceManager, RestorationResult,
     ScrollbackCapture, ScrollbackConfig, SessionRestorer, SessionSnapshot, WindowSnapshot,
 };
-use pty::{PtyManager, PtyOutputPoller};
+use pty::{PaneClosedNotification, PtyManager, PtyOutputPoller};
 use session::SessionManager;
 
 /// Shared state for concurrent access by client handlers
@@ -57,6 +57,8 @@ pub struct SharedState {
     pub registry: Arc<ClientRegistry>,
     /// Shutdown signal sender
     shutdown_tx: broadcast::Sender<()>,
+    /// Channel for pane cleanup notifications (when PTY dies)
+    pub pane_closed_tx: mpsc::Sender<PaneClosedNotification>,
 }
 
 impl SharedState {
@@ -549,6 +551,7 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
         Arc::clone(&shared_state.pty_manager),
         Arc::clone(&shared_state.registry),
         client_id,
+        shared_state.pane_closed_tx.clone(),
     );
 
     // Message pump loop
@@ -674,6 +677,7 @@ async fn run_daemon() -> Result<()> {
     // Create shared state for client handlers
     // Extract managers into Arc<RwLock<>> for concurrent access
     let (shutdown_tx, _) = broadcast::channel(1);
+    let (pane_closed_tx, pane_closed_rx) = mpsc::channel::<PaneClosedNotification>(100);
     let shared_state = SharedState {
         session_manager: Arc::new(RwLock::new(std::mem::replace(
             &mut server.session_manager,
@@ -688,6 +692,7 @@ async fn run_daemon() -> Result<()> {
             ClientRegistry::new(),
         )),
         shutdown_tx: shutdown_tx.clone(),
+        pane_closed_tx,
     };
 
     // Store references back in server for persistence operations
@@ -708,11 +713,12 @@ async fn run_daemon() -> Result<()> {
                     // Check if this pane has a PTY (restored panes with PTYs)
                     if let Some(handle) = pty_manager.get(pane_id) {
                         let reader = handle.clone_reader();
-                        let _poller = PtyOutputPoller::spawn(
+                        let _poller = PtyOutputPoller::spawn_with_cleanup(
                             pane_id,
                             session_id,
                             reader,
                             shared_state.registry.clone(),
+                            Some(shared_state.pane_closed_tx.clone()),
                         );
                         info!("Started output poller for restored pane {}", pane_id);
                     }
@@ -737,6 +743,12 @@ async fn run_daemon() -> Result<()> {
         run_checkpoint_loop(server_for_checkpoint, shared_state_for_checkpoint).await;
     });
 
+    // Spawn pane cleanup task (handles cleanup when PTY processes die)
+    let shared_state_for_cleanup = shared_state.clone();
+    let cleanup_handle = tokio::spawn(async move {
+        run_pane_cleanup_loop(pane_closed_rx, shared_state_for_cleanup).await;
+    });
+
     // Wait for shutdown signal (SIGTERM or SIGINT)
     info!("Server ready, waiting for shutdown signal (Ctrl+C)");
     wait_for_shutdown_signal().await;
@@ -751,8 +763,9 @@ async fn run_daemon() -> Result<()> {
         warn!("Accept loop did not shut down in time");
     }
 
-    // Cancel checkpoint task
+    // Cancel background tasks
     checkpoint_handle.abort();
+    cleanup_handle.abort();
 
     // Wait briefly for clients to disconnect
     let client_timeout = tokio::time::Duration::from_secs(2);
@@ -846,6 +859,108 @@ async fn wait_for_shutdown_signal() {
     }
 }
 
+/// Run the pane cleanup loop
+///
+/// This task handles cleanup when PTY processes die. When a pane's shell exits,
+/// the output poller sends a notification and this loop:
+/// 1. Removes the pane from session state
+/// 2. Removes the window if it becomes empty
+/// 3. Removes the session if it has no windows
+async fn run_pane_cleanup_loop(
+    mut rx: mpsc::Receiver<PaneClosedNotification>,
+    shared_state: SharedState,
+) {
+    let mut shutdown_rx = shared_state.subscribe_shutdown();
+
+    loop {
+        tokio::select! {
+            notification = rx.recv() => {
+                match notification {
+                    Some(PaneClosedNotification { session_id, pane_id }) => {
+                        info!(
+                            pane_id = %pane_id,
+                            session_id = %session_id,
+                            "Processing pane cleanup notification"
+                        );
+
+                        // Remove PTY if it exists
+                        {
+                            let mut pty_manager = shared_state.pty_manager.write().await;
+                            if let Some(handle) = pty_manager.remove(pane_id) {
+                                if let Err(e) = handle.kill() {
+                                    warn!("Failed to kill PTY for pane {}: {}", pane_id, e);
+                                }
+                            }
+                        }
+
+                        // Remove pane from session and clean up empty containers
+                        let mut session_manager = shared_state.session_manager.write().await;
+
+                        // Track whether session should be removed after we release the session borrow
+                        let mut should_remove_session = false;
+
+                        if let Some(session) = session_manager.get_session_mut(session_id) {
+                            // Find which window contains this pane
+                            let window_id = session.windows().find_map(|w| {
+                                if w.get_pane(pane_id).is_some() {
+                                    Some(w.id())
+                                } else {
+                                    None
+                                }
+                            });
+
+                            if let Some(window_id) = window_id {
+                                if let Some(window) = session.get_window_mut(window_id) {
+                                    if let Some(pane) = window.remove_pane(pane_id) {
+                                        // Cleanup isolation directory if it was a Claude pane
+                                        pane.cleanup_isolation();
+                                        info!(
+                                            pane_id = %pane_id,
+                                            window_id = %window_id,
+                                            "Pane removed from window"
+                                        );
+                                    }
+
+                                    // Check if window is now empty
+                                    if window.is_empty() {
+                                        session.remove_window(window_id);
+                                        info!(
+                                            window_id = %window_id,
+                                            session_id = %session_id,
+                                            "Empty window removed from session"
+                                        );
+                                    }
+                                }
+                            }
+
+                            // Check if session has no windows left
+                            should_remove_session = session.window_count() == 0;
+                        }
+
+                        // Remove empty session (after releasing mutable borrow on session)
+                        if should_remove_session {
+                            session_manager.remove_session(session_id);
+                            info!(
+                                session_id = %session_id,
+                                "Empty session removed"
+                            );
+                        }
+                    }
+                    None => {
+                        // Channel closed, exit the loop
+                        debug!("Pane cleanup channel closed");
+                        break;
+                    }
+                }
+            }
+            _ = shutdown_rx.recv() => {
+                debug!("Pane cleanup loop received shutdown signal");
+                break;
+            }
+        }
+    }
+}
+
 /// Run the periodic checkpoint loop
 async fn run_checkpoint_loop(server: Arc<Mutex<Server>>, shared_state: SharedState) {
     let mut shutdown_rx = shared_state.subscribe_shutdown();
@@ -907,11 +1022,13 @@ mod tests {
     /// Create a SharedState for testing
     fn create_test_shared_state() -> SharedState {
         let (shutdown_tx, _) = broadcast::channel(1);
+        let (pane_closed_tx, _) = mpsc::channel(100);
         SharedState {
             session_manager: Arc::new(RwLock::new(SessionManager::new())),
             pty_manager: Arc::new(RwLock::new(PtyManager::new())),
             registry: Arc::new(ClientRegistry::new()),
             shutdown_tx,
+            pane_closed_tx,
         }
     }
 
@@ -1294,6 +1411,7 @@ mod tests {
             shared_state.pty_manager,
             shared_state.registry,
             client_id,
+            shared_state.pane_closed_tx,
         )
     }
 
