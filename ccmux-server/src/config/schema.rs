@@ -1,6 +1,7 @@
 //! Configuration schema structs
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Root configuration
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -144,8 +145,8 @@ impl Default for KeybindingConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct TerminalConfig {
-    /// Scrollback buffer lines
-    pub scrollback_lines: usize,
+    /// Scrollback configuration (per-session-type)
+    pub scrollback: ScrollbackConfig,
     /// Render interval (ms)
     pub render_interval_ms: u64,
     /// Parser timeout (seconds)
@@ -155,10 +156,91 @@ pub struct TerminalConfig {
 impl Default for TerminalConfig {
     fn default() -> Self {
         Self {
-            scrollback_lines: 10000,
+            scrollback: ScrollbackConfig::default(),
             render_interval_ms: 16,
             parser_timeout_secs: 5,
         }
+    }
+}
+
+/// Session type for scrollback configuration
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum SessionType {
+    /// Default session type
+    #[default]
+    Default,
+    /// Orchestrator sessions (large scrollback)
+    Orchestrator,
+    /// Worker sessions (minimal scrollback)
+    Worker,
+}
+
+impl std::fmt::Display for SessionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SessionType::Default => write!(f, "default"),
+            SessionType::Orchestrator => write!(f, "orchestrator"),
+            SessionType::Worker => write!(f, "worker"),
+        }
+    }
+}
+
+/// Per-session-type scrollback configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ScrollbackConfig {
+    /// Default scrollback lines for unspecified session types
+    pub default: usize,
+    /// Scrollback for orchestrator sessions (large buffer)
+    pub orchestrator: usize,
+    /// Scrollback for worker sessions (minimal buffer)
+    pub worker: usize,
+    /// Custom session type overrides
+    #[serde(flatten)]
+    pub custom: HashMap<String, usize>,
+}
+
+impl Default for ScrollbackConfig {
+    fn default() -> Self {
+        Self {
+            default: 1000,
+            orchestrator: 50000,
+            worker: 500,
+            custom: HashMap::new(),
+        }
+    }
+}
+
+impl ScrollbackConfig {
+    /// Minimum allowed scrollback lines
+    pub const MIN_LINES: usize = 100;
+    /// Maximum allowed scrollback lines
+    pub const MAX_LINES: usize = 100_000;
+
+    /// Get scrollback lines for a session type
+    pub fn lines_for_type(&self, session_type: SessionType) -> usize {
+        match session_type {
+            SessionType::Default => self.default,
+            SessionType::Orchestrator => self.orchestrator,
+            SessionType::Worker => self.worker,
+        }
+    }
+
+    /// Get scrollback lines for a custom session type name
+    pub fn lines_for_custom(&self, name: &str) -> usize {
+        self.custom.get(name).copied().unwrap_or(self.default)
+    }
+
+    /// Validate and clamp a scrollback value to allowed range
+    pub fn validate_lines(lines: usize) -> usize {
+        lines.clamp(Self::MIN_LINES, Self::MAX_LINES)
+    }
+
+    /// Estimate memory usage for a buffer with given line count
+    /// Assumes ~100 bytes per line average
+    pub fn estimate_memory_bytes(lines: usize) -> usize {
+        lines * 100
     }
 }
 
@@ -284,7 +366,9 @@ mod tests {
     #[test]
     fn test_terminal_config_defaults() {
         let config = TerminalConfig::default();
-        assert_eq!(config.scrollback_lines, 10000);
+        assert_eq!(config.scrollback.default, 1000);
+        assert_eq!(config.scrollback.orchestrator, 50000);
+        assert_eq!(config.scrollback.worker, 500);
         assert_eq!(config.render_interval_ms, 16);
         assert_eq!(config.parser_timeout_secs, 5);
     }
@@ -407,9 +491,13 @@ detach = \"prefix d\"
 list_sessions = \"prefix w\"
 
 [terminal]
-scrollback_lines = 5000
 render_interval_ms = 8
 parser_timeout_secs = 10
+
+[terminal.scrollback]
+default = 2000
+orchestrator = 60000
+worker = 300
 
 [claude]
 detection_enabled = false
@@ -443,7 +531,9 @@ screen_snapshot_lines = 1000
         assert_eq!(config.keybindings.split_horizontal, "prefix |");
 
         // Terminal
-        assert_eq!(config.terminal.scrollback_lines, 5000);
+        assert_eq!(config.terminal.scrollback.default, 2000);
+        assert_eq!(config.terminal.scrollback.orchestrator, 60000);
+        assert_eq!(config.terminal.scrollback.worker, 300);
         assert_eq!(config.terminal.render_interval_ms, 8);
 
         // Claude
@@ -497,5 +587,115 @@ screen_snapshot_lines = 1000
         assert!(format!("{:?}", StatusPosition::Top).contains("Top"));
         assert!(format!("{:?}", BorderStyle::Single).contains("Single"));
         assert!(format!("{:?}", DetectionMethod::Pty).contains("Pty"));
+    }
+
+    #[test]
+    fn test_scrollback_config_defaults() {
+        let config = ScrollbackConfig::default();
+        assert_eq!(config.default, 1000);
+        assert_eq!(config.orchestrator, 50000);
+        assert_eq!(config.worker, 500);
+        assert!(config.custom.is_empty());
+    }
+
+    #[test]
+    fn test_scrollback_config_lines_for_type() {
+        let config = ScrollbackConfig::default();
+        assert_eq!(config.lines_for_type(SessionType::Default), 1000);
+        assert_eq!(config.lines_for_type(SessionType::Orchestrator), 50000);
+        assert_eq!(config.lines_for_type(SessionType::Worker), 500);
+    }
+
+    #[test]
+    fn test_scrollback_config_lines_for_custom() {
+        let mut config = ScrollbackConfig::default();
+        config.custom.insert("special".to_string(), 25000);
+
+        assert_eq!(config.lines_for_custom("special"), 25000);
+        assert_eq!(config.lines_for_custom("unknown"), 1000); // Falls back to default
+    }
+
+    #[test]
+    fn test_scrollback_config_validate_lines() {
+        assert_eq!(ScrollbackConfig::validate_lines(50), ScrollbackConfig::MIN_LINES);
+        assert_eq!(ScrollbackConfig::validate_lines(5000), 5000);
+        assert_eq!(ScrollbackConfig::validate_lines(200_000), ScrollbackConfig::MAX_LINES);
+    }
+
+    #[test]
+    fn test_scrollback_config_estimate_memory() {
+        assert_eq!(ScrollbackConfig::estimate_memory_bytes(1000), 100_000);
+        assert_eq!(ScrollbackConfig::estimate_memory_bytes(50000), 5_000_000);
+    }
+
+    #[test]
+    fn test_session_type_default() {
+        assert_eq!(SessionType::default(), SessionType::Default);
+    }
+
+    #[test]
+    fn test_session_type_display() {
+        assert_eq!(SessionType::Default.to_string(), "default");
+        assert_eq!(SessionType::Orchestrator.to_string(), "orchestrator");
+        assert_eq!(SessionType::Worker.to_string(), "worker");
+    }
+
+    #[test]
+    fn test_session_type_clone_copy() {
+        let st = SessionType::Orchestrator;
+        let cloned = st.clone();
+        let copied = st;
+        assert_eq!(st, cloned);
+        assert_eq!(st, copied);
+    }
+
+    #[test]
+    fn test_session_type_debug() {
+        assert!(format!("{:?}", SessionType::Default).contains("Default"));
+        assert!(format!("{:?}", SessionType::Orchestrator).contains("Orchestrator"));
+        assert!(format!("{:?}", SessionType::Worker).contains("Worker"));
+    }
+
+    #[test]
+    fn test_scrollback_config_clone() {
+        let mut config = ScrollbackConfig::default();
+        config.custom.insert("test".to_string(), 5000);
+
+        let cloned = config.clone();
+        assert_eq!(cloned.default, config.default);
+        assert_eq!(cloned.custom.get("test"), Some(&5000));
+    }
+
+    #[test]
+    fn test_scrollback_config_debug() {
+        let config = ScrollbackConfig::default();
+        let debug_str = format!("{:?}", config);
+        assert!(debug_str.contains("ScrollbackConfig"));
+    }
+
+    #[test]
+    fn test_scrollback_config_parse_nested() {
+        let toml_str = r#"
+            [terminal.scrollback]
+            default = 1500
+            orchestrator = 40000
+            worker = 250
+        "#;
+        let config: AppConfig = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.terminal.scrollback.default, 1500);
+        assert_eq!(config.terminal.scrollback.orchestrator, 40000);
+        assert_eq!(config.terminal.scrollback.worker, 250);
+    }
+
+    #[test]
+    fn test_scrollback_config_parse_partial() {
+        let toml_str = r#"
+            [terminal.scrollback]
+            orchestrator = 75000
+        "#;
+        let config: AppConfig = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.terminal.scrollback.default, 1000); // Default
+        assert_eq!(config.terminal.scrollback.orchestrator, 75000);
+        assert_eq!(config.terminal.scrollback.worker, 500); // Default
     }
 }
