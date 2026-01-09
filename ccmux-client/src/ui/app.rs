@@ -10,8 +10,8 @@ use std::time::Duration;
 
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Style};
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
 use uuid::Uuid;
 
 use ccmux_protocol::{
@@ -664,48 +664,70 @@ impl App {
     }
 
     /// Draw session select state
-    fn draw_session_select(&self, frame: &mut ratatui::Frame, area: Rect) {
+    fn draw_session_select(&mut self, frame: &mut ratatui::Frame, area: Rect) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(5), Constraint::Length(3)])
             .split(area);
 
-        // Session list
-        let mut lines: Vec<ratatui::text::Line> = Vec::new();
-
         if self.available_sessions.is_empty() {
-            lines.push("No sessions available. Press 'n' to create one.".into());
-        } else {
-            for (i, session) in self.available_sessions.iter().enumerate() {
-                let prefix = if i == self.session_list_index {
-                    "> "
-                } else {
-                    "  "
-                };
-                let style = if i == self.session_list_index {
-                    Style::default().fg(Color::Cyan)
-                } else {
-                    Style::default()
-                };
-                lines.push(
-                    ratatui::text::Line::from(format!(
-                        "{}{} ({} windows, {} clients)",
-                        prefix, session.name, session.window_count, session.attached_clients
-                    ))
-                    .style(style),
+            // Show empty state message
+            let empty_msg = Paragraph::new("No sessions available. Press 'n' to create one.")
+                .style(Style::default().fg(Color::DarkGray))
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title("Select Session")
+                        .border_style(Style::default().fg(Color::Cyan)),
                 );
-            }
+            frame.render_widget(empty_msg, chunks[0]);
+        } else {
+            // Build list items with session metadata
+            let items: Vec<ListItem> = self
+                .available_sessions
+                .iter()
+                .map(|session| {
+                    let worktree_info = session
+                        .worktree
+                        .as_ref()
+                        .map(|w| format!(" [{}]", w.path))
+                        .unwrap_or_default();
+                    let orchestrator_badge = if session.is_orchestrator { " ★" } else { "" };
+                    ListItem::new(format!(
+                        "{}{} ({} windows, {} clients){}",
+                        session.name,
+                        orchestrator_badge,
+                        session.window_count,
+                        session.attached_clients,
+                        worktree_info
+                    ))
+                })
+                .collect();
+
+            let list = List::new(items)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title("Select Session")
+                        .border_style(Style::default().fg(Color::Cyan)),
+                )
+                .highlight_style(
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                )
+                .highlight_symbol("▶ ");
+
+            // Create ListState with current selection
+            let mut list_state = ListState::default();
+            list_state.select(Some(self.session_list_index));
+
+            frame.render_stateful_widget(list, chunks[0], &mut list_state);
         }
 
-        let list = Paragraph::new(lines).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Select Session"),
-        );
-        frame.render_widget(list, chunks[0]);
-
-        // Help line
-        let help = Paragraph::new("↑/↓: navigate | Enter: attach | n: new | r: refresh | Ctrl+Q: quit")
+        // Help line with j/k mentioned
+        let help = Paragraph::new("↑/k ↓/j: navigate | Enter: attach | n: new | r: refresh | Ctrl+Q: quit")
             .style(Style::default().fg(Color::DarkGray))
             .block(Block::default().borders(Borders::ALL).title("Help"));
         frame.render_widget(help, chunks[1]);
