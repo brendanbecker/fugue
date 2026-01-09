@@ -6,6 +6,7 @@ use std::time::SystemTime;
 use uuid::Uuid;
 use vt100::Parser;
 use ccmux_protocol::{ClaudeActivity, ClaudeState, PaneInfo, PaneState};
+use crate::claude::ClaudeDetector;
 use crate::config::SessionType;
 use crate::pty::ScrollbackBuffer;
 
@@ -36,6 +37,8 @@ pub struct Pane {
     scrollback: ScrollbackBuffer,
     /// vt100 parser for terminal emulation
     parser: Option<Parser>,
+    /// Claude detector for state tracking
+    claude_detector: ClaudeDetector,
 }
 
 impl fmt::Debug for Pane {
@@ -54,6 +57,7 @@ impl fmt::Debug for Pane {
             .field("session_type", &self.session_type)
             .field("scrollback", &self.scrollback)
             .field("parser", &self.parser.as_ref().map(|_| "Parser { ... }"))
+            .field("claude_detector", &self.claude_detector)
             .finish()
     }
 }
@@ -89,6 +93,7 @@ impl Pane {
             session_type,
             scrollback: ScrollbackBuffer::new(scrollback_lines),
             parser: None,
+            claude_detector: ClaudeDetector::new(),
         }
     }
 
@@ -108,6 +113,11 @@ impl Pane {
         created_at: u64,
     ) -> Self {
         let created_at = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(created_at);
+        // If restoring a Claude pane, pre-mark the detector
+        let mut claude_detector = ClaudeDetector::new();
+        if matches!(state, PaneState::Claude(_)) {
+            claude_detector.mark_as_claude();
+        }
         Self {
             id,
             window_id,
@@ -122,6 +132,7 @@ impl Pane {
             session_type: SessionType::Default,
             scrollback: ScrollbackBuffer::new(DEFAULT_SCROLLBACK_LINES),
             parser: None,
+            claude_detector,
         }
     }
 
@@ -212,6 +223,38 @@ impl Pane {
     pub fn set_claude_state(&mut self, state: ClaudeState) {
         self.state = PaneState::Claude(state);
         self.state_changed_at = SystemTime::now();
+        // Also mark the detector
+        self.claude_detector.mark_as_claude();
+    }
+
+    /// Get reference to Claude detector
+    pub fn claude_detector(&self) -> &ClaudeDetector {
+        &self.claude_detector
+    }
+
+    /// Get mutable reference to Claude detector
+    pub fn claude_detector_mut(&mut self) -> &mut ClaudeDetector {
+        &mut self.claude_detector
+    }
+
+    /// Mark this pane as running Claude Code
+    ///
+    /// Call this when Claude is started via a known command.
+    pub fn mark_as_claude(&mut self) {
+        self.claude_detector.mark_as_claude();
+        if let Some(state) = self.claude_detector.state() {
+            self.state = PaneState::Claude(state);
+            self.state_changed_at = SystemTime::now();
+        }
+    }
+
+    /// Reset Claude detection state
+    ///
+    /// Call this when the process exits or restarts.
+    pub fn reset_claude_detection(&mut self) {
+        self.claude_detector.reset();
+        self.state = PaneState::Normal;
+        self.state_changed_at = SystemTime::now();
     }
 
     /// Get title
@@ -270,12 +313,26 @@ impl Pane {
     }
 
     /// Process terminal output through the parser
-    pub fn process(&mut self, data: &[u8]) {
+    ///
+    /// Returns `Some(ClaudeState)` if Claude state changed, `None` otherwise.
+    pub fn process(&mut self, data: &[u8]) -> Option<ClaudeState> {
         if let Some(parser) = &mut self.parser {
             parser.process(data);
         }
         // Also push to scrollback
         self.scrollback.push_bytes(data);
+
+        // Analyze output for Claude state changes
+        let text = String::from_utf8_lossy(data);
+        if let Some(_activity) = self.claude_detector.analyze(&text) {
+            // State changed - update pane state and return new state
+            if let Some(claude_state) = self.claude_detector.state() {
+                self.state = PaneState::Claude(claude_state.clone());
+                self.state_changed_at = SystemTime::now();
+                return Some(claude_state);
+            }
+        }
+        None
     }
 
     /// Get current screen contents
