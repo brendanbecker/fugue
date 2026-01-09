@@ -551,6 +551,22 @@ impl App {
                 // Refresh session list
                 self.connection.send(ClientMessage::ListSessions).await?;
             }
+            (KeyCode::Char('d'), KeyModifiers::CONTROL) => {
+                // Delete/destroy selected session
+                if let Some(session) = self.available_sessions.get(self.session_list_index) {
+                    let session_id = session.id;
+                    self.connection
+                        .send(ClientMessage::DestroySession { session_id })
+                        .await?;
+                    // Server will broadcast updated session list
+                    // Adjust selection index if needed
+                    if self.session_list_index > 0
+                        && self.session_list_index >= self.available_sessions.len().saturating_sub(1)
+                    {
+                        self.session_list_index = self.session_list_index.saturating_sub(1);
+                    }
+                }
+            }
             _ => {}
         }
         Ok(())
@@ -803,7 +819,7 @@ impl App {
         }
 
         // Help line with j/k mentioned
-        let help = Paragraph::new("↑/k ↓/j: navigate | Enter: attach | n: new | r: refresh | q/Esc/Ctrl+C: quit")
+        let help = Paragraph::new("↑/k ↓/j: navigate | Enter: attach | n: new | r: refresh | Ctrl+D: delete | q: quit")
             .style(Style::default().fg(Color::DarkGray))
             .block(Block::default().borders(Borders::ALL).title("Help"));
         frame.render_widget(help, chunks[1]);

@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-031",
+  "title": "Session Delete/Kill Keybind in Session Select UI",
+  "component": "ccmux-client",
+  "priority": "P2",
+  "status": "complete",
+  "type": "enhancement",
+  "created_date": "2026-01-09",
+  "updated_date": "2026-01-09",
+  "assigned_to": null,
+  "tags": ["client", "ui", "session", "keybind"],
+  "estimated_effort": "small",
+  "dependencies": ["FEAT-024", "FEAT-012"],
+  "description": "Add the ability to delete/kill sessions from the session selection UI screen. Users should be able to clean up zombie sessions or sessions they no longer need without having to use external tools. The action should use a modifier key combination (Ctrl+D or Ctrl+X) to prevent accidental deletion. When triggered, the client sends a message to the server to destroy the session and all its associated windows and panes.",
+  "business_value": "medium",
+  "technical_complexity": "low",
+  "user_impact": "Provides a convenient way to clean up unwanted sessions directly from the session selection screen, improving session management UX"
+}

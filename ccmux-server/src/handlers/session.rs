@@ -178,6 +178,80 @@ impl HandlerContext {
         }
     }
 
+    /// Handle DestroySession message - destroy/kill a session
+    ///
+    /// Removes the session and all its windows/panes. Kills all associated PTY processes.
+    /// Broadcasts updated session list to all clients.
+    pub async fn handle_destroy_session(&self, session_id: Uuid) -> HandlerResult {
+        info!(
+            "DestroySession {} request from {}",
+            session_id, self.client_id
+        );
+
+        // Collect pane IDs for PTY cleanup before removing session
+        let pane_ids: Vec<Uuid> = {
+            let session_manager = self.session_manager.read().await;
+            if let Some(session) = session_manager.get_session(session_id) {
+                session
+                    .windows()
+                    .flat_map(|w| w.panes().map(|p| p.id()))
+                    .collect()
+            } else {
+                debug!("Session {} not found for DestroySession", session_id);
+                return HandlerContext::error(
+                    ErrorCode::SessionNotFound,
+                    format!("Session {} not found", session_id),
+                );
+            }
+        };
+
+        // Kill all PTY processes for panes in this session
+        {
+            let mut pty_manager = self.pty_manager.write().await;
+            for pane_id in &pane_ids {
+                if let Some(handle) = pty_manager.remove(*pane_id) {
+                    if let Err(e) = handle.kill() {
+                        warn!("Failed to kill PTY for pane {}: {}", pane_id, e);
+                    } else {
+                        debug!("Killed PTY for pane {}", pane_id);
+                    }
+                }
+            }
+        }
+
+        // Remove the session
+        {
+            let mut session_manager = self.session_manager.write().await;
+            if let Some(session) = session_manager.remove_session(session_id) {
+                info!(
+                    "Destroyed session '{}' ({}) with {} panes",
+                    session.name(),
+                    session_id,
+                    pane_ids.len()
+                );
+            }
+        }
+
+        // Detach any clients attached to this session
+        self.registry.detach_session_clients(session_id);
+
+        // Broadcast updated session list to all clients
+        let sessions: Vec<_> = {
+            let session_manager = self.session_manager.read().await;
+            session_manager
+                .list_sessions()
+                .iter()
+                .map(|s| s.to_info())
+                .collect()
+        };
+
+        self.registry
+            .broadcast_to_all(ServerMessage::SessionList { sessions });
+
+        // No direct response needed - clients get the broadcast
+        HandlerResult::NoResponse
+    }
+
     /// Handle CreateWindow message - create a new window in a session
     pub async fn handle_create_window(
         &self,

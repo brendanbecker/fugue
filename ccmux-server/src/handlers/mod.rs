@@ -122,6 +122,11 @@ impl HandlerContext {
             ClientMessage::SendOrchestration { target, message } => {
                 self.handle_send_orchestration(target, message).await
             }
+
+            // Session destruction
+            ClientMessage::DestroySession { session_id } => {
+                self.handle_destroy_session(session_id).await
+            }
         }
     }
 

@@ -135,6 +135,9 @@ pub enum ClientMessage {
         target: OrchestrationTarget,
         message: OrchestrationMessage,
     },
+
+    /// Destroy/kill a session
+    DestroySession { session_id: Uuid },
 }
 
 /// Messages sent from server to client

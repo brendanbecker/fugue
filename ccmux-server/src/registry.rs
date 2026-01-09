@@ -400,6 +400,50 @@ impl ClientRegistry {
     pub fn get_all_clients(&self) -> Vec<ClientId> {
         self.clients.iter().map(|entry| *entry.key()).collect()
     }
+
+    /// Detach all clients from a session
+    ///
+    /// Used when destroying a session to cleanly detach all connected clients.
+    /// Returns the number of clients that were detached.
+    pub fn detach_session_clients(&self, session_id: SessionId) -> usize {
+        let client_ids = self.get_session_clients(session_id);
+        let mut count = 0;
+
+        for client_id in client_ids {
+            if self.detach_from_session(client_id) {
+                count += 1;
+            }
+        }
+
+        debug!(
+            "Detached {} clients from session {}",
+            count, session_id
+        );
+        count
+    }
+
+    /// Broadcast a message to all connected clients (non-blocking)
+    ///
+    /// Returns the number of clients that successfully received the message.
+    pub fn broadcast_to_all(&self, message: ServerMessage) -> usize {
+        let client_ids = self.get_all_clients();
+
+        if client_ids.is_empty() {
+            return 0;
+        }
+
+        debug!("Broadcasting to all {} clients", client_ids.len());
+
+        let mut success_count = 0;
+
+        for client_id in client_ids {
+            if self.try_send_to_client(client_id, message.clone()) {
+                success_count += 1;
+            }
+        }
+
+        success_count
+    }
 }
 
 impl std::fmt::Debug for ClientRegistry {
