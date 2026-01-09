@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-033",
+  "title": "tmux-like Auto-Start Behavior",
+  "component": "ccmux-client",
+  "priority": "P1",
+  "status": "new",
+  "type": "enhancement",
+  "created_date": "2026-01-09",
+  "updated_date": "2026-01-09",
+  "assigned_to": null,
+  "tags": ["ux", "client", "server", "daemon"],
+  "estimated_effort": "small",
+  "dependencies": ["FEAT-011"],
+  "description": "When user runs `ccmux`, the client should automatically start the server daemon if it's not already running, then connect. This provides the same UX as tmux where a single command handles everything.",
+  "business_value": "high",
+  "technical_complexity": "low",
+  "user_impact": "Eliminates the need to manually start ccmux-server before using ccmux, providing seamless tmux-like UX where one command just works"
+}

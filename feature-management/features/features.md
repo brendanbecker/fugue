@@ -5,12 +5,13 @@
 
 ## Summary Statistics
 
-- **Total Features**: 28
-- **By Priority**: P0: 5, P1: 16, P2: 7, P3: 0
+- **Total Features**: 33
+- **By Priority**: P0: 5, P1: 21, P2: 7, P3: 0
 - **By Status**:
-  - New: 22
+  - New: 26
   - In Progress: 0
   - Completed: 6
+  - Implemented: 1
   - Deprecated: 0
 
 ## Features by Priority
@@ -25,7 +26,7 @@
 | FEAT-025 | Pane Output Rendering | ccmux-client | new | [Link](FEAT-025-pane-output-rendering/) |
 | FEAT-027 | Client Connection Registry | ccmux-server | new | [Link](FEAT-027-client-connection-registry/) |
 
-### P1 - High Priority (16)
+### P1 - High Priority (21)
 
 | ID | Title | Component | Status | Link |
 |----|-------|-----------|--------|------|
@@ -45,6 +46,10 @@
 | FEAT-024 | Session Selection UI | ccmux-client | new | [Link](FEAT-024-session-selection-ui/) |
 | FEAT-026 | Input Handling Integration and Testing | ccmux-client | new | [Link](FEAT-026-input-handling-integration-and-testing/) |
 | FEAT-028 | Orchestration Flexibility Refactor | ccmux-protocol | new | [Link](FEAT-028-orchestration-flexibility-refactor/) |
+| FEAT-029 | MCP Natural Language Terminal Control | ccmux-server (MCP) | implemented | [Link](FEAT-029-mcp-natural-language-control/) |
+| FEAT-030 | Sideband Pane Splitting | ccmux-server | new | [Link](FEAT-030-sideband-pane-splitting/) |
+| FEAT-032 | Integrated MCP Server | ccmux-server | new | [Link](FEAT-032-integrated-mcp-server/) |
+| FEAT-033 | tmux-like Auto-Start Behavior | ccmux-client | new | [Link](FEAT-033-tmux-like-auto-start-behavior/) |
 
 ### P2 - Medium Priority (7)
 
@@ -57,6 +62,7 @@
 | FEAT-017 | Configuration - TOML Config with Hot Reload | ccmux-server | completed | [Link](FEAT-017-configuration-toml-config-with-hot-reload/) |
 | FEAT-018 | MCP Server - Model Context Protocol Integration | ccmux-server | new | [Link](FEAT-018-mcp-server-model-context-protocol-integration/) |
 | FEAT-019 | Sideband Protocol - XML Command Parsing from Claude Output | ccmux-server | new | [Link](FEAT-019-sideband-protocol-xml-command-parsing/) |
+| FEAT-031 | Session Delete/Kill Keybind in Session Select UI | ccmux-client | new | [Link](FEAT-031-session-delete-keybind/) |
 
 ### P3 - Low Priority (0)
 
@@ -64,6 +70,11 @@
 
 ## Recent Activity
 
+- 2026-01-09: Created FEAT-033 - tmux-like Auto-Start Behavior (P1 High)
+- 2026-01-09: Created FEAT-032 - Integrated MCP Server (P1 High)
+- 2026-01-09: Created FEAT-031 - Session Delete/Kill Keybind in Session Select UI (P2 Medium)
+- 2026-01-09: Created FEAT-030 - Sideband Pane Splitting (P1 High)
+- 2026-01-09: Implemented FEAT-029 - MCP Natural Language Terminal Control (P1 High)
 - 2026-01-09: Created FEAT-028 - Orchestration Flexibility Refactor (P1 High)
 - 2026-01-09: Created FEAT-027 - Client Connection Registry (P0 Critical)
 - 2026-01-09: Created FEAT-024 - Session Selection UI
@@ -123,6 +134,7 @@ Based on the project vision, features will likely include:
 - **Client message routing and handlers (FEAT-022)** - P0 Critical
 - **PTY output polling and broadcasting (FEAT-023)** - P0 Critical
 - **Pane output rendering (FEAT-025)** - P0 Critical
+- **tmux-like auto-start behavior (FEAT-033)** - Seamless UX
 
 ### Claude Code Integration
 - State detection (thinking, waiting, complete)
@@ -133,6 +145,9 @@ Based on the project vision, features will likely include:
 - **Per-pane CLAUDE_CONFIG_DIR isolation (FEAT-020)**
 - **Sideband protocol for XML command parsing (FEAT-019)**
 - **MCP Server for Claude interaction (FEAT-018)**
+- **MCP Natural Language Terminal Control (FEAT-029)** - Implemented
+- **Sideband Pane Splitting (FEAT-030)**
+- **Integrated MCP Server (FEAT-032)** - Shared session state with TUI
 
 ### Session Management
 - Session persistence and recovery
@@ -141,6 +156,7 @@ Based on the project vision, features will likely include:
 - **Session/Window/Pane hierarchy (FEAT-012)** - Completed
 - **Checkpoint + WAL persistence for crash recovery (FEAT-016)**
 - **Session Selection UI (FEAT-024)**
+- **Session delete/kill keybind (FEAT-031)**
 
 ### Orchestration
 - Child pane spawning on Claude request
@@ -158,6 +174,7 @@ Based on the project vision, features will likely include:
 
 ### Client Connection
 - **Unix socket client with async message framing (FEAT-011)** - Completed
+- **tmux-like auto-start behavior (FEAT-033)** - Auto-start server daemon
 
 ### Client UI
 - **Ratatui-based terminal interface (FEAT-009)**
@@ -167,6 +184,3 @@ Based on the project vision, features will likely include:
 - Status bar and borders
 - Claude state indicators
 - **Pane output rendering (FEAT-025)** - P0 Critical
-
-### Utilities
-- **Error types, logging, and path helpers (FEAT-008)** - Completed
