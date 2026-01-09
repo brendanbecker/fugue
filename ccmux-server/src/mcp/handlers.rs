@@ -4,7 +4,7 @@
 
 use uuid::Uuid;
 
-use ccmux_protocol::{PaneState, SplitDirection};
+use ccmux_protocol::PaneState;
 
 use crate::pty::{PtyConfig, PtyManager};
 use crate::session::SessionManager;
@@ -96,16 +96,20 @@ impl<'a> ToolContext<'a> {
     }
 
     /// Create a new pane
+    ///
+    /// Note: The direction parameter is included in the response for informational purposes.
+    /// Actual visual split layout is handled client-side. The server creates panes without
+    /// specific layout positioning.
     pub fn create_pane(
         &mut self,
         direction: Option<&str>,
         command: Option<&str>,
         cwd: Option<&str>,
     ) -> Result<String, McpError> {
-        // Parse direction
-        let _direction = match direction {
-            Some("horizontal") | Some("h") => SplitDirection::Horizontal,
-            _ => SplitDirection::Vertical,
+        // Parse direction (included in response for client-side layout hints)
+        let direction_str = match direction {
+            Some("horizontal") | Some("h") => "horizontal",
+            _ => "vertical",
         };
 
         // Get or create a session
@@ -117,6 +121,7 @@ impl<'a> ToolContext<'a> {
             self.session_manager.list_sessions()[0]
         };
         let session_id = session.id();
+        let session_name = session.name().to_string();
 
         // Get or create a window
         let session = self
@@ -160,6 +165,212 @@ impl<'a> ToolContext<'a> {
 
         let result = serde_json::json!({
             "pane_id": pane_id.to_string(),
+            "session": session_name,
+            "window_id": window_id.to_string(),
+            "direction": direction_str,
+            "status": "created"
+        });
+
+        serde_json::to_string_pretty(&result).map_err(|e| McpError::Internal(e.to_string()))
+    }
+
+    /// List all sessions
+    pub fn list_sessions(&self) -> Result<String, McpError> {
+        let sessions = self.session_manager.list_sessions();
+        let mut result = Vec::new();
+
+        for session in sessions {
+            // Count total panes across all windows
+            let pane_count: usize = session.windows().map(|w| w.pane_count()).sum();
+
+            let info = serde_json::json!({
+                "id": session.id().to_string(),
+                "name": session.name(),
+                "window_count": session.window_count(),
+                "pane_count": pane_count,
+                "created_at": session.created_at_unix(),
+            });
+            result.push(info);
+        }
+
+        serde_json::to_string_pretty(&result).map_err(|e| McpError::Internal(e.to_string()))
+    }
+
+    /// List windows in a session
+    pub fn list_windows(&self, session_filter: Option<&str>) -> Result<String, McpError> {
+        // Find the session
+        let session = if let Some(filter) = session_filter {
+            // Try to parse as UUID first
+            if let Ok(session_id) = uuid::Uuid::parse_str(filter) {
+                self.session_manager.get_session(session_id)
+            } else {
+                // Try by name
+                self.session_manager.get_session_by_name(filter)
+            }
+        } else {
+            // Use first session if not specified
+            self.session_manager.list_sessions().first().copied()
+        };
+
+        let session = session.ok_or_else(|| {
+            McpError::Internal(
+                session_filter
+                    .map(|s| format!("Session '{}' not found", s))
+                    .unwrap_or_else(|| "No sessions exist".into()),
+            )
+        })?;
+
+        let mut windows = Vec::new();
+        let active_window_id = session.active_window_id();
+
+        for window in session.windows() {
+            let info = serde_json::json!({
+                "id": window.id().to_string(),
+                "index": window.index(),
+                "name": window.name(),
+                "pane_count": window.pane_count(),
+                "is_active": Some(window.id()) == active_window_id,
+            });
+            windows.push(info);
+        }
+
+        serde_json::to_string_pretty(&windows).map_err(|e| McpError::Internal(e.to_string()))
+    }
+
+    /// Create a new session
+    ///
+    /// Creates a session with a default window and pane with PTY.
+    pub fn create_session(&mut self, name: Option<&str>) -> Result<String, McpError> {
+        // Generate name if not provided
+        let session_name = name
+            .map(|n| n.to_string())
+            .unwrap_or_else(|| format!("session-{}", self.session_manager.session_count()));
+
+        // Create the session
+        let session = self
+            .session_manager
+            .create_session(&session_name)
+            .map_err(|e| McpError::Internal(e.to_string()))?;
+        let session_id = session.id();
+
+        // Create default window with pane (following BUG-003 pattern)
+        let session = self
+            .session_manager
+            .get_session_mut(session_id)
+            .ok_or_else(|| McpError::Internal("Session disappeared".into()))?;
+
+        let window = session.create_window(None);
+        let window_id = window.id();
+
+        let window = session
+            .get_window_mut(window_id)
+            .ok_or_else(|| McpError::Internal("Window disappeared".into()))?;
+
+        let pane = window.create_pane();
+        let pane_id = pane.id();
+
+        // Initialize the parser
+        let pane = window
+            .get_pane_mut(pane_id)
+            .ok_or_else(|| McpError::Internal("Pane disappeared".into()))?;
+        pane.init_parser();
+
+        // Spawn PTY for the default pane
+        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
+        let config = PtyConfig::command(&shell);
+
+        self.pty_manager
+            .spawn(pane_id, config)
+            .map_err(|e| McpError::Pty(e.to_string()))?;
+
+        let result = serde_json::json!({
+            "session_id": session_id.to_string(),
+            "session_name": session_name,
+            "window_id": window_id.to_string(),
+            "pane_id": pane_id.to_string(),
+            "status": "created"
+        });
+
+        serde_json::to_string_pretty(&result).map_err(|e| McpError::Internal(e.to_string()))
+    }
+
+    /// Create a new window in a session
+    ///
+    /// Creates a window with a default pane and PTY.
+    pub fn create_window(
+        &mut self,
+        session_filter: Option<&str>,
+        window_name: Option<&str>,
+        command: Option<&str>,
+    ) -> Result<String, McpError> {
+        // Find the session
+        let session_id = if let Some(filter) = session_filter {
+            // Try to parse as UUID first
+            if let Ok(id) = uuid::Uuid::parse_str(filter) {
+                if self.session_manager.get_session(id).is_some() {
+                    id
+                } else {
+                    return Err(McpError::Internal(format!("Session '{}' not found", filter)));
+                }
+            } else {
+                // Try by name
+                self.session_manager
+                    .get_session_by_name(filter)
+                    .map(|s| s.id())
+                    .ok_or_else(|| McpError::Internal(format!("Session '{}' not found", filter)))?
+            }
+        } else {
+            // Use first session if not specified
+            self.session_manager
+                .list_sessions()
+                .first()
+                .map(|s| s.id())
+                .ok_or_else(|| McpError::Internal("No sessions exist".into()))?
+        };
+
+        // Get session name for response
+        let session_name = self
+            .session_manager
+            .get_session(session_id)
+            .map(|s| s.name().to_string())
+            .unwrap_or_default();
+
+        // Create the window
+        let session = self
+            .session_manager
+            .get_session_mut(session_id)
+            .ok_or_else(|| McpError::Internal("Session disappeared".into()))?;
+
+        let window = session.create_window(window_name.map(|n| n.to_string()));
+        let window_id = window.id();
+
+        let window = session
+            .get_window_mut(window_id)
+            .ok_or_else(|| McpError::Internal("Window disappeared".into()))?;
+
+        // Create default pane
+        let pane = window.create_pane();
+        let pane_id = pane.id();
+
+        // Initialize the parser
+        let pane = window
+            .get_pane_mut(pane_id)
+            .ok_or_else(|| McpError::Internal("Pane disappeared".into()))?;
+        pane.init_parser();
+
+        // Spawn PTY
+        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
+        let cmd = command.unwrap_or(&shell);
+        let config = PtyConfig::command(cmd);
+
+        self.pty_manager
+            .spawn(pane_id, config)
+            .map_err(|e| McpError::Pty(e.to_string()))?;
+
+        let result = serde_json::json!({
+            "window_id": window_id.to_string(),
+            "pane_id": pane_id.to_string(),
+            "session": session_name,
             "status": "created"
         });
 
@@ -404,5 +615,220 @@ mod tests {
 
         let result = ctx.focus_pane(Uuid::new_v4());
         assert!(matches!(result, Err(McpError::PaneNotFound(_))));
+    }
+
+    // ==================== List Sessions Tests ====================
+
+    #[test]
+    fn test_list_sessions_empty() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+
+        let result = ctx.list_sessions().unwrap();
+        assert_eq!(result, "[]");
+    }
+
+    #[test]
+    fn test_list_sessions_with_sessions() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        session_manager.create_session("test1").unwrap();
+        session_manager.create_session("test2").unwrap();
+
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.list_sessions().unwrap();
+
+        assert!(result.contains("test1"));
+        assert!(result.contains("test2"));
+        assert!(result.contains("window_count"));
+        assert!(result.contains("pane_count"));
+    }
+
+    // ==================== List Windows Tests ====================
+
+    #[test]
+    fn test_list_windows_no_sessions() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+
+        let result = ctx.list_windows(None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_list_windows_with_windows() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        let session = session_manager.create_session("test").unwrap();
+        let session_id = session.id();
+        let session = session_manager.get_session_mut(session_id).unwrap();
+        session.create_window(Some("win1".to_string()));
+        session.create_window(Some("win2".to_string()));
+
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.list_windows(None).unwrap();
+
+        assert!(result.contains("win1"));
+        assert!(result.contains("win2"));
+        assert!(result.contains("is_active"));
+    }
+
+    #[test]
+    fn test_list_windows_by_session_name() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        let session = session_manager.create_session("target").unwrap();
+        let session_id = session.id();
+        let session = session_manager.get_session_mut(session_id).unwrap();
+        session.create_window(Some("target-window".to_string()));
+
+        session_manager.create_session("other").unwrap();
+
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.list_windows(Some("target")).unwrap();
+
+        assert!(result.contains("target-window"));
+    }
+
+    #[test]
+    fn test_list_windows_session_not_found() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        session_manager.create_session("existing").unwrap();
+
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.list_windows(Some("nonexistent"));
+
+        assert!(result.is_err());
+    }
+
+    // ==================== Create Session Tests ====================
+
+    #[test]
+    fn test_create_session_with_name() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+
+        let result = ctx.create_session(Some("my-session")).unwrap();
+
+        assert!(result.contains("my-session"));
+        assert!(result.contains("session_id"));
+        assert!(result.contains("window_id"));
+        assert!(result.contains("pane_id"));
+        assert!(result.contains("\"status\": \"created\""));
+    }
+
+    #[test]
+    fn test_create_session_auto_name() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+
+        let result = ctx.create_session(None).unwrap();
+
+        assert!(result.contains("session-0"));
+        assert!(result.contains("\"status\": \"created\""));
+    }
+
+    #[test]
+    fn test_create_session_duplicate_name() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+
+        ctx.create_session(Some("duplicate")).unwrap();
+        let result = ctx.create_session(Some("duplicate"));
+
+        assert!(result.is_err());
+    }
+
+    // ==================== Create Window Tests ====================
+
+    #[test]
+    fn test_create_window_no_sessions() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+
+        let result = ctx.create_window(None, None, None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_create_window_in_default_session() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        session_manager.create_session("default").unwrap();
+
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.create_window(None, Some("new-window"), None).unwrap();
+
+        assert!(result.contains("window_id"));
+        assert!(result.contains("pane_id"));
+        assert!(result.contains("default"));
+        assert!(result.contains("\"status\": \"created\""));
+    }
+
+    #[test]
+    fn test_create_window_in_named_session() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        session_manager.create_session("target").unwrap();
+        session_manager.create_session("other").unwrap();
+
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.create_window(Some("target"), None, None).unwrap();
+
+        assert!(result.contains("target"));
+    }
+
+    #[test]
+    fn test_create_window_session_not_found() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        session_manager.create_session("existing").unwrap();
+
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.create_window(Some("nonexistent"), None, None);
+
+        assert!(result.is_err());
+    }
+
+    // ==================== Create Pane Direction Tests ====================
+
+    #[test]
+    fn test_create_pane_includes_direction_in_response() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        session_manager.create_session("test").unwrap();
+
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.create_pane(Some("horizontal"), None, None).unwrap();
+
+        assert!(result.contains("\"direction\": \"horizontal\""));
+    }
+
+    #[test]
+    fn test_create_pane_default_direction() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        session_manager.create_session("test").unwrap();
+
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.create_pane(None, None, None).unwrap();
+
+        assert!(result.contains("\"direction\": \"vertical\""));
     }
 }

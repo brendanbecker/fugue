@@ -207,6 +207,18 @@ impl McpServer {
             "ccmux_focus_pane" => ToolParams::FocusPane {
                 pane_id: parse_uuid(arguments, "pane_id")?,
             },
+            "ccmux_list_sessions" => ToolParams::ListSessions,
+            "ccmux_list_windows" => ToolParams::ListWindows {
+                session: arguments["session"].as_str().map(String::from),
+            },
+            "ccmux_create_session" => ToolParams::CreateSession {
+                name: arguments["name"].as_str().map(String::from),
+            },
+            "ccmux_create_window" => ToolParams::CreateWindow {
+                session: arguments["session"].as_str().map(String::from),
+                name: arguments["name"].as_str().map(String::from),
+                command: arguments["command"].as_str().map(String::from),
+            },
             _ => unreachable!(), // Already validated above
         };
 
@@ -223,6 +235,12 @@ impl McpServer {
             ToolParams::GetStatus { pane_id } => ctx.get_status(pane_id),
             ToolParams::ClosePane { pane_id } => ctx.close_pane(pane_id),
             ToolParams::FocusPane { pane_id } => ctx.focus_pane(pane_id),
+            ToolParams::ListSessions => ctx.list_sessions(),
+            ToolParams::ListWindows { session } => ctx.list_windows(session.as_deref()),
+            ToolParams::CreateSession { name } => ctx.create_session(name.as_deref()),
+            ToolParams::CreateWindow { session, name, command } => {
+                ctx.create_window(session.as_deref(), name.as_deref(), command.as_deref())
+            }
         };
 
         // Convert Result to ToolResult
@@ -244,6 +262,10 @@ fn is_known_tool(name: &str) -> bool {
             | "ccmux_get_status"
             | "ccmux_close_pane"
             | "ccmux_focus_pane"
+            | "ccmux_list_sessions"
+            | "ccmux_list_windows"
+            | "ccmux_create_session"
+            | "ccmux_create_window"
     )
 }
 
@@ -256,6 +278,10 @@ enum ToolParams {
     GetStatus { pane_id: Uuid },
     ClosePane { pane_id: Uuid },
     FocusPane { pane_id: Uuid },
+    ListSessions,
+    ListWindows { session: Option<String> },
+    CreateSession { name: Option<String> },
+    CreateWindow { session: Option<String>, name: Option<String>, command: Option<String> },
 }
 
 impl Default for McpServer {
