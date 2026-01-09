@@ -120,6 +120,61 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "required": ["pane_id"]
             }),
         },
+        Tool {
+            name: "ccmux_list_sessions".into(),
+            description: "List all terminal sessions".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {}
+            }),
+        },
+        Tool {
+            name: "ccmux_list_windows".into(),
+            description: "List all windows in a session".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "session": {
+                        "type": "string",
+                        "description": "Session name or ID (uses first session if omitted)"
+                    }
+                }
+            }),
+        },
+        Tool {
+            name: "ccmux_create_session".into(),
+            description: "Create a new terminal session".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Optional name for the session (auto-generated if omitted)"
+                    }
+                }
+            }),
+        },
+        Tool {
+            name: "ccmux_create_window".into(),
+            description: "Create a new window in a session".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "session": {
+                        "type": "string",
+                        "description": "Session name or ID (uses first session if omitted)"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Optional name for the new window"
+                    },
+                    "command": {
+                        "type": "string",
+                        "description": "Command to run in the default pane (default: shell)"
+                    }
+                }
+            }),
+        },
     ]
 }
 
@@ -172,5 +227,9 @@ mod tests {
         assert!(names.contains(&"ccmux_get_status"));
         assert!(names.contains(&"ccmux_close_pane"));
         assert!(names.contains(&"ccmux_focus_pane"));
+        assert!(names.contains(&"ccmux_list_sessions"));
+        assert!(names.contains(&"ccmux_list_windows"));
+        assert!(names.contains(&"ccmux_create_session"));
+        assert!(names.contains(&"ccmux_create_window"));
     }
 }
