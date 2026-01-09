@@ -8,6 +8,7 @@ use vt100::Parser;
 use ccmux_protocol::{ClaudeActivity, ClaudeState, PaneInfo, PaneState};
 use crate::claude::ClaudeDetector;
 use crate::config::SessionType;
+use crate::isolation;
 use crate::pty::ScrollbackBuffer;
 
 /// A terminal pane within a window
@@ -255,6 +256,43 @@ impl Pane {
         self.claude_detector.reset();
         self.state = PaneState::Normal;
         self.state_changed_at = SystemTime::now();
+    }
+
+    /// Clean up isolation directory for this pane
+    ///
+    /// Call this when a Claude pane is closed or the process exits.
+    /// Safe to call on non-Claude panes (no-op).
+    pub fn cleanup_isolation(&self) {
+        if self.claude_detector.is_claude() || self.is_claude() {
+            if let Err(e) = isolation::cleanup_config_dir(self.id) {
+                tracing::warn!(
+                    "Failed to cleanup isolation dir for pane {}: {}",
+                    self.id, e
+                );
+            }
+        }
+    }
+
+    /// Ensure isolation directory exists for this pane
+    ///
+    /// Call this when Claude is detected in a pane to set up isolation.
+    /// Returns the path to the isolation directory if successful.
+    pub fn ensure_isolation(&self) -> Option<std::path::PathBuf> {
+        match isolation::ensure_config_dir(self.id) {
+            Ok(dir) => Some(dir),
+            Err(e) => {
+                tracing::warn!(
+                    "Failed to create isolation dir for pane {}: {}",
+                    self.id, e
+                );
+                None
+            }
+        }
+    }
+
+    /// Get the isolation config directory path for this pane
+    pub fn isolation_config_dir(&self) -> std::path::PathBuf {
+        isolation::pane_config_dir(self.id)
     }
 
     /// Get title

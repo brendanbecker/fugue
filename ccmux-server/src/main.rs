@@ -8,6 +8,7 @@ use ccmux_utils::Result;
 
 mod claude;
 mod config;
+mod isolation;
 #[allow(dead_code)]
 mod orchestration;
 mod parser;
@@ -141,6 +142,23 @@ impl Server {
         // Kill all PTYs
         self.pty_manager.kill_all();
 
+        // Clean up isolation directories for all Claude panes
+        for session in self.session_manager.list_sessions() {
+            for window in session.windows() {
+                for pane in window.panes() {
+                    if pane.is_claude() {
+                        if let Err(e) = isolation::cleanup_config_dir(pane.id()) {
+                            warn!(
+                                "Failed to cleanup isolation dir for pane {}: {}",
+                                pane.id(),
+                                e
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
         // Collect final state and shutdown persistence
         if let Some(mut persistence) = self.persistence.take() {
             let sessions = self.collect_session_snapshots();
@@ -236,6 +254,28 @@ impl Server {
     pub fn persistence(&self) -> Option<&PersistenceManager> {
         self.persistence.as_ref()
     }
+
+    /// Perform isolation cleanup on startup
+    ///
+    /// Removes orphaned isolation directories from crashed sessions.
+    pub fn cleanup_isolation(&self) {
+        // Collect active pane IDs from session manager
+        let active_pane_ids: Vec<uuid::Uuid> = self
+            .session_manager
+            .list_sessions()
+            .iter()
+            .flat_map(|session| {
+                session.windows().flat_map(|window| {
+                    window.panes().map(|pane| pane.id())
+                })
+            })
+            .collect();
+
+        // Clean up orphaned isolation directories
+        if let Err(e) = isolation::startup_cleanup(&active_pane_ids) {
+            warn!("Failed to clean up isolation directories: {}", e);
+        }
+    }
 }
 
 #[tokio::main]
@@ -261,6 +301,9 @@ async fn main() -> Result<()> {
             // Continue anyway - start fresh
         }
     }
+
+    // Clean up orphaned isolation directories
+    server.cleanup_isolation();
 
     // TODO: Implement main server loop
     // - Listen for client connections

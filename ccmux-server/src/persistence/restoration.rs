@@ -12,6 +12,7 @@ use uuid::Uuid;
 
 use ccmux_protocol::PaneState;
 
+use crate::isolation;
 use crate::pty::{PtyConfig, PtyManager};
 use crate::session::{Pane, Session, SessionManager, Window};
 
@@ -296,6 +297,29 @@ impl SessionRestorer {
                         "CWD '{}' no longer exists for pane {}, using default",
                         cwd, snapshot.id
                     );
+                }
+            }
+
+            // Apply isolation for Claude panes
+            if matches!(snapshot.state, PaneState::Claude(_)) {
+                match isolation::ensure_config_dir(snapshot.id) {
+                    Ok(config_dir) => {
+                        debug!(
+                            "Setting up isolation for Claude pane {}: {}",
+                            snapshot.id,
+                            config_dir.display()
+                        );
+                        pty_config = pty_config
+                            .with_env(isolation::CLAUDE_CONFIG_DIR_ENV, config_dir.to_string_lossy().as_ref())
+                            .with_env(isolation::CCMUX_PANE_ID_ENV, snapshot.id.to_string());
+                    }
+                    Err(e) => {
+                        warn!(
+                            "Failed to create isolation dir for pane {}: {}",
+                            snapshot.id, e
+                        );
+                        // Continue without isolation - better than failing
+                    }
                 }
             }
 
