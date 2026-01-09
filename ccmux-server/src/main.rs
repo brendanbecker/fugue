@@ -7,15 +7,18 @@ use std::sync::Arc;
 use futures::stream::StreamExt;
 use futures::sink::SinkExt;
 use tokio::net::{UnixListener, UnixStream};
-use tokio::sync::{broadcast, Mutex};
+use tokio::sync::{broadcast, mpsc, Mutex, RwLock};
 use tokio_util::codec::{FramedRead, FramedWrite};
 use tracing::{debug, error, info, warn};
 
-use ccmux_protocol::{ClientMessage, ServerCodec, ServerMessage, PROTOCOL_VERSION};
+use handlers::{HandlerContext, HandlerResult};
+
+use ccmux_protocol::{ServerCodec, ServerMessage};
 use ccmux_utils::Result;
 
 mod claude;
 mod config;
+mod handlers;
 mod isolation;
 pub mod mcp;
 #[allow(dead_code)]
@@ -40,11 +43,34 @@ use persistence::{
 use pty::PtyManager;
 use session::SessionManager;
 
+/// Shared state for concurrent access by client handlers
+///
+/// This holds Arc-wrapped managers that can be safely shared across
+/// async tasks without requiring the server mutex.
+#[derive(Clone)]
+pub struct SharedState {
+    /// Session manager for session/window/pane operations
+    pub session_manager: Arc<RwLock<SessionManager>>,
+    /// PTY manager for terminal operations
+    pub pty_manager: Arc<RwLock<PtyManager>>,
+    /// Client connection registry for tracking and broadcasting
+    pub registry: Arc<ClientRegistry>,
+    /// Shutdown signal sender
+    shutdown_tx: broadcast::Sender<()>,
+}
+
+impl SharedState {
+    /// Subscribe to shutdown signals
+    pub fn subscribe_shutdown(&self) -> broadcast::Receiver<()> {
+        self.shutdown_tx.subscribe()
+    }
+}
+
 /// Server state container
 pub struct Server {
-    /// Session manager
+    /// Session manager (owned, moved to shared state at startup)
     session_manager: SessionManager,
-    /// PTY manager
+    /// PTY manager (owned, moved to shared state at startup)
     pty_manager: PtyManager,
     /// Persistence manager (optional if disabled)
     persistence: Option<PersistenceManager>,
@@ -54,8 +80,12 @@ pub struct Server {
     shutdown_tx: broadcast::Sender<()>,
     /// Active client count
     active_clients: AtomicUsize,
-    /// Client connection registry
+    /// Client connection registry (owned, moved to shared state at startup)
     client_registry: ClientRegistry,
+    /// Reference to shared session manager (set after startup)
+    session_manager_ref: Option<Arc<RwLock<SessionManager>>>,
+    /// Reference to shared PTY manager (set after startup)
+    pty_manager_ref: Option<Arc<RwLock<PtyManager>>>,
 }
 
 impl Server {
@@ -76,6 +106,8 @@ impl Server {
             shutdown_tx,
             active_clients: AtomicUsize::new(0),
             client_registry: ClientRegistry::new(),
+            session_manager_ref: None,
+            pty_manager_ref: None,
         };
 
         // Initialize persistence if enabled
@@ -154,6 +186,70 @@ impl Server {
         }
 
         Ok(())
+    }
+
+    /// Create a checkpoint with pre-collected snapshots
+    pub fn checkpoint_with_snapshots(&mut self, sessions: Vec<SessionSnapshot>) -> Result<()> {
+        if let Some(ref mut persistence) = self.persistence {
+            persistence.create_checkpoint(sessions)?;
+        }
+        Ok(())
+    }
+
+    /// Collect session snapshots from an external session manager reference
+    pub fn collect_session_snapshots_from(
+        &self,
+        session_manager: &SessionManager,
+    ) -> Vec<SessionSnapshot> {
+        let _capture = ScrollbackCapture::new(self.scrollback_config.clone());
+
+        session_manager
+            .list_sessions()
+            .iter()
+            .map(|session| {
+                let windows: Vec<WindowSnapshot> = session
+                    .windows()
+                    .map(|window| {
+                        let panes = window
+                            .panes()
+                            .map(|pane| {
+                                let (cols, rows) = pane.dimensions();
+                                persistence::PaneSnapshot {
+                                    id: pane.id(),
+                                    window_id: window.id(),
+                                    index: pane.index(),
+                                    cols,
+                                    rows,
+                                    state: pane.state().clone(),
+                                    title: pane.title().map(String::from),
+                                    cwd: pane.cwd().map(String::from),
+                                    created_at: pane.created_at_unix(),
+                                    scrollback: None,
+                                }
+                            })
+                            .collect();
+
+                        WindowSnapshot {
+                            id: window.id(),
+                            session_id: session.id(),
+                            name: window.name().to_string(),
+                            index: window.index(),
+                            panes,
+                            active_pane_id: window.active_pane_id(),
+                            created_at: window.created_at_unix(),
+                        }
+                    })
+                    .collect();
+
+                SessionSnapshot {
+                    id: session.id(),
+                    name: session.name().to_string(),
+                    windows,
+                    active_window_id: session.active_window_id(),
+                    created_at: session.created_at_unix(),
+                }
+            })
+            .collect()
     }
 
     /// Perform graceful shutdown
@@ -396,12 +492,9 @@ fn cleanup_socket() {
 // ==================== Accept Loop ====================
 
 /// Run the main accept loop for client connections
-async fn run_accept_loop(listener: UnixListener, server: Arc<Mutex<Server>>) {
+async fn run_accept_loop(listener: UnixListener, shared_state: SharedState) {
     // Get shutdown receiver before entering loop
-    let mut shutdown_rx = {
-        let server_guard = server.lock().await;
-        server_guard.subscribe_shutdown()
-    };
+    let mut shutdown_rx = shared_state.subscribe_shutdown();
 
     loop {
         tokio::select! {
@@ -410,9 +503,9 @@ async fn run_accept_loop(listener: UnixListener, server: Arc<Mutex<Server>>) {
                 match result {
                     Ok((stream, _addr)) => {
                         debug!("New client connection accepted");
-                        let server_clone = Arc::clone(&server);
+                        let state_clone = shared_state.clone();
                         tokio::spawn(async move {
-                            handle_client(stream, server_clone).await;
+                            handle_client(stream, state_clone).await;
                         });
                     }
                     Err(e) => {
@@ -434,12 +527,13 @@ async fn run_accept_loop(listener: UnixListener, server: Arc<Mutex<Server>>) {
 // ==================== Client Handler ====================
 
 /// Handle a single client connection
-async fn handle_client(stream: UnixStream, server: Arc<Mutex<Server>>) {
-    // Register client
-    {
-        let server_guard = server.lock().await;
-        server_guard.client_connected();
-    }
+async fn handle_client(stream: UnixStream, shared_state: SharedState) {
+    // Create a channel for receiving messages (broadcasts from registry)
+    let (tx, mut rx) = mpsc::channel::<ServerMessage>(32);
+
+    // Register client with the registry
+    let client_id = shared_state.registry.register_client(tx);
+    info!("Client {} connected", client_id);
 
     // Split stream for reading and writing
     let (reader, writer) = stream.into_split();
@@ -447,10 +541,15 @@ async fn handle_client(stream: UnixStream, server: Arc<Mutex<Server>>) {
     let mut framed_writer = FramedWrite::new(writer, ServerCodec::new());
 
     // Get shutdown receiver
-    let mut shutdown_rx = {
-        let server_guard = server.lock().await;
-        server_guard.subscribe_shutdown()
-    };
+    let mut shutdown_rx = shared_state.subscribe_shutdown();
+
+    // Create handler context for this client
+    let handler_ctx = HandlerContext::new(
+        Arc::clone(&shared_state.session_manager),
+        Arc::clone(&shared_state.pty_manager),
+        Arc::clone(&shared_state.registry),
+        client_id,
+    );
 
     // Message pump loop
     loop {
@@ -459,88 +558,80 @@ async fn handle_client(stream: UnixStream, server: Arc<Mutex<Server>>) {
             result = framed_reader.next() => {
                 match result {
                     Some(Ok(msg)) => {
-                        debug!("Received message: {:?}", msg);
-                        // Handle the message and send response
-                        let response = handle_message(msg, &server).await;
-                        if let Err(e) = framed_writer.send(response).await {
-                            error!("Failed to send response: {}", e);
-                            break;
+                        debug!("Received message from {}: {:?}", client_id, msg);
+
+                        // Route message through handlers
+                        let handler_result = handler_ctx.route_message(msg).await;
+
+                        // Process handler result
+                        match handler_result {
+                            HandlerResult::Response(response) => {
+                                if let Err(e) = framed_writer.send(response).await {
+                                    error!("Failed to send response to {}: {}", client_id, e);
+                                    break;
+                                }
+                            }
+                            HandlerResult::ResponseWithBroadcast {
+                                response,
+                                session_id,
+                                broadcast,
+                            } => {
+                                // Send response to this client
+                                if let Err(e) = framed_writer.send(response).await {
+                                    error!("Failed to send response to {}: {}", client_id, e);
+                                    break;
+                                }
+                                // Broadcast to other clients in the session
+                                shared_state
+                                    .registry
+                                    .broadcast_to_session_except(session_id, client_id, broadcast)
+                                    .await;
+                            }
+                            HandlerResult::NoResponse => {
+                                // No response needed (e.g., Input message)
+                            }
                         }
                     }
                     Some(Err(e)) => {
-                        error!("Client read error: {}", e);
+                        error!("Client {} read error: {}", client_id, e);
                         break;
                     }
                     None => {
                         // Client disconnected (EOF)
-                        debug!("Client disconnected (EOF)");
+                        debug!("Client {} disconnected (EOF)", client_id);
                         break;
                     }
+                }
+            }
+
+            // Handle messages from registry (broadcasts from other clients)
+            Some(msg) = rx.recv() => {
+                if let Err(e) = framed_writer.send(msg).await {
+                    error!("Failed to send broadcast to {}: {}", client_id, e);
+                    break;
                 }
             }
 
             // Handle shutdown signal
             _ = shutdown_rx.recv() => {
-                debug!("Client handler received shutdown signal");
+                debug!("Client {} handler received shutdown signal", client_id);
                 break;
             }
         }
     }
 
-    // Unregister client
-    {
-        let server_guard = server.lock().await;
-        server_guard.client_disconnected();
+    // Clean up: detach from session if attached
+    if let Some(session_id) = shared_state.registry.get_client_session(client_id) {
+        // Decrement attached client count in session
+        let mut session_manager = shared_state.session_manager.write().await;
+        if let Some(session) = session_manager.get_session_mut(session_id) {
+            session.detach_client();
+        }
     }
-}
 
-/// Handle a client message and return a response
-///
-/// Note: Full message routing is implemented in FEAT-022.
-/// This is a stub implementation that acknowledges receipt.
-async fn handle_message(msg: ClientMessage, _server: &Arc<Mutex<Server>>) -> ServerMessage {
-    match msg {
-        ClientMessage::Ping => {
-            debug!("Received Ping, sending Pong");
-            ServerMessage::Pong
-        }
-        ClientMessage::Connect { client_id, protocol_version } => {
-            info!("Client {} connecting with protocol version {}", client_id, protocol_version);
-            if protocol_version != PROTOCOL_VERSION {
-                ServerMessage::Error {
-                    code: ccmux_protocol::ErrorCode::ProtocolMismatch,
-                    message: format!(
-                        "Protocol version mismatch: client={}, server={}",
-                        protocol_version, PROTOCOL_VERSION
-                    ),
-                }
-            } else {
-                ServerMessage::Connected {
-                    server_version: env!("CARGO_PKG_VERSION").to_string(),
-                    protocol_version: PROTOCOL_VERSION,
-                }
-            }
-        }
-        ClientMessage::ListSessions => {
-            // Stub: Return empty session list
-            // Full implementation in FEAT-022
-            ServerMessage::SessionList { sessions: vec![] }
-        }
-        ClientMessage::Sync => {
-            // Stub: Return empty session list as a sync response
-            // Full implementation in FEAT-022
-            ServerMessage::SessionList { sessions: vec![] }
-        }
-        _ => {
-            // For all other messages, return a generic "not implemented" error
-            // Full message routing will be implemented in FEAT-022
-            debug!("Received unhandled message type: {:?}", msg);
-            ServerMessage::Error {
-                code: ccmux_protocol::ErrorCode::InvalidOperation,
-                message: "Operation not yet implemented".to_string(),
-            }
-        }
-    }
+    // Unregister client from registry
+    shared_state.registry.unregister_client(client_id);
+    info!("Client {} disconnected", client_id);
 }
 
 /// Run the MCP server mode
@@ -580,19 +671,44 @@ async fn run_daemon() -> Result<()> {
     // Set up Unix socket
     let listener = setup_socket().await?;
 
-    // Wrap server in Arc<Mutex<>> for shared access
+    // Create shared state for client handlers
+    // Extract managers into Arc<RwLock<>> for concurrent access
+    let (shutdown_tx, _) = broadcast::channel(1);
+    let shared_state = SharedState {
+        session_manager: Arc::new(RwLock::new(std::mem::replace(
+            &mut server.session_manager,
+            SessionManager::new(),
+        ))),
+        pty_manager: Arc::new(RwLock::new(std::mem::replace(
+            &mut server.pty_manager,
+            PtyManager::new(),
+        ))),
+        registry: Arc::new(std::mem::replace(
+            &mut server.client_registry,
+            ClientRegistry::new(),
+        )),
+        shutdown_tx: shutdown_tx.clone(),
+    };
+
+    // Store references back in server for persistence operations
+    server.session_manager_ref = Some(Arc::clone(&shared_state.session_manager));
+    server.pty_manager_ref = Some(Arc::clone(&shared_state.pty_manager));
+    server.shutdown_tx = shutdown_tx;
+
+    // Wrap server in Arc<Mutex<>> for checkpoint/persistence access
     let server = Arc::new(Mutex::new(server));
 
     // Spawn accept loop
-    let server_for_accept = Arc::clone(&server);
+    let shared_state_for_accept = shared_state.clone();
     let accept_handle = tokio::spawn(async move {
-        run_accept_loop(listener, server_for_accept).await;
+        run_accept_loop(listener, shared_state_for_accept).await;
     });
 
     // Spawn checkpoint task
     let server_for_checkpoint = Arc::clone(&server);
+    let shared_state_for_checkpoint = shared_state.clone();
     let checkpoint_handle = tokio::spawn(async move {
-        run_checkpoint_loop(server_for_checkpoint).await;
+        run_checkpoint_loop(server_for_checkpoint, shared_state_for_checkpoint).await;
     });
 
     // Wait for shutdown signal (SIGTERM or SIGINT)
@@ -601,10 +717,7 @@ async fn run_daemon() -> Result<()> {
 
     // Signal shutdown to all tasks
     info!("Initiating graceful shutdown...");
-    {
-        let server_guard = server.lock().await;
-        server_guard.signal_shutdown();
-    }
+    let _ = shared_state.shutdown_tx.send(());
 
     // Wait for accept loop to finish (with timeout)
     let shutdown_timeout = tokio::time::Duration::from_secs(5);
@@ -619,10 +732,7 @@ async fn run_daemon() -> Result<()> {
     let client_timeout = tokio::time::Duration::from_secs(2);
     let start = std::time::Instant::now();
     loop {
-        let count = {
-            let server_guard = server.lock().await;
-            server_guard.active_client_count()
-        };
+        let count = shared_state.registry.client_count();
         if count == 0 {
             break;
         }
@@ -633,10 +743,45 @@ async fn run_daemon() -> Result<()> {
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
     }
 
-    // Perform server shutdown
+    // Perform server shutdown with shared state
     {
         let mut server_guard = server.lock().await;
-        server_guard.shutdown()?;
+
+        // Kill all PTYs
+        let mut pty_manager = shared_state.pty_manager.write().await;
+        pty_manager.kill_all();
+
+        // Clean up isolation directories for all Claude panes
+        let session_manager = shared_state.session_manager.read().await;
+        for session in session_manager.list_sessions() {
+            for window in session.windows() {
+                for pane in window.panes() {
+                    if pane.is_claude() {
+                        if let Err(e) = isolation::cleanup_config_dir(pane.id()) {
+                            warn!(
+                                "Failed to cleanup isolation dir for pane {}: {}",
+                                pane.id(),
+                                e
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        // Collect final state and shutdown persistence
+        if server_guard.persistence.is_some() {
+            let snapshots = server_guard.collect_session_snapshots_from(&session_manager);
+            drop(session_manager);
+
+            if let Some(mut persistence) = server_guard.persistence.take() {
+                if let Err(e) = persistence.shutdown(snapshots) {
+                    error!("Persistence shutdown failed: {}", e);
+                }
+            }
+        }
+
+        info!("Shutdown complete");
     }
 
     // Clean up socket file
@@ -676,11 +821,8 @@ async fn wait_for_shutdown_signal() {
 }
 
 /// Run the periodic checkpoint loop
-async fn run_checkpoint_loop(server: Arc<Mutex<Server>>) {
-    let mut shutdown_rx = {
-        let server_guard = server.lock().await;
-        server_guard.subscribe_shutdown()
-    };
+async fn run_checkpoint_loop(server: Arc<Mutex<Server>>, shared_state: SharedState) {
+    let mut shutdown_rx = shared_state.subscribe_shutdown();
 
     let checkpoint_interval = tokio::time::Duration::from_secs(30);
 
@@ -689,7 +831,12 @@ async fn run_checkpoint_loop(server: Arc<Mutex<Server>>) {
             _ = tokio::time::sleep(checkpoint_interval) => {
                 let mut server_guard = server.lock().await;
                 if server_guard.is_checkpoint_due() {
-                    if let Err(e) = server_guard.checkpoint() {
+                    // Collect snapshots from shared state
+                    let session_manager = shared_state.session_manager.read().await;
+                    let snapshots = server_guard.collect_session_snapshots_from(&session_manager);
+                    drop(session_manager);
+
+                    if let Err(e) = server_guard.checkpoint_with_snapshots(snapshots) {
                         error!("Checkpoint failed: {}", e);
                     }
                 }
@@ -721,6 +868,7 @@ async fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ccmux_protocol::{ClientMessage, PROTOCOL_VERSION};
     use tempfile::TempDir;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -728,6 +876,17 @@ mod tests {
     fn create_test_server() -> Server {
         let app_config = config::AppConfig::default();
         Server::new(&app_config).expect("Failed to create test server")
+    }
+
+    /// Create a SharedState for testing
+    fn create_test_shared_state() -> SharedState {
+        let (shutdown_tx, _) = broadcast::channel(1);
+        SharedState {
+            session_manager: Arc::new(RwLock::new(SessionManager::new())),
+            pty_manager: Arc::new(RwLock::new(PtyManager::new())),
+            registry: Arc::new(ClientRegistry::new()),
+            shutdown_tx,
+        }
     }
 
     // ==================== Socket Setup Tests ====================
@@ -833,7 +992,7 @@ mod tests {
         let socket_path = temp_dir.path().join("test.sock");
 
         let listener = UnixListener::bind(&socket_path).unwrap();
-        let server = Arc::new(Mutex::new(create_test_server()));
+        let shared_state = create_test_shared_state();
 
         // Connect client
         let client_handle = tokio::spawn({
@@ -848,9 +1007,9 @@ mod tests {
         let mut client_stream = client_handle.await.unwrap();
 
         // Start server-side handler
-        let server_clone = Arc::clone(&server);
+        let state_clone = shared_state.clone();
         let server_handle = tokio::spawn(async move {
-            handle_client(server_stream, server_clone).await;
+            handle_client(server_stream, state_clone).await;
         });
 
         // Send Ping from client
@@ -882,7 +1041,7 @@ mod tests {
         let socket_path = temp_dir.path().join("test.sock");
 
         let listener = UnixListener::bind(&socket_path).unwrap();
-        let server = Arc::new(Mutex::new(create_test_server()));
+        let shared_state = create_test_shared_state();
 
         // Connect client
         let client_handle = tokio::spawn({
@@ -895,9 +1054,9 @@ mod tests {
         let (server_stream, _) = listener.accept().await.unwrap();
         let mut client_stream = client_handle.await.unwrap();
 
-        let server_clone = Arc::clone(&server);
+        let state_clone = shared_state.clone();
         let server_handle = tokio::spawn(async move {
-            handle_client(server_stream, server_clone).await;
+            handle_client(server_stream, state_clone).await;
         });
 
         // Send Connect message
@@ -938,7 +1097,7 @@ mod tests {
         let socket_path = temp_dir.path().join("test.sock");
 
         let listener = UnixListener::bind(&socket_path).unwrap();
-        let server = Arc::new(Mutex::new(create_test_server()));
+        let shared_state = create_test_shared_state();
 
         let client_handle = tokio::spawn({
             let socket_path = socket_path.clone();
@@ -950,9 +1109,9 @@ mod tests {
         let (server_stream, _) = listener.accept().await.unwrap();
         let mut client_stream = client_handle.await.unwrap();
 
-        let server_clone = Arc::clone(&server);
+        let state_clone = shared_state.clone();
         let server_handle = tokio::spawn(async move {
-            handle_client(server_stream, server_clone).await;
+            handle_client(server_stream, state_clone).await;
         });
 
         // Send Connect with wrong protocol version
@@ -1034,22 +1193,19 @@ mod tests {
         let socket_path = temp_dir.path().join("test.sock");
 
         let listener = UnixListener::bind(&socket_path).unwrap();
-        let server = Arc::new(Mutex::new(create_test_server()));
+        let shared_state = create_test_shared_state();
 
         // Start accept loop
-        let server_clone = Arc::clone(&server);
+        let state_clone = shared_state.clone();
         let accept_handle = tokio::spawn(async move {
-            run_accept_loop(listener, server_clone).await;
+            run_accept_loop(listener, state_clone).await;
         });
 
         // Give it time to start
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-        // Signal shutdown
-        {
-            let server_guard = server.lock().await;
-            server_guard.signal_shutdown();
-        }
+        // Signal shutdown via the broadcast channel
+        let _ = shared_state.shutdown_tx.send(());
 
         // Accept loop should exit
         let result = tokio::time::timeout(
@@ -1065,7 +1221,7 @@ mod tests {
         let socket_path = temp_dir.path().join("test.sock");
 
         let listener = UnixListener::bind(&socket_path).unwrap();
-        let server = Arc::new(Mutex::new(create_test_server()));
+        let shared_state = create_test_shared_state();
 
         // Connect client
         let client_handle = tokio::spawn({
@@ -1079,19 +1235,16 @@ mod tests {
         let _client_stream = client_handle.await.unwrap();
 
         // Start handler
-        let server_clone = Arc::clone(&server);
+        let state_clone = shared_state.clone();
         let handler_handle = tokio::spawn(async move {
-            handle_client(server_stream, server_clone).await;
+            handle_client(server_stream, state_clone).await;
         });
 
         // Give it time to start
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-        // Signal shutdown
-        {
-            let server_guard = server.lock().await;
-            server_guard.signal_shutdown();
-        }
+        // Signal shutdown via the broadcast channel
+        let _ = shared_state.shutdown_tx.send(());
 
         // Handler should exit
         let result = tokio::time::timeout(
@@ -1103,46 +1256,70 @@ mod tests {
 
     // ==================== Message Handling Tests ====================
 
-    #[tokio::test]
-    async fn test_handle_message_ping() {
-        let server = Arc::new(Mutex::new(create_test_server()));
-        let response = handle_message(ClientMessage::Ping, &server).await;
-        assert_eq!(response, ServerMessage::Pong);
+    fn create_test_handler_context() -> HandlerContext {
+        let shared_state = create_test_shared_state();
+
+        // Register a test client
+        let (tx, _rx) = mpsc::channel(10);
+        let client_id = shared_state.registry.register_client(tx);
+
+        HandlerContext::new(
+            shared_state.session_manager,
+            shared_state.pty_manager,
+            shared_state.registry,
+            client_id,
+        )
     }
 
     #[tokio::test]
-    async fn test_handle_message_list_sessions() {
-        let server = Arc::new(Mutex::new(create_test_server()));
-        let response = handle_message(ClientMessage::ListSessions, &server).await;
-        match response {
-            ServerMessage::SessionList { sessions } => {
-                assert!(sessions.is_empty());
-            }
-            _ => panic!("Expected SessionList, got {:?}", response),
+    async fn test_route_message_ping() {
+        let ctx = create_test_handler_context();
+        let result = ctx.route_message(ccmux_protocol::ClientMessage::Ping).await;
+
+        match result {
+            HandlerResult::Response(ServerMessage::Pong) => {}
+            _ => panic!("Expected Pong response"),
         }
     }
 
     #[tokio::test]
-    async fn test_handle_message_sync() {
-        let server = Arc::new(Mutex::new(create_test_server()));
-        let response = handle_message(ClientMessage::Sync, &server).await;
-        match response {
-            ServerMessage::SessionList { sessions } => {
+    async fn test_route_message_list_sessions() {
+        let ctx = create_test_handler_context();
+        let result = ctx.route_message(ccmux_protocol::ClientMessage::ListSessions).await;
+
+        match result {
+            HandlerResult::Response(ServerMessage::SessionList { sessions }) => {
                 assert!(sessions.is_empty());
             }
-            _ => panic!("Expected SessionList, got {:?}", response),
+            _ => panic!("Expected SessionList response"),
         }
     }
 
     #[tokio::test]
-    async fn test_handle_message_unimplemented() {
-        let server = Arc::new(Mutex::new(create_test_server()));
-        let response = handle_message(ClientMessage::Detach, &server).await;
-        match response {
-            ServerMessage::Error { code, .. } => {
-                assert_eq!(code, ccmux_protocol::ErrorCode::InvalidOperation);
+    async fn test_route_message_sync_not_attached() {
+        let ctx = create_test_handler_context();
+        let result = ctx.route_message(ccmux_protocol::ClientMessage::Sync).await;
+
+        // When not attached to a session, Sync returns SessionList
+        match result {
+            HandlerResult::Response(ServerMessage::SessionList { sessions }) => {
+                assert!(sessions.is_empty());
             }
-            _ => panic!("Expected Error, got {:?}", response),
+            _ => panic!("Expected SessionList response"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_route_message_detach_not_attached() {
+        let ctx = create_test_handler_context();
+        let result = ctx.route_message(ccmux_protocol::ClientMessage::Detach).await;
+
+        // Detach when not attached returns SessionList (current sessions)
+        match result {
+            HandlerResult::Response(ServerMessage::SessionList { sessions }) => {
+                assert!(sessions.is_empty());
+            }
+            _ => panic!("Expected SessionList response"),
         }
     }
 }

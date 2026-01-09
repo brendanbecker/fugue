@@ -69,6 +69,8 @@ pub struct ScrollbackBuffer {
     max_lines: usize,
     /// Total bytes currently stored (for memory tracking)
     total_bytes: usize,
+    /// Current viewport offset from the bottom (0 = at bottom, following output)
+    viewport_offset: usize,
 }
 
 impl ScrollbackBuffer {
@@ -78,7 +80,22 @@ impl ScrollbackBuffer {
             lines: VecDeque::with_capacity(max_lines.min(1024)), // Pre-allocate reasonably
             max_lines,
             total_bytes: 0,
+            viewport_offset: 0,
         }
+    }
+
+    /// Get the current viewport offset from the bottom
+    ///
+    /// 0 means at bottom (following output), larger values mean scrolled up.
+    pub fn viewport_offset(&self) -> usize {
+        self.viewport_offset
+    }
+
+    /// Set the viewport offset from the bottom
+    ///
+    /// 0 means at bottom (following output), larger values mean scrolled up.
+    pub fn set_viewport_offset(&mut self, offset: usize) {
+        self.viewport_offset = offset;
     }
 
     /// Get the maximum number of lines this buffer can hold
@@ -197,6 +214,7 @@ impl Clone for ScrollbackBuffer {
             lines: self.lines.clone(),
             max_lines: self.max_lines,
             total_bytes: self.total_bytes,
+            viewport_offset: self.viewport_offset,
         };
         // Update global counter for cloned bytes
         GLOBAL_SCROLLBACK_BYTES.fetch_add(cloned.total_bytes, Ordering::Relaxed);
