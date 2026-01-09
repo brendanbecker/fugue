@@ -5,6 +5,67 @@ use uuid::Uuid;
 
 use crate::types::*;
 
+// ==================== Orchestration Types ====================
+
+/// Messages for cross-session orchestration
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum OrchestrationMessage {
+    /// Status update from a worker session
+    StatusUpdate {
+        session_id: Uuid,
+        status: WorkerStatus,
+        message: Option<String>,
+    },
+    /// Task assignment from orchestrator
+    TaskAssignment {
+        task_id: Uuid,
+        description: String,
+        files: Vec<String>,
+    },
+    /// Task completion notification
+    TaskComplete {
+        task_id: Uuid,
+        success: bool,
+        summary: String,
+    },
+    /// Request for help/escalation
+    HelpRequest {
+        session_id: Uuid,
+        context: String,
+    },
+    /// Broadcast message to all sessions
+    Broadcast {
+        from_session_id: Uuid,
+        message: String,
+    },
+    /// Sync request (ask all sessions to report status)
+    SyncRequest,
+}
+
+/// Worker session status
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum WorkerStatus {
+    Idle,
+    Working,
+    WaitingForInput,
+    Blocked,
+    Complete,
+    Error,
+}
+
+/// Target for orchestration messages
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum OrchestrationTarget {
+    /// Send to orchestrator session
+    Orchestrator,
+    /// Send to specific session
+    Session(Uuid),
+    /// Broadcast to all sessions in same repo
+    Broadcast,
+    /// Send to sessions in specific worktree
+    Worktree(String),
+}
+
 /// Messages sent from client to server
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ClientMessage {
@@ -68,6 +129,12 @@ pub enum ClientMessage {
 
     /// Send a reply to a pane awaiting input
     Reply { reply: crate::types::ReplyMessage },
+
+    /// Send orchestration message to other sessions
+    SendOrchestration {
+        target: OrchestrationTarget,
+        message: OrchestrationMessage,
+    },
 }
 
 /// Messages sent from server to client
@@ -133,6 +200,18 @@ pub enum ServerMessage {
 
     /// Reply was delivered successfully
     ReplyDelivered { result: crate::types::ReplyResult },
+
+    /// Received orchestration message from another session
+    OrchestrationReceived {
+        from_session_id: Uuid,
+        message: OrchestrationMessage,
+    },
+
+    /// Orchestration message was delivered
+    OrchestrationDelivered {
+        /// Number of sessions that received the message
+        delivered_count: usize,
+    },
 }
 
 /// Error codes for protocol errors
@@ -146,6 +225,10 @@ pub enum ErrorCode {
     InternalError,
     /// Target pane is not awaiting input
     NotAwaitingInput,
+    /// Session not associated with a repository
+    NoRepository,
+    /// No recipients for orchestration message
+    NoRecipients,
 }
 
 #[cfg(test)]
@@ -636,9 +719,11 @@ mod tests {
             ErrorCode::ProtocolMismatch,
             ErrorCode::InternalError,
             ErrorCode::NotAwaitingInput,
+            ErrorCode::NoRepository,
+            ErrorCode::NoRecipients,
         ];
 
-        assert_eq!(codes.len(), 7);
+        assert_eq!(codes.len(), 9);
         for (i, code) in codes.iter().enumerate() {
             // Each code should be unique
             for (j, other) in codes.iter().enumerate() {
@@ -870,5 +955,259 @@ mod tests {
 
         let debug = format!("{:?}", code);
         assert_eq!(debug, "NotAwaitingInput");
+    }
+
+    // ==================== Orchestration Message Tests ====================
+
+    #[test]
+    fn test_orchestration_message_status_update() {
+        let session_id = Uuid::new_v4();
+        let msg = OrchestrationMessage::StatusUpdate {
+            session_id,
+            status: WorkerStatus::Working,
+            message: Some("Processing files".to_string()),
+        };
+
+        if let OrchestrationMessage::StatusUpdate {
+            session_id: sid,
+            status,
+            message,
+        } = msg
+        {
+            assert_eq!(sid, session_id);
+            assert_eq!(status, WorkerStatus::Working);
+            assert_eq!(message, Some("Processing files".to_string()));
+        } else {
+            panic!("Wrong variant");
+        }
+    }
+
+    #[test]
+    fn test_orchestration_message_task_assignment() {
+        let task_id = Uuid::new_v4();
+        let msg = OrchestrationMessage::TaskAssignment {
+            task_id,
+            description: "Fix the login bug".to_string(),
+            files: vec!["src/auth.rs".to_string(), "src/login.rs".to_string()],
+        };
+
+        if let OrchestrationMessage::TaskAssignment {
+            task_id: tid,
+            description,
+            files,
+        } = msg
+        {
+            assert_eq!(tid, task_id);
+            assert_eq!(description, "Fix the login bug");
+            assert_eq!(files.len(), 2);
+        } else {
+            panic!("Wrong variant");
+        }
+    }
+
+    #[test]
+    fn test_orchestration_message_task_complete() {
+        let task_id = Uuid::new_v4();
+        let msg = OrchestrationMessage::TaskComplete {
+            task_id,
+            success: true,
+            summary: "Bug fixed and tests pass".to_string(),
+        };
+
+        if let OrchestrationMessage::TaskComplete {
+            task_id: tid,
+            success,
+            summary,
+        } = msg
+        {
+            assert_eq!(tid, task_id);
+            assert!(success);
+            assert_eq!(summary, "Bug fixed and tests pass");
+        } else {
+            panic!("Wrong variant");
+        }
+    }
+
+    #[test]
+    fn test_orchestration_message_help_request() {
+        let session_id = Uuid::new_v4();
+        let msg = OrchestrationMessage::HelpRequest {
+            session_id,
+            context: "Stuck on type inference".to_string(),
+        };
+
+        if let OrchestrationMessage::HelpRequest {
+            session_id: sid,
+            context,
+        } = msg
+        {
+            assert_eq!(sid, session_id);
+            assert_eq!(context, "Stuck on type inference");
+        } else {
+            panic!("Wrong variant");
+        }
+    }
+
+    #[test]
+    fn test_orchestration_message_broadcast() {
+        let from_session_id = Uuid::new_v4();
+        let msg = OrchestrationMessage::Broadcast {
+            from_session_id,
+            message: "All workers pause".to_string(),
+        };
+
+        if let OrchestrationMessage::Broadcast {
+            from_session_id: sid,
+            message,
+        } = msg
+        {
+            assert_eq!(sid, from_session_id);
+            assert_eq!(message, "All workers pause");
+        } else {
+            panic!("Wrong variant");
+        }
+    }
+
+    #[test]
+    fn test_orchestration_message_sync_request() {
+        let msg = OrchestrationMessage::SyncRequest;
+        assert_eq!(msg.clone(), OrchestrationMessage::SyncRequest);
+    }
+
+    #[test]
+    fn test_worker_status_all_variants() {
+        let statuses = [
+            WorkerStatus::Idle,
+            WorkerStatus::Working,
+            WorkerStatus::WaitingForInput,
+            WorkerStatus::Blocked,
+            WorkerStatus::Complete,
+            WorkerStatus::Error,
+        ];
+
+        assert_eq!(statuses.len(), 6);
+        for (i, status) in statuses.iter().enumerate() {
+            for (j, other) in statuses.iter().enumerate() {
+                if i == j {
+                    assert_eq!(status, other);
+                } else {
+                    assert_ne!(status, other);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_orchestration_target_orchestrator() {
+        let target = OrchestrationTarget::Orchestrator;
+        assert_eq!(target.clone(), OrchestrationTarget::Orchestrator);
+    }
+
+    #[test]
+    fn test_orchestration_target_session() {
+        let session_id = Uuid::new_v4();
+        let target = OrchestrationTarget::Session(session_id);
+
+        if let OrchestrationTarget::Session(id) = target {
+            assert_eq!(id, session_id);
+        } else {
+            panic!("Wrong variant");
+        }
+    }
+
+    #[test]
+    fn test_orchestration_target_broadcast() {
+        let target = OrchestrationTarget::Broadcast;
+        assert_eq!(target.clone(), OrchestrationTarget::Broadcast);
+    }
+
+    #[test]
+    fn test_orchestration_target_worktree() {
+        let target = OrchestrationTarget::Worktree("/repo/feature-branch".to_string());
+
+        if let OrchestrationTarget::Worktree(path) = target {
+            assert_eq!(path, "/repo/feature-branch");
+        } else {
+            panic!("Wrong variant");
+        }
+    }
+
+    #[test]
+    fn test_client_message_send_orchestration() {
+        let target = OrchestrationTarget::Orchestrator;
+        let message = OrchestrationMessage::StatusUpdate {
+            session_id: Uuid::new_v4(),
+            status: WorkerStatus::Idle,
+            message: None,
+        };
+
+        let msg = ClientMessage::SendOrchestration {
+            target: target.clone(),
+            message: message.clone(),
+        };
+
+        if let ClientMessage::SendOrchestration {
+            target: t,
+            message: m,
+        } = msg
+        {
+            assert_eq!(t, target);
+            assert_eq!(m, message);
+        } else {
+            panic!("Wrong variant");
+        }
+    }
+
+    #[test]
+    fn test_server_message_orchestration_received() {
+        let from_session_id = Uuid::new_v4();
+        let message = OrchestrationMessage::SyncRequest;
+
+        let msg = ServerMessage::OrchestrationReceived {
+            from_session_id,
+            message: message.clone(),
+        };
+
+        if let ServerMessage::OrchestrationReceived {
+            from_session_id: sid,
+            message: m,
+        } = msg
+        {
+            assert_eq!(sid, from_session_id);
+            assert_eq!(m, message);
+        } else {
+            panic!("Wrong variant");
+        }
+    }
+
+    #[test]
+    fn test_server_message_orchestration_delivered() {
+        let msg = ServerMessage::OrchestrationDelivered { delivered_count: 3 };
+
+        if let ServerMessage::OrchestrationDelivered { delivered_count } = msg {
+            assert_eq!(delivered_count, 3);
+        } else {
+            panic!("Wrong variant");
+        }
+    }
+
+    #[test]
+    fn test_error_code_no_repository() {
+        let code = ErrorCode::NoRepository;
+        assert_eq!(code, ErrorCode::NoRepository);
+        assert_ne!(code, ErrorCode::NoRecipients);
+
+        let debug = format!("{:?}", code);
+        assert_eq!(debug, "NoRepository");
+    }
+
+    #[test]
+    fn test_error_code_no_recipients() {
+        let code = ErrorCode::NoRecipients;
+        assert_eq!(code, ErrorCode::NoRecipients);
+        assert_ne!(code, ErrorCode::NoRepository);
+
+        let debug = format!("{:?}", code);
+        assert_eq!(debug, "NoRecipients");
     }
 }

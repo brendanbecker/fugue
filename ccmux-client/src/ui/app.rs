@@ -373,11 +373,28 @@ impl App {
             ServerMessage::Pong => {
                 // Keepalive response, no action needed
             }
-            ServerMessage::ViewportUpdated { .. } => {
-                // Viewport update acknowledged, no action needed
+            ServerMessage::ViewportUpdated { pane_id, state } => {
+                // Viewport scroll state updated for pane
+                let _ = (pane_id, state); // TODO: Update scroll state in pane display
             }
-            ServerMessage::ReplyDelivered { .. } => {
-                // Reply delivery status, handled separately if needed
+            ServerMessage::ReplyDelivered { result } => {
+                // Reply was successfully delivered to pane
+                self.status_message = Some(format!(
+                    "Reply delivered ({} bytes)",
+                    result.bytes_written
+                ));
+            }
+            ServerMessage::OrchestrationReceived { from_session_id, message } => {
+                // Received orchestration message from another session
+                // TODO: Handle orchestration messages in UI
+                let _ = (from_session_id, message);
+            }
+            ServerMessage::OrchestrationDelivered { delivered_count } => {
+                // Orchestration message was delivered to other sessions
+                self.status_message = Some(format!(
+                    "Message delivered to {} session(s)",
+                    delivered_count
+                ));
             }
         }
         Ok(())

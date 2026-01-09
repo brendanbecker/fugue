@@ -9,7 +9,10 @@ pub mod types;
 
 // Re-export main types at crate root
 pub use codec::{ClientCodec, CodecError, ServerCodec};
-pub use messages::{ClientMessage, ErrorCode, ServerMessage};
+pub use messages::{
+    ClientMessage, ErrorCode, OrchestrationMessage, OrchestrationTarget, ServerMessage,
+    WorkerStatus,
+};
 pub use types::{
     ClaudeActivity, ClaudeState, Dimensions, PaneInfo, PaneState, PaneTarget, ReplyMessage,
     ReplyResult, SessionInfo, SplitDirection, ViewportState, WindowInfo, WorktreeInfo,
