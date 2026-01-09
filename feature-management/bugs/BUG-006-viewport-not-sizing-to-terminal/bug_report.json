@@ -1,0 +1,44 @@
+{
+  "bug_id": "BUG-006",
+  "title": "Viewport not sizing to terminal dimensions",
+  "component": "ccmux-client",
+  "severity": "medium",
+  "priority": "P2",
+  "status": "analyzed",
+  "reported_date": "2025-01-09",
+  "updated_date": "2025-01-09",
+  "assigned_to": null,
+  "tags": ["ui", "terminal", "resize", "viewport"],
+  "affected_versions": ["current"],
+  "environment": "All terminals",
+  "reproducibility": "always",
+  "description": "When ccmux-client starts in a full-screen terminal, the viewport renders at approximately quarter-screen size (80x24) instead of the actual terminal dimensions. Works correctly if terminal is already at the expected size.",
+  "steps_to_reproduce": [
+    "Start ccmux-server",
+    "Create a session from any terminal",
+    "Start ccmux-client in a full-screen terminal (e.g., 200x50)",
+    "Observe viewport renders at 80x24, not full terminal size"
+  ],
+  "expected_behavior": "Viewport should fill the terminal and PTY should be sized to match terminal dimensions",
+  "actual_behavior": "Viewport renders at 80x24 (server-side default) regardless of client terminal size",
+  "root_cause": "Client creates UI panes using server-reported dimensions (80x24 default) instead of client's terminal_size, and no resize message is sent during initial attach flow",
+  "impact": "Poor user experience, programs in PTY receive wrong terminal dimensions",
+  "workaround": "Resize terminal after attaching to trigger correct resize",
+  "evidence": [
+    {
+      "type": "code",
+      "location": "ccmux-server/src/session/pane.rs:86-88",
+      "description": "Server defaults panes to 80x24"
+    },
+    {
+      "type": "code",
+      "location": "ccmux-client/src/ui/app.rs:634-636",
+      "description": "Client uses server dimensions instead of terminal_size"
+    },
+    {
+      "type": "code",
+      "location": "ccmux-client/src/ui/app.rs:137-141",
+      "description": "Client correctly detects terminal size at startup"
+    }
+  ]
+}

@@ -631,15 +631,34 @@ impl App {
                 self.state = AppState::Attached;
                 self.status_message = Some("Attached to session".to_string());
 
-                // Create UI panes for all panes in the session
+                // BUG-006 FIX: Use client's terminal size, not server-reported size
+                // The server's pane dimensions are from when the session was created,
+                // which may differ from this client's terminal size.
+                let (term_cols, term_rows) = self.terminal_size;
+                let pane_rows = term_rows.saturating_sub(3); // Account for borders and status bar
+                let pane_cols = term_cols.saturating_sub(2); // Account for side borders
+
+                // Create UI panes with CLIENT's terminal dimensions
                 for pane_info in self.panes.values() {
-                    self.pane_manager.add_pane(pane_info.id, pane_info.rows, pane_info.cols);
+                    self.pane_manager.add_pane(pane_info.id, pane_rows, pane_cols);
                     if let Some(ui_pane) = self.pane_manager.get_mut(pane_info.id) {
                         ui_pane.set_title(pane_info.title.clone());
                         ui_pane.set_cwd(pane_info.cwd.clone());
                         ui_pane.set_pane_state(pane_info.state.clone());
                     }
                 }
+
+                // Send resize messages to server for all panes to sync PTY dimensions
+                for pane_id in self.pane_manager.pane_ids() {
+                    self.connection
+                        .send(ClientMessage::Resize {
+                            pane_id,
+                            cols: pane_cols,
+                            rows: pane_rows,
+                        })
+                        .await?;
+                }
+
                 // Set active UI pane
                 if let Some(active_id) = self.active_pane_id {
                     self.pane_manager.set_active(active_id);
