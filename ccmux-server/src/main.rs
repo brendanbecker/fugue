@@ -55,6 +55,8 @@ pub struct SharedState {
     pub pty_manager: Arc<RwLock<PtyManager>>,
     /// Client connection registry for tracking and broadcasting
     pub registry: Arc<ClientRegistry>,
+    /// Application configuration
+    pub config: Arc<AppConfig>,
     /// Shutdown signal sender
     shutdown_tx: broadcast::Sender<()>,
     /// Channel for pane cleanup notifications (when PTY dies)
@@ -550,6 +552,7 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
         Arc::clone(&shared_state.session_manager),
         Arc::clone(&shared_state.pty_manager),
         Arc::clone(&shared_state.registry),
+        Arc::clone(&shared_state.config),
         client_id,
         shared_state.pane_closed_tx.clone(),
     );
@@ -657,8 +660,15 @@ async fn run_mcp_bridge() -> Result<()> {
 async fn run_daemon() -> Result<()> {
     info!("ccmux server starting");
 
-    // Load configuration
-    let app_config = AppConfig::default();
+    // Load configuration from file or use defaults
+    let app_config = config::ConfigLoader::load().unwrap_or_else(|e| {
+        warn!("Failed to load config, using defaults: {}", e);
+        AppConfig::default()
+    });
+
+    if let Some(ref cmd) = app_config.general.default_command {
+        info!("Default command for new sessions: {}", cmd);
+    }
 
     // Create server
     let mut server = Server::new(&app_config)?;
@@ -699,6 +709,7 @@ async fn run_daemon() -> Result<()> {
             &mut server.client_registry,
             ClientRegistry::new(),
         )),
+        config: Arc::new(app_config),
         shutdown_tx: shutdown_tx.clone(),
         pane_closed_tx,
     };
@@ -1100,6 +1111,7 @@ mod tests {
             session_manager: Arc::new(RwLock::new(SessionManager::new())),
             pty_manager: Arc::new(RwLock::new(PtyManager::new())),
             registry: Arc::new(ClientRegistry::new()),
+            config: Arc::new(config::AppConfig::default()),
             shutdown_tx,
             pane_closed_tx,
         }
@@ -1483,6 +1495,7 @@ mod tests {
             shared_state.session_manager,
             shared_state.pty_manager,
             shared_state.registry,
+            shared_state.config,
             client_id,
             shared_state.pane_closed_tx,
         )

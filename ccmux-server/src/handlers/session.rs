@@ -69,7 +69,13 @@ impl HandlerContext {
                 // Spawn PTY for the default pane
                 {
                     let mut pty_manager = self.pty_manager.write().await;
-                    let mut pty_config = PtyConfig::shell().with_size(cols, rows);
+
+                    // Use default_command from config if set, otherwise shell
+                    let mut pty_config = if let Some(ref cmd) = self.config.general.default_command {
+                        PtyConfig::command(cmd).with_size(cols, rows)
+                    } else {
+                        PtyConfig::shell().with_size(cols, rows)
+                    };
 
                     // Inherit server's working directory so new panes start in the project
                     if let Ok(cwd) = std::env::current_dir() {

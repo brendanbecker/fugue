@@ -16,6 +16,7 @@ use uuid::Uuid;
 
 use ccmux_protocol::{ClientMessage, ErrorCode, ServerMessage};
 
+use crate::config::AppConfig;
 use crate::pty::{PaneClosedNotification, PtyManager};
 use crate::registry::{ClientId, ClientRegistry};
 use crate::session::SessionManager;
@@ -30,6 +31,8 @@ pub struct HandlerContext {
     pub pty_manager: Arc<RwLock<PtyManager>>,
     /// Client connection registry for tracking and broadcasting
     pub registry: Arc<ClientRegistry>,
+    /// Application configuration
+    pub config: Arc<AppConfig>,
     /// The client making this request
     pub client_id: ClientId,
     /// Channel to notify when panes close (for cleanup)
@@ -56,6 +59,7 @@ impl HandlerContext {
         session_manager: Arc<RwLock<SessionManager>>,
         pty_manager: Arc<RwLock<PtyManager>>,
         registry: Arc<ClientRegistry>,
+        config: Arc<AppConfig>,
         client_id: ClientId,
         pane_closed_tx: mpsc::Sender<PaneClosedNotification>,
     ) -> Self {
@@ -63,6 +67,7 @@ impl HandlerContext {
             session_manager,
             pty_manager,
             registry,
+            config,
             client_id,
             pane_closed_tx,
         }

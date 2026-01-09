@@ -66,8 +66,11 @@ impl SessionLoggingConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct GeneralConfig {
-    /// Default shell to spawn
+    /// Default shell to spawn (used when default_command is not set)
     pub default_shell: String,
+    /// Default command to run in new sessions (overrides default_shell if set)
+    /// Example: "claude" to start Claude Code in every new session
+    pub default_command: Option<String>,
     /// Maximum Claude session depth
     pub max_depth: u32,
     /// Prefix key for commands
@@ -78,6 +81,7 @@ impl Default for GeneralConfig {
     fn default() -> Self {
         Self {
             default_shell: std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into()),
+            default_command: None,
             max_depth: 5,
             prefix_key: "Ctrl-a".into(),
         }
