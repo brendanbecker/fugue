@@ -373,6 +373,12 @@ impl App {
             ServerMessage::Pong => {
                 // Keepalive response, no action needed
             }
+            ServerMessage::ViewportUpdated { .. } => {
+                // Viewport update acknowledged, no action needed
+            }
+            ServerMessage::ReplyDelivered { .. } => {
+                // Reply delivery status, handled separately if needed
+            }
         }
         Ok(())
     }

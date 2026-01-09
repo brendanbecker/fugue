@@ -8,6 +8,8 @@ use ccmux_utils::Result;
 
 mod claude;
 mod config;
+#[allow(dead_code)]
+mod orchestration;
 mod parser;
 #[allow(dead_code)]
 mod persistence;
