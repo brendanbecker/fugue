@@ -1,5 +1,8 @@
 //! Message handler trait and utilities
 
+// Allow unused code that's part of the public API for future features
+#![allow(dead_code)]
+
 use ccmux_protocol::{ClientMessage, ServerMessage};
 use ccmux_utils::Result;
 use tokio::sync::mpsc;

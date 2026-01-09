@@ -1,47 +1,38 @@
 //! ccmux client - Terminal UI for ccmux
+//!
+//! This is the main entry point for the ccmux terminal multiplexer client.
+//! It provides a Ratatui-based interface for managing Claude Code sessions.
 
-use ccmux_protocol::ClientMessage;
 use ccmux_utils::{init_logging_with_config, LogConfig, Result};
-use uuid::Uuid;
 
 mod connection;
 mod input;
 mod ui;
 
-use connection::Connection;
+use ui::App;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Initialize logging to file (not stderr, since we're using the terminal)
     init_logging_with_config(LogConfig::client())?;
     tracing::info!("ccmux client starting");
 
-    // Create connection
-    let mut conn = Connection::new();
-
-    // Try to connect
-    match conn.connect().await {
+    // Run the application
+    match run_app().await {
         Ok(()) => {
-            tracing::info!("Connected to server");
-
-            // Send handshake
-            let client_id = Uuid::new_v4();
-            conn.send(ClientMessage::Connect {
-                client_id,
-                protocol_version: ccmux_protocol::PROTOCOL_VERSION,
-            })
-            .await?;
-
-            // Wait for response
-            if let Some(msg) = conn.recv().await {
-                tracing::info!("Received: {:?}", msg);
-            }
+            tracing::info!("ccmux client exiting normally");
+            Ok(())
         }
         Err(e) => {
-            tracing::error!("Failed to connect: {}", e);
+            tracing::error!("ccmux client error: {}", e);
+            // Print error to stderr after terminal restoration
             eprintln!("Error: {}", e);
-            eprintln!("Is the ccmux server running?");
+            Err(e)
         }
     }
+}
 
-    Ok(())
+async fn run_app() -> Result<()> {
+    let mut app = App::new()?;
+    app.run().await
 }

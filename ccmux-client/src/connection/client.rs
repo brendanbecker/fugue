@@ -1,5 +1,8 @@
 //! Connection client for ccmux server
 
+// Allow unused code that's part of the public API for future features
+#![allow(dead_code)]
+
 use std::path::PathBuf;
 
 use futures::{SinkExt, StreamExt};

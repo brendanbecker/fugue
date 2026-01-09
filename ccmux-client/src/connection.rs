@@ -6,5 +6,10 @@
 mod client;
 mod handler;
 
-pub use client::{Connection, ConnectionState};
+pub use client::Connection;
+
+// These are part of the public API for advanced use cases
+#[allow(unused_imports)]
+pub use client::ConnectionState;
+#[allow(unused_imports)]
 pub use handler::{CallbackHandler, MessageHandler, MessageSender};
