@@ -1,5 +1,6 @@
 //! Configuration schema structs
 
+use ccmux_utils::{SessionLogConfig, SessionLogLevel};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -14,6 +15,51 @@ pub struct AppConfig {
     pub terminal: TerminalConfig,
     pub claude: ClaudeConfig,
     pub persistence: PersistenceConfig,
+    pub session_logging: SessionLoggingConfig,
+}
+
+/// Per-session logging settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SessionLoggingConfig {
+    /// Enable per-session logging
+    pub enabled: bool,
+    /// Default log level for new sessions
+    pub default_level: SessionLogLevel,
+    /// Maximum log file size in MB before rotation
+    pub max_file_size_mb: u64,
+    /// Maximum number of rotated log files to keep
+    pub max_rotated_files: u32,
+    /// Retention period in days for old logs
+    pub retention_days: u32,
+    /// Separate user actions into audit trail
+    pub separate_audit_trail: bool,
+}
+
+impl Default for SessionLoggingConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            default_level: SessionLogLevel::Signals,
+            max_file_size_mb: 10,
+            max_rotated_files: 5,
+            retention_days: 7,
+            separate_audit_trail: true,
+        }
+    }
+}
+
+impl SessionLoggingConfig {
+    /// Convert to SessionLogConfig used by SessionLogger
+    pub fn to_session_log_config(&self) -> SessionLogConfig {
+        SessionLogConfig {
+            default_level: self.default_level,
+            max_file_size: self.max_file_size_mb * 1024 * 1024,
+            max_rotated_files: self.max_rotated_files,
+            retention_secs: u64::from(self.retention_days) * 24 * 60 * 60,
+            separate_audit_trail: self.separate_audit_trail,
+        }
+    }
 }
 
 /// General settings
@@ -697,5 +743,91 @@ screen_snapshot_lines = 1000
         assert_eq!(config.terminal.scrollback.default, 1000); // Default
         assert_eq!(config.terminal.scrollback.orchestrator, 75000);
         assert_eq!(config.terminal.scrollback.worker, 500); // Default
+    }
+
+    // ==================== SessionLoggingConfig Tests ====================
+
+    #[test]
+    fn test_session_logging_config_defaults() {
+        let config = SessionLoggingConfig::default();
+        assert!(config.enabled);
+        assert_eq!(config.default_level, SessionLogLevel::Signals);
+        assert_eq!(config.max_file_size_mb, 10);
+        assert_eq!(config.max_rotated_files, 5);
+        assert_eq!(config.retention_days, 7);
+        assert!(config.separate_audit_trail);
+    }
+
+    #[test]
+    fn test_session_logging_config_parse() {
+        let toml_str = r#"
+            [session_logging]
+            enabled = true
+            default_level = "full"
+            max_file_size_mb = 20
+            max_rotated_files = 10
+            retention_days = 14
+            separate_audit_trail = false
+        "#;
+        let config: AppConfig = toml::from_str(toml_str).unwrap();
+        assert!(config.session_logging.enabled);
+        assert_eq!(config.session_logging.default_level, SessionLogLevel::Full);
+        assert_eq!(config.session_logging.max_file_size_mb, 20);
+        assert_eq!(config.session_logging.max_rotated_files, 10);
+        assert_eq!(config.session_logging.retention_days, 14);
+        assert!(!config.session_logging.separate_audit_trail);
+    }
+
+    #[test]
+    fn test_session_logging_config_to_session_log_config() {
+        let config = SessionLoggingConfig {
+            enabled: true,
+            default_level: SessionLogLevel::Prompts,
+            max_file_size_mb: 5,
+            max_rotated_files: 3,
+            retention_days: 3,
+            separate_audit_trail: true,
+        };
+
+        let log_config = config.to_session_log_config();
+
+        assert_eq!(log_config.default_level, SessionLogLevel::Prompts);
+        assert_eq!(log_config.max_file_size, 5 * 1024 * 1024);
+        assert_eq!(log_config.max_rotated_files, 3);
+        assert_eq!(log_config.retention_secs, 3 * 24 * 60 * 60);
+        assert!(log_config.separate_audit_trail);
+    }
+
+    #[test]
+    fn test_session_logging_config_debug() {
+        let config = SessionLoggingConfig::default();
+        let debug = format!("{:?}", config);
+        assert!(debug.contains("SessionLoggingConfig"));
+        assert!(debug.contains("enabled"));
+    }
+
+    #[test]
+    fn test_session_logging_config_clone() {
+        let config = SessionLoggingConfig::default();
+        let cloned = config.clone();
+        assert_eq!(config.enabled, cloned.enabled);
+        assert_eq!(config.default_level, cloned.default_level);
+    }
+
+    #[test]
+    fn test_session_logging_all_levels() {
+        for level in ["spawns", "signals", "prompts", "full"] {
+            let toml_str = format!(
+                r#"
+                [session_logging]
+                default_level = "{}"
+            "#,
+                level
+            );
+            let config: AppConfig = toml::from_str(&toml_str).unwrap();
+            assert!(format!("{:?}", config.session_logging.default_level)
+                .to_lowercase()
+                .contains(level));
+        }
     }
 }

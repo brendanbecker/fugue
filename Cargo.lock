@@ -179,9 +179,13 @@ version = "0.1.0"
 dependencies = [
  "directories",
  "libc",
+ "serde",
+ "serde_json",
+ "tempfile",
  "thiserror 1.0.69",
  "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]

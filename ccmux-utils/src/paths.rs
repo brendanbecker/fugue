@@ -85,6 +85,13 @@ pub fn log_dir() -> PathBuf {
     state_dir().join("log")
 }
 
+/// Get the session-specific log directory
+///
+/// Location: `$XDG_STATE_HOME/ccmux/log/{session_id}`
+pub fn session_log_dir(session_id: uuid::Uuid) -> PathBuf {
+    log_dir().join(session_id.to_string())
+}
+
 /// Get the checkpoints directory (for persistence)
 ///
 /// Location: `$XDG_DATA_HOME/ccmux/checkpoints`
