@@ -12,7 +12,6 @@ mod ui;
 
 pub use commands::{is_command, parse_command, Command, ParseError};
 
-use connection::Connection;
 use ui::App;
 
 #[tokio::main]

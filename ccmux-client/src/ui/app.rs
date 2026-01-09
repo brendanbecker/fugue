@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use crossterm::event::{KeyCode, KeyModifiers};
+use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::widgets::{Block, Borders, Paragraph};
@@ -16,11 +16,12 @@ use uuid::Uuid;
 
 use ccmux_protocol::{
     ClientMessage, ClaudeActivity, PaneInfo, PaneState, ServerMessage, SessionInfo,
-    WindowInfo,
+    SplitDirection, WindowInfo,
 };
 use ccmux_utils::Result;
 
 use crate::connection::Connection;
+use crate::input::{ClientCommand, InputAction, InputHandler, InputMode};
 
 use super::event::{AppEvent, EventHandler, InputEvent};
 use super::terminal::Terminal;
@@ -50,6 +51,8 @@ pub struct App {
     connection: Connection,
     /// Event handler
     events: EventHandler,
+    /// Input handler with prefix key state machine
+    input_handler: InputHandler,
     /// Current session info
     session: Option<SessionInfo>,
     /// Windows in current session
@@ -80,6 +83,7 @@ impl App {
             client_id: Uuid::new_v4(),
             connection: Connection::new(),
             events,
+            input_handler: InputHandler::new(),
             session: None,
             windows: HashMap::new(),
             panes: HashMap::new(),
@@ -199,30 +203,275 @@ impl App {
 
     /// Handle input events
     async fn handle_input(&mut self, input: InputEvent) -> Result<()> {
-        match input {
-            InputEvent::Key(key) => {
-                // Global key bindings
-                if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('q')
-                {
-                    self.state = AppState::Quitting;
-                    return Ok(());
-                }
+        // Update input handler with current active pane
+        self.input_handler.set_active_pane(self.active_pane_id);
 
-                // State-specific key handling
-                match self.state {
-                    AppState::SessionSelect => self.handle_session_select_input(key).await?,
-                    AppState::Attached => self.handle_attached_input(key).await?,
-                    _ => {}
+        // Convert InputEvent to crossterm Event for the input handler
+        let event = match input {
+            InputEvent::Key(key) => {
+                // In session select mode, handle keys directly without the prefix system
+                if self.state == AppState::SessionSelect {
+                    return self.handle_session_select_input(key).await;
+                }
+                CrosstermEvent::Key(key)
+            }
+            InputEvent::Mouse(mouse) => CrosstermEvent::Mouse(mouse),
+            InputEvent::FocusGained => CrosstermEvent::FocusGained,
+            InputEvent::FocusLost => CrosstermEvent::FocusLost,
+        };
+
+        // Only use input handler when attached to a session
+        if self.state == AppState::Attached {
+            let action = self.input_handler.handle_event(event);
+            self.handle_input_action(action).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Handle an InputAction from the input handler
+    async fn handle_input_action(&mut self, action: InputAction) -> Result<()> {
+        match action {
+            InputAction::None => {}
+
+            InputAction::SendToPane(data) => {
+                if let Some(pane_id) = self.active_pane_id {
+                    self.connection
+                        .send(ClientMessage::Input { pane_id, data })
+                        .await?;
                 }
             }
-            InputEvent::Mouse(_mouse) => {
-                // Mouse handling can be implemented later
+
+            InputAction::Command(cmd) => {
+                self.handle_client_command(cmd).await?;
             }
-            InputEvent::FocusGained | InputEvent::FocusLost => {
-                // Focus events can be handled if needed
+
+            InputAction::FocusPane { x, y } => {
+                // Find pane at coordinates and focus it
+                // For now, just log - will be implemented with proper pane layout
+                tracing::debug!("Focus pane at ({}, {})", x, y);
+            }
+
+            InputAction::ScrollUp { lines } => {
+                if let Some(pane_id) = self.active_pane_id {
+                    // Calculate new viewport offset
+                    let new_offset = self.input_handler.scroll_offset();
+                    self.connection
+                        .send(ClientMessage::SetViewportOffset {
+                            pane_id,
+                            offset: new_offset,
+                        })
+                        .await?;
+                    let _ = lines; // Used by input handler to track offset
+                }
+            }
+
+            InputAction::ScrollDown { lines } => {
+                if let Some(pane_id) = self.active_pane_id {
+                    let new_offset = self.input_handler.scroll_offset();
+                    if new_offset == 0 {
+                        // Jump to bottom when scrolled all the way down
+                        self.connection
+                            .send(ClientMessage::JumpToBottom { pane_id })
+                            .await?;
+                    } else {
+                        self.connection
+                            .send(ClientMessage::SetViewportOffset {
+                                pane_id,
+                                offset: new_offset,
+                            })
+                            .await?;
+                    }
+                    let _ = lines;
+                }
+            }
+
+            InputAction::Resize { cols, rows } => {
+                self.terminal_size = (cols, rows);
+                if let Some(pane_id) = self.active_pane_id {
+                    self.connection
+                        .send(ClientMessage::Resize { pane_id, cols, rows })
+                        .await?;
+                }
+            }
+
+            InputAction::Detach => {
+                self.connection.send(ClientMessage::Detach).await?;
+                self.state = AppState::SessionSelect;
+                self.session = None;
+                self.windows.clear();
+                self.panes.clear();
+                self.active_pane_id = None;
+                self.status_message = Some("Detached from session".to_string());
+                self.connection.send(ClientMessage::ListSessions).await?;
+            }
+
+            InputAction::Quit => {
+                self.state = AppState::Quitting;
             }
         }
         Ok(())
+    }
+
+    /// Handle a client command from prefix key or command mode
+    async fn handle_client_command(&mut self, cmd: ClientCommand) -> Result<()> {
+        match cmd {
+            ClientCommand::CreatePane => {
+                if let Some(window) = self.windows.values().next() {
+                    self.connection
+                        .send(ClientMessage::CreatePane {
+                            window_id: window.id,
+                            direction: SplitDirection::Vertical,
+                        })
+                        .await?;
+                }
+            }
+
+            ClientCommand::ClosePane => {
+                if let Some(pane_id) = self.active_pane_id {
+                    self.connection
+                        .send(ClientMessage::ClosePane { pane_id })
+                        .await?;
+                }
+            }
+
+            ClientCommand::SplitVertical => {
+                if let Some(window) = self.windows.values().next() {
+                    self.connection
+                        .send(ClientMessage::CreatePane {
+                            window_id: window.id,
+                            direction: SplitDirection::Vertical,
+                        })
+                        .await?;
+                }
+            }
+
+            ClientCommand::SplitHorizontal => {
+                if let Some(window) = self.windows.values().next() {
+                    self.connection
+                        .send(ClientMessage::CreatePane {
+                            window_id: window.id,
+                            direction: SplitDirection::Horizontal,
+                        })
+                        .await?;
+                }
+            }
+
+            ClientCommand::NextPane => {
+                self.cycle_pane(1);
+            }
+
+            ClientCommand::PreviousPane => {
+                self.cycle_pane(-1);
+            }
+
+            ClientCommand::PaneLeft
+            | ClientCommand::PaneRight
+            | ClientCommand::PaneUp
+            | ClientCommand::PaneDown => {
+                // Directional navigation requires pane layout info
+                // For now, just cycle panes
+                self.cycle_pane(1);
+            }
+
+            ClientCommand::FocusPane(index) => {
+                if let Some(pane) = self.panes.values().find(|p| p.index == index) {
+                    self.active_pane_id = Some(pane.id);
+                    self.connection
+                        .send(ClientMessage::SelectPane { pane_id: pane.id })
+                        .await?;
+                }
+            }
+
+            ClientCommand::ListSessions => {
+                self.connection.send(ClientMessage::ListSessions).await?;
+            }
+
+            ClientCommand::CreateSession(name) => {
+                let session_name =
+                    name.unwrap_or_else(|| format!("session-{}", Uuid::new_v4().as_simple()));
+                self.connection
+                    .send(ClientMessage::CreateSession { name: session_name })
+                    .await?;
+            }
+
+            ClientCommand::ListWindows => {
+                // Show window list in status
+                let window_names: Vec<_> = self.windows.values().map(|w| w.name.clone()).collect();
+                self.status_message = Some(format!("Windows: {}", window_names.join(", ")));
+            }
+
+            ClientCommand::CreateWindow => {
+                if let Some(session) = &self.session {
+                    self.connection
+                        .send(ClientMessage::CreateWindow {
+                            session_id: session.id,
+                            name: None,
+                        })
+                        .await?;
+                }
+            }
+
+            ClientCommand::EnterCopyMode => {
+                self.status_message = Some("Copy mode - use j/k to scroll, q to exit".to_string());
+            }
+
+            ClientCommand::ExitCopyMode => {
+                if let Some(pane_id) = self.active_pane_id {
+                    self.connection
+                        .send(ClientMessage::JumpToBottom { pane_id })
+                        .await?;
+                }
+                self.status_message = None;
+            }
+
+            ClientCommand::ToggleZoom => {
+                self.status_message = Some("Zoom toggle not yet implemented".to_string());
+            }
+
+            ClientCommand::ShowHelp => {
+                self.status_message =
+                    Some("Ctrl+B: prefix | c: new pane | x: close | n/p: next/prev".to_string());
+            }
+
+            // Commands not yet implemented
+            ClientCommand::CloseWindow
+            | ClientCommand::NextWindow
+            | ClientCommand::PreviousWindow
+            | ClientCommand::SelectWindow(_)
+            | ClientCommand::RenameWindow(_)
+            | ClientCommand::RenameSession(_)
+            | ClientCommand::ClearHistory
+            | ClientCommand::NextLayout
+            | ClientCommand::ResizePane { .. }
+            | ClientCommand::ReloadConfig
+            | ClientCommand::ShowClock => {
+                self.status_message = Some(format!("Command not yet implemented: {:?}", cmd));
+            }
+        }
+        Ok(())
+    }
+
+    /// Cycle through panes by offset (positive = forward, negative = backward)
+    fn cycle_pane(&mut self, offset: i32) {
+        if self.panes.is_empty() {
+            return;
+        }
+
+        let pane_ids: Vec<Uuid> = self.panes.keys().copied().collect();
+        let current_index = self
+            .active_pane_id
+            .and_then(|id| pane_ids.iter().position(|&p| p == id))
+            .unwrap_or(0);
+
+        let new_index = if offset > 0 {
+            (current_index + offset as usize) % pane_ids.len()
+        } else {
+            let abs_offset = (-offset) as usize;
+            (current_index + pane_ids.len() - (abs_offset % pane_ids.len())) % pane_ids.len()
+        };
+
+        self.active_pane_id = Some(pane_ids[new_index]);
     }
 
     /// Handle input in session select state
@@ -263,27 +512,6 @@ impl App {
                 self.connection.send(ClientMessage::ListSessions).await?;
             }
             _ => {}
-        }
-        Ok(())
-    }
-
-    /// Handle input when attached to a session
-    async fn handle_attached_input(&mut self, key: crossterm::event::KeyEvent) -> Result<()> {
-        // Check for prefix key (Ctrl+B by default, like tmux)
-        if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('b') {
-            // Prefix mode - next key is a command
-            // For now, we'll handle simple cases
-            return Ok(());
-        }
-
-        // Forward input to active pane
-        if let Some(pane_id) = self.active_pane_id {
-            let data = key_to_bytes(&key);
-            if !data.is_empty() {
-                self.connection
-                    .send(ClientMessage::Input { pane_id, data })
-                    .await?;
-            }
         }
         Ok(())
     }
@@ -558,6 +786,14 @@ impl App {
             .map(|s| s.name.as_str())
             .unwrap_or("No session");
 
+        // Show input mode indicator
+        let mode_indicator = match self.input_handler.mode() {
+            InputMode::Normal => "".to_string(),
+            InputMode::PrefixPending => " [PREFIX]".to_string(),
+            InputMode::Command => format!(" :{}", self.input_handler.command_buffer()),
+            InputMode::Copy => format!(" [COPY +{}]", self.input_handler.scroll_offset()),
+        };
+
         let pane_info = if let Some(pane_id) = self.active_pane_id {
             if let Some(pane) = self.panes.get(&pane_id) {
                 match &pane.state {
@@ -572,7 +808,13 @@ impl App {
             "".to_string()
         };
 
-        format!(" {} | {} panes {} ", session_name, self.panes.len(), pane_info)
+        format!(
+            " {} | {} panes {}{}",
+            session_name,
+            self.panes.len(),
+            pane_info,
+            mode_indicator
+        )
     }
 }
 
