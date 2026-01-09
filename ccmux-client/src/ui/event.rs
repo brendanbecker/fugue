@@ -7,7 +7,8 @@
 
 use std::time::Duration;
 
-use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
+use crossterm::event::{Event as CrosstermEvent, EventStream, KeyEvent, MouseEvent};
+use futures::StreamExt;
 use tokio::sync::mpsc;
 
 use ccmux_protocol::ServerMessage;
@@ -66,48 +67,55 @@ impl EventHandler {
         let tx = self.tx.clone();
         let tick_rate = self.tick_rate;
 
-        std::thread::spawn(move || {
+        tokio::spawn(async move {
+            let mut reader = EventStream::new();
+
             loop {
-                // Poll with timeout for tick
-                if event::poll(tick_rate).unwrap_or(false) {
-                    match event::read() {
-                        Ok(CrosstermEvent::Key(key)) => {
-                            if tx.send(AppEvent::Input(InputEvent::Key(key))).is_err() {
+                // Use tokio timeout to get tick events at regular intervals
+                let event_result = tokio::time::timeout(tick_rate, reader.next()).await;
+
+                match event_result {
+                    Ok(Some(Ok(event))) => {
+                        // Got an event
+                        let app_event = match event {
+                            CrosstermEvent::Key(key) => Some(AppEvent::Input(InputEvent::Key(key))),
+                            CrosstermEvent::Mouse(mouse) => {
+                                Some(AppEvent::Input(InputEvent::Mouse(mouse)))
+                            }
+                            CrosstermEvent::Resize(cols, rows) => {
+                                Some(AppEvent::Resize { cols, rows })
+                            }
+                            CrosstermEvent::FocusGained => {
+                                Some(AppEvent::Input(InputEvent::FocusGained))
+                            }
+                            CrosstermEvent::FocusLost => {
+                                Some(AppEvent::Input(InputEvent::FocusLost))
+                            }
+                            CrosstermEvent::Paste(_) => None, // Handle paste events if needed
+                        };
+
+                        if let Some(evt) = app_event {
+                            if tx.send(evt).is_err() {
+                                tracing::debug!("Event channel closed, stopping input polling");
                                 break;
                             }
-                        }
-                        Ok(CrosstermEvent::Mouse(mouse)) => {
-                            if tx.send(AppEvent::Input(InputEvent::Mouse(mouse))).is_err() {
-                                break;
-                            }
-                        }
-                        Ok(CrosstermEvent::Resize(cols, rows)) => {
-                            if tx.send(AppEvent::Resize { cols, rows }).is_err() {
-                                break;
-                            }
-                        }
-                        Ok(CrosstermEvent::FocusGained) => {
-                            if tx.send(AppEvent::Input(InputEvent::FocusGained)).is_err() {
-                                break;
-                            }
-                        }
-                        Ok(CrosstermEvent::FocusLost) => {
-                            if tx.send(AppEvent::Input(InputEvent::FocusLost)).is_err() {
-                                break;
-                            }
-                        }
-                        Ok(CrosstermEvent::Paste(_)) => {
-                            // Handle paste events if needed in the future
-                        }
-                        Err(e) => {
-                            tracing::error!("Error reading terminal event: {}", e);
-                            break;
                         }
                     }
-                } else {
-                    // Timeout - send tick
-                    if tx.send(AppEvent::Tick).is_err() {
+                    Ok(Some(Err(e))) => {
+                        tracing::error!("Error reading terminal event: {}", e);
                         break;
+                    }
+                    Ok(None) => {
+                        // Stream ended
+                        tracing::debug!("Event stream ended");
+                        break;
+                    }
+                    Err(_) => {
+                        // Timeout - send tick
+                        if tx.send(AppEvent::Tick).is_err() {
+                            tracing::debug!("Event channel closed, stopping input polling");
+                            break;
+                        }
                     }
                 }
             }

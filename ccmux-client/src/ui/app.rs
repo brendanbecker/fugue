@@ -479,18 +479,27 @@ impl App {
         &mut self,
         key: crossterm::event::KeyEvent,
     ) -> Result<()> {
-        match key.code {
-            KeyCode::Up | KeyCode::Char('k') => {
+        match (key.code, key.modifiers) {
+            // Quit handlers
+            (KeyCode::Char('c'), KeyModifiers::CONTROL)
+            | (KeyCode::Char('q'), KeyModifiers::CONTROL) => {
+                self.state = AppState::Quitting;
+            }
+            (KeyCode::Char('q'), KeyModifiers::NONE) | (KeyCode::Esc, _) => {
+                self.state = AppState::Quitting;
+            }
+            // Navigation
+            (KeyCode::Up, _) | (KeyCode::Char('k'), KeyModifiers::NONE) => {
                 if self.session_list_index > 0 {
                     self.session_list_index -= 1;
                 }
             }
-            KeyCode::Down | KeyCode::Char('j') => {
+            (KeyCode::Down, _) | (KeyCode::Char('j'), KeyModifiers::NONE) => {
                 if self.session_list_index < self.available_sessions.len().saturating_sub(1) {
                     self.session_list_index += 1;
                 }
             }
-            KeyCode::Enter => {
+            (KeyCode::Enter, _) => {
                 if let Some(session) = self.available_sessions.get(self.session_list_index) {
                     self.connection
                         .send(ClientMessage::AttachSession {
@@ -499,7 +508,7 @@ impl App {
                         .await?;
                 }
             }
-            KeyCode::Char('n') => {
+            (KeyCode::Char('n'), KeyModifiers::NONE) => {
                 // Create new session
                 self.connection
                     .send(ClientMessage::CreateSession {
@@ -507,7 +516,7 @@ impl App {
                     })
                     .await?;
             }
-            KeyCode::Char('r') => {
+            (KeyCode::Char('r'), KeyModifiers::NONE) => {
                 // Refresh session list
                 self.connection.send(ClientMessage::ListSessions).await?;
             }
@@ -727,7 +736,7 @@ impl App {
         }
 
         // Help line with j/k mentioned
-        let help = Paragraph::new("↑/k ↓/j: navigate | Enter: attach | n: new | r: refresh | Ctrl+Q: quit")
+        let help = Paragraph::new("↑/k ↓/j: navigate | Enter: attach | n: new | r: refresh | q/Esc/Ctrl+C: quit")
             .style(Style::default().fg(Color::DarkGray))
             .block(Block::default().borders(Borders::ALL).title("Help"));
         frame.render_widget(help, chunks[1]);
