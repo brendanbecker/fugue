@@ -24,10 +24,12 @@ mod parser;
 #[allow(dead_code)]
 mod persistence;
 mod pty;
+pub mod registry;
 mod reply;
 mod session;
 pub mod sideband;
 
+pub use registry::{ClientId, ClientRegistry};
 pub use reply::{ReplyError, ReplyHandler};
 
 use config::AppConfig;
@@ -52,6 +54,8 @@ pub struct Server {
     shutdown_tx: broadcast::Sender<()>,
     /// Active client count
     active_clients: AtomicUsize,
+    /// Client connection registry
+    client_registry: ClientRegistry,
 }
 
 impl Server {
@@ -71,6 +75,7 @@ impl Server {
             },
             shutdown_tx,
             active_clients: AtomicUsize::new(0),
+            client_registry: ClientRegistry::new(),
         };
 
         // Initialize persistence if enabled
@@ -269,6 +274,11 @@ impl Server {
     /// Get persistence manager reference
     pub fn persistence(&self) -> Option<&PersistenceManager> {
         self.persistence.as_ref()
+    }
+
+    /// Get client registry reference
+    pub fn client_registry(&self) -> &ClientRegistry {
+        &self.client_registry
     }
 
     /// Perform isolation cleanup on startup
