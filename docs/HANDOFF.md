@@ -39,7 +39,7 @@ All component features are implemented and tested (1,093 tests). The project nee
 | FEAT-021 | Server Socket Listen Loop | P0 | 4-6h | ✅ Complete |
 | FEAT-027 | Client Connection Registry | P0 | 1-2h | ✅ Complete |
 | FEAT-022 | Client Message Routing | P0 | 6-8h | 🔲 Pending |
-| FEAT-023 | PTY Output Broadcasting | P0 | 2-3h | 🔲 Pending |
+| FEAT-023 | PTY Output Broadcasting | P0 | 2-3h | ✅ Complete |
 | FEAT-024 | Session Selection UI | P1 | 2h | ✅ Complete |
 | FEAT-025 | Pane Output Rendering | P0 | 3-4h | 🔲 Pending |
 | FEAT-026 | Input Testing | P1 | 1-2h | 🔲 Pending |
@@ -149,6 +149,7 @@ Each feature has full documentation in `feature-management/features/FEAT-XXX-*/`
 11. **FEAT-027** (Client Connection Registry) - COMPLETED and merged
 12. **BUG-001** filed: Client input not captured (P0 blocker)
 13. **BUG-001** merged to main
+14. **FEAT-023** (PTY Output Broadcasting) merged
 
 ### Key Decisions
 - FEAT-027 (Connection Registry) split out as own feature
@@ -161,13 +162,13 @@ Each feature has full documentation in `feature-management/features/FEAT-XXX-*/`
 ### Active Worktrees
 | Worktree | Branch | Status |
 |----------|--------|--------|
-| `ccmux-wt-feat-022` | feat-022-client-message-routing | 🆕 Ready to start |
-| `ccmux-wt-feat-023` | feat-023-pty-output-broadcasting | 🆕 Ready to start |
+| `ccmux-wt-feat-022` | feat-022-client-message-routing | 🚧 In progress |
+| `ccmux-wt-feat-023` | feat-023-pty-output-broadcasting | ✅ Merged |
 
 ### Next Session Tasks
 1. **FEAT-022** (Client Message Routing) - Critical path, blocks all client functionality
-2. **FEAT-023** (PTY Output Broadcasting) - Can parallelize with FEAT-022
-3. **HA-001** - Blocked until FEAT-022 complete
+2. **FEAT-025** (Pane Output Rendering) - After FEAT-022
+3. **HA-001** - After FEAT-022
 
 ## Build & Run
 
