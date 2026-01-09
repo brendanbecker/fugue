@@ -391,52 +391,34 @@ mod tests {
 
     #[test]
     fn test_ensure_dir_creates_directory() {
-        let temp_dir = std::env::temp_dir();
-        let test_dir = temp_dir.join(format!("ccmux_test_{}", std::process::id()));
-
-        // Make sure it doesn't exist
-        if test_dir.exists() {
-            std::fs::remove_dir_all(&test_dir).unwrap();
-        }
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let test_dir = temp_dir.path().join("subdir");
 
         // Create it
         let result = ensure_dir(&test_dir);
         assert!(result.is_ok());
         assert!(test_dir.exists());
         assert!(test_dir.is_dir());
-
-        // Clean up
-        std::fs::remove_dir_all(&test_dir).unwrap();
+        // temp_dir auto-cleans on drop
     }
 
     #[test]
     fn test_ensure_dir_nested() {
-        let temp_dir = std::env::temp_dir();
-        let test_dir = temp_dir
-            .join(format!("ccmux_test_{}", std::process::id()))
-            .join("nested")
-            .join("deep");
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let test_dir = temp_dir.path().join("nested").join("deep");
 
-        // Make sure it doesn't exist
-        let base = temp_dir.join(format!("ccmux_test_{}", std::process::id()));
-        if base.exists() {
-            std::fs::remove_dir_all(&base).unwrap();
-        }
-
-        // Create it
+        // Create nested directories
         let result = ensure_dir(&test_dir);
         assert!(result.is_ok());
         assert!(test_dir.exists());
         assert!(test_dir.is_dir());
-
-        // Clean up
-        std::fs::remove_dir_all(&base).unwrap();
+        // temp_dir auto-cleans on drop
     }
 
     #[test]
     fn test_ensure_dir_already_exists() {
-        let temp_dir = std::env::temp_dir();
-        let test_dir = temp_dir.join(format!("ccmux_test_exists_{}", std::process::id()));
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let test_dir = temp_dir.path().join("existing");
 
         // Create it first
         std::fs::create_dir_all(&test_dir).unwrap();
@@ -444,9 +426,7 @@ mod tests {
         // ensure_dir should succeed even if it exists
         let result = ensure_dir(&test_dir);
         assert!(result.is_ok());
-
-        // Clean up
-        std::fs::remove_dir_all(&test_dir).unwrap();
+        // temp_dir auto-cleans on drop
     }
 
     // ==================== Path Consistency Tests ====================
