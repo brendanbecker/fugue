@@ -69,7 +69,12 @@ impl HandlerContext {
                 // Spawn PTY for the default pane
                 {
                     let mut pty_manager = self.pty_manager.write().await;
-                    let pty_config = PtyConfig::shell().with_size(cols, rows);
+                    let mut pty_config = PtyConfig::shell().with_size(cols, rows);
+
+                    // Inherit server's working directory so new panes start in the project
+                    if let Ok(cwd) = std::env::current_dir() {
+                        pty_config = pty_config.with_cwd(cwd);
+                    }
 
                     match pty_manager.spawn(pane_id, pty_config) {
                         Ok(handle) => {

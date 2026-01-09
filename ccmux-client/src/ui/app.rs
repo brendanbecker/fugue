@@ -936,13 +936,37 @@ fn format_claude_indicator(activity: &ClaudeActivity, tick: u64) -> String {
 fn key_to_bytes(key: &crossterm::event::KeyEvent) -> Vec<u8> {
     let mut bytes = Vec::new();
 
+    // Calculate modifier parameter for CSI sequences (xterm style)
+    // 1 = none, 2 = Shift, 3 = Alt, 4 = Shift+Alt, 5 = Ctrl, 6 = Shift+Ctrl, 7 = Alt+Ctrl, 8 = all
+    let modifier_param = {
+        let mut m = 1u8;
+        if key.modifiers.contains(KeyModifiers::SHIFT) {
+            m += 1;
+        }
+        if key.modifiers.contains(KeyModifiers::ALT) {
+            m += 2;
+        }
+        if key.modifiers.contains(KeyModifiers::CONTROL) {
+            m += 4;
+        }
+        m
+    };
+
     match key.code {
         KeyCode::Char(c) => {
             if key.modifiers.contains(KeyModifiers::CONTROL) {
                 // Control characters
                 if c.is_ascii_lowercase() {
                     bytes.push(c as u8 - b'a' + 1);
+                } else if c.is_ascii_uppercase() {
+                    bytes.push(c as u8 - b'A' + 1);
                 }
+            } else if key.modifiers.contains(KeyModifiers::ALT) {
+                // Alt/Meta sends ESC prefix
+                bytes.push(0x1b);
+                let mut buf = [0u8; 4];
+                let s = c.encode_utf8(&mut buf);
+                bytes.extend_from_slice(s.as_bytes());
             } else {
                 let mut buf = [0u8; 4];
                 let s = c.encode_utf8(&mut buf);
@@ -950,19 +974,73 @@ fn key_to_bytes(key: &crossterm::event::KeyEvent) -> Vec<u8> {
             }
         }
         KeyCode::Enter => bytes.push(b'\r'),
-        KeyCode::Tab => bytes.push(b'\t'),
-        KeyCode::Backspace => bytes.push(0x7f),
+        KeyCode::Tab => {
+            if key.modifiers.contains(KeyModifiers::SHIFT) {
+                bytes.extend_from_slice(b"\x1b[Z"); // CSI Z - backtab
+            } else {
+                bytes.push(b'\t');
+            }
+        }
+        KeyCode::Backspace => {
+            if key.modifiers.contains(KeyModifiers::ALT) {
+                bytes.extend_from_slice(b"\x1b\x7f"); // Alt+Backspace - delete word
+            } else {
+                bytes.push(0x7f);
+            }
+        }
         KeyCode::Esc => bytes.push(0x1b),
-        KeyCode::Up => bytes.extend_from_slice(b"\x1b[A"),
-        KeyCode::Down => bytes.extend_from_slice(b"\x1b[B"),
-        KeyCode::Right => bytes.extend_from_slice(b"\x1b[C"),
-        KeyCode::Left => bytes.extend_from_slice(b"\x1b[D"),
-        KeyCode::Home => bytes.extend_from_slice(b"\x1b[H"),
-        KeyCode::End => bytes.extend_from_slice(b"\x1b[F"),
+        KeyCode::Up => {
+            if modifier_param > 1 {
+                bytes.extend_from_slice(format!("\x1b[1;{}A", modifier_param).as_bytes());
+            } else {
+                bytes.extend_from_slice(b"\x1b[A");
+            }
+        }
+        KeyCode::Down => {
+            if modifier_param > 1 {
+                bytes.extend_from_slice(format!("\x1b[1;{}B", modifier_param).as_bytes());
+            } else {
+                bytes.extend_from_slice(b"\x1b[B");
+            }
+        }
+        KeyCode::Right => {
+            if modifier_param > 1 {
+                bytes.extend_from_slice(format!("\x1b[1;{}C", modifier_param).as_bytes());
+            } else {
+                bytes.extend_from_slice(b"\x1b[C");
+            }
+        }
+        KeyCode::Left => {
+            if modifier_param > 1 {
+                bytes.extend_from_slice(format!("\x1b[1;{}D", modifier_param).as_bytes());
+            } else {
+                bytes.extend_from_slice(b"\x1b[D");
+            }
+        }
+        KeyCode::Home => {
+            if modifier_param > 1 {
+                bytes.extend_from_slice(format!("\x1b[1;{}H", modifier_param).as_bytes());
+            } else {
+                bytes.extend_from_slice(b"\x1b[H");
+            }
+        }
+        KeyCode::End => {
+            if modifier_param > 1 {
+                bytes.extend_from_slice(format!("\x1b[1;{}F", modifier_param).as_bytes());
+            } else {
+                bytes.extend_from_slice(b"\x1b[F");
+            }
+        }
         KeyCode::PageUp => bytes.extend_from_slice(b"\x1b[5~"),
         KeyCode::PageDown => bytes.extend_from_slice(b"\x1b[6~"),
         KeyCode::Insert => bytes.extend_from_slice(b"\x1b[2~"),
-        KeyCode::Delete => bytes.extend_from_slice(b"\x1b[3~"),
+        KeyCode::Delete => {
+            if key.modifiers.contains(KeyModifiers::ALT) {
+                bytes.extend_from_slice(b"\x1b[3;3~"); // Alt+Delete
+            } else {
+                bytes.extend_from_slice(b"\x1b[3~");
+            }
+        }
         KeyCode::F(n) => {
             let seq = match n {
                 1 => b"\x1bOP".as_slice(),

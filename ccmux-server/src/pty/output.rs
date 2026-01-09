@@ -212,6 +212,13 @@ impl PtyOutputPoller {
         // Final flush before exiting
         self.flush().await;
 
+        // Notify clients that the pane has closed
+        let close_msg = ServerMessage::PaneClosed {
+            pane_id: self.pane_id,
+            exit_code: None, // We don't have access to the exit code here
+        };
+        self.registry.broadcast_to_session(self.session_id, close_msg).await;
+
         info!(
             pane_id = %self.pane_id,
             session_id = %self.session_id,
