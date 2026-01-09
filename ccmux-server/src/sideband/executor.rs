@@ -3,13 +3,19 @@
 //! Executes parsed sideband commands by dispatching to the session manager
 //! and other system components.
 
+use std::io::Read;
 use std::sync::Arc;
+
 use parking_lot::Mutex;
 use thiserror::Error;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
+use ccmux_protocol::{PaneInfo, ServerMessage};
+
 use super::commands::{ControlAction, NotifyLevel, PaneRef, SidebandCommand, SplitDirection};
+use crate::pty::{PtyConfig, PtyManager};
+use crate::registry::ClientRegistry;
 use crate::session::SessionManager;
 
 /// Errors that can occur during command execution
@@ -32,23 +38,78 @@ pub enum ExecuteError {
 
     #[error("Execution failed: {0}")]
     ExecutionFailed(String),
+
+    #[error("PTY spawn failed: {0}")]
+    PtySpawnFailed(String),
 }
 
 /// Result type for command execution
 pub type ExecuteResult<T> = Result<T, ExecuteError>;
 
+/// Result of a successful spawn command execution
+///
+/// Contains all the information needed for the caller to:
+/// - Start an output poller for the new pane's PTY
+/// - Broadcast the pane creation to connected clients
+pub struct SpawnResult {
+    /// The session ID containing the new pane
+    pub session_id: Uuid,
+    /// The new pane's ID
+    pub pane_id: Uuid,
+    /// Pane info for client notification
+    pub pane_info: PaneInfo,
+    /// PTY reader for the output poller
+    pub pty_reader: Arc<Mutex<Box<dyn Read + Send>>>,
+}
+
+impl std::fmt::Debug for SpawnResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SpawnResult")
+            .field("session_id", &self.session_id)
+            .field("pane_id", &self.pane_id)
+            .field("pane_info", &self.pane_info)
+            .field("pty_reader", &"Arc<Mutex<Box<dyn Read + Send>>>")
+            .finish()
+    }
+}
+
 /// Executor for sideband commands
 ///
 /// Takes parsed commands and executes them against the session manager.
+///
+/// The executor handles pane splitting, PTY spawning, and client notifications
+/// for sideband spawn commands.
 pub struct CommandExecutor {
     /// Reference to the session manager
     session_manager: Arc<Mutex<SessionManager>>,
+    /// Reference to the PTY manager for spawning new PTYs
+    pty_manager: Arc<Mutex<PtyManager>>,
+    /// Reference to the client registry for broadcasting notifications
+    registry: Arc<ClientRegistry>,
 }
 
 impl CommandExecutor {
     /// Create a new command executor
-    pub fn new(session_manager: Arc<Mutex<SessionManager>>) -> Self {
-        Self { session_manager }
+    pub fn new(
+        session_manager: Arc<Mutex<SessionManager>>,
+        pty_manager: Arc<Mutex<PtyManager>>,
+        registry: Arc<ClientRegistry>,
+    ) -> Self {
+        Self {
+            session_manager,
+            pty_manager,
+            registry,
+        }
+    }
+
+    /// Create a basic executor with only SessionManager (for backwards compatibility in tests)
+    #[cfg(test)]
+    pub fn new_basic(session_manager: Arc<Mutex<SessionManager>>) -> Self {
+        Self {
+            session_manager,
+            pty_manager: Arc::new(Mutex::new(PtyManager::new())),
+            registry: Arc::new(ClientRegistry::new()),
+        }
     }
 
     /// Execute a sideband command
@@ -56,6 +117,9 @@ impl CommandExecutor {
     /// # Arguments
     /// * `command` - The command to execute
     /// * `source_pane` - The UUID of the pane that emitted the command
+    ///
+    /// Note: For spawn commands, use `execute_spawn_command` instead to get
+    /// the SpawnResult with PTY reader for starting the output poller.
     pub fn execute(
         &self,
         command: SidebandCommand,
@@ -68,7 +132,12 @@ impl CommandExecutor {
                 direction,
                 command,
                 cwd,
-            } => self.execute_spawn(source_pane, direction, command, cwd),
+            } => {
+                // Execute spawn and broadcast notification, but discard SpawnResult
+                // The caller should use execute_spawn_command if they need the result
+                let _ = self.execute_spawn_internal(source_pane, direction, command, cwd)?;
+                Ok(())
+            }
 
             SidebandCommand::Focus { pane } => self.execute_focus(source_pane, pane),
 
@@ -88,6 +157,20 @@ impl CommandExecutor {
                 self.execute_control(source_pane, pane, action)
             }
         }
+    }
+
+    /// Execute a spawn command and return the result
+    ///
+    /// This is the preferred method for executing spawn commands, as it returns
+    /// the SpawnResult containing the PTY reader needed for the output poller.
+    pub fn execute_spawn_command(
+        &self,
+        source_pane: Uuid,
+        direction: SplitDirection,
+        command: Option<String>,
+        cwd: Option<String>,
+    ) -> ExecuteResult<SpawnResult> {
+        self.execute_spawn_internal(source_pane, direction, command, cwd)
     }
 
     /// Execute a batch of commands
@@ -133,38 +216,101 @@ impl CommandExecutor {
         }
     }
 
-    /// Execute spawn command - create a new pane
-    fn execute_spawn(
+    /// Execute spawn command - create a new pane with PTY
+    ///
+    /// Creates a new pane in the same window as source_pane, spawns a PTY,
+    /// and broadcasts the pane creation to connected clients.
+    fn execute_spawn_internal(
         &self,
         source_pane: Uuid,
         direction: SplitDirection,
         command: Option<String>,
         cwd: Option<String>,
-    ) -> ExecuteResult<()> {
+    ) -> ExecuteResult<SpawnResult> {
         info!(
             "Spawn requested: direction={:?}, command={:?}, cwd={:?}",
             direction, command, cwd
         );
 
-        let _manager = self.session_manager.lock();
+        // Step 1: Create the new pane in SessionManager
+        let (session_id, pane_id, pane_info, pane_cwd, pane_size) = {
+            let mut manager = self.session_manager.lock();
 
-        // Find the window containing the source pane
-        // TODO: Implement actual pane splitting in SessionManager
-        // This requires:
-        // 1. Finding the window containing source_pane
-        // 2. Creating a new pane in that window
-        // 3. Spawning a PTY for the new pane
-        // 4. Running the command if specified
+            let (session_id, _window_id, new_pane) = manager
+                .split_pane(source_pane, cwd.clone())
+                .map_err(|e| ExecuteError::ExecutionFailed(e.to_string()))?;
 
-        warn!(
-            "Spawn command not yet implemented - pane: {}, direction: {:?}",
-            source_pane, direction
+            let pane_info = new_pane.to_info();
+            let pane_id = new_pane.id();
+            let pane_cwd = new_pane.cwd().map(String::from);
+            let pane_size = new_pane.dimensions();
+
+            (session_id, pane_id, pane_info, pane_cwd, pane_size)
+        };
+
+        info!(
+            "Created new pane {} in session {} (direction: {:?})",
+            pane_id, session_id, direction
         );
 
-        // For now, log the request but don't fail
-        // This allows the command to be stripped from output while
-        // the implementation is completed
-        Ok(())
+        // Step 2: Build PTY configuration
+        let pty_config = if let Some(cmd) = &command {
+            // Run a specific command
+            // Parse command string - first word is command, rest are args
+            let parts: Vec<&str> = cmd.split_whitespace().collect();
+            if parts.is_empty() {
+                PtyConfig::shell()
+            } else {
+                let mut config = PtyConfig::command(parts[0]);
+                for arg in &parts[1..] {
+                    config = config.with_arg(*arg);
+                }
+                config
+            }
+        } else {
+            // Default to shell
+            PtyConfig::shell()
+        };
+
+        // Apply cwd and size
+        let pty_config = if let Some(cwd_path) = &pane_cwd {
+            pty_config.with_cwd(cwd_path)
+        } else {
+            pty_config
+        };
+        let pty_config = pty_config.with_size(pane_size.0, pane_size.1);
+
+        // Step 3: Spawn PTY for the new pane
+        let pty_reader = {
+            let mut pty_manager = self.pty_manager.lock();
+
+            pty_manager
+                .spawn(pane_id, pty_config)
+                .map_err(|e| ExecuteError::PtySpawnFailed(e.to_string()))?;
+
+            // Get the reader for the output poller
+            let handle = pty_manager.get(pane_id).unwrap();
+            handle.clone_reader()
+        };
+
+        info!("Spawned PTY for new pane {}", pane_id);
+
+        // Step 4: Broadcast PaneCreated to connected clients
+        let msg = ServerMessage::PaneCreated {
+            pane: pane_info.clone(),
+        };
+        let delivered = self.registry.try_broadcast_to_session(session_id, msg);
+        debug!(
+            "Broadcast PaneCreated to {} clients in session {}",
+            delivered, session_id
+        );
+
+        Ok(SpawnResult {
+            session_id,
+            pane_id,
+            pane_info,
+            pty_reader,
+        })
     }
 
     /// Execute focus command - focus a specific pane
@@ -340,6 +486,8 @@ impl std::fmt::Debug for CommandExecutor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CommandExecutor")
             .field("session_manager", &"Arc<Mutex<SessionManager>>")
+            .field("pty_manager", &"Arc<Mutex<PtyManager>>")
+            .field("registry", &"Arc<ClientRegistry>")
             .finish()
     }
 }
@@ -350,8 +498,25 @@ mod tests {
 
     fn create_test_executor() -> (CommandExecutor, Arc<Mutex<SessionManager>>) {
         let manager = Arc::new(Mutex::new(SessionManager::new()));
-        let executor = CommandExecutor::new(Arc::clone(&manager));
+        let executor = CommandExecutor::new_basic(Arc::clone(&manager));
         (executor, manager)
+    }
+
+    fn create_full_test_executor() -> (
+        CommandExecutor,
+        Arc<Mutex<SessionManager>>,
+        Arc<Mutex<PtyManager>>,
+        Arc<ClientRegistry>,
+    ) {
+        let session_manager = Arc::new(Mutex::new(SessionManager::new()));
+        let pty_manager = Arc::new(Mutex::new(PtyManager::new()));
+        let registry = Arc::new(ClientRegistry::new());
+        let executor = CommandExecutor::new(
+            Arc::clone(&session_manager),
+            Arc::clone(&pty_manager),
+            Arc::clone(&registry),
+        );
+        (executor, session_manager, pty_manager, registry)
     }
 
     fn setup_test_pane(manager: &Arc<Mutex<SessionManager>>) -> Uuid {
@@ -659,5 +824,153 @@ mod tests {
 
         let err = ExecuteError::NotSupported("feature".to_string());
         assert!(err.to_string().contains("not supported"));
+
+        let err = ExecuteError::PtySpawnFailed("test".to_string());
+        assert!(err.to_string().contains("PTY spawn failed"));
+    }
+
+    // ==================== Spawn Command Tests ====================
+
+    #[test]
+    fn test_execute_spawn_creates_pane_and_pty() {
+        let (executor, session_manager, pty_manager, _registry) = create_full_test_executor();
+        let source_pane_id = setup_test_pane(&session_manager);
+
+        // Execute spawn command
+        let result = executor.execute_spawn_command(
+            source_pane_id,
+            SplitDirection::Vertical,
+            Some("echo hello".to_string()),
+            None,
+        );
+
+        assert!(result.is_ok());
+        let spawn_result = result.unwrap();
+
+        // Verify new pane was created
+        {
+            let manager = session_manager.lock();
+            assert!(manager.find_pane(spawn_result.pane_id).is_some());
+        }
+
+        // Verify PTY was spawned
+        {
+            let pty_mgr = pty_manager.lock();
+            assert!(pty_mgr.contains(spawn_result.pane_id));
+        }
+    }
+
+    #[test]
+    fn test_execute_spawn_with_cwd() {
+        let (executor, session_manager, _pty_manager, _registry) = create_full_test_executor();
+        let source_pane_id = setup_test_pane(&session_manager);
+
+        // Execute spawn with cwd
+        let result = executor.execute_spawn_command(
+            source_pane_id,
+            SplitDirection::Horizontal,
+            None,
+            Some("/tmp".to_string()),
+        );
+
+        assert!(result.is_ok());
+        let spawn_result = result.unwrap();
+
+        // Verify pane has the specified cwd
+        {
+            let manager = session_manager.lock();
+            let (_, _, pane) = manager.find_pane(spawn_result.pane_id).unwrap();
+            assert_eq!(pane.cwd(), Some("/tmp"));
+        }
+    }
+
+    #[test]
+    fn test_execute_spawn_invalid_source_pane() {
+        let (executor, _session_manager, _pty_manager, _registry) = create_full_test_executor();
+        let invalid_pane_id = Uuid::new_v4();
+
+        let result = executor.execute_spawn_command(
+            invalid_pane_id,
+            SplitDirection::Vertical,
+            None,
+            None,
+        );
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_execute_spawn_default_shell() {
+        let (executor, session_manager, pty_manager, _registry) = create_full_test_executor();
+        let source_pane_id = setup_test_pane(&session_manager);
+
+        // Execute spawn without command (should use default shell)
+        let result = executor.execute_spawn_command(
+            source_pane_id,
+            SplitDirection::Vertical,
+            None,
+            None,
+        );
+
+        assert!(result.is_ok());
+        let spawn_result = result.unwrap();
+
+        // Verify PTY was spawned
+        {
+            let pty_mgr = pty_manager.lock();
+            assert!(pty_mgr.contains(spawn_result.pane_id));
+        }
+    }
+
+    #[test]
+    fn test_spawn_result_contains_valid_data() {
+        let (executor, session_manager, _pty_manager, _registry) = create_full_test_executor();
+        let source_pane_id = setup_test_pane(&session_manager);
+
+        let result = executor.execute_spawn_command(
+            source_pane_id,
+            SplitDirection::Vertical,
+            None,
+            None,
+        );
+
+        assert!(result.is_ok());
+        let spawn_result = result.unwrap();
+
+        // Verify SpawnResult fields
+        assert_ne!(spawn_result.pane_id, source_pane_id);
+        assert_eq!(spawn_result.pane_info.id, spawn_result.pane_id);
+
+        // Verify PTY reader is valid (can be used for output poller)
+        let _reader = spawn_result.pty_reader;
+    }
+
+    #[test]
+    fn test_execute_via_generic_execute() {
+        let (executor, session_manager, pty_manager, _registry) = create_full_test_executor();
+        let source_pane_id = setup_test_pane(&session_manager);
+
+        // Execute via the generic execute() method
+        let cmd = SidebandCommand::Spawn {
+            direction: SplitDirection::Vertical,
+            command: Some("echo test".to_string()),
+            cwd: None,
+        };
+
+        let result = executor.execute(cmd, source_pane_id);
+        assert!(result.is_ok());
+
+        // Verify a new pane and PTY were created
+        {
+            let manager = session_manager.lock();
+            // Find the window containing source pane and check pane count
+            let (_, window, _) = manager.find_pane(source_pane_id).unwrap();
+            assert_eq!(window.pane_count(), 2); // Original + spawned
+        }
+
+        {
+            let pty_mgr = pty_manager.lock();
+            assert_eq!(pty_mgr.count(), 1); // Only the spawned pane has PTY
+        }
     }
 }

@@ -122,6 +122,53 @@ impl SessionManager {
         None
     }
 
+    /// Split a pane by creating a new pane in the same window
+    ///
+    /// Creates a new pane in the window containing `source_pane_id`.
+    /// The new pane can optionally have a specified cwd.
+    ///
+    /// Returns `(session_id, window_id, new_pane)` on success.
+    ///
+    /// # Arguments
+    /// * `source_pane_id` - The pane to split from (determines which window)
+    /// * `cwd` - Optional working directory for the new pane
+    ///
+    /// # Errors
+    /// Returns `PaneNotFound` if `source_pane_id` doesn't exist.
+    pub fn split_pane(
+        &mut self,
+        source_pane_id: Uuid,
+        cwd: Option<String>,
+    ) -> Result<(Uuid, Uuid, &Pane)> {
+        // Find the session and window containing the source pane
+        let (session_id, window_id, source_cwd) = {
+            let (session, window, pane) = self.find_pane(source_pane_id)
+                .ok_or_else(|| CcmuxError::PaneNotFound(source_pane_id.to_string()))?;
+            (session.id(), window.id(), pane.cwd().map(String::from))
+        };
+
+        // Get mutable access to create the new pane
+        let session = self.sessions.get_mut(&session_id)
+            .ok_or_else(|| CcmuxError::SessionNotFound(session_id.to_string()))?;
+        let window = session.get_window_mut(window_id)
+            .ok_or_else(|| CcmuxError::WindowNotFound(window_id.to_string()))?;
+
+        // Create the new pane
+        let new_pane = window.create_pane();
+        let new_pane_id = new_pane.id();
+
+        // Set the cwd - use provided cwd, or inherit from source pane
+        let effective_cwd = cwd.or(source_cwd);
+        if let Some(cwd_value) = effective_cwd {
+            let pane_mut = window.get_pane_mut(new_pane_id).unwrap();
+            pane_mut.set_cwd(Some(cwd_value));
+        }
+
+        // Return reference to the new pane
+        let new_pane = window.get_pane(new_pane_id).unwrap();
+        Ok((session_id, window_id, new_pane))
+    }
+
     /// Find pane by name/title across all sessions
     pub fn find_pane_by_name(&self, name: &str) -> Option<(&Session, &Window, &Pane)> {
         for session in self.sessions.values() {
@@ -775,5 +822,156 @@ mod tests {
         if session.worktree().map(|w| w.is_main).unwrap_or(false) {
             assert!(session.is_orchestrator());
         }
+    }
+
+    // ==================== Split Pane Tests ====================
+
+    #[test]
+    fn test_split_pane_basic() {
+        let mut manager = SessionManager::new();
+
+        // Create a session with a window and pane
+        let session = manager.create_session("work").unwrap();
+        let session_id = session.id();
+
+        let session = manager.get_session_mut(session_id).unwrap();
+        let window = session.create_window(None);
+        let window_id = window.id();
+
+        let window = session.get_window_mut(window_id).unwrap();
+        let source_pane = window.create_pane();
+        let source_pane_id = source_pane.id();
+
+        // Split the pane
+        let (result_session_id, result_window_id, new_pane) =
+            manager.split_pane(source_pane_id, None).unwrap();
+
+        // Verify the new pane is in the same session/window
+        assert_eq!(result_session_id, session_id);
+        assert_eq!(result_window_id, window_id);
+        assert_ne!(new_pane.id(), source_pane_id);
+
+        // Verify window now has 2 panes
+        let (_, window) = manager.find_window(window_id).unwrap();
+        assert_eq!(window.pane_count(), 2);
+    }
+
+    #[test]
+    fn test_split_pane_with_cwd() {
+        let mut manager = SessionManager::new();
+
+        // Create a session with a window and pane
+        let session = manager.create_session("work").unwrap();
+        let session_id = session.id();
+
+        let session = manager.get_session_mut(session_id).unwrap();
+        let window = session.create_window(None);
+        let window_id = window.id();
+
+        let window = session.get_window_mut(window_id).unwrap();
+        let source_pane = window.create_pane();
+        let source_pane_id = source_pane.id();
+
+        // Split with specific cwd
+        let (_, _, new_pane) =
+            manager.split_pane(source_pane_id, Some("/custom/path".to_string())).unwrap();
+
+        assert_eq!(new_pane.cwd(), Some("/custom/path"));
+    }
+
+    #[test]
+    fn test_split_pane_inherits_cwd() {
+        let mut manager = SessionManager::new();
+
+        // Create a session with a window and pane
+        let session = manager.create_session("work").unwrap();
+        let session_id = session.id();
+
+        let session = manager.get_session_mut(session_id).unwrap();
+        let window = session.create_window(None);
+        let window_id = window.id();
+
+        let window = session.get_window_mut(window_id).unwrap();
+        let source_pane = window.create_pane();
+        let source_pane_id = source_pane.id();
+
+        // Set cwd on source pane
+        let source_pane_mut = window.get_pane_mut(source_pane_id).unwrap();
+        source_pane_mut.set_cwd(Some("/source/cwd".to_string()));
+
+        // Split without cwd - should inherit from source
+        let (_, _, new_pane) = manager.split_pane(source_pane_id, None).unwrap();
+
+        assert_eq!(new_pane.cwd(), Some("/source/cwd"));
+    }
+
+    #[test]
+    fn test_split_pane_explicit_cwd_overrides_inherited() {
+        let mut manager = SessionManager::new();
+
+        // Create a session with a window and pane
+        let session = manager.create_session("work").unwrap();
+        let session_id = session.id();
+
+        let session = manager.get_session_mut(session_id).unwrap();
+        let window = session.create_window(None);
+        let window_id = window.id();
+
+        let window = session.get_window_mut(window_id).unwrap();
+        let source_pane = window.create_pane();
+        let source_pane_id = source_pane.id();
+
+        // Set cwd on source pane
+        let source_pane_mut = window.get_pane_mut(source_pane_id).unwrap();
+        source_pane_mut.set_cwd(Some("/source/cwd".to_string()));
+
+        // Split with explicit cwd - should override inherited
+        let (_, _, new_pane) =
+            manager.split_pane(source_pane_id, Some("/explicit/cwd".to_string())).unwrap();
+
+        assert_eq!(new_pane.cwd(), Some("/explicit/cwd"));
+    }
+
+    #[test]
+    fn test_split_pane_nonexistent_source() {
+        let mut manager = SessionManager::new();
+
+        let nonexistent_id = Uuid::new_v4();
+        let result = manager.split_pane(nonexistent_id, None);
+
+        assert!(matches!(result, Err(CcmuxError::PaneNotFound(_))));
+    }
+
+    #[test]
+    fn test_split_pane_multiple_times() {
+        let mut manager = SessionManager::new();
+
+        // Create a session with a window and pane
+        let session = manager.create_session("work").unwrap();
+        let session_id = session.id();
+
+        let session = manager.get_session_mut(session_id).unwrap();
+        let window = session.create_window(None);
+        let window_id = window.id();
+
+        let window = session.get_window_mut(window_id).unwrap();
+        let source_pane = window.create_pane();
+        let source_pane_id = source_pane.id();
+
+        // Split multiple times
+        let (_, _, pane2) = manager.split_pane(source_pane_id, None).unwrap();
+        let pane2_id = pane2.id();
+        let (_, _, _pane3) = manager.split_pane(pane2_id, None).unwrap();
+        let (_, _, _pane4) = manager.split_pane(source_pane_id, None).unwrap();
+
+        // Verify window now has 4 panes
+        let (_, window) = manager.find_window(window_id).unwrap();
+        assert_eq!(window.pane_count(), 4);
+
+        // All panes should be different
+        let pane_ids: Vec<_> = window.panes().map(|p| p.id()).collect();
+        assert_eq!(pane_ids.len(), 4);
+        let unique_ids: std::collections::HashSet<_> = pane_ids.iter().collect();
+        assert_eq!(unique_ids.len(), 4);
     }
 }

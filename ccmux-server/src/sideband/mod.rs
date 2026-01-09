@@ -48,7 +48,7 @@ mod executor;
 mod parser;
 
 pub use commands::{ControlAction, NotifyLevel, PaneRef, SidebandCommand, SplitDirection};
-pub use executor::{CommandExecutor, ExecuteError, ExecuteResult};
+pub use executor::{CommandExecutor, ExecuteError, ExecuteResult, SpawnResult};
 pub use parser::SidebandParser;
 
 #[cfg(test)]
@@ -56,14 +56,27 @@ mod tests {
     use super::*;
     use std::sync::Arc;
     use parking_lot::Mutex;
+    use crate::pty::PtyManager;
+    use crate::registry::ClientRegistry;
     use crate::session::SessionManager;
+
+    fn create_test_executor() -> (CommandExecutor, Arc<Mutex<SessionManager>>) {
+        let manager = Arc::new(Mutex::new(SessionManager::new()));
+        let pty_manager = Arc::new(Mutex::new(PtyManager::new()));
+        let registry = Arc::new(ClientRegistry::new());
+        let executor = CommandExecutor::new(
+            Arc::clone(&manager),
+            pty_manager,
+            registry,
+        );
+        (executor, manager)
+    }
 
     /// Integration test: parse and execute commands
     #[test]
     fn test_parse_and_execute_integration() {
         // Setup
-        let manager = Arc::new(Mutex::new(SessionManager::new()));
-        let executor = CommandExecutor::new(Arc::clone(&manager));
+        let (executor, manager) = create_test_executor();
         let mut parser = SidebandParser::new();
 
         // Create a test session with a pane
@@ -101,8 +114,7 @@ Output continues..."#;
     /// Integration test: multiple commands in sequence
     #[test]
     fn test_multiple_commands_integration() {
-        let manager = Arc::new(Mutex::new(SessionManager::new()));
-        let executor = CommandExecutor::new(Arc::clone(&manager));
+        let (executor, manager) = create_test_executor();
         let mut parser = SidebandParser::new();
 
         // Create test pane
