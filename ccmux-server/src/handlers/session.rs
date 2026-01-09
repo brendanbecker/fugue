@@ -2,8 +2,10 @@
 //!
 //! Handles: ListSessions, CreateSession, AttachSession, CreateWindow
 
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
+
+use crate::pty::PtyConfig;
 
 use ccmux_protocol::{ErrorCode, ServerMessage};
 
@@ -25,6 +27,9 @@ impl HandlerContext {
     }
 
     /// Handle CreateSession message - create a new session
+    ///
+    /// Creates a session with a default window and pane, including PTY spawn.
+    /// This ensures new sessions are immediately usable with a shell.
     pub async fn handle_create_session(&self, name: String) -> HandlerResult {
         info!(
             "CreateSession '{}' request from {}",
@@ -35,8 +40,48 @@ impl HandlerContext {
 
         match session_manager.create_session(&name) {
             Ok(session) => {
-                let session_info = session.to_info();
-                info!("Session '{}' created with ID {}", name, session_info.id);
+                let session_id = session.id();
+                info!("Session '{}' created with ID {}", name, session_id);
+
+                // Get mutable session reference to create window and pane
+                let session = session_manager.get_session_mut(session_id).unwrap();
+
+                // Create default window (named "0" for first window)
+                let window = session.create_window(None);
+                let window_id = window.id();
+                info!("Default window created with ID {}", window_id);
+
+                // Create default pane in the window
+                let window = session.get_window_mut(window_id).unwrap();
+                let pane = window.create_pane();
+                let pane_id = pane.id();
+                let (cols, rows) = pane.dimensions();
+                info!("Default pane created with ID {}", pane_id);
+
+                // Initialize the vt100 parser for terminal emulation
+                let pane = window.get_pane_mut(pane_id).unwrap();
+                pane.init_parser();
+
+                // Get session info before releasing lock
+                let session_info = session_manager.get_session(session_id).unwrap().to_info();
+                drop(session_manager);
+
+                // Spawn PTY for the default pane
+                {
+                    let mut pty_manager = self.pty_manager.write().await;
+                    let pty_config = PtyConfig::shell().with_size(cols, rows);
+
+                    match pty_manager.spawn(pane_id, pty_config) {
+                        Ok(_) => {
+                            info!("PTY spawned for default pane {}", pane_id);
+                        }
+                        Err(e) => {
+                            // Log error but don't fail session creation
+                            // User can manually create a pane if PTY spawn fails
+                            warn!("Failed to spawn PTY for default pane: {}", e);
+                        }
+                    }
+                }
 
                 HandlerResult::Response(ServerMessage::SessionCreated {
                     session: session_info,
@@ -222,10 +267,44 @@ mod tests {
         match result {
             HandlerResult::Response(ServerMessage::SessionCreated { session }) => {
                 assert_eq!(session.name, "new-session");
-                assert_eq!(session.window_count, 0);
+                // Session should now have 1 window with 1 pane
+                assert_eq!(session.window_count, 1);
             }
             _ => panic!("Expected SessionCreated response"),
         }
+
+        // Verify window and pane were created
+        let session_manager = ctx.session_manager.read().await;
+        let session = session_manager.get_session_by_name("new-session").unwrap();
+        assert_eq!(session.window_count(), 1);
+
+        let window = session.windows().next().unwrap();
+        assert_eq!(window.pane_count(), 1);
+
+        let pane = window.panes().next().unwrap();
+        assert!(pane.has_parser()); // Parser should be initialized
+    }
+
+    #[tokio::test]
+    async fn test_handle_create_session_spawns_pty() {
+        let ctx = create_test_context();
+        ctx.handle_create_session("test-session".to_string()).await;
+
+        // Find the pane ID
+        let pane_id = {
+            let session_manager = ctx.session_manager.read().await;
+            let session = session_manager.get_session_by_name("test-session").unwrap();
+            let window = session.windows().next().unwrap();
+            let pane = window.panes().next().unwrap();
+            pane.id()
+        };
+
+        // Verify PTY was spawned
+        let pty_manager = ctx.pty_manager.read().await;
+        assert!(
+            pty_manager.contains(pane_id),
+            "PTY should be spawned for default pane"
+        );
     }
 
     #[tokio::test]
