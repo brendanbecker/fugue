@@ -38,6 +38,9 @@ toml = "0.8"
 
 # Persistence
 okaywal = "0.3"
+lz4_flex = "0.11"
+zstd = "0.13"
+dirs = "5"
 
 # Logging
 tracing = { workspace = true }

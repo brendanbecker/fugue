@@ -44,6 +44,42 @@ impl Window {
         }
     }
 
+    /// Restore a window from persisted state
+    ///
+    /// Used during crash recovery to recreate window with original ID.
+    pub fn restore(
+        id: Uuid,
+        session_id: Uuid,
+        index: usize,
+        name: impl Into<String>,
+        created_at: u64,
+    ) -> Self {
+        Self {
+            id,
+            session_id,
+            name: name.into(),
+            index,
+            panes: HashMap::new(),
+            pane_order: Vec::new(),
+            active_pane_id: None,
+            created_at: SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(created_at),
+        }
+    }
+
+    /// Add a restored pane to this window
+    ///
+    /// Used during crash recovery to add panes with preserved IDs.
+    pub fn add_restored_pane(&mut self, pane: Pane) {
+        let pane_id = pane.id();
+        self.panes.insert(pane_id, pane);
+        self.pane_order.push(pane_id);
+    }
+
+    /// Set active pane ID directly (for restoration)
+    pub fn set_active_pane_id(&mut self, pane_id: Option<Uuid>) {
+        self.active_pane_id = pane_id;
+    }
+
     /// Get window ID
     pub fn id(&self) -> Uuid {
         self.id
@@ -157,6 +193,14 @@ impl Window {
     /// Check if window is empty
     pub fn is_empty(&self) -> bool {
         self.panes.is_empty()
+    }
+
+    /// Get creation timestamp as Unix time
+    pub fn created_at_unix(&self) -> u64 {
+        self.created_at
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0)
     }
 
     /// Convert to protocol WindowInfo

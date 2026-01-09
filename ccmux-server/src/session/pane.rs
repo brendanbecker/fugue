@@ -68,6 +68,36 @@ impl Pane {
         }
     }
 
+    /// Restore a pane from persisted state
+    ///
+    /// Used during crash recovery to recreate pane with original ID and attributes.
+    #[allow(clippy::too_many_arguments)]
+    pub fn restore(
+        id: Uuid,
+        window_id: Uuid,
+        index: usize,
+        cols: u16,
+        rows: u16,
+        state: PaneState,
+        title: Option<String>,
+        cwd: Option<String>,
+        created_at: u64,
+    ) -> Self {
+        let created_at = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(created_at);
+        Self {
+            id,
+            window_id,
+            index,
+            cols,
+            rows,
+            state,
+            title,
+            cwd,
+            created_at,
+            state_changed_at: created_at,
+        }
+    }
+
     /// Get pane ID
     pub fn id(&self) -> Uuid {
         self.id
@@ -202,6 +232,14 @@ impl Pane {
     /// Get scrollback memory usage in bytes
     pub fn scrollback_bytes(&self) -> usize {
         self.scrollback.total_bytes()
+    }
+
+    /// Get creation timestamp as Unix time
+    pub fn created_at_unix(&self) -> u64 {
+        self.created_at
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0)
     }
 
     /// Convert to protocol PaneInfo

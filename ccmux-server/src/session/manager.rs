@@ -35,6 +35,16 @@ impl SessionManager {
         Ok(self.sessions.get(&session_id).unwrap())
     }
 
+    /// Add a restored session
+    ///
+    /// Used during crash recovery to add sessions with preserved IDs.
+    pub fn add_restored_session(&mut self, session: Session) {
+        let session_id = session.id();
+        let name = session.name().to_string();
+        self.name_to_id.insert(name, session_id);
+        self.sessions.insert(session_id, session);
+    }
+
     /// Get session by ID
     pub fn get_session(&self, session_id: Uuid) -> Option<&Session> {
         self.sessions.get(&session_id)

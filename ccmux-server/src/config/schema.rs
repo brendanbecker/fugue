@@ -329,20 +329,35 @@ pub enum DetectionMethod {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct PersistenceConfig {
+    /// Enable persistence (default: true)
+    pub enabled: bool,
+    /// Custom state directory (default: ~/.ccmux/state)
+    pub state_dir: Option<String>,
     /// Checkpoint interval (seconds)
     pub checkpoint_interval_secs: u64,
-    /// Max WAL size (MB)
+    /// Max WAL size (MB) before forced checkpoint
     pub max_wal_size_mb: u64,
-    /// Screen snapshot lines
+    /// Screen snapshot lines to persist
     pub screen_snapshot_lines: usize,
+    /// Maximum checkpoints to keep
+    pub max_checkpoints: usize,
+    /// Compression method for scrollback: "none", "lz4", or "zstd"
+    pub compression_method: String,
+    /// Sync WAL on each write (true = safer, false = faster)
+    pub sync_on_write: bool,
 }
 
 impl Default for PersistenceConfig {
     fn default() -> Self {
         Self {
+            enabled: true,
+            state_dir: None,
             checkpoint_interval_secs: 30,
             max_wal_size_mb: 128,
             screen_snapshot_lines: 500,
+            max_checkpoints: 5,
+            compression_method: "lz4".to_string(),
+            sync_on_write: true,
         }
     }
 }

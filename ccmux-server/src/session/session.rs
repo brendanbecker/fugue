@@ -38,6 +38,35 @@ impl Session {
         }
     }
 
+    /// Restore a session from persisted state
+    ///
+    /// Used during crash recovery to recreate session with original ID.
+    pub fn restore(id: Uuid, name: impl Into<String>, created_at: u64) -> Self {
+        Self {
+            id,
+            name: name.into(),
+            windows: HashMap::new(),
+            window_order: Vec::new(),
+            active_window_id: None,
+            attached_clients: 0,
+            created_at: SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(created_at),
+        }
+    }
+
+    /// Add a restored window to this session
+    ///
+    /// Used during crash recovery to add windows with preserved IDs.
+    pub fn add_restored_window(&mut self, window: Window) {
+        let window_id = window.id();
+        self.windows.insert(window_id, window);
+        self.window_order.push(window_id);
+    }
+
+    /// Set active window ID directly (for restoration)
+    pub fn set_active_window_id(&mut self, window_id: Option<Uuid>) {
+        self.active_window_id = window_id;
+    }
+
     /// Get session ID
     pub fn id(&self) -> Uuid {
         self.id
