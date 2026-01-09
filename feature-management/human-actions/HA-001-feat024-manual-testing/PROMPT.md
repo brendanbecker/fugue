@@ -4,7 +4,7 @@
 **Related**: FEAT-024
 **Priority**: P1
 **Status**: blocked
-**Blocked By**: BUG-001 (Client input not captured)
+**Blocked By**: FEAT-022 (Client Message Routing)
 **Created**: 2026-01-09
 
 ## Description
@@ -15,6 +15,8 @@ FEAT-024 (Session Selection UI) implementation is complete but requires manual t
 
 - FEAT-021 (Server Socket Listen Loop) merged ✅
 - FEAT-024 (Session Selection UI) merged ✅
+- FEAT-022 (Client Message Routing) - **REQUIRED** but pending
+- BUG-001 (Client input not captured) merged ✅
 
 ## Test Procedure
 
@@ -50,6 +52,20 @@ When all tests pass:
 1. Check off items above
 2. Update `feature-management/features/FEAT-024-session-selection-ui/TASKS.md` manual test checkboxes
 3. Mark this human action as `completed`
+
+## Partial Test (2026-01-09)
+
+Tested with FEAT-021, FEAT-024, FEAT-027, BUG-001 merged but FEAT-022 pending:
+
+- [x] Server accepts client connections
+- [x] Client connects and renders UI
+- [x] Exit commands (q, Ctrl+C) work
+- [ ] All other functionality blocked - requires FEAT-022 message routing
+
+Server logs confirmed:
+- Client connects with protocol version 1
+- Clean disconnect on exit
+- No message processing (expected - FEAT-022 not implemented)
 
 ## Notes
 

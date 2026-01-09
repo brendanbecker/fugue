@@ -165,8 +165,9 @@ Each feature has full documentation in `feature-management/features/FEAT-XXX-*/`
 | `ccmux-wt-feat-023` | feat-023-pty-output-broadcasting | 🆕 Ready to start |
 
 ### Next Session Tasks
-1. **Test HA-001** - Run manual tests for FEAT-024 session selection UI
-2. **Work on FEAT-022 and/or FEAT-023** - Can be parallelized
+1. **FEAT-022** (Client Message Routing) - Critical path, blocks all client functionality
+2. **FEAT-023** (PTY Output Broadcasting) - Can parallelize with FEAT-022
+3. **HA-001** - Blocked until FEAT-022 complete
 
 ## Build & Run
 
