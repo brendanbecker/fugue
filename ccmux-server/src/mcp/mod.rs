@@ -1,0 +1,16 @@
+//! MCP (Model Context Protocol) server implementation
+//!
+//! Enables Claude Code to programmatically interact with ccmux through
+//! the MCP protocol, providing tools to list panes, read output, create
+//! panes, and send input.
+//!
+//! MCP Protocol: <https://modelcontextprotocol.io/>
+
+mod error;
+mod handlers;
+mod protocol;
+mod server;
+mod tools;
+
+pub use error::McpError;
+pub use server::McpServer;

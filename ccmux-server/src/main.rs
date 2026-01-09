@@ -9,6 +9,7 @@ use ccmux_utils::Result;
 mod claude;
 mod config;
 mod isolation;
+pub mod mcp;
 #[allow(dead_code)]
 mod orchestration;
 mod parser;
@@ -278,9 +279,16 @@ impl Server {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    ccmux_utils::init_logging()?;
+/// Run the MCP server mode
+fn run_mcp_server() -> Result<()> {
+    use mcp::McpServer;
+
+    let mut mcp_server = McpServer::new();
+    mcp_server.run().map_err(|e| ccmux_utils::CcmuxError::Internal(e.to_string()))
+}
+
+/// Run the main server daemon
+async fn run_daemon() -> Result<()> {
     info!("ccmux server starting");
 
     // Load configuration
@@ -316,4 +324,18 @@ async fn main() -> Result<()> {
 
     info!("ccmux server stopped");
     Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Check for mcp-server subcommand (don't init logging for MCP - it uses stdio)
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 1 && args[1] == "mcp-server" {
+        return run_mcp_server();
+    }
+
+    // For daemon mode, initialize logging
+    ccmux_utils::init_logging()?;
+
+    run_daemon().await
 }
