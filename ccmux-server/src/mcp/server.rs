@@ -76,6 +76,22 @@ impl McpServer {
                 }
             };
 
+            // Validate JSON-RPC version
+            if request.jsonrpc != "2.0" {
+                let response = JsonRpcResponse::error(
+                    request.id,
+                    JsonRpcError::with_data(
+                        JsonRpcError::INVALID_REQUEST,
+                        "Invalid JSON-RPC version",
+                        serde_json::json!({"expected": "2.0", "got": request.jsonrpc}),
+                    ),
+                );
+                let json = serde_json::to_string(&response)?;
+                writeln!(stdout, "{}", json)?;
+                stdout.flush()?;
+                continue;
+            }
+
             // Handle request
             let response = self.handle_request(request);
 
@@ -147,53 +163,99 @@ impl McpServer {
     }
 
     /// Dispatch tool call to appropriate handler
+    ///
+    /// Returns `Err(McpError)` for protocol-level errors (unknown tool, invalid params).
+    /// Returns `Ok(ToolResult::error(...))` for tool execution errors (pane not found, etc.).
+    /// Returns `Ok(ToolResult::text(...))` for successful tool execution.
     fn dispatch_tool(
         &mut self,
         name: &str,
         arguments: &serde_json::Value,
     ) -> Result<ToolResult, McpError> {
-        let mut ctx = ToolContext::new(&mut self.session_manager, &mut self.pty_manager);
+        // Validate tool name first (protocol-level error if unknown)
+        if !is_known_tool(name) {
+            return Err(McpError::UnknownTool(name.into()));
+        }
 
-        let text = match name {
-            "ccmux_list_panes" => {
-                let session = arguments["session"].as_str();
-                ctx.list_panes(session)?
-            }
-            "ccmux_read_pane" => {
-                let pane_id = parse_uuid(arguments, "pane_id")?;
-                let lines = arguments["lines"].as_u64().unwrap_or(100) as usize;
-                ctx.read_pane(pane_id, lines)?
-            }
-            "ccmux_create_pane" => {
-                let direction = arguments["direction"].as_str();
-                let command = arguments["command"].as_str();
-                let cwd = arguments["cwd"].as_str();
-                ctx.create_pane(direction, command, cwd)?
-            }
-            "ccmux_send_input" => {
-                let pane_id = parse_uuid(arguments, "pane_id")?;
-                let input = arguments["input"]
+        // Parse and validate required parameters (protocol-level errors)
+        let params = match name {
+            "ccmux_list_panes" => ToolParams::ListPanes {
+                session: arguments["session"].as_str().map(String::from),
+            },
+            "ccmux_read_pane" => ToolParams::ReadPane {
+                pane_id: parse_uuid(arguments, "pane_id")?,
+                lines: arguments["lines"].as_u64().unwrap_or(100) as usize,
+            },
+            "ccmux_create_pane" => ToolParams::CreatePane {
+                direction: arguments["direction"].as_str().map(String::from),
+                command: arguments["command"].as_str().map(String::from),
+                cwd: arguments["cwd"].as_str().map(String::from),
+            },
+            "ccmux_send_input" => ToolParams::SendInput {
+                pane_id: parse_uuid(arguments, "pane_id")?,
+                input: arguments["input"]
                     .as_str()
-                    .ok_or_else(|| McpError::InvalidParams("Missing 'input' parameter".into()))?;
-                ctx.send_input(pane_id, input)?
-            }
-            "ccmux_get_status" => {
-                let pane_id = parse_uuid(arguments, "pane_id")?;
-                ctx.get_status(pane_id)?
-            }
-            "ccmux_close_pane" => {
-                let pane_id = parse_uuid(arguments, "pane_id")?;
-                ctx.close_pane(pane_id)?
-            }
-            "ccmux_focus_pane" => {
-                let pane_id = parse_uuid(arguments, "pane_id")?;
-                ctx.focus_pane(pane_id)?
-            }
-            _ => return Err(McpError::UnknownTool(name.into())),
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'input' parameter".into()))?
+                    .to_string(),
+            },
+            "ccmux_get_status" => ToolParams::GetStatus {
+                pane_id: parse_uuid(arguments, "pane_id")?,
+            },
+            "ccmux_close_pane" => ToolParams::ClosePane {
+                pane_id: parse_uuid(arguments, "pane_id")?,
+            },
+            "ccmux_focus_pane" => ToolParams::FocusPane {
+                pane_id: parse_uuid(arguments, "pane_id")?,
+            },
+            _ => unreachable!(), // Already validated above
         };
 
-        Ok(ToolResult::text(text))
+        // Execute tool - convert execution errors to ToolResult::error()
+        let mut ctx = ToolContext::new(&mut self.session_manager, &mut self.pty_manager);
+
+        let result = match params {
+            ToolParams::ListPanes { session } => ctx.list_panes(session.as_deref()),
+            ToolParams::ReadPane { pane_id, lines } => ctx.read_pane(pane_id, lines),
+            ToolParams::CreatePane { direction, command, cwd } => {
+                ctx.create_pane(direction.as_deref(), command.as_deref(), cwd.as_deref())
+            }
+            ToolParams::SendInput { pane_id, input } => ctx.send_input(pane_id, &input),
+            ToolParams::GetStatus { pane_id } => ctx.get_status(pane_id),
+            ToolParams::ClosePane { pane_id } => ctx.close_pane(pane_id),
+            ToolParams::FocusPane { pane_id } => ctx.focus_pane(pane_id),
+        };
+
+        // Convert Result to ToolResult
+        Ok(match result {
+            Ok(text) => ToolResult::text(text),
+            Err(e) => ToolResult::error(e.to_string()),
+        })
     }
+}
+
+/// Check if a tool name is known
+fn is_known_tool(name: &str) -> bool {
+    matches!(
+        name,
+        "ccmux_list_panes"
+            | "ccmux_read_pane"
+            | "ccmux_create_pane"
+            | "ccmux_send_input"
+            | "ccmux_get_status"
+            | "ccmux_close_pane"
+            | "ccmux_focus_pane"
+    )
+}
+
+/// Parsed and validated tool parameters
+enum ToolParams {
+    ListPanes { session: Option<String> },
+    ReadPane { pane_id: Uuid, lines: usize },
+    CreatePane { direction: Option<String>, command: Option<String>, cwd: Option<String> },
+    SendInput { pane_id: Uuid, input: String },
+    GetStatus { pane_id: Uuid },
+    ClosePane { pane_id: Uuid },
+    FocusPane { pane_id: Uuid },
 }
 
 impl Default for McpServer {
@@ -298,6 +360,23 @@ mod tests {
         let result = parse_uuid(&args, "pane_id");
 
         assert!(matches!(result, Err(McpError::InvalidParams(_))));
+    }
+
+    #[test]
+    fn test_tool_execution_error_returns_tool_result_error() {
+        let mut server = McpServer::new();
+        let nonexistent_pane = Uuid::new_v4();
+
+        // Call get_status on a non-existent pane
+        let result = server
+            .dispatch_tool(
+                "ccmux_get_status",
+                &serde_json::json!({"pane_id": nonexistent_pane.to_string()}),
+            )
+            .unwrap(); // Should NOT return Err - tool errors are ToolResult::error()
+
+        // Should be a ToolResult with is_error=true
+        assert_eq!(result.is_error, Some(true));
     }
 
     #[test]

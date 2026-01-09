@@ -313,4 +313,30 @@ mod tests {
         assert!(json.contains("test_tool"));
         assert!(json.contains("inputSchema"));
     }
+
+    #[test]
+    fn test_json_rpc_error_with_data() {
+        let error = JsonRpcError::with_data(
+            JsonRpcError::INVALID_REQUEST,
+            "Invalid request",
+            serde_json::json!({"field": "jsonrpc", "expected": "2.0"}),
+        );
+
+        assert_eq!(error.code, JsonRpcError::INVALID_REQUEST);
+        assert_eq!(error.message, "Invalid request");
+        assert!(error.data.is_some());
+
+        let data = error.data.unwrap();
+        assert_eq!(data["field"], "jsonrpc");
+    }
+
+    #[test]
+    fn test_all_error_codes_defined() {
+        // Verify all standard JSON-RPC error codes are defined
+        assert_eq!(JsonRpcError::PARSE_ERROR, -32700);
+        assert_eq!(JsonRpcError::INVALID_REQUEST, -32600);
+        assert_eq!(JsonRpcError::METHOD_NOT_FOUND, -32601);
+        assert_eq!(JsonRpcError::INVALID_PARAMS, -32602);
+        assert_eq!(JsonRpcError::INTERNAL_ERROR, -32603);
+    }
 }

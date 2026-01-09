@@ -6,8 +6,8 @@
 
 **ccmux** is a Claude Code-aware terminal multiplexer in Rust. Development follows the [Context Engineering Methodology](./CONTEXT_ENGINEERING_METHODOLOGY.md).
 
-**Current Stage**: Stage 6 (Implementation) - Wave 1 Complete
-**Completed**: Wave 0 + Wave 1 (16 of 20 features implemented)
+**Current Stage**: Stage 6 (Implementation) - Complete
+**Completed**: All waves (20 of 20 features implemented)
 
 ## Implementation Progress
 
@@ -17,8 +17,8 @@
 |------|----------|--------|
 | 0 | Protocol, Utilities, Connection, Session, PTY, Config | ✅ Complete |
 | 1 | Parser, Scrollback, Viewport, Worktree (3), Response, Logging, UI, Persistence | ✅ Complete |
-| 2 | Client Input, Claude Detection, Sideband Protocol | ⏳ Ready |
-| 3 | MCP Server, Session Isolation | ⏸️ Blocked by Wave 2 |
+| 2 | Client Input, Claude Detection, Sideband Protocol | ✅ Complete |
+| 3 | MCP Server, Session Isolation | ✅ Complete |
 
 ### Feature Implementation Status
 
@@ -35,21 +35,21 @@
 | FEAT-007 | Protocol Layer | ccmux-protocol | ✅ Done | 86 | P1 |
 | FEAT-008 | Utilities | ccmux-utils | ✅ Done | 108 | P1 |
 | FEAT-009 | Client UI | ccmux-client | ✅ Done | 97 | P1 |
-| FEAT-010 | Client Input | ccmux-client | ⏳ Wave 2 | - | P1 |
+| FEAT-010 | Client Input | ccmux-client | ✅ Done | 87 | P1 |
 | FEAT-011 | Client Connection | ccmux-client | ✅ Done | 31 | P1 |
 | FEAT-012 | Session Management | ccmux-server | ✅ Done | 88 | P1 |
 | FEAT-013 | PTY Management | ccmux-server | ✅ Done | 17 | P1 |
 | FEAT-014 | ~~Terminal Parsing~~ | - | 🔀 Merged | - | - |
-| FEAT-015 | Claude Detection | ccmux-server | ⏳ Wave 2 | - | P1 |
+| FEAT-015 | Claude Detection | ccmux-server | ✅ Done | 45 | P1 |
 | FEAT-016 | Persistence | ccmux-server | ✅ Done | 85 | P2 |
 | FEAT-017 | Configuration | ccmux-server | ✅ Done | 38 | P1 |
-| FEAT-018 | MCP Server | ccmux-server | ⏸️ Wave 3 | - | P2 |
-| FEAT-019 | Sideband Protocol | ccmux-server | ⏳ Wave 2 | - | P2 |
-| FEAT-020 | Session Isolation | ccmux-server | ⏸️ Wave 3 | - | P1 |
+| FEAT-018 | MCP Server | ccmux-server | ✅ Done | 32 | P2 |
+| FEAT-019 | Sideband Protocol | ccmux-server | ✅ Done | 92 | P2 |
+| FEAT-020 | Session Isolation | ccmux-server | ✅ Done | 17 | P1 |
 
 > **Note:** FEAT-004 decomposed into 004a/b/c. FEAT-014 merged into FEAT-001 (both add vt100 parsing).
 
-**Total Tests**: 816 passing
+**Total Tests**: 1089 passing
 
 ## Orchestration Pattern
 
@@ -62,23 +62,9 @@ This project uses **git worktrees** for parallel feature development:
 5. Run test-runner agent to validate and add tests
 6. Repeat for next wave
 
-## Wave 2 Features (Ready)
+## All Features Complete
 
-3 features to implement:
-
-| ID | Feature | Component | Dependencies | Effort |
-|----|---------|-----------|--------------|--------|
-| FEAT-010 | Client Input | ccmux-client | FEAT-009 | medium |
-| FEAT-015 | Claude Detection | ccmux-server | FEAT-001 | medium |
-| FEAT-019 | Sideband Protocol | ccmux-server | FEAT-015 | medium |
-
-## Critical Path
-
-```
-FEAT-001 (done) → FEAT-015 → FEAT-019 → FEAT-020
-```
-
-FEAT-015 (Claude Detection) is now unblocked and on the critical path.
+All 20 features have been implemented across 4 waves. The project is feature-complete.
 
 ## Completed Work
 
@@ -89,6 +75,22 @@ FEAT-015 (Claude Detection) is now unblocked and on the critical path.
 - 3 ADRs for key decisions
 
 ### Stage 6: Implementation
+
+**2026-01-08 - Wave 3 Complete (Feature Complete)**
+- Merged final 2 feature branches:
+  - `feature/FEAT-018-mcp-server`: MCP server for Claude integration (32 tests)
+  - `feature/FEAT-020-session-isolation`: Per-pane CLAUDE_CONFIG_DIR isolation (17 tests)
+- Resolved merge conflict in main.rs (both features added mod declarations)
+- Test count: 1040 → 1089 (+49 tests)
+- All 20 features implemented, project feature-complete
+
+**2026-01-08 - Wave 2 Complete**
+- Merged 3 feature branches from worktrees:
+  - `feature/FEAT-010-client-input`: Keyboard/mouse input handling (87 tests)
+  - `feature/FEAT-015-claude-detection`: Claude state detection from PTY output (45 tests)
+  - `feature/FEAT-019-sideband`: XML sideband protocol for Claude commands (92 tests)
+- Test count: 816 → 1040 (+224 tests)
+- Wave 2 complete, Wave 3 (final) unblocked
 
 **2026-01-08 - Wave 1 Complete**
 - Merged final 4 feature branches from worktrees:
