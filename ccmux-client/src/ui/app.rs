@@ -700,6 +700,16 @@ impl App {
                     delivered_count
                 ));
             }
+            // MCP bridge messages - not used by TUI client
+            ServerMessage::AllPanesList { .. }
+            | ServerMessage::WindowList { .. }
+            | ServerMessage::PaneContent { .. }
+            | ServerMessage::PaneStatus { .. }
+            | ServerMessage::PaneCreatedWithDetails { .. }
+            | ServerMessage::SessionCreatedWithDetails { .. }
+            | ServerMessage::WindowCreatedWithDetails { .. } => {
+                // These messages are for the MCP bridge, not the TUI client
+            }
         }
         Ok(())
     }

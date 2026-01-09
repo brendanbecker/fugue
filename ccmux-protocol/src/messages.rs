@@ -135,6 +135,60 @@ pub enum ClientMessage {
         target: OrchestrationTarget,
         message: OrchestrationMessage,
     },
+
+    // ==================== MCP Bridge Messages ====================
+
+    /// List all panes across all sessions (for MCP bridge)
+    ListAllPanes {
+        /// Optional session name or ID to filter by
+        session_filter: Option<String>,
+    },
+
+    /// List windows in a session (for MCP bridge)
+    ListWindows {
+        /// Session name or ID (uses first session if omitted)
+        session_filter: Option<String>,
+    },
+
+    /// Read scrollback from a pane (for MCP bridge)
+    ReadPane {
+        pane_id: Uuid,
+        /// Number of lines to read (default 100, max 1000)
+        lines: usize,
+    },
+
+    /// Get detailed pane status (for MCP bridge)
+    GetPaneStatus { pane_id: Uuid },
+
+    /// Create a new pane with options (for MCP bridge)
+    CreatePaneWithOptions {
+        /// Session filter (name or ID, uses first if omitted)
+        session_filter: Option<String>,
+        /// Window filter (name or ID, uses first if omitted)
+        window_filter: Option<String>,
+        /// Split direction
+        direction: SplitDirection,
+        /// Command to run (default: shell)
+        command: Option<String>,
+        /// Working directory
+        cwd: Option<String>,
+    },
+
+    /// Create a new session with options (for MCP bridge)
+    CreateSessionWithOptions {
+        /// Session name (auto-generated if omitted)
+        name: Option<String>,
+    },
+
+    /// Create a new window with options (for MCP bridge)
+    CreateWindowWithOptions {
+        /// Session filter (name or ID, uses first if omitted)
+        session_filter: Option<String>,
+        /// Window name
+        name: Option<String>,
+        /// Command to run in default pane (default: shell)
+        command: Option<String>,
+    },
 }
 
 /// Messages sent from server to client
@@ -212,6 +266,83 @@ pub enum ServerMessage {
         /// Number of sessions that received the message
         delivered_count: usize,
     },
+
+    // ==================== MCP Bridge Response Messages ====================
+
+    /// List of all panes across sessions
+    AllPanesList {
+        panes: Vec<PaneListEntry>,
+    },
+
+    /// List of windows in a session
+    WindowList {
+        session_name: String,
+        windows: Vec<WindowInfo>,
+    },
+
+    /// Scrollback content from a pane
+    PaneContent {
+        pane_id: Uuid,
+        content: String,
+    },
+
+    /// Detailed pane status
+    PaneStatus {
+        pane_id: Uuid,
+        session_name: String,
+        window_name: String,
+        window_index: usize,
+        pane_index: usize,
+        cols: u16,
+        rows: u16,
+        title: Option<String>,
+        cwd: Option<String>,
+        state: PaneState,
+        has_pty: bool,
+        is_awaiting_input: bool,
+        is_awaiting_confirmation: bool,
+    },
+
+    /// Pane created with full details (for MCP bridge)
+    PaneCreatedWithDetails {
+        pane_id: Uuid,
+        session_id: Uuid,
+        session_name: String,
+        window_id: Uuid,
+        direction: String,
+    },
+
+    /// Session created with full details (for MCP bridge)
+    SessionCreatedWithDetails {
+        session_id: Uuid,
+        session_name: String,
+        window_id: Uuid,
+        pane_id: Uuid,
+    },
+
+    /// Window created with full details (for MCP bridge)
+    WindowCreatedWithDetails {
+        window_id: Uuid,
+        pane_id: Uuid,
+        session_name: String,
+    },
+}
+
+/// Entry in the pane list (for MCP bridge)
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PaneListEntry {
+    pub id: Uuid,
+    pub session_name: String,
+    pub window_index: usize,
+    pub window_name: String,
+    pub pane_index: usize,
+    pub cols: u16,
+    pub rows: u16,
+    pub title: Option<String>,
+    pub cwd: Option<String>,
+    pub state: PaneState,
+    pub is_claude: bool,
+    pub claude_state: Option<ClaudeState>,
 }
 
 /// Error codes for protocol errors

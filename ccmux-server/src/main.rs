@@ -634,12 +634,20 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
     info!("Client {} disconnected", client_id);
 }
 
-/// Run the MCP server mode
+/// Run the MCP server mode (standalone, legacy)
 fn run_mcp_server() -> Result<()> {
     use mcp::McpServer;
 
     let mut mcp_server = McpServer::new();
     mcp_server.run().map_err(|e| ccmux_utils::CcmuxError::Internal(e.to_string()))
+}
+
+/// Run the MCP bridge mode (connects to daemon)
+async fn run_mcp_bridge() -> Result<()> {
+    use mcp::McpBridge;
+
+    let mut bridge = McpBridge::new();
+    bridge.run().await.map_err(|e| ccmux_utils::CcmuxError::Internal(e.to_string()))
 }
 
 /// Run the main server daemon
@@ -877,16 +885,81 @@ async fn run_checkpoint_loop(server: Arc<Mutex<Server>>, shared_state: SharedSta
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Check for mcp-server subcommand (don't init logging for MCP - it uses stdio)
+    // Check for subcommands (don't init logging for MCP modes - they use stdio)
     let args: Vec<String> = std::env::args().collect();
-    if args.len() > 1 && args[1] == "mcp-server" {
-        return run_mcp_server();
+
+    if args.len() > 1 {
+        match args[1].as_str() {
+            "mcp-server" => {
+                // Legacy standalone MCP server (has its own session state)
+                return run_mcp_server();
+            }
+            "mcp-bridge" => {
+                // MCP bridge mode - connects to daemon (recommended)
+                return run_mcp_bridge().await;
+            }
+            "--help" | "-h" => {
+                print_help();
+                return Ok(());
+            }
+            "--version" | "-V" => {
+                println!("ccmux-server {}", env!("CARGO_PKG_VERSION"));
+                return Ok(());
+            }
+            arg => {
+                eprintln!("Unknown subcommand: {}", arg);
+                eprintln!("Run with --help for usage information");
+                return Err(ccmux_utils::CcmuxError::Internal(format!(
+                    "Unknown subcommand: {}",
+                    arg
+                )));
+            }
+        }
     }
 
     // For daemon mode, initialize logging
     ccmux_utils::init_logging()?;
 
     run_daemon().await
+}
+
+/// Print help information
+fn print_help() {
+    println!(
+        r#"ccmux-server - Background daemon for ccmux terminal multiplexer
+
+USAGE:
+    ccmux-server [SUBCOMMAND]
+
+SUBCOMMANDS:
+    (none)          Run as daemon (default)
+    mcp-bridge      Run as MCP bridge for Claude Code (recommended)
+                    Connects to the running daemon, sharing sessions with TUI
+    mcp-server      Run as standalone MCP server (legacy)
+                    Has its own session state, separate from daemon
+
+OPTIONS:
+    -h, --help      Print this help information
+    -V, --version   Print version information
+
+EXAMPLES:
+    # Start the daemon
+    ccmux-server
+
+    # Run MCP bridge for Claude Code integration
+    ccmux-server mcp-bridge
+
+    # Claude Code MCP configuration (~/.config/claude/claude_desktop_config.json):
+    {{
+      "mcpServers": {{
+        "ccmux": {{
+          "command": "ccmux-server",
+          "args": ["mcp-bridge"]
+        }}
+      }}
+    }}
+"#
+    );
 }
 
 // ==================== Tests ====================

@@ -5,6 +5,7 @@
 
 mod connection;
 mod input;
+mod mcp_bridge;
 mod orchestration;
 mod pane;
 mod session;
@@ -121,6 +122,53 @@ impl HandlerContext {
             // Orchestration handlers
             ClientMessage::SendOrchestration { target, message } => {
                 self.handle_send_orchestration(target, message).await
+            }
+
+            // MCP Bridge handlers
+            ClientMessage::ListAllPanes { session_filter } => {
+                self.handle_list_all_panes(session_filter).await
+            }
+
+            ClientMessage::ListWindows { session_filter } => {
+                self.handle_list_windows(session_filter).await
+            }
+
+            ClientMessage::ReadPane { pane_id, lines } => {
+                self.handle_read_pane(pane_id, lines).await
+            }
+
+            ClientMessage::GetPaneStatus { pane_id } => {
+                self.handle_get_pane_status(pane_id).await
+            }
+
+            ClientMessage::CreatePaneWithOptions {
+                session_filter,
+                window_filter,
+                direction,
+                command,
+                cwd,
+            } => {
+                self.handle_create_pane_with_options(
+                    session_filter,
+                    window_filter,
+                    direction,
+                    command,
+                    cwd,
+                )
+                .await
+            }
+
+            ClientMessage::CreateSessionWithOptions { name } => {
+                self.handle_create_session_with_options(name).await
+            }
+
+            ClientMessage::CreateWindowWithOptions {
+                session_filter,
+                name,
+                command,
+            } => {
+                self.handle_create_window_with_options(session_filter, name, command)
+                    .await
             }
         }
     }

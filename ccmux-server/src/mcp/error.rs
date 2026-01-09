@@ -42,6 +42,32 @@ pub enum McpError {
     /// PTY error
     #[error("PTY error: {0}")]
     Pty(String),
+
+    // ==================== Bridge-specific errors ====================
+
+    /// Daemon not running
+    #[error("ccmux daemon is not running")]
+    DaemonNotRunning,
+
+    /// Connection to daemon failed
+    #[error("Failed to connect to daemon: {0}")]
+    ConnectionFailed(String),
+
+    /// Not connected to daemon
+    #[error("Not connected to daemon")]
+    NotConnected,
+
+    /// Daemon disconnected
+    #[error("Daemon connection lost")]
+    DaemonDisconnected,
+
+    /// Daemon returned an error
+    #[error("Daemon error: {0}")]
+    DaemonError(String),
+
+    /// Unexpected response from daemon
+    #[error("Unexpected response from daemon: {0}")]
+    UnexpectedResponse(String),
 }
 
 impl From<McpError> for JsonRpcError {
@@ -73,6 +99,24 @@ impl From<McpError> for JsonRpcError {
             }
             McpError::Pty(msg) => {
                 JsonRpcError::new(JsonRpcError::INTERNAL_ERROR, format!("PTY error: {}", msg))
+            }
+            McpError::DaemonNotRunning => {
+                JsonRpcError::new(JsonRpcError::INTERNAL_ERROR, "ccmux daemon is not running".to_string())
+            }
+            McpError::ConnectionFailed(msg) => {
+                JsonRpcError::new(JsonRpcError::INTERNAL_ERROR, format!("Connection failed: {}", msg))
+            }
+            McpError::NotConnected => {
+                JsonRpcError::new(JsonRpcError::INTERNAL_ERROR, "Not connected to daemon".to_string())
+            }
+            McpError::DaemonDisconnected => {
+                JsonRpcError::new(JsonRpcError::INTERNAL_ERROR, "Daemon connection lost".to_string())
+            }
+            McpError::DaemonError(msg) => {
+                JsonRpcError::new(JsonRpcError::INTERNAL_ERROR, format!("Daemon error: {}", msg))
+            }
+            McpError::UnexpectedResponse(msg) => {
+                JsonRpcError::new(JsonRpcError::INTERNAL_ERROR, format!("Unexpected response: {}", msg))
             }
         }
     }

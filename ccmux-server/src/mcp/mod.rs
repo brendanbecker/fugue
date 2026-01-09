@@ -5,12 +5,19 @@
 //! panes, and send input.
 //!
 //! MCP Protocol: <https://modelcontextprotocol.io/>
+//!
+//! ## Two Modes
+//!
+//! - **`mcp-server`**: Standalone mode with its own session state (legacy)
+//! - **`mcp-bridge`**: Connects to the ccmux daemon, sharing sessions with TUI
 
+pub mod bridge;
 mod error;
 mod handlers;
 mod protocol;
 mod server;
 mod tools;
 
+pub use bridge::McpBridge;
 pub use error::McpError;
 pub use server::McpServer;
