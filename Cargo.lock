@@ -136,9 +136,11 @@ version = "0.1.0"
 dependencies = [
  "arc-swap",
  "bincode",
+ "bytes",
  "ccmux-protocol",
  "ccmux-utils",
  "dirs",
+ "futures",
  "lz4_flex",
  "notify",
  "notify-debouncer-full",

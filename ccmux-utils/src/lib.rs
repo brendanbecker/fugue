@@ -20,6 +20,6 @@ pub use session_logging::{
 
 // Re-export commonly used path functions
 pub use paths::{
-    cache_dir, checkpoints_dir, config_dir, config_file, data_dir, ensure_all_dirs, log_dir,
-    pid_file, runtime_dir, session_log_dir, socket_path, state_dir, wal_dir,
+    cache_dir, checkpoints_dir, config_dir, config_file, data_dir, ensure_all_dirs, ensure_dir,
+    log_dir, pid_file, runtime_dir, session_log_dir, socket_path, state_dir, wal_dir,
 };
