@@ -10,6 +10,7 @@ mod buffer;
 mod config;
 mod handle;
 mod manager;
+mod output;
 
 pub use buffer::{
     check_memory_status, check_memory_status_with_thresholds, format_memory_usage,
@@ -19,3 +20,4 @@ pub use buffer::{
 pub use config::PtyConfig;
 pub use handle::PtyHandle;
 pub use manager::PtyManager;
+pub use output::{OutputPollerConfig, PollerHandle, PollerManager, PtyOutputPoller};
