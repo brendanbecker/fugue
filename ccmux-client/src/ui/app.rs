@@ -100,6 +100,29 @@ impl App {
         })
     }
 
+    /// Create a new application instance with a custom socket path
+    pub fn with_socket_path(socket_path: std::path::PathBuf) -> Result<Self> {
+        let events = EventHandler::new(Duration::from_millis(100));
+
+        Ok(Self {
+            state: AppState::Disconnected,
+            client_id: Uuid::new_v4(),
+            connection: Connection::with_socket_path(socket_path),
+            events,
+            input_handler: InputHandler::new(),
+            session: None,
+            windows: HashMap::new(),
+            panes: HashMap::new(),
+            active_pane_id: None,
+            available_sessions: Vec::new(),
+            session_list_index: 0,
+            terminal_size: (80, 24),
+            tick_count: 0,
+            status_message: None,
+            pane_manager: PaneManager::new(),
+        })
+    }
+
     /// Get current application state
     pub fn state(&self) -> AppState {
         self.state
