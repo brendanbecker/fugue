@@ -1,0 +1,393 @@
+//! Session-related message handlers
+//!
+//! Handles: ListSessions, CreateSession, AttachSession, CreateWindow
+
+use tracing::{debug, info};
+use uuid::Uuid;
+
+use ccmux_protocol::{ErrorCode, ServerMessage};
+
+use super::{HandlerContext, HandlerResult};
+
+impl HandlerContext {
+    /// Handle ListSessions message - return all available sessions
+    pub async fn handle_list_sessions(&self) -> HandlerResult {
+        debug!("ListSessions request from {}", self.client_id);
+
+        let session_manager = self.session_manager.read().await;
+        let sessions: Vec<_> = session_manager
+            .list_sessions()
+            .iter()
+            .map(|s| s.to_info())
+            .collect();
+
+        HandlerResult::Response(ServerMessage::SessionList { sessions })
+    }
+
+    /// Handle CreateSession message - create a new session
+    pub async fn handle_create_session(&self, name: String) -> HandlerResult {
+        info!(
+            "CreateSession '{}' request from {}",
+            name, self.client_id
+        );
+
+        let mut session_manager = self.session_manager.write().await;
+
+        match session_manager.create_session(&name) {
+            Ok(session) => {
+                let session_info = session.to_info();
+                info!("Session '{}' created with ID {}", name, session_info.id);
+
+                HandlerResult::Response(ServerMessage::SessionCreated {
+                    session: session_info,
+                })
+            }
+            Err(e) => {
+                debug!("Failed to create session '{}': {}", name, e);
+                HandlerContext::error(
+                    ErrorCode::InvalidOperation,
+                    format!("Failed to create session: {}", e),
+                )
+            }
+        }
+    }
+
+    /// Handle AttachSession message - attach to an existing session
+    pub async fn handle_attach_session(&self, session_id: Uuid) -> HandlerResult {
+        info!(
+            "AttachSession {} request from {}",
+            session_id, self.client_id
+        );
+
+        // First detach from any current session
+        if let Some(current_session) = self.registry.get_client_session(self.client_id) {
+            if current_session != session_id {
+                // Decrement client count in old session
+                let mut session_manager = self.session_manager.write().await;
+                if let Some(session) = session_manager.get_session_mut(current_session) {
+                    session.detach_client();
+                }
+                drop(session_manager);
+
+                self.registry.detach_from_session(self.client_id);
+            }
+        }
+
+        // Check if session exists and attach
+        let mut session_manager = self.session_manager.write().await;
+
+        if let Some(session) = session_manager.get_session_mut(session_id) {
+            // Increment attached client count
+            session.attach_client();
+
+            let session_info = session.to_info();
+
+            // Collect window and pane info
+            let session = session_manager.get_session(session_id).unwrap();
+            let windows: Vec<_> = session.windows().map(|w| w.to_info()).collect();
+
+            let panes: Vec<_> = session
+                .windows()
+                .flat_map(|w| w.panes().map(|p| p.to_info()))
+                .collect();
+
+            drop(session_manager);
+
+            // Register in client registry
+            self.registry.attach_to_session(self.client_id, session_id);
+
+            info!(
+                "Client {} attached to session {} ({} windows, {} panes)",
+                self.client_id,
+                session_id,
+                windows.len(),
+                panes.len()
+            );
+
+            HandlerResult::Response(ServerMessage::Attached {
+                session: session_info,
+                windows,
+                panes,
+            })
+        } else {
+            debug!("Session {} not found", session_id);
+            HandlerContext::error(
+                ErrorCode::SessionNotFound,
+                format!("Session {} not found", session_id),
+            )
+        }
+    }
+
+    /// Handle CreateWindow message - create a new window in a session
+    pub async fn handle_create_window(
+        &self,
+        session_id: Uuid,
+        name: Option<String>,
+    ) -> HandlerResult {
+        info!(
+            "CreateWindow in session {} request from {}",
+            session_id, self.client_id
+        );
+
+        let mut session_manager = self.session_manager.write().await;
+
+        if let Some(session) = session_manager.get_session_mut(session_id) {
+            let window = session.create_window(name);
+            let window_info = window.to_info();
+
+            info!(
+                "Window '{}' created in session {} with ID {}",
+                window_info.name, session_id, window_info.id
+            );
+
+            // Broadcast to all clients attached to this session
+            HandlerResult::ResponseWithBroadcast {
+                response: ServerMessage::WindowCreated {
+                    window: window_info.clone(),
+                },
+                session_id,
+                broadcast: ServerMessage::WindowCreated {
+                    window: window_info,
+                },
+            }
+        } else {
+            debug!("Session {} not found for CreateWindow", session_id);
+            HandlerContext::error(
+                ErrorCode::SessionNotFound,
+                format!("Session {} not found", session_id),
+            )
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::pty::PtyManager;
+    use crate::registry::ClientRegistry;
+    use crate::session::SessionManager;
+    use std::sync::Arc;
+    use tokio::sync::{mpsc, RwLock};
+
+    fn create_test_context() -> HandlerContext {
+        let session_manager = Arc::new(RwLock::new(SessionManager::new()));
+        let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
+        let registry = Arc::new(ClientRegistry::new());
+
+        let (tx, _rx) = mpsc::channel(10);
+        let client_id = registry.register_client(tx);
+
+        HandlerContext::new(session_manager, pty_manager, registry, client_id)
+    }
+
+    #[tokio::test]
+    async fn test_handle_list_sessions_empty() {
+        let ctx = create_test_context();
+        let result = ctx.handle_list_sessions().await;
+
+        match result {
+            HandlerResult::Response(ServerMessage::SessionList { sessions }) => {
+                assert!(sessions.is_empty());
+            }
+            _ => panic!("Expected SessionList response"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_handle_list_sessions_with_sessions() {
+        let ctx = create_test_context();
+
+        // Create some sessions
+        {
+            let mut session_manager = ctx.session_manager.write().await;
+            session_manager.create_session("session1").unwrap();
+            session_manager.create_session("session2").unwrap();
+        }
+
+        let result = ctx.handle_list_sessions().await;
+
+        match result {
+            HandlerResult::Response(ServerMessage::SessionList { sessions }) => {
+                assert_eq!(sessions.len(), 2);
+            }
+            _ => panic!("Expected SessionList response"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_handle_create_session_success() {
+        let ctx = create_test_context();
+        let result = ctx.handle_create_session("new-session".to_string()).await;
+
+        match result {
+            HandlerResult::Response(ServerMessage::SessionCreated { session }) => {
+                assert_eq!(session.name, "new-session");
+                assert_eq!(session.window_count, 0);
+            }
+            _ => panic!("Expected SessionCreated response"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_handle_create_session_duplicate() {
+        let ctx = create_test_context();
+
+        // Create first session
+        ctx.handle_create_session("test".to_string()).await;
+
+        // Try to create duplicate
+        let result = ctx.handle_create_session("test".to_string()).await;
+
+        match result {
+            HandlerResult::Response(ServerMessage::Error { code, .. }) => {
+                assert_eq!(code, ErrorCode::InvalidOperation);
+            }
+            _ => panic!("Expected Error response"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_handle_attach_session_success() {
+        let ctx = create_test_context();
+
+        // Create a session
+        let session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session = session_manager.create_session("test").unwrap();
+            session.id()
+        };
+
+        let result = ctx.handle_attach_session(session_id).await;
+
+        match result {
+            HandlerResult::Response(ServerMessage::Attached { session, .. }) => {
+                assert_eq!(session.name, "test");
+                assert_eq!(session.attached_clients, 1);
+            }
+            _ => panic!("Expected Attached response"),
+        }
+
+        // Verify registry was updated
+        assert_eq!(
+            ctx.registry.get_client_session(ctx.client_id),
+            Some(session_id)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_handle_attach_session_not_found() {
+        let ctx = create_test_context();
+        let result = ctx.handle_attach_session(Uuid::new_v4()).await;
+
+        match result {
+            HandlerResult::Response(ServerMessage::Error { code, .. }) => {
+                assert_eq!(code, ErrorCode::SessionNotFound);
+            }
+            _ => panic!("Expected Error response"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_handle_attach_session_switches_sessions() {
+        let ctx = create_test_context();
+
+        // Create two sessions
+        let (session1_id, session2_id) = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let s1_id = session_manager.create_session("session1").unwrap().id();
+            let s2_id = session_manager.create_session("session2").unwrap().id();
+            (s1_id, s2_id)
+        };
+
+        // Attach to first session
+        ctx.handle_attach_session(session1_id).await;
+        assert_eq!(
+            ctx.registry.get_client_session(ctx.client_id),
+            Some(session1_id)
+        );
+
+        // Attach to second session
+        ctx.handle_attach_session(session2_id).await;
+        assert_eq!(
+            ctx.registry.get_client_session(ctx.client_id),
+            Some(session2_id)
+        );
+
+        // First session should have client count decremented
+        let session_manager = ctx.session_manager.read().await;
+        let session1 = session_manager.get_session(session1_id).unwrap();
+        assert_eq!(session1.attached_clients(), 0);
+
+        let session2 = session_manager.get_session(session2_id).unwrap();
+        assert_eq!(session2.attached_clients(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_handle_create_window_success() {
+        let ctx = create_test_context();
+
+        // Create a session
+        let session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session = session_manager.create_session("test").unwrap();
+            session.id()
+        };
+
+        let result = ctx
+            .handle_create_window(session_id, Some("main".to_string()))
+            .await;
+
+        match result {
+            HandlerResult::ResponseWithBroadcast {
+                response: ServerMessage::WindowCreated { window },
+                session_id: broadcast_session,
+                ..
+            } => {
+                assert_eq!(window.name, "main");
+                assert_eq!(window.session_id, session_id);
+                assert_eq!(broadcast_session, session_id);
+            }
+            _ => panic!("Expected WindowCreated response with broadcast"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_handle_create_window_session_not_found() {
+        let ctx = create_test_context();
+        let result = ctx
+            .handle_create_window(Uuid::new_v4(), Some("main".to_string()))
+            .await;
+
+        match result {
+            HandlerResult::Response(ServerMessage::Error { code, .. }) => {
+                assert_eq!(code, ErrorCode::SessionNotFound);
+            }
+            _ => panic!("Expected Error response"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_handle_create_window_auto_name() {
+        let ctx = create_test_context();
+
+        // Create a session
+        let session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session = session_manager.create_session("test").unwrap();
+            session.id()
+        };
+
+        let result = ctx.handle_create_window(session_id, None).await;
+
+        match result {
+            HandlerResult::ResponseWithBroadcast {
+                response: ServerMessage::WindowCreated { window },
+                ..
+            } => {
+                // Auto-generated name should be the index
+                assert_eq!(window.name, "0");
+            }
+            _ => panic!("Expected WindowCreated response"),
+        }
+    }
+}

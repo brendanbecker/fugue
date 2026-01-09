@@ -344,6 +344,50 @@ impl ClientRegistry {
         success_count
     }
 
+    /// Broadcast a message to all clients attached to a session except one
+    ///
+    /// Useful for broadcasting state changes to other clients without
+    /// sending back to the originator.
+    ///
+    /// Returns the number of clients that successfully received the message.
+    pub async fn broadcast_to_session_except(
+        &self,
+        session_id: SessionId,
+        except_client: ClientId,
+        message: ServerMessage,
+    ) -> usize {
+        // Get the list of client IDs for this session
+        let client_ids: Vec<ClientId> = match self.session_clients.get(&session_id) {
+            Some(clients) => clients
+                .iter()
+                .copied()
+                .filter(|&id| id != except_client)
+                .collect(),
+            None => return 0,
+        };
+
+        if client_ids.is_empty() {
+            return 0;
+        }
+
+        debug!(
+            "Broadcasting to {} clients in session {} (except {})",
+            client_ids.len(),
+            session_id,
+            except_client
+        );
+
+        let mut success_count = 0;
+
+        for client_id in client_ids {
+            if self.send_to_client(client_id, message.clone()).await {
+                success_count += 1;
+            }
+        }
+
+        success_count
+    }
+
     /// Get all client IDs attached to a session
     pub fn get_session_clients(&self, session_id: SessionId) -> Vec<ClientId> {
         self.session_clients
