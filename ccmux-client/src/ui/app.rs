@@ -24,6 +24,7 @@ use crate::connection::Connection;
 use crate::input::{ClientCommand, InputAction, InputHandler, InputMode};
 
 use super::event::{AppEvent, EventHandler, InputEvent};
+use super::pane::{render_pane, PaneManager};
 use super::terminal::Terminal;
 
 /// Application state
@@ -71,6 +72,8 @@ pub struct App {
     tick_count: u64,
     /// Status message to display
     status_message: Option<String>,
+    /// UI pane manager for terminal rendering
+    pane_manager: PaneManager,
 }
 
 impl App {
@@ -93,6 +96,7 @@ impl App {
             terminal_size: (80, 24),
             tick_count: 0,
             status_message: None,
+            pane_manager: PaneManager::new(),
         })
     }
 
@@ -173,13 +177,23 @@ impl App {
             AppEvent::Server(msg) => self.handle_server_message(msg).await?,
             AppEvent::Resize { cols, rows } => {
                 self.terminal_size = (cols, rows);
+                // Calculate inner pane size (accounting for borders and status bar)
+                // 2 for borders on each side, 1 for status bar
+                let pane_rows = rows.saturating_sub(3);
+                let pane_cols = cols.saturating_sub(2);
+
+                // Resize all UI panes
+                for pane_id in self.pane_manager.pane_ids() {
+                    self.pane_manager.resize_pane(pane_id, pane_rows, pane_cols);
+                }
+
                 // Notify server of resize if attached
                 if let Some(pane_id) = self.active_pane_id {
                     self.connection
                         .send(ClientMessage::Resize {
                             pane_id,
-                            cols,
-                            rows,
+                            cols: pane_cols,
+                            rows: pane_rows,
                         })
                         .await?;
                 }
@@ -288,9 +302,22 @@ impl App {
 
             InputAction::Resize { cols, rows } => {
                 self.terminal_size = (cols, rows);
+                // Calculate inner pane size (accounting for borders and status bar)
+                let pane_rows = rows.saturating_sub(3);
+                let pane_cols = cols.saturating_sub(2);
+
+                // Resize all UI panes
+                for id in self.pane_manager.pane_ids() {
+                    self.pane_manager.resize_pane(id, pane_rows, pane_cols);
+                }
+
                 if let Some(pane_id) = self.active_pane_id {
                     self.connection
-                        .send(ClientMessage::Resize { pane_id, cols, rows })
+                        .send(ClientMessage::Resize {
+                            pane_id,
+                            cols: pane_cols,
+                            rows: pane_rows,
+                        })
                         .await?;
                 }
             }
@@ -301,6 +328,7 @@ impl App {
                 self.session = None;
                 self.windows.clear();
                 self.panes.clear();
+                self.pane_manager = PaneManager::new();
                 self.active_pane_id = None;
                 self.status_message = Some("Detached from session".to_string());
                 self.connection.send(ClientMessage::ListSessions).await?;
@@ -377,6 +405,7 @@ impl App {
             ClientCommand::FocusPane(index) => {
                 if let Some(pane) = self.panes.values().find(|p| p.index == index) {
                     self.active_pane_id = Some(pane.id);
+                    self.pane_manager.set_active(pane.id);
                     self.connection
                         .send(ClientMessage::SelectPane { pane_id: pane.id })
                         .await?;
@@ -471,7 +500,9 @@ impl App {
             (current_index + pane_ids.len() - (abs_offset % pane_ids.len())) % pane_ids.len()
         };
 
-        self.active_pane_id = Some(pane_ids[new_index]);
+        let new_pane_id = pane_ids[new_index];
+        self.active_pane_id = Some(new_pane_id);
+        self.pane_manager.set_active(new_pane_id);
     }
 
     /// Handle input in session select state
@@ -560,35 +591,62 @@ impl App {
                 self.active_pane_id = self.panes.keys().next().copied();
                 self.state = AppState::Attached;
                 self.status_message = Some("Attached to session".to_string());
+
+                // Create UI panes for all panes in the session
+                for pane_info in self.panes.values() {
+                    self.pane_manager.add_pane(pane_info.id, pane_info.rows, pane_info.cols);
+                    if let Some(ui_pane) = self.pane_manager.get_mut(pane_info.id) {
+                        ui_pane.set_title(pane_info.title.clone());
+                        ui_pane.set_cwd(pane_info.cwd.clone());
+                        ui_pane.set_pane_state(pane_info.state.clone());
+                    }
+                }
+                // Set active UI pane
+                if let Some(active_id) = self.active_pane_id {
+                    self.pane_manager.set_active(active_id);
+                }
             }
             ServerMessage::WindowCreated { window } => {
                 self.windows.insert(window.id, window);
             }
             ServerMessage::PaneCreated { pane } => {
+                // Create UI pane for terminal rendering
+                self.pane_manager.add_pane(pane.id, pane.rows, pane.cols);
+                if let Some(ui_pane) = self.pane_manager.get_mut(pane.id) {
+                    ui_pane.set_title(pane.title.clone());
+                    ui_pane.set_cwd(pane.cwd.clone());
+                    ui_pane.set_pane_state(pane.state.clone());
+                }
                 self.panes.insert(pane.id, pane);
             }
             ServerMessage::Output { pane_id, data } => {
-                // In a full implementation, this would update the pane's terminal buffer
-                // For now, we store it or pass to tui-term
-                if let Some(_pane) = self.panes.get_mut(&pane_id) {
-                    // TODO: Update pane terminal with output data
-                    let _ = data;
-                }
+                // Process output through the UI pane's terminal emulator
+                self.pane_manager.process_output(pane_id, &data);
             }
             ServerMessage::PaneStateChanged { pane_id, state } => {
                 if let Some(pane) = self.panes.get_mut(&pane_id) {
-                    pane.state = state;
+                    pane.state = state.clone();
                 }
+                // Sync state with UI pane
+                self.pane_manager.update_pane_state(pane_id, state);
             }
             ServerMessage::ClaudeStateChanged { pane_id, state } => {
+                let pane_state = PaneState::Claude(state);
                 if let Some(pane) = self.panes.get_mut(&pane_id) {
-                    pane.state = PaneState::Claude(state);
+                    pane.state = pane_state.clone();
                 }
+                // Sync state with UI pane
+                self.pane_manager.update_pane_state(pane_id, pane_state);
             }
             ServerMessage::PaneClosed { pane_id, .. } => {
                 self.panes.remove(&pane_id);
+                self.pane_manager.remove_pane(pane_id);
                 if self.active_pane_id == Some(pane_id) {
                     self.active_pane_id = self.panes.keys().next().copied();
+                    // Update active UI pane
+                    if let Some(new_active) = self.active_pane_id {
+                        self.pane_manager.set_active(new_active);
+                    }
                 }
             }
             ServerMessage::WindowClosed { window_id } => {
@@ -598,6 +656,7 @@ impl App {
                 self.session = None;
                 self.windows.clear();
                 self.panes.clear();
+                self.pane_manager = PaneManager::new();
                 self.active_pane_id = None;
                 self.state = AppState::SessionSelect;
                 self.status_message = Some("Session ended".to_string());
@@ -752,25 +811,29 @@ impl App {
         // Main pane area
         let pane_area = chunks[0];
 
-        // For now, draw a placeholder for the pane
-        // This will be replaced with tui-term integration in Section 3
-        let pane_block = Block::default()
-            .borders(Borders::ALL)
-            .title(self.active_pane_title())
-            .border_style(Style::default().fg(Color::Cyan));
-
-        let pane_content = if let Some(pane_id) = self.active_pane_id {
-            if let Some(pane) = self.panes.get(&pane_id) {
-                self.format_pane_info(pane)
+        // Render the active pane using tui-term
+        if let Some(pane_id) = self.active_pane_id {
+            if let Some(ui_pane) = self.pane_manager.get(pane_id) {
+                render_pane(ui_pane, pane_area, frame.buffer_mut(), self.tick_count);
             } else {
-                "Pane not found".to_string()
+                // Fallback if UI pane not found
+                let pane_block = Block::default()
+                    .borders(Borders::ALL)
+                    .title("Pane (no terminal)")
+                    .border_style(Style::default().fg(Color::Red));
+                let pane_widget = Paragraph::new("Terminal not initialized")
+                    .block(pane_block);
+                frame.render_widget(pane_widget, pane_area);
             }
         } else {
-            "No active pane".to_string()
-        };
-
-        let pane_widget = Paragraph::new(pane_content).block(pane_block);
-        frame.render_widget(pane_widget, pane_area);
+            // No active pane
+            let pane_block = Block::default()
+                .borders(Borders::ALL)
+                .title("No Pane")
+                .border_style(Style::default().fg(Color::DarkGray));
+            let pane_widget = Paragraph::new("No active pane").block(pane_block);
+            frame.render_widget(pane_widget, pane_area);
+        }
 
         // Status bar
         let status = self.build_status_bar();
