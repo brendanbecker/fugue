@@ -3,6 +3,11 @@
 //! Provides the session/window/pane hierarchy that organizes
 //! terminal processes.
 
+// Allow unused items during development - will be used when integrated
+#![allow(dead_code, unused_imports)]
+// Allow session/session.rs naming - matches the Session struct inside
+#![allow(clippy::module_inception)]
+
 mod manager;
 mod pane;
 mod session;

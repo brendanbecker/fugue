@@ -3,6 +3,8 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use crate::config::SessionType;
+
 /// Configuration for spawning a PTY
 #[derive(Debug, Clone)]
 pub struct PtyConfig {
@@ -18,6 +20,10 @@ pub struct PtyConfig {
     pub env_remove: Vec<String>,
     /// Initial terminal size (cols, rows)
     pub size: (u16, u16),
+    /// Session type for scrollback configuration
+    pub session_type: SessionType,
+    /// Override scrollback lines (if None, uses session_type default)
+    pub scrollback_lines: Option<usize>,
 }
 
 impl Default for PtyConfig {
@@ -29,6 +35,8 @@ impl Default for PtyConfig {
             env: HashMap::new(),
             env_remove: Vec::new(),
             size: (80, 24),
+            session_type: SessionType::Default,
+            scrollback_lines: None,
         }
     }
 }
@@ -75,6 +83,24 @@ impl PtyConfig {
     pub fn with_arg(mut self, arg: impl Into<String>) -> Self {
         self.args.push(arg.into());
         self
+    }
+
+    /// Set session type
+    pub fn with_session_type(mut self, session_type: SessionType) -> Self {
+        self.session_type = session_type;
+        self
+    }
+
+    /// Set scrollback lines override
+    pub fn with_scrollback(mut self, lines: usize) -> Self {
+        self.scrollback_lines = Some(lines);
+        self
+    }
+
+    /// Get effective scrollback lines based on session type and override
+    pub fn effective_scrollback(&self, config: &crate::config::ScrollbackConfig) -> usize {
+        self.scrollback_lines
+            .unwrap_or_else(|| config.lines_for_type(self.session_type))
     }
 }
 
@@ -249,5 +275,63 @@ mod tests {
         let config = PtyConfig::default();
         // Command should be from SHELL env var or /bin/sh
         assert!(!config.command.is_empty());
+    }
+
+    #[test]
+    fn test_default_session_type() {
+        let config = PtyConfig::default();
+        assert_eq!(config.session_type, SessionType::Default);
+        assert!(config.scrollback_lines.is_none());
+    }
+
+    #[test]
+    fn test_with_session_type() {
+        let config = PtyConfig::default().with_session_type(SessionType::Orchestrator);
+        assert_eq!(config.session_type, SessionType::Orchestrator);
+    }
+
+    #[test]
+    fn test_with_scrollback() {
+        let config = PtyConfig::default().with_scrollback(25000);
+        assert_eq!(config.scrollback_lines, Some(25000));
+    }
+
+    #[test]
+    fn test_effective_scrollback_with_override() {
+        let pty_config = PtyConfig::default()
+            .with_session_type(SessionType::Worker)
+            .with_scrollback(10000);
+
+        let scrollback_config = crate::config::ScrollbackConfig::default();
+        assert_eq!(pty_config.effective_scrollback(&scrollback_config), 10000);
+    }
+
+    #[test]
+    fn test_effective_scrollback_without_override() {
+        let pty_config = PtyConfig::default().with_session_type(SessionType::Orchestrator);
+
+        let scrollback_config = crate::config::ScrollbackConfig::default();
+        assert_eq!(pty_config.effective_scrollback(&scrollback_config), 50000);
+    }
+
+    #[test]
+    fn test_effective_scrollback_worker() {
+        let pty_config = PtyConfig::default().with_session_type(SessionType::Worker);
+
+        let scrollback_config = crate::config::ScrollbackConfig::default();
+        assert_eq!(pty_config.effective_scrollback(&scrollback_config), 500);
+    }
+
+    #[test]
+    fn test_builder_chain_with_scrollback() {
+        let config = PtyConfig::command("bash")
+            .with_session_type(SessionType::Orchestrator)
+            .with_scrollback(75000)
+            .with_size(120, 40);
+
+        assert_eq!(config.command, "bash");
+        assert_eq!(config.session_type, SessionType::Orchestrator);
+        assert_eq!(config.scrollback_lines, Some(75000));
+        assert_eq!(config.size, (120, 40));
     }
 }

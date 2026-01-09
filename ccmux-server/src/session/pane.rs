@@ -1,6 +1,8 @@
 use std::time::SystemTime;
 use uuid::Uuid;
 use ccmux_protocol::{PaneInfo, PaneState, ClaudeState};
+use crate::config::SessionType;
+use crate::pty::ScrollbackBuffer;
 
 /// A terminal pane within a window
 #[derive(Debug)]
@@ -24,11 +26,28 @@ pub struct Pane {
     created_at: SystemTime,
     /// When state last changed
     state_changed_at: SystemTime,
+    /// Session type for this pane
+    session_type: SessionType,
+    /// Scrollback buffer for terminal history
+    scrollback: ScrollbackBuffer,
 }
 
+/// Default scrollback lines when not specified
+const DEFAULT_SCROLLBACK_LINES: usize = 1000;
+
 impl Pane {
-    /// Create a new pane
+    /// Create a new pane with default scrollback
     pub fn new(window_id: Uuid, index: usize) -> Self {
+        Self::with_scrollback(window_id, index, SessionType::Default, DEFAULT_SCROLLBACK_LINES)
+    }
+
+    /// Create a new pane with specific session type and scrollback size
+    pub fn with_scrollback(
+        window_id: Uuid,
+        index: usize,
+        session_type: SessionType,
+        scrollback_lines: usize,
+    ) -> Self {
         let now = SystemTime::now();
         Self {
             id: Uuid::new_v4(),
@@ -41,6 +60,8 @@ impl Pane {
             cwd: None,
             created_at: now,
             state_changed_at: now,
+            session_type,
+            scrollback: ScrollbackBuffer::new(scrollback_lines),
         }
     }
 
@@ -123,6 +144,36 @@ impl Pane {
     /// Set current working directory
     pub fn set_cwd(&mut self, cwd: Option<String>) {
         self.cwd = cwd;
+    }
+
+    /// Get session type
+    pub fn session_type(&self) -> SessionType {
+        self.session_type
+    }
+
+    /// Get reference to scrollback buffer
+    pub fn scrollback(&self) -> &ScrollbackBuffer {
+        &self.scrollback
+    }
+
+    /// Get mutable reference to scrollback buffer
+    pub fn scrollback_mut(&mut self) -> &mut ScrollbackBuffer {
+        &mut self.scrollback
+    }
+
+    /// Push output to scrollback buffer
+    pub fn push_output(&mut self, data: &[u8]) {
+        self.scrollback.push_bytes(data);
+    }
+
+    /// Get scrollback line count
+    pub fn scrollback_lines(&self) -> usize {
+        self.scrollback.len()
+    }
+
+    /// Get scrollback memory usage in bytes
+    pub fn scrollback_bytes(&self) -> usize {
+        self.scrollback.total_bytes()
     }
 
     /// Convert to protocol PaneInfo
@@ -354,5 +405,69 @@ mod tests {
 
         pane.resize(80, 24);
         assert_eq!(pane.dimensions(), (80, 24));
+    }
+
+    #[test]
+    fn test_pane_with_scrollback() {
+        let window_id = Uuid::new_v4();
+        let pane = Pane::with_scrollback(window_id, 0, SessionType::Orchestrator, 50000);
+
+        assert_eq!(pane.session_type(), SessionType::Orchestrator);
+        assert_eq!(pane.scrollback().max_lines(), 50000);
+    }
+
+    #[test]
+    fn test_pane_default_session_type() {
+        let window_id = Uuid::new_v4();
+        let pane = Pane::new(window_id, 0);
+
+        assert_eq!(pane.session_type(), SessionType::Default);
+    }
+
+    #[test]
+    fn test_pane_push_output() {
+        let window_id = Uuid::new_v4();
+        let mut pane = Pane::new(window_id, 0);
+
+        pane.push_output(b"Hello\nWorld\n");
+        assert_eq!(pane.scrollback_lines(), 2);
+    }
+
+    #[test]
+    fn test_pane_scrollback_access() {
+        let window_id = Uuid::new_v4();
+        let mut pane = Pane::new(window_id, 0);
+
+        pane.push_output(b"Line 1\nLine 2\n");
+
+        let lines: Vec<_> = pane.scrollback().get_lines().collect();
+        assert_eq!(lines, vec!["Line 1", "Line 2"]);
+    }
+
+    #[test]
+    fn test_pane_scrollback_bytes() {
+        let window_id = Uuid::new_v4();
+        let mut pane = Pane::new(window_id, 0);
+
+        pane.push_output(b"12345\n");
+        assert!(pane.scrollback_bytes() > 0);
+    }
+
+    #[test]
+    fn test_pane_scrollback_mut() {
+        let window_id = Uuid::new_v4();
+        let mut pane = Pane::new(window_id, 0);
+
+        pane.scrollback_mut().push_line("Direct push".to_string());
+        assert_eq!(pane.scrollback_lines(), 1);
+    }
+
+    #[test]
+    fn test_pane_worker_small_scrollback() {
+        let window_id = Uuid::new_v4();
+        let pane = Pane::with_scrollback(window_id, 0, SessionType::Worker, 500);
+
+        assert_eq!(pane.session_type(), SessionType::Worker);
+        assert_eq!(pane.scrollback().max_lines(), 500);
     }
 }

@@ -216,12 +216,12 @@ mod tests {
     #[test]
     fn test_parse_partial_config() {
         let content = r#"
-            [terminal]
-            scrollback_lines = 5000
+            [terminal.scrollback]
+            default = 5000
         "#;
 
         let config = ConfigLoader::parse(content, Path::new("partial.toml")).unwrap();
-        assert_eq!(config.terminal.scrollback_lines, 5000);
+        assert_eq!(config.terminal.scrollback.default, 5000);
         // Other fields should have defaults
         assert_eq!(config.general.max_depth, 5);
     }
@@ -239,8 +239,11 @@ mod tests {
             prefix_key = "Ctrl-b"
 
             [terminal]
-            scrollback_lines = 20000
             render_interval_ms = 16
+
+            [terminal.scrollback]
+            default = 20000
+            orchestrator = 80000
 
             [persistence]
             checkpoint_interval_secs = 60
@@ -251,7 +254,8 @@ mod tests {
         let config = ConfigLoader::load_from_path(&path).unwrap();
         assert_eq!(config.general.max_depth, 3);
         assert_eq!(config.general.prefix_key, "Ctrl-b");
-        assert_eq!(config.terminal.scrollback_lines, 20000);
+        assert_eq!(config.terminal.scrollback.default, 20000);
+        assert_eq!(config.terminal.scrollback.orchestrator, 80000);
         assert_eq!(config.persistence.checkpoint_interval_secs, 60);
     }
 
