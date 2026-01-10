@@ -126,6 +126,7 @@ impl Pane {
         self.parser.process(data);
         // Reset scroll to bottom when new output arrives
         self.scroll_offset = 0;
+        self.parser.set_scrollback(0);
     }
 
     /// Resize the terminal
@@ -143,26 +144,37 @@ impl Pane {
     pub fn scroll_up(&mut self, lines: usize) {
         let max_scroll = self.parser.screen().scrollback();
         self.scroll_offset = (self.scroll_offset + lines).min(max_scroll);
+        // Sync with parser's scrollback view so screen() returns the scrolled content
+        self.parser.set_scrollback(self.scroll_offset);
     }
 
     /// Scroll down by given number of lines
     pub fn scroll_down(&mut self, lines: usize) {
         self.scroll_offset = self.scroll_offset.saturating_sub(lines);
+        // Sync with parser's scrollback view so screen() returns the scrolled content
+        self.parser.set_scrollback(self.scroll_offset);
     }
 
     /// Scroll to top of scrollback
     pub fn scroll_to_top(&mut self) {
         self.scroll_offset = self.parser.screen().scrollback();
+        self.parser.set_scrollback(self.scroll_offset);
     }
 
     /// Scroll to bottom (live view)
     pub fn scroll_to_bottom(&mut self) {
         self.scroll_offset = 0;
+        self.parser.set_scrollback(0);
     }
 
     /// Check if scrolled (not at bottom)
     pub fn is_scrolled(&self) -> bool {
         self.scroll_offset > 0
+    }
+
+    /// Get current scroll offset
+    pub fn scroll_offset(&self) -> usize {
+        self.scroll_offset
     }
 
     /// Get scroll position as percentage (0.0 = bottom, 1.0 = top)

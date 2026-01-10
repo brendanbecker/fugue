@@ -291,21 +291,40 @@ impl App {
 
             InputAction::ScrollUp { lines } => {
                 if let Some(pane_id) = self.active_pane_id {
-                    // Calculate new viewport offset
-                    let new_offset = self.input_handler.scroll_offset();
+                    // Update LOCAL UI pane for immediate visual feedback
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        pane.scroll_up(lines);
+                    }
+
+                    // Get updated scroll offset and sync with server
+                    let new_offset = self
+                        .pane_manager
+                        .get(pane_id)
+                        .map(|p| p.scroll_offset())
+                        .unwrap_or(0);
                     self.connection
                         .send(ClientMessage::SetViewportOffset {
                             pane_id,
                             offset: new_offset,
                         })
                         .await?;
-                    let _ = lines; // Used by input handler to track offset
                 }
             }
 
             InputAction::ScrollDown { lines } => {
                 if let Some(pane_id) = self.active_pane_id {
-                    let new_offset = self.input_handler.scroll_offset();
+                    // Update LOCAL UI pane for immediate visual feedback
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        pane.scroll_down(lines);
+                    }
+
+                    // Get updated scroll offset and sync with server
+                    let new_offset = self
+                        .pane_manager
+                        .get(pane_id)
+                        .map(|p| p.scroll_offset())
+                        .unwrap_or(0);
+
                     if new_offset == 0 {
                         // Jump to bottom when scrolled all the way down
                         self.connection
@@ -319,7 +338,6 @@ impl App {
                             })
                             .await?;
                     }
-                    let _ = lines;
                 }
             }
 
