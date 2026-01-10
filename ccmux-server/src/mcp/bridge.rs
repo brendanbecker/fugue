@@ -336,10 +336,13 @@ impl McpBridge {
                 self.tool_create_window(session, name, command).await
             }
             "ccmux_create_pane" => {
+                let session = arguments["session"].as_str().map(String::from);
+                let window = arguments["window"].as_str().map(String::from);
                 let direction = arguments["direction"].as_str().map(String::from);
                 let command = arguments["command"].as_str().map(String::from);
                 let cwd = arguments["cwd"].as_str().map(String::from);
-                self.tool_create_pane(direction, command, cwd).await
+                self.tool_create_pane(session, window, direction, command, cwd)
+                    .await
             }
             "ccmux_send_input" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
@@ -602,6 +605,8 @@ impl McpBridge {
 
     async fn tool_create_pane(
         &mut self,
+        session: Option<String>,
+        window: Option<String>,
         direction: Option<String>,
         command: Option<String>,
         cwd: Option<String>,
@@ -612,8 +617,8 @@ impl McpBridge {
         };
 
         self.send_to_daemon(ClientMessage::CreatePaneWithOptions {
-            session_filter: None,
-            window_filter: None,
+            session_filter: session,
+            window_filter: window,
             direction: split_direction,
             command,
             cwd,

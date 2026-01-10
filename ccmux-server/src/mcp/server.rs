@@ -187,6 +187,8 @@ impl McpServer {
                 lines: arguments["lines"].as_u64().unwrap_or(100) as usize,
             },
             "ccmux_create_pane" => ToolParams::CreatePane {
+                session: arguments["session"].as_str().map(String::from),
+                window: arguments["window"].as_str().map(String::from),
                 direction: arguments["direction"].as_str().map(String::from),
                 command: arguments["command"].as_str().map(String::from),
                 cwd: arguments["cwd"].as_str().map(String::from),
@@ -228,8 +230,14 @@ impl McpServer {
         let result = match params {
             ToolParams::ListPanes { session } => ctx.list_panes(session.as_deref()),
             ToolParams::ReadPane { pane_id, lines } => ctx.read_pane(pane_id, lines),
-            ToolParams::CreatePane { direction, command, cwd } => {
-                ctx.create_pane(direction.as_deref(), command.as_deref(), cwd.as_deref())
+            ToolParams::CreatePane { session, window, direction, command, cwd } => {
+                ctx.create_pane(
+                    session.as_deref(),
+                    window.as_deref(),
+                    direction.as_deref(),
+                    command.as_deref(),
+                    cwd.as_deref(),
+                )
             }
             ToolParams::SendInput { pane_id, input } => ctx.send_input(pane_id, &input),
             ToolParams::GetStatus { pane_id } => ctx.get_status(pane_id),
@@ -273,7 +281,13 @@ fn is_known_tool(name: &str) -> bool {
 enum ToolParams {
     ListPanes { session: Option<String> },
     ReadPane { pane_id: Uuid, lines: usize },
-    CreatePane { direction: Option<String>, command: Option<String>, cwd: Option<String> },
+    CreatePane {
+        session: Option<String>,
+        window: Option<String>,
+        direction: Option<String>,
+        command: Option<String>,
+        cwd: Option<String>,
+    },
     SendInput { pane_id: Uuid, input: String },
     GetStatus { pane_id: Uuid },
     ClosePane { pane_id: Uuid },

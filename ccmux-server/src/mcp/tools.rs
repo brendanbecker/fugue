@@ -40,10 +40,18 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         Tool {
             name: "ccmux_create_pane".into(),
-            description: "Create a new pane in the current session".into(),
+            description: "Create a new pane in a session".into(),
             input_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
+                    "session": {
+                        "type": "string",
+                        "description": "Target session (UUID or name). Uses active session if omitted."
+                    },
+                    "window": {
+                        "type": "string",
+                        "description": "Target window (UUID or name). Uses first window in session if omitted."
+                    },
                     "direction": {
                         "type": "string",
                         "enum": ["horizontal", "vertical"],

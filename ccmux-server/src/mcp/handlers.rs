@@ -100,8 +100,14 @@ impl<'a> ToolContext<'a> {
     /// Note: The direction parameter is included in the response for informational purposes.
     /// Actual visual split layout is handled client-side. The server creates panes without
     /// specific layout positioning.
+    ///
+    /// When session is provided (UUID or name), the pane is created in that session.
+    /// When window is provided (UUID or name), the pane is created in that window.
+    /// If not specified, uses the first available session/window.
     pub fn create_pane(
         &mut self,
+        session_filter: Option<&str>,
+        window_filter: Option<&str>,
         direction: Option<&str>,
         command: Option<&str>,
         cwd: Option<&str>,
@@ -112,8 +118,20 @@ impl<'a> ToolContext<'a> {
             _ => "vertical",
         };
 
-        // Get or create a session
-        let session = if self.session_manager.list_sessions().is_empty() {
+        // Resolve session: by UUID, by name, or use first available
+        let session = if let Some(filter) = session_filter {
+            // Try to parse as UUID first
+            if let Ok(id) = uuid::Uuid::parse_str(filter) {
+                self.session_manager
+                    .get_session(id)
+                    .ok_or_else(|| McpError::Internal(format!("Session '{}' not found", filter)))?
+            } else {
+                // Try by name
+                self.session_manager
+                    .get_session_by_name(filter)
+                    .ok_or_else(|| McpError::Internal(format!("Session '{}' not found", filter)))?
+            }
+        } else if self.session_manager.list_sessions().is_empty() {
             self.session_manager
                 .create_session("default")
                 .map_err(|e| McpError::Internal(e.to_string()))?
@@ -123,13 +141,29 @@ impl<'a> ToolContext<'a> {
         let session_id = session.id();
         let session_name = session.name().to_string();
 
-        // Get or create a window
+        // Resolve window: by UUID, by name, or use first available
         let session = self
             .session_manager
             .get_session_mut(session_id)
             .ok_or_else(|| McpError::Internal("Session disappeared".into()))?;
 
-        let window_id = {
+        let window_id = if let Some(filter) = window_filter {
+            // Try to parse as UUID first
+            if let Ok(id) = uuid::Uuid::parse_str(filter) {
+                if session.get_window(id).is_some() {
+                    id
+                } else {
+                    return Err(McpError::Internal(format!("Window '{}' not found", filter)));
+                }
+            } else {
+                // Try by name
+                session
+                    .windows()
+                    .find(|w| w.name() == filter)
+                    .map(|w| w.id())
+                    .ok_or_else(|| McpError::Internal(format!("Window '{}' not found", filter)))?
+            }
+        } else {
             // Get existing window ID first to avoid borrow conflict
             let existing_id = session.windows().next().map(|w| w.id());
             match existing_id {
@@ -165,6 +199,7 @@ impl<'a> ToolContext<'a> {
 
         let result = serde_json::json!({
             "pane_id": pane_id.to_string(),
+            "session_id": session_id.to_string(),
             "session": session_name,
             "window_id": window_id.to_string(),
             "direction": direction_str,
@@ -814,7 +849,7 @@ mod tests {
         session_manager.create_session("test").unwrap();
 
         let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(Some("horizontal"), None, None).unwrap();
+        let result = ctx.create_pane(None, None, Some("horizontal"), None, None).unwrap();
 
         assert!(result.contains("\"direction\": \"horizontal\""));
     }
@@ -827,8 +862,82 @@ mod tests {
         session_manager.create_session("test").unwrap();
 
         let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(None, None, None).unwrap();
+        let result = ctx.create_pane(None, None, None, None, None).unwrap();
 
         assert!(result.contains("\"direction\": \"vertical\""));
+    }
+
+    #[test]
+    fn test_create_pane_with_session_filter() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        session_manager.create_session("session1").unwrap();
+        session_manager.create_session("session2").unwrap();
+
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.create_pane(Some("session2"), None, None, None, None).unwrap();
+
+        assert!(result.contains("session2"));
+        assert!(result.contains("session_id"));
+    }
+
+    #[test]
+    fn test_create_pane_session_not_found() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        session_manager.create_session("existing").unwrap();
+
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.create_pane(Some("nonexistent"), None, None, None, None);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_create_pane_with_window_filter() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        let session = session_manager.create_session("test").unwrap();
+        let session_id = session.id();
+        let session = session_manager.get_session_mut(session_id).unwrap();
+        session.create_window(Some("window1".to_string()));
+        session.create_window(Some("window2".to_string()));
+
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.create_pane(None, Some("window2"), None, None, None).unwrap();
+
+        assert!(result.contains("pane_id"));
+        assert!(result.contains("window_id"));
+    }
+
+    #[test]
+    fn test_create_pane_window_not_found() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        session_manager.create_session("test").unwrap();
+
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.create_pane(None, Some("nonexistent"), None, None, None);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_create_pane_response_includes_session_id() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        session_manager.create_session("test").unwrap();
+
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let result = ctx.create_pane(None, None, None, None, None).unwrap();
+
+        assert!(result.contains("session_id"));
+        assert!(result.contains("pane_id"));
+        assert!(result.contains("window_id"));
     }
 }
