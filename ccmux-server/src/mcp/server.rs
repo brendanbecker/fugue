@@ -199,6 +199,7 @@ impl McpServer {
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'input' parameter".into()))?
                     .to_string(),
+                submit: arguments["submit"].as_bool().unwrap_or(false),
             },
             "ccmux_get_status" => ToolParams::GetStatus {
                 pane_id: parse_uuid(arguments, "pane_id")?,
@@ -239,7 +240,7 @@ impl McpServer {
                     cwd.as_deref(),
                 )
             }
-            ToolParams::SendInput { pane_id, input } => ctx.send_input(pane_id, &input),
+            ToolParams::SendInput { pane_id, input, submit } => ctx.send_input(pane_id, &input, submit),
             ToolParams::GetStatus { pane_id } => ctx.get_status(pane_id),
             ToolParams::ClosePane { pane_id } => ctx.close_pane(pane_id),
             ToolParams::FocusPane { pane_id } => ctx.focus_pane(pane_id),
@@ -288,7 +289,7 @@ enum ToolParams {
         command: Option<String>,
         cwd: Option<String>,
     },
-    SendInput { pane_id: Uuid, input: String },
+    SendInput { pane_id: Uuid, input: String, submit: bool },
     GetStatus { pane_id: Uuid },
     ClosePane { pane_id: Uuid },
     FocusPane { pane_id: Uuid },

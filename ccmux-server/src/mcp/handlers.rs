@@ -413,7 +413,9 @@ impl<'a> ToolContext<'a> {
     }
 
     /// Send input to a pane
-    pub fn send_input(&self, pane_id: Uuid, input: &str) -> Result<String, McpError> {
+    ///
+    /// If `submit` is true, appends a carriage return (\r) to press Enter after the input.
+    pub fn send_input(&self, pane_id: Uuid, input: &str, submit: bool) -> Result<String, McpError> {
         // Verify pane exists
         let _ = self
             .session_manager
@@ -430,6 +432,13 @@ impl<'a> ToolContext<'a> {
         handle
             .write_all(input.as_bytes())
             .map_err(|e| McpError::Pty(e.to_string()))?;
+
+        // If submit is true, send carriage return to press Enter
+        if submit {
+            handle
+                .write_all(b"\r")
+                .map_err(|e| McpError::Pty(e.to_string()))?;
+        }
 
         Ok(r#"{"status": "sent"}"#.into())
     }
@@ -618,7 +627,7 @@ mod tests {
         let mut pty_manager = PtyManager::new();
         let ctx = create_test_context(&mut session_manager, &mut pty_manager);
 
-        let result = ctx.send_input(Uuid::new_v4(), "hello");
+        let result = ctx.send_input(Uuid::new_v4(), "hello", false);
         assert!(matches!(result, Err(McpError::PaneNotFound(_))));
     }
 

@@ -80,7 +80,12 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                     },
                     "input": {
                         "type": "string",
-                        "description": "Text to send to the pane (use \\n for Enter)"
+                        "description": "Text to send to the pane"
+                    },
+                    "submit": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "If true, press Enter after sending input (sends carriage return)"
                     }
                 },
                 "required": ["pane_id", "input"]

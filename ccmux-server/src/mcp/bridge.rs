@@ -349,7 +349,8 @@ impl McpBridge {
                 let input = arguments["input"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'input' parameter".into()))?;
-                self.tool_send_input(pane_id, input).await
+                let submit = arguments["submit"].as_bool().unwrap_or(false);
+                self.tool_send_input(pane_id, input, submit).await
             }
             "ccmux_close_pane" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
@@ -669,13 +670,16 @@ impl McpBridge {
         &mut self,
         pane_id: Uuid,
         input: &str,
+        submit: bool,
     ) -> Result<ToolResult, McpError> {
+        // Build input data, appending carriage return if submit is true
+        let mut data = input.as_bytes().to_vec();
+        if submit {
+            data.push(b'\r');
+        }
+
         // Send input as bytes to the pane
-        self.send_to_daemon(ClientMessage::Input {
-            pane_id,
-            data: input.as_bytes().to_vec(),
-        })
-        .await?;
+        self.send_to_daemon(ClientMessage::Input { pane_id, data }).await?;
 
         // Input messages don't get a response in the current protocol,
         // so we just return success
