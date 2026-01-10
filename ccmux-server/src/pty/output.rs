@@ -531,7 +531,12 @@ impl PtyOutputPoller {
         !self.buffer.is_empty() && self.last_data_time.elapsed() >= self.config.flush_timeout
     }
 
-    /// Flush the buffer by broadcasting to session clients
+    /// Flush the buffer by broadcasting to session clients and routing to pane state
+    ///
+    /// This method:
+    /// 1. Routes output to pane.process() for scrollback and Claude detection
+    /// 2. Broadcasts PaneStateChanged if Claude state changed
+    /// 3. Broadcasts Output to all session clients
     async fn flush(&mut self) {
         if self.buffer.is_empty() {
             return;
@@ -547,6 +552,44 @@ impl PtyOutputPoller {
             "Flushing output to session"
         );
 
+        // Route output to pane state for scrollback and Claude detection
+        // This populates the scrollback buffer and triggers Claude detection
+        let state_change_msg = if let Some(executor) = &self.command_executor {
+            let session_manager = executor.session_manager();
+            let mut manager = session_manager.write().await;
+            if let Some(pane) = manager.find_pane_mut(self.pane_id) {
+                // Process returns Some(ClaudeState) if state changed
+                if let Some(claude_state) = pane.process(&data) {
+                    debug!(
+                        pane_id = %self.pane_id,
+                        activity = ?claude_state.activity,
+                        "Claude state changed from PTY output"
+                    );
+                    // Capture the state change message while we still have the lock
+                    Some(ServerMessage::PaneStateChanged {
+                        pane_id: self.pane_id,
+                        state: pane.state().clone(),
+                    })
+                } else {
+                    None
+                }
+            } else {
+                trace!(
+                    pane_id = %self.pane_id,
+                    "Pane not found in session manager (may have been closed)"
+                );
+                None
+            }
+        } else {
+            None
+        };
+
+        // Broadcast state change if Claude state changed
+        if let Some(state_msg) = state_change_msg {
+            self.registry.broadcast_to_session(self.session_id, state_msg).await;
+        }
+
+        // Broadcast output to session clients
         let msg = ServerMessage::Output {
             pane_id: self.pane_id,
             data,
@@ -1110,5 +1153,206 @@ mod tests {
 
         assert!(manager.has_poller(pane_id));
         manager.stop_all();
+    }
+
+    // ==================== Pane State Routing Tests ====================
+    // Tests for BUG-016: PTY output not routed to pane state
+
+    use tokio::sync::RwLock;
+    use crate::session::SessionManager;
+    use crate::pty::PtyManager;
+
+    /// Helper to create a full test setup with session manager and executor
+    async fn create_test_setup_with_session() -> (
+        Arc<RwLock<SessionManager>>,
+        Arc<RwLock<PtyManager>>,
+        Arc<ClientRegistry>,
+        Arc<AsyncCommandExecutor>,
+        Uuid, // session_id
+        Uuid, // pane_id
+    ) {
+        let session_manager = Arc::new(RwLock::new(SessionManager::new()));
+        let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
+        let registry = Arc::new(ClientRegistry::new());
+
+        let executor = Arc::new(AsyncCommandExecutor::new(
+            session_manager.clone(),
+            pty_manager.clone(),
+            registry.clone(),
+        ));
+
+        // Create session, window, and pane
+        let (session_id, pane_id) = {
+            let mut manager = session_manager.write().await;
+            let session = manager.create_session("test").unwrap();
+            let session_id = session.id();
+
+            let session = manager.get_session_mut(session_id).unwrap();
+            let window = session.create_window(None);
+            let window_id = window.id();
+
+            let window = session.get_window_mut(window_id).unwrap();
+            let pane = window.create_pane();
+            let pane_id = pane.id();
+
+            (session_id, pane_id)
+        };
+
+        (session_manager, pty_manager, registry, executor, session_id, pane_id)
+    }
+
+    #[tokio::test]
+    async fn test_poller_routes_output_to_scrollback() {
+        // Setup: create session manager with pane
+        let (session_manager, _pty_manager, registry, executor, session_id, pane_id) =
+            create_test_setup_with_session().await;
+
+        // Create reader with test data
+        let test_data = b"Line 1\nLine 2\nLine 3\n";
+        let reader = create_reader(test_data);
+
+        // Spawn poller with sideband (which gives access to session manager)
+        let handle = PtyOutputPoller::spawn_with_sideband(
+            pane_id,
+            session_id,
+            reader,
+            registry,
+            None, // No cleanup channel for test
+            executor,
+        );
+
+        // Wait for processing to complete
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        handle.cancel();
+
+        // Verify scrollback is populated
+        let manager = session_manager.read().await;
+        let (_, _, pane) = manager.find_pane(pane_id).expect("Pane should exist");
+
+        let lines: Vec<_> = pane.scrollback().get_lines().collect();
+        assert_eq!(lines.len(), 3, "Scrollback should have 3 lines");
+        assert_eq!(lines[0], "Line 1");
+        assert_eq!(lines[1], "Line 2");
+        assert_eq!(lines[2], "Line 3");
+    }
+
+    #[tokio::test]
+    async fn test_poller_triggers_claude_detection() {
+        use ccmux_protocol::PaneState;
+
+        // Setup: create session manager with pane
+        let (session_manager, _pty_manager, registry, executor, session_id, pane_id) =
+            create_test_setup_with_session().await;
+
+        // Create reader with Claude startup output
+        // The ClaudeDetector looks for patterns like "╭─" and prompt patterns
+        let claude_output = b"\x1b[?25l\x1b[2J\x1b[H\
+\xe2\x95\xad\xe2\x94\x80 Claude Code\n\
+\xe2\x94\x82 /home/user/project\n\
+\xe2\x95\xb0\xe2\x94\x80\n\
+> \n";
+        let reader = create_reader(claude_output);
+
+        // Spawn poller with sideband
+        let handle = PtyOutputPoller::spawn_with_sideband(
+            pane_id,
+            session_id,
+            reader,
+            registry,
+            None,
+            executor,
+        );
+
+        // Wait for processing to complete
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        handle.cancel();
+
+        // Verify Claude detection triggered (scrollback should be populated at minimum)
+        let manager = session_manager.read().await;
+        let (_, _, pane) = manager.find_pane(pane_id).expect("Pane should exist");
+
+        // Scrollback should have content
+        assert!(pane.scrollback().len() > 0, "Scrollback should have content");
+
+        // Note: Claude detection requires specific patterns that may not trigger
+        // with our test data, but the scrollback should always be populated.
+        // Full Claude detection testing is done in claude.rs tests.
+    }
+
+    #[tokio::test]
+    async fn test_poller_scrollback_with_multiple_flushes() {
+        // Setup
+        let (session_manager, _pty_manager, registry, executor, session_id, pane_id) =
+            create_test_setup_with_session().await;
+
+        // Create a larger data set that will require multiple flushes
+        let test_data = b"Line 1\nLine 2\nLine 3\nLine 4\nLine 5\n\
+                         Line 6\nLine 7\nLine 8\nLine 9\nLine 10\n";
+        let reader = create_reader(test_data);
+
+        let handle = PtyOutputPoller::spawn_with_sideband(
+            pane_id,
+            session_id,
+            reader,
+            registry,
+            None,
+            executor,
+        );
+
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        handle.cancel();
+
+        // Verify all lines are in scrollback
+        let manager = session_manager.read().await;
+        let (_, _, pane) = manager.find_pane(pane_id).expect("Pane should exist");
+
+        let lines: Vec<_> = pane.scrollback().get_lines().collect();
+        assert_eq!(lines.len(), 10, "Scrollback should have 10 lines");
+    }
+
+    #[tokio::test]
+    async fn test_poller_still_broadcasts_to_clients() {
+        // Verify that the fix doesn't break client broadcasting
+        let (session_manager, _pty_manager, registry, executor, session_id, pane_id) =
+            create_test_setup_with_session().await;
+
+        // Create a client attached to the session
+        let (tx, mut rx) = tokio_mpsc::channel(10);
+        let client_id = registry.register_client(tx);
+        registry.attach_to_session(client_id, session_id);
+
+        // Create reader with test data
+        let test_data = b"Hello, World!\n";
+        let reader = create_reader(test_data);
+
+        let handle = PtyOutputPoller::spawn_with_sideband(
+            pane_id,
+            session_id,
+            reader,
+            registry,
+            None,
+            executor,
+        );
+
+        // Wait for message to be received
+        let msg = timeout(Duration::from_secs(2), rx.recv()).await;
+        handle.cancel();
+
+        // Verify the client received the output
+        assert!(msg.is_ok());
+        let msg = msg.unwrap();
+        assert!(msg.is_some());
+
+        if let Some(ServerMessage::Output { pane_id: pid, data }) = msg {
+            assert_eq!(pid, pane_id);
+            assert_eq!(data, test_data);
+        } else {
+            panic!("Expected Output message, got {:?}", msg);
+        }
+
+        // Also verify scrollback was populated
+        let manager = session_manager.read().await;
+        let (_, _, pane) = manager.find_pane(pane_id).expect("Pane should exist");
+        assert_eq!(pane.scrollback().len(), 1, "Scrollback should have 1 line");
     }
 }

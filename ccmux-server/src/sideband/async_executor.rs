@@ -44,6 +44,21 @@ impl AsyncCommandExecutor {
         }
     }
 
+    /// Get a reference to the session manager
+    ///
+    /// Used by PtyOutputPoller to route output to pane state for
+    /// scrollback buffer and Claude detection.
+    pub fn session_manager(&self) -> &Arc<RwLock<SessionManager>> {
+        &self.session_manager
+    }
+
+    /// Get a reference to the client registry
+    ///
+    /// Used by PtyOutputPoller to broadcast state changes.
+    pub fn registry(&self) -> &Arc<ClientRegistry> {
+        &self.registry
+    }
+
     /// Execute a sideband command
     ///
     /// # Arguments
