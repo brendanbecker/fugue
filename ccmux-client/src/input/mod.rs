@@ -11,7 +11,7 @@ mod keys;
 mod mouse;
 
 pub use commands::{ClientCommand, CommandHandler};
-pub use keys::{translate_key, KeyBinding, KeyBindingError};
+pub use keys::{translate_key, KeyBinding};
 pub use mouse::handle_mouse_event;
 // QuickBindings is defined in this module and is public
 

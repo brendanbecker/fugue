@@ -249,9 +249,6 @@ pub fn translate_key(key: &KeyEvent) -> Option<Vec<u8>> {
 
         // Media keys - no terminal representation
         KeyCode::Media(_) => None,
-
-        // Catch-all for any other keys
-        _ => None,
     }
 }
 
