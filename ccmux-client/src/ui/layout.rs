@@ -241,6 +241,57 @@ impl LayoutNode {
             }
         }
     }
+
+    /// Prune the layout tree by collapsing single-child splits
+    /// This should be called after remove_pane to clean up the tree structure
+    pub fn prune(&mut self) {
+        match self {
+            LayoutNode::Pane { .. } => {
+                // Nothing to prune for a leaf node
+            }
+            LayoutNode::Split { children, .. } => {
+                // First, recursively prune all children
+                for (child, _) in children.iter_mut() {
+                    child.prune();
+                }
+
+                // After pruning children, check if any child splits now have single children
+                // and collapse them inline
+                for (child, _) in children.iter_mut() {
+                    if let LayoutNode::Split {
+                        children: child_children,
+                        ..
+                    } = child
+                    {
+                        if child_children.len() == 1 {
+                            // Replace the split with its single child
+                            let (single_child, _) = child_children.remove(0);
+                            *child = single_child;
+                        }
+                    }
+                }
+
+                // If this split itself has only one child after pruning, we can't collapse
+                // ourselves here (we'd need the parent to do it), but LayoutManager will handle it
+            }
+        }
+    }
+
+    /// Check if this node is a single-child split (needs to be collapsed)
+    pub fn is_single_child_split(&self) -> bool {
+        matches!(self, LayoutNode::Split { children, .. } if children.len() == 1)
+    }
+
+    /// If this is a single-child split, return the unwrapped single child
+    /// Otherwise return None
+    pub fn unwrap_single_child(self) -> Option<LayoutNode> {
+        match self {
+            LayoutNode::Split { mut children, .. } if children.len() == 1 => {
+                Some(children.remove(0).0)
+            }
+            _ => None,
+        }
+    }
 }
 
 /// Layout presets for common arrangements
@@ -408,6 +459,19 @@ impl LayoutManager {
     /// Remove a pane from the layout
     pub fn remove_pane(&mut self, pane_id: Uuid) -> bool {
         if self.root.remove_pane(pane_id) {
+            // Prune the tree to collapse single-child splits
+            self.root.prune();
+
+            // Handle the case where root itself is now a single-child split
+            // We need to collapse it to avoid unnecessary nesting
+            if self.root.is_single_child_split() {
+                // Replace root with its single child
+                let old_root = std::mem::replace(&mut self.root, LayoutNode::pane(Uuid::nil()));
+                if let Some(new_root) = old_root.unwrap_single_child() {
+                    self.root = new_root;
+                }
+            }
+
             // Update active pane if needed
             if self.active_pane_id == Some(pane_id) {
                 self.active_pane_id = self.root.pane_ids().first().copied();
@@ -714,5 +778,207 @@ mod tests {
         assert!(rect.is_some());
         let rect = rect.unwrap();
         assert!(rect.width >= 45 && rect.width <= 55);
+    }
+
+    // ==================== BUG-015 Tests: Layout Tree Pruning ====================
+
+    #[test]
+    fn test_prune_single_child_nested() {
+        // Create: Split(V) { [Pane(A), Split(H) { [Pane(B), Pane(C)] }] }
+        let id_a = Uuid::new_v4();
+        let id_b = Uuid::new_v4();
+        let id_c = Uuid::new_v4();
+
+        let mut layout = LayoutNode::vertical_split(vec![
+            LayoutNode::pane(id_a),
+            LayoutNode::horizontal_split(vec![LayoutNode::pane(id_b), LayoutNode::pane(id_c)]),
+        ]);
+
+        // Remove Pane(C): Split(V) { [Pane(A), Split(H) { [Pane(B)] }] }
+        assert!(layout.remove_pane(id_c));
+        assert_eq!(layout.pane_count(), 2);
+
+        // After pruning: Split(V) { [Pane(A), Pane(B)] }
+        layout.prune();
+
+        // Verify the nested split was collapsed
+        assert_eq!(layout.pane_count(), 2);
+        let ids = layout.pane_ids();
+        assert!(ids.contains(&id_a));
+        assert!(ids.contains(&id_b));
+
+        // Verify structure: should be a split with two pane children (not nested)
+        if let LayoutNode::Split { children, .. } = &layout {
+            assert_eq!(children.len(), 2);
+            for (child, _) in children {
+                assert!(matches!(child, LayoutNode::Pane { .. }));
+            }
+        } else {
+            panic!("Expected Split at root");
+        }
+    }
+
+    #[test]
+    fn test_prune_deeply_nested() {
+        // Create deeply nested structure:
+        // Split(V) { [Pane(A), Split(H) { [Pane(B), Split(V) { [Pane(C), Pane(D)] }] }] }
+        let id_a = Uuid::new_v4();
+        let id_b = Uuid::new_v4();
+        let id_c = Uuid::new_v4();
+        let id_d = Uuid::new_v4();
+
+        let mut layout = LayoutNode::vertical_split(vec![
+            LayoutNode::pane(id_a),
+            LayoutNode::horizontal_split(vec![
+                LayoutNode::pane(id_b),
+                LayoutNode::vertical_split(vec![LayoutNode::pane(id_c), LayoutNode::pane(id_d)]),
+            ]),
+        ]);
+
+        assert_eq!(layout.pane_count(), 4);
+
+        // Remove Pane(D), leaving single-child Split(V) { [Pane(C)] }
+        assert!(layout.remove_pane(id_d));
+        assert_eq!(layout.pane_count(), 3);
+
+        // After pruning: innermost single-child split should be collapsed
+        layout.prune();
+        assert_eq!(layout.pane_count(), 3);
+
+        let ids = layout.pane_ids();
+        assert!(ids.contains(&id_a));
+        assert!(ids.contains(&id_b));
+        assert!(ids.contains(&id_c));
+    }
+
+    #[test]
+    fn test_remove_pane_with_manager_prunes_tree() {
+        // Test that LayoutManager::remove_pane properly prunes the tree
+        let id_a = Uuid::new_v4();
+        let id_b = Uuid::new_v4();
+        let id_c = Uuid::new_v4();
+
+        // Create: Split(V) { [Pane(A), Split(H) { [Pane(B), Pane(C)] }] }
+        let mut manager = LayoutManager::new(id_a);
+        manager.root_mut().add_pane(id_a, id_b, SplitDirection::Vertical);
+
+        // Now add C by splitting B horizontally
+        manager.set_active_pane(id_b);
+        manager.root_mut().add_pane(id_b, id_c, SplitDirection::Horizontal);
+
+        assert_eq!(manager.pane_count(), 3);
+
+        // Remove C - tree should be pruned automatically
+        assert!(manager.remove_pane(id_c));
+        assert_eq!(manager.pane_count(), 2);
+
+        // Verify pruning happened - should have 2 panes in a simple split
+        let ids = manager.pane_ids();
+        assert!(ids.contains(&id_a));
+        assert!(ids.contains(&id_b));
+    }
+
+    #[test]
+    fn test_remove_to_single_pane() {
+        // Start with 2 panes, remove one, should collapse to single pane
+        let id1 = Uuid::new_v4();
+        let id2 = Uuid::new_v4();
+        let mut manager = LayoutManager::from_preset(LayoutPreset::SplitHorizontal, vec![id1, id2]);
+
+        assert_eq!(manager.pane_count(), 2);
+
+        // Remove id1
+        assert!(manager.remove_pane(id1));
+        assert_eq!(manager.pane_count(), 1);
+
+        // Root should now be a single Pane, not a Split
+        assert!(matches!(manager.root(), LayoutNode::Pane { id } if *id == id2));
+    }
+
+    #[test]
+    fn test_quadrant_layout_close_three() {
+        // Simulate the exact bug scenario: 4 panes in quadrant layout, close 3
+        let id1 = Uuid::new_v4();
+        let id2 = Uuid::new_v4();
+        let id3 = Uuid::new_v4();
+        let id4 = Uuid::new_v4();
+
+        let mut manager = LayoutManager::from_preset(LayoutPreset::Grid2x2, vec![id1, id2, id3, id4]);
+
+        assert_eq!(manager.pane_count(), 4);
+
+        // Close pane 2, 3, and 4
+        assert!(manager.remove_pane(id2));
+        assert_eq!(manager.pane_count(), 3);
+
+        assert!(manager.remove_pane(id3));
+        assert_eq!(manager.pane_count(), 2);
+
+        assert!(manager.remove_pane(id4));
+        assert_eq!(manager.pane_count(), 1);
+
+        // Only id1 should remain, and it should fill the full area
+        let ids = manager.pane_ids();
+        assert_eq!(ids, vec![id1]);
+
+        // Root should be a single Pane
+        assert!(matches!(manager.root(), LayoutNode::Pane { id } if *id == id1));
+
+        // Verify it uses full area
+        let area = Rect::new(0, 0, 100, 50);
+        let rects = manager.calculate_rects(area);
+        assert_eq!(rects.len(), 1);
+        assert_eq!(rects[0].0, id1);
+        assert_eq!(rects[0].1, area);
+    }
+
+    #[test]
+    fn test_is_single_child_split() {
+        let id = Uuid::new_v4();
+
+        // Single pane is not a single-child split
+        let pane = LayoutNode::pane(id);
+        assert!(!pane.is_single_child_split());
+
+        // Split with one child is a single-child split
+        let single_child = LayoutNode::Split {
+            direction: SplitDirection::Horizontal,
+            children: vec![(LayoutNode::pane(id), 1.0)],
+        };
+        assert!(single_child.is_single_child_split());
+
+        // Split with two children is not
+        let two_children = LayoutNode::horizontal_split(vec![
+            LayoutNode::pane(Uuid::new_v4()),
+            LayoutNode::pane(Uuid::new_v4()),
+        ]);
+        assert!(!two_children.is_single_child_split());
+    }
+
+    #[test]
+    fn test_unwrap_single_child() {
+        let id = Uuid::new_v4();
+
+        // Single-child split should unwrap to its child
+        let single_child = LayoutNode::Split {
+            direction: SplitDirection::Horizontal,
+            children: vec![(LayoutNode::pane(id), 1.0)],
+        };
+
+        let unwrapped = single_child.unwrap_single_child();
+        assert!(unwrapped.is_some());
+        let unwrapped = unwrapped.unwrap();
+        assert!(matches!(unwrapped, LayoutNode::Pane { id: inner_id } if inner_id == id));
+
+        // Regular pane should return None
+        let pane = LayoutNode::pane(Uuid::new_v4());
+        assert!(pane.unwrap_single_child().is_none());
+
+        // Multi-child split should return None
+        let multi_child = LayoutNode::horizontal_split(vec![
+            LayoutNode::pane(Uuid::new_v4()),
+            LayoutNode::pane(Uuid::new_v4()),
+        ]);
+        assert!(multi_child.unwrap_single_child().is_none());
     }
 }
