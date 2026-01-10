@@ -4,8 +4,8 @@
 **Last Updated**: 2026-01-09
 
 ## Summary Statistics
-- Total Bugs: 6
-- New: 0
+- Total Bugs: 7
+- New: 1
 - In Progress: 0
 - Resolved: 5
 
@@ -88,9 +88,29 @@ Shift+Tab keystrokes are silently dropped instead of being sent to the PTY. Prog
 **Resolution**:
 Added `KeyCode::BackTab => Some(b"\x1b[Z".to_vec())` to `keys.rs`.
 
-### P2 - Medium Priority (0)
+### P2 - Medium Priority (1)
 
-*No open P2 bugs*
+#### BUG-009: Flaky persistence/recovery tests due to test isolation issues [NEW]
+
+**Status**: New
+**Filed**: 2026-01-09
+**Component**: ccmux-server
+**Directory**: [BUG-009-flaky-persistence-tests](BUG-009-flaky-persistence-tests/)
+
+**Description**:
+The persistence/recovery tests have intermittent race conditions. A different test fails on each run - it's not one specific test but rather test isolation issues affecting the entire persistence test suite. Tests pass when run individually but fail ~30% of parallel runs.
+
+**Affected Tests**:
+- `persistence::recovery::tests::test_recovery_from_wal`
+- `persistence::recovery::tests::test_recovery_active_window_pane`
+- `persistence::recovery::tests::test_recovery_pane_updates`
+- `persistence::tests::test_persistence_log_operations`
+
+**Suspected Root Cause**:
+Same pattern as BUG-002 - tests likely share temp directories or file handles. Requires deep investigation of test isolation patterns.
+
+**Impact**:
+CI/test noise makes it difficult to verify if new features are working correctly. Has been plaguing the project for multiple sessions.
 
 #### BUG-002: Flaky test `test_ensure_dir_nested` due to shared temp directory [RESOLVED]
 
@@ -132,6 +152,7 @@ Used `tempfile::TempDir` for test isolation in ensure_dir tests.
 
 | Date | Bug ID | Action | Description |
 |------|--------|--------|-------------|
+| 2026-01-09 | BUG-009 | Filed | Flaky persistence tests due to test isolation issues |
 | 2026-01-09 | BUG-005 | Resolved | Integrated sideband parsing into PTY output flow |
 | 2026-01-09 | BUG-007 | Resolved | Added KeyCode::BackTab handler |
 | 2026-01-09 | BUG-007 | Filed | Shift+Tab not passed through (missing BackTab case) |
