@@ -194,16 +194,16 @@ impl<'a> ToolContext<'a> {
         let pane = window.create_pane();
         let pane_id = pane.id();
 
+        // If select is true, focus the new pane (before getting mutable pane ref)
+        if select {
+            window.set_active_pane(pane_id);
+        }
+
         // Initialize the parser
         let pane = window
             .get_pane_mut(pane_id)
             .ok_or_else(|| McpError::Internal("Pane disappeared".into()))?;
         pane.init_parser();
-
-        // If select is true, focus the new pane
-        if select {
-            window.set_active_pane(pane_id);
-        }
 
         // Spawn PTY
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
