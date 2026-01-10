@@ -329,6 +329,7 @@ With 3-way parallelism: **10-16 hours wall time** for all items.
 | FEAT-043 | MCP Session Rename Tool | P2 | ✅ Merged |
 | FEAT-044 | Claude Session Persistence & Auto-Resume | P1 | 📋 Planned |
 | FEAT-045 | MCP Declarative Layout Tools | P2 | 📋 Planned |
+| FEAT-046 | MCP Focus/Select Control | P1 | 📋 New |
 
 ### Open Features (blocked/in-progress)
 | ID | Feature | Notes |
