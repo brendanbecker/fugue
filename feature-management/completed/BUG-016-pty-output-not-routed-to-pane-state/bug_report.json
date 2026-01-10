@@ -4,7 +4,7 @@
   "component": "ccmux-server",
   "severity": "high",
   "priority": "P1",
-  "status": "new",
+  "status": "resolved",
   "reported_date": "2026-01-10",
   "updated_date": "2026-01-10",
   "assigned_to": null,
