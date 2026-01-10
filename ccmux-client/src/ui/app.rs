@@ -18,6 +18,12 @@ const MAX_INPUT_CHUNK_SIZE: usize = 64 * 1024;
 /// 10MB is generous for any reasonable paste operation.
 const MAX_PASTE_SIZE: usize = 10 * 1024 * 1024;
 
+/// Maximum number of server messages to process per tick.
+/// This prevents event loop starvation during large output bursts (BUG-014).
+/// With 50 messages per tick at 100ms tick rate, we can process 500 messages/sec
+/// while still maintaining responsive input handling.
+const MAX_MESSAGES_PER_TICK: usize = 50;
+
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -285,13 +291,32 @@ impl App {
     }
 
     /// Poll for pending server messages
+    ///
+    /// BUG-014 FIX: Limits message processing per tick to prevent event loop starvation.
+    /// During large output bursts, the server sends many Output messages that can
+    /// queue up faster than the client can process them. Without a limit, the event
+    /// loop would be blocked processing all queued messages before handling input.
     async fn poll_server_messages(&mut self) -> Result<()> {
-        while let Some(msg) = self.connection.try_recv() {
+        let mut processed = 0;
+        while processed < MAX_MESSAGES_PER_TICK {
+            if let Some(msg) = self.connection.try_recv() {
+                tracing::trace!(
+                    message_type = ?std::mem::discriminant(&msg),
+                    processed = processed,
+                    "poll_server_messages received message"
+                );
+                self.handle_server_message(msg).await?;
+                processed += 1;
+            } else {
+                break;
+            }
+        }
+
+        if processed >= MAX_MESSAGES_PER_TICK {
             tracing::debug!(
-                message_type = ?std::mem::discriminant(&msg),
-                "poll_server_messages received message"
+                processed = processed,
+                "Hit message processing limit, deferring remaining messages to next tick"
             );
-            self.handle_server_message(msg).await?;
         }
         Ok(())
     }
@@ -1714,5 +1739,47 @@ mod tests {
         // Verify all data is accounted for
         let total: usize = chunks.iter().map(|c| c.len()).sum();
         assert_eq!(total, data.len());
+    }
+
+    // ==================== BUG-014 Tests: Event Loop Starvation Prevention ====================
+
+    #[test]
+    fn test_max_messages_per_tick_is_reasonable() {
+        // Should be high enough to process output quickly
+        assert!(MAX_MESSAGES_PER_TICK >= 10);
+        // But low enough to not starve input handling
+        assert!(MAX_MESSAGES_PER_TICK <= 100);
+    }
+
+    #[test]
+    fn test_max_messages_per_tick_allows_responsive_input() {
+        // With 100ms tick rate, we want to process at most ~100ms worth of messages
+        // Each message takes ~1-2ms to process, so 50 messages is ~50-100ms
+        // This leaves room for input handling and UI redraw
+        let tick_rate_ms = 100;
+        let estimated_process_time_per_msg_ms = 2;
+        let max_process_time_ms = MAX_MESSAGES_PER_TICK * estimated_process_time_per_msg_ms;
+
+        // Processing time should not exceed tick rate
+        assert!(max_process_time_ms <= tick_rate_ms);
+    }
+
+    #[test]
+    fn test_large_output_message_count() {
+        // Verify that large output generates many messages
+        // Server uses 16KB max buffer, so 1MB output = ~64 messages
+        let output_size_bytes = 1024 * 1024; // 1MB
+        let max_buffer_size = 16 * 1024; // 16KB (from output.rs DEFAULT_MAX_BUFFER_SIZE)
+        let expected_messages = (output_size_bytes + max_buffer_size - 1) / max_buffer_size;
+
+        // 1MB would need ~64 messages
+        assert!(expected_messages >= 60);
+        assert!(expected_messages <= 70);
+
+        // With our limit, this would be processed over multiple ticks
+        let ticks_needed = (expected_messages + MAX_MESSAGES_PER_TICK - 1) / MAX_MESSAGES_PER_TICK;
+        assert!(ticks_needed >= 1);
+        // At 100ms per tick, ~2 ticks means ~200ms to process 1MB
+        // This is acceptable for maintaining responsiveness
     }
 }

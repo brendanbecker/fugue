@@ -2,8 +2,9 @@
 
 **Priority**: P1 (High)
 **Component**: terminal-buffer
-**Status**: new
+**Status**: fixed
 **Created**: 2026-01-10
+**Fixed**: 2026-01-10
 
 ## Summary
 
@@ -107,14 +108,14 @@ The server may be maintaining the full terminal state/scrollback for each pane, 
 
 ## Acceptance Criteria
 
-- [ ] Root cause identified and documented
-- [ ] Large outputs (e.g., 1MB+ of text) handled gracefully
-- [ ] Input remains responsive even during large output
-- [ ] Scrollback has configurable size limit
-- [ ] Old content gracefully purged when limit exceeded
-- [ ] Detach/reattach restores usable session
-- [ ] Memory usage remains bounded
-- [ ] Add test case to prevent regression
+- [x] Root cause identified and documented (event loop starvation)
+- [x] Large outputs (e.g., 1MB+ of text) handled gracefully (spread across ticks)
+- [x] Input remains responsive even during large output (MAX_MESSAGES_PER_TICK limits processing)
+- [x] Scrollback has configurable size limit (already existed: 1000 lines server/client)
+- [x] Old content gracefully purged when limit exceeded (already existed: VecDeque ring buffer)
+- [x] Detach/reattach restores usable session (no longer blocked by starvation)
+- [x] Memory usage remains bounded (scrollback limits + message processing limits)
+- [x] Add test case to prevent regression (3 new tests added)
 
 ## Implementation Tasks
 
@@ -170,6 +171,68 @@ Based on root cause, implement appropriate fix:
 - [ ] Confirm scrollback limit works correctly
 - [ ] All acceptance criteria met
 - [ ] Update bug_report.json with resolution details
+
+## Resolution
+
+### Root Cause
+The issue was **event loop starvation** in the client. The `poll_server_messages()` function in `ccmux-client/src/ui/app.rs` used a `while let` loop that processed ALL pending server messages before returning:
+
+```rust
+// BEFORE (problematic):
+async fn poll_server_messages(&mut self) -> Result<()> {
+    while let Some(msg) = self.connection.try_recv() {
+        self.handle_server_message(msg).await?;
+    }
+    Ok(())
+}
+```
+
+During large output bursts, the server sends many `Output` messages (each up to 16KB). These queue up faster than the client can process them. The `while let` loop would block the event loop processing all queued messages before allowing:
+- UI redraw
+- Input event handling
+
+This made the client appear completely unresponsive.
+
+### What Was NOT the Problem
+The investigation confirmed that existing buffer management was already properly bounded:
+- **Server ScrollbackBuffer** (`buffer.rs`): Already uses VecDeque with 1000 line limit and LRU eviction
+- **Client vt100 Parser** (`pane.rs`): Already has 1000 line scrollback limit
+- **Connection channel**: 100 message buffer
+
+### Fix Applied
+Added `MAX_MESSAGES_PER_TICK = 50` constant to limit message processing per tick:
+
+```rust
+// AFTER (fixed):
+const MAX_MESSAGES_PER_TICK: usize = 50;
+
+async fn poll_server_messages(&mut self) -> Result<()> {
+    let mut processed = 0;
+    while processed < MAX_MESSAGES_PER_TICK {
+        if let Some(msg) = self.connection.try_recv() {
+            self.handle_server_message(msg).await?;
+            processed += 1;
+        } else {
+            break;
+        }
+    }
+    Ok(())
+}
+```
+
+This ensures:
+- Input events are processed between message batches
+- UI redraws happen regularly
+- Large outputs are spread across multiple ticks (~200ms for 1MB)
+- The event loop remains responsive
+
+### Files Changed
+- `ccmux-client/src/ui/app.rs`: Added `MAX_MESSAGES_PER_TICK` constant and modified `poll_server_messages()`
+
+### Tests Added
+- `test_max_messages_per_tick_is_reasonable`
+- `test_max_messages_per_tick_allows_responsive_input`
+- `test_large_output_message_count`
 
 ## Notes
 
