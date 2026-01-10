@@ -1,0 +1,33 @@
+{
+  "bug_id": "BUG-011",
+  "title": "Large paste input crashes ccmux session",
+  "component": "ccmux-client / ccmux-server",
+  "severity": "medium",
+  "priority": "P2",
+  "status": "new",
+  "reported_date": "2026-01-10",
+  "updated_date": "2026-01-10",
+  "assigned_to": null,
+  "tags": ["input-handling", "pty", "unix-socket", "crash", "ux"],
+  "affected_versions": ["0.1.0"],
+  "environment": "Linux terminal (WSL2)",
+  "reproducibility": "always",
+  "description": "Pasting an extremely large amount of text into a ccmux terminal session causes the session to crash. The user was working in ccmux when they attempted to paste a large block of text, and the entire session crashed. There is no graceful handling or error message - the session simply dies.",
+  "steps_to_reproduce": [
+    "Start ccmux and attach to a session",
+    "Copy an extremely large block of text to clipboard (e.g., >1MB)",
+    "Paste into the ccmux terminal",
+    "Observe session crash"
+  ],
+  "expected_behavior": "Large paste should either be handled gracefully (chunked and sent to PTY) or fail with a clear error message without crashing the session",
+  "actual_behavior": "Session crashes with no error message when large paste is attempted",
+  "evidence": [
+    {
+      "type": "output",
+      "location": "inline",
+      "description": "Session crash on large paste - no error message displayed"
+    }
+  ],
+  "root_cause": "To be determined. Likely causes: buffer overflow in input handling, message size limit exceeded on Unix socket protocol, PTY write buffer overwhelmed (no chunking), bincode serialization failing on huge payloads, or memory exhaustion from allocating large input buffer.",
+  "impact": "Bad user experience when accidentally pasting large content. Session loss requires reattachment and may lose unsaved work."
+}

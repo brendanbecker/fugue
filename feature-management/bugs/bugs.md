@@ -1,11 +1,11 @@
 # Bug Reports
 
 **Project**: ccmux
-**Last Updated**: 2026-01-09
+**Last Updated**: 2026-01-10
 
 ## Summary Statistics
-- Total Bugs: 8
-- New: 2
+- Total Bugs: 9
+- New: 3
 - In Progress: 0
 - Resolved: 5
 
@@ -110,7 +110,33 @@ Shift+Tab keystrokes are silently dropped instead of being sent to the PTY. Prog
 **Resolution**:
 Added `KeyCode::BackTab => Some(b"\x1b[Z".to_vec())` to `keys.rs`.
 
-### P2 - Medium Priority (1)
+### P2 - Medium Priority (2)
+
+#### BUG-011: Large paste input crashes ccmux session [NEW]
+
+**Status**: New
+**Filed**: 2026-01-10
+**Component**: ccmux-client / ccmux-server
+**Directory**: [BUG-011-large-paste-crashes-session](BUG-011-large-paste-crashes-session/)
+
+**Description**:
+Pasting an extremely large amount of text into a ccmux terminal session causes the session to crash. There is no graceful handling or error message - the session simply dies.
+
+**Symptoms**:
+- Session crash on large paste
+- No graceful handling or error message
+- Requires session reattachment after crash
+
+**Suspected Root Cause**:
+Multiple potential causes to investigate:
+1. Buffer overflow in input handling path
+2. Message size limit exceeded on Unix socket protocol
+3. PTY write buffer overwhelmed (no chunking)
+4. Bincode serialization failing on huge payloads
+5. Memory exhaustion from allocating large input buffer
+
+**Impact**:
+Bad user experience when accidentally pasting large content. Session loss requires reattachment and may lose unsaved work.
 
 #### BUG-009: Flaky persistence/recovery tests due to test isolation issues [NEW]
 
@@ -174,6 +200,7 @@ Used `tempfile::TempDir` for test isolation in ensure_dir tests.
 
 | Date | Bug ID | Action | Description |
 |------|--------|--------|-------------|
+| 2026-01-10 | BUG-011 | Filed | Large paste input crashes ccmux session |
 | 2026-01-09 | BUG-010 | Filed | MCP pane broadcast not received by TUI |
 | 2026-01-09 | BUG-009 | Filed | Flaky persistence tests due to test isolation issues |
 | 2026-01-09 | BUG-005 | Resolved | Integrated sideband parsing into PTY output flow |
