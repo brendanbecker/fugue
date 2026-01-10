@@ -80,6 +80,7 @@
 | BUG-017 | MCP send_input doesn't handle Enter key | P1 | ✅ Fixed |
 | BUG-018 | TUI pane interaction failure (can't see input bar) | P1 | 🔍 Needs investigation |
 | BUG-019 | Claude detector UTF-8 panic causes TUI hang | P1 | ✅ Fixed |
+| BUG-020 | Session reattach from session manager creates client without PTY | P1 | 📋 New |
 
 ## Parallel Execution Plan
 
@@ -361,13 +362,23 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-None - all work merged to main.
+| Worktree | Branch | Items | Priority | Focus |
+|----------|--------|-------|----------|-------|
+| `ccmux-stream-a-reattach` | stream-a-reattach | BUG-018, BUG-020 | P1 | Session reattach - client has no PTY |
+| `ccmux-stream-b-layout` | stream-b-layout | BUG-015 | P2 | Layout not recalculated on pane close |
+| `ccmux-stream-c-buffer` | stream-c-buffer | BUG-014 | P2 | Large output buffer overflow |
+| `ccmux-stream-d-claude` | stream-d-claude | FEAT-044 | P1 | Claude session persistence & auto-resume |
+| `ccmux-stream-e-mcp` | stream-e-mcp | FEAT-045, FEAT-046 | P1/P2 | MCP declarative layouts + focus control |
+
+All worktrees branched from `33b5984` (2026-01-10).
+
+**Note**: BUG-018 and BUG-020 likely share root cause (both: can't interact with pane after reattach).
 
 ### Next Session Checklist
 - [x] Check if BUG-013 (mouse scroll) is complete in `ccmux-bug-013` worktree
 - [x] Merged FEAT-015 from `ccmux-stream-a`
 - [x] Clean up merged worktrees (bug-010, bug-011, bug-013, feat-043, wt-bug-009)
-- [ ] Rebase `ccmux-stream-a` and assign to next P1 task (FEAT-044 or BUG-017)
+- [x] Set up parallel worktrees for remaining work items
 - [x] Rebuild server with all fixes and test `read_pane` works (BUG-016 fix)
 
 ## Session Log (2026-01-10) - BUG-019 Fix: UTF-8 Panic in Claude Detector
