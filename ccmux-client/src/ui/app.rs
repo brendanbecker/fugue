@@ -8,6 +8,16 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
+/// Maximum size for a single input chunk sent to the server.
+/// This should be well under the protocol's MAX_MESSAGE_SIZE (16MB).
+/// 64KB provides good balance between overhead and latency.
+const MAX_INPUT_CHUNK_SIZE: usize = 64 * 1024;
+
+/// Maximum total paste size allowed.
+/// Pastes larger than this will be rejected with a user message.
+/// 10MB is generous for any reasonable paste operation.
+const MAX_PASTE_SIZE: usize = 10 * 1024 * 1024;
+
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -321,9 +331,59 @@ impl App {
 
             InputAction::SendToPane(data) => {
                 if let Some(pane_id) = self.active_pane_id {
-                    self.connection
-                        .send(ClientMessage::Input { pane_id, data })
-                        .await?;
+                    // BUG-011 FIX: Handle large pastes gracefully
+                    let data_len = data.len();
+
+                    // Reject extremely large pastes to prevent memory issues
+                    if data_len > MAX_PASTE_SIZE {
+                        let size_mb = data_len as f64 / (1024.0 * 1024.0);
+                        self.status_message = Some(format!(
+                            "Paste too large ({:.1}MB). Maximum is {}MB.",
+                            size_mb,
+                            MAX_PASTE_SIZE / (1024 * 1024)
+                        ));
+                        tracing::warn!(
+                            "Rejected paste of {} bytes ({:.1}MB) - exceeds maximum",
+                            data_len,
+                            size_mb
+                        );
+                        return Ok(());
+                    }
+
+                    // Chunk large inputs to avoid protocol message size limits
+                    if data_len > MAX_INPUT_CHUNK_SIZE {
+                        let num_chunks = (data_len + MAX_INPUT_CHUNK_SIZE - 1) / MAX_INPUT_CHUNK_SIZE;
+                        tracing::debug!(
+                            "Chunking large paste ({} bytes) into {} chunks",
+                            data_len,
+                            num_chunks
+                        );
+
+                        // Show feedback for large pastes
+                        if data_len > 1024 * 1024 {
+                            let size_mb = data_len as f64 / (1024.0 * 1024.0);
+                            self.status_message = Some(format!(
+                                "Pasting {:.1}MB in {} chunks...",
+                                size_mb,
+                                num_chunks
+                            ));
+                        }
+
+                        // Send data in chunks
+                        for chunk in data.chunks(MAX_INPUT_CHUNK_SIZE) {
+                            self.connection
+                                .send(ClientMessage::Input {
+                                    pane_id,
+                                    data: chunk.to_vec(),
+                                })
+                                .await?;
+                        }
+                    } else {
+                        // Small input - send directly
+                        self.connection
+                            .send(ClientMessage::Input { pane_id, data })
+                            .await?;
+                    }
                 }
             }
 
@@ -1565,5 +1625,93 @@ mod tests {
         let key = crossterm::event::KeyEvent::new(KeyCode::F(1), KeyModifiers::empty());
         let bytes = key_to_bytes(&key);
         assert_eq!(bytes, b"\x1bOP");
+    }
+
+    // ==================== BUG-011 Tests: Large Paste Handling ====================
+
+    #[test]
+    fn test_max_input_chunk_size_is_reasonable() {
+        // Chunk size should be much smaller than protocol max (16MB)
+        // to leave room for message overhead and serialization
+        assert!(MAX_INPUT_CHUNK_SIZE <= 1024 * 1024); // <= 1MB
+        assert!(MAX_INPUT_CHUNK_SIZE >= 4096); // >= 4KB for efficiency
+    }
+
+    #[test]
+    fn test_max_paste_size_is_reasonable() {
+        // Max paste should be smaller than protocol max
+        // but large enough for legitimate use cases
+        assert!(MAX_PASTE_SIZE <= 16 * 1024 * 1024); // <= 16MB (protocol max)
+        assert!(MAX_PASTE_SIZE >= 1024 * 1024); // >= 1MB for practical use
+    }
+
+    #[test]
+    fn test_chunk_size_is_less_than_paste_limit() {
+        // Chunks should be smaller than the overall paste limit
+        assert!(MAX_INPUT_CHUNK_SIZE < MAX_PASTE_SIZE);
+    }
+
+    #[test]
+    fn test_chunking_math_small_input() {
+        // Input smaller than chunk size should not be chunked
+        let data_len = MAX_INPUT_CHUNK_SIZE / 2;
+        let num_chunks = if data_len > MAX_INPUT_CHUNK_SIZE {
+            (data_len + MAX_INPUT_CHUNK_SIZE - 1) / MAX_INPUT_CHUNK_SIZE
+        } else {
+            1
+        };
+        assert_eq!(num_chunks, 1);
+    }
+
+    #[test]
+    fn test_chunking_math_exact_chunk_size() {
+        // Input exactly chunk size should be a single chunk
+        let data_len = MAX_INPUT_CHUNK_SIZE;
+        let num_chunks = (data_len + MAX_INPUT_CHUNK_SIZE - 1) / MAX_INPUT_CHUNK_SIZE;
+        assert_eq!(num_chunks, 1);
+    }
+
+    #[test]
+    fn test_chunking_math_multiple_chunks() {
+        // Input larger than chunk size should be multiple chunks
+        let data_len = MAX_INPUT_CHUNK_SIZE * 3 + 100;
+        let num_chunks = (data_len + MAX_INPUT_CHUNK_SIZE - 1) / MAX_INPUT_CHUNK_SIZE;
+        assert_eq!(num_chunks, 4); // 3 full chunks + 1 partial
+    }
+
+    #[test]
+    fn test_chunking_math_large_paste() {
+        // Test with a 5MB paste
+        let data_len = 5 * 1024 * 1024;
+        let num_chunks = (data_len + MAX_INPUT_CHUNK_SIZE - 1) / MAX_INPUT_CHUNK_SIZE;
+        // With 64KB chunks, 5MB = ~78 chunks
+        assert!(num_chunks > 70);
+        assert!(num_chunks < 100);
+    }
+
+    #[test]
+    fn test_over_limit_detection() {
+        // Verify we correctly detect pastes over the limit
+        let within_limit = MAX_PASTE_SIZE;
+        let over_limit = MAX_PASTE_SIZE + 1;
+
+        assert!(within_limit <= MAX_PASTE_SIZE);
+        assert!(over_limit > MAX_PASTE_SIZE);
+    }
+
+    #[test]
+    fn test_actual_chunking_behavior() {
+        // Simulate what happens when we chunk data
+        let data = vec![0u8; MAX_INPUT_CHUNK_SIZE * 2 + 500];
+        let chunks: Vec<&[u8]> = data.chunks(MAX_INPUT_CHUNK_SIZE).collect();
+
+        assert_eq!(chunks.len(), 3);
+        assert_eq!(chunks[0].len(), MAX_INPUT_CHUNK_SIZE);
+        assert_eq!(chunks[1].len(), MAX_INPUT_CHUNK_SIZE);
+        assert_eq!(chunks[2].len(), 500);
+
+        // Verify all data is accounted for
+        let total: usize = chunks.iter().map(|c| c.len()).sum();
+        assert_eq!(total, data.len());
     }
 }

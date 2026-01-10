@@ -2,7 +2,7 @@
 
 **Priority**: P2 (Medium)
 **Component**: ccmux-client / ccmux-server
-**Status**: new
+**Status**: resolved
 **Created**: 2026-01-10
 
 ## Summary
