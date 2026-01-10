@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-038",
+  "title": "Split Pane Rendering - Layout Manager for Multi-Pane Display",
+  "component": "ccmux-client",
+  "priority": "P1",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-09",
+  "updated_date": "2026-01-09",
+  "assigned_to": null,
+  "tags": ["tui", "rendering", "ratatui", "layout"],
+  "estimated_effort": "large",
+  "dependencies": ["FEAT-025", "FEAT-030"],
+  "description": "Implement split pane rendering in the ccmux client so that when a pane is split, both panes are displayed side-by-side (or stacked) rather than requiring manual switching with Ctrl+B o. Currently the client receives PaneCreated messages and stores pane data, but draw_attached() only renders the active_pane_id.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Essential tmux-like UX where split panes are immediately visible. Without this, splits are confusing because users can't see their results."
+}

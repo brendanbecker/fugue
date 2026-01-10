@@ -5,10 +5,10 @@
 
 ## Summary Statistics
 
-- **Total Features**: 36
-- **By Priority**: P0: 5, P1: 21, P2: 10, P3: 0
+- **Total Features**: 37
+- **By Priority**: P0: 5, P1: 22, P2: 10, P3: 0
 - **By Status**:
-  - New: 29
+  - New: 30
   - In Progress: 0
   - Completed: 6
   - Implemented: 1
@@ -26,7 +26,7 @@
 | FEAT-025 | Pane Output Rendering | ccmux-client | new | [Link](FEAT-025-pane-output-rendering/) |
 | FEAT-027 | Client Connection Registry | ccmux-server | new | [Link](FEAT-027-client-connection-registry/) |
 
-### P1 - High Priority (21)
+### P1 - High Priority (22)
 
 | ID | Title | Component | Status | Link |
 |----|-------|-----------|--------|------|
@@ -51,6 +51,7 @@
 | FEAT-032 | Integrated MCP Server | ccmux-server | new | [Link](FEAT-032-integrated-mcp-server/) |
 | FEAT-033 | tmux-like Auto-Start Behavior | ccmux-client | new | [Link](FEAT-033-tmux-like-auto-start-behavior/) |
 | FEAT-036 | Session-aware MCP Commands with Window/Pane Naming | ccmux-server (MCP) | new | [Link](FEAT-036-session-aware-mcp-commands-with-naming/) |
+| FEAT-038 | Split Pane Rendering - Layout Manager for Multi-Pane Display | ccmux-client | new | [Link](FEAT-038-split-pane-rendering/) |
 
 ### P2 - Medium Priority (10)
 
@@ -73,6 +74,7 @@
 
 ## Recent Activity
 
+- 2026-01-09: Created FEAT-038 - Split Pane Rendering - Layout Manager for Multi-Pane Display (P1 High)
 - 2026-01-09: Created FEAT-036 - Session-aware MCP Commands with Window/Pane Naming (P1 High)
 - 2026-01-09: Created FEAT-035 - Configurable Tab/Pane Switching (P2 Medium)
 - 2026-01-09: Created FEAT-034 - Mouse Scroll Support (P2 Medium)
@@ -143,6 +145,7 @@ Based on the project vision, features will likely include:
 - **tmux-like auto-start behavior (FEAT-033)** - Seamless UX
 - **Mouse scroll support (FEAT-034)** - Scrollback navigation
 - **Configurable tab/pane switching (FEAT-035)** - Quick navigation keybindings
+- **Split pane rendering (FEAT-038)** - Multi-pane layout and display
 
 ### Claude Code Integration
 - State detection (thinking, waiting, complete)
@@ -196,3 +199,4 @@ Based on the project vision, features will likely include:
 - **Pane output rendering (FEAT-025)** - P0 Critical
 - **Mouse scroll support (FEAT-034)** - Scrollback via mouse/trackpad
 - **Configurable tab/pane switching (FEAT-035)** - Quick window/pane navigation
+- **Split pane rendering (FEAT-038)** - Multi-pane layout display
