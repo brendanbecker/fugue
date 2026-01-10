@@ -611,9 +611,12 @@ impl McpBridge {
         command: Option<String>,
         cwd: Option<String>,
     ) -> Result<ToolResult, McpError> {
+        // Map terminal multiplexer convention to layout direction:
+        // - "vertical" = vertical split LINE = panes side-by-side = Horizontal layout
+        // - "horizontal" = horizontal split LINE = panes stacked = Vertical layout
         let split_direction = match direction.as_deref() {
-            Some("horizontal") | Some("h") => SplitDirection::Horizontal,
-            _ => SplitDirection::Vertical,
+            Some("horizontal") | Some("h") => SplitDirection::Vertical,
+            _ => SplitDirection::Horizontal, // "vertical" or default = side-by-side
         };
 
         self.send_to_daemon(ClientMessage::CreatePaneWithOptions {

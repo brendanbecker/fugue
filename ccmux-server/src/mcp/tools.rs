@@ -55,7 +55,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                     "direction": {
                         "type": "string",
                         "enum": ["horizontal", "vertical"],
-                        "description": "Split direction (default: vertical)"
+                        "description": "Split direction: 'vertical' creates side-by-side panes, 'horizontal' creates stacked panes (default: vertical)"
                     },
                     "command": {
                         "type": "string",
