@@ -102,7 +102,16 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-None currently active.
+| Worktree | Branch | Purpose |
+|----------|--------|---------|
+| `ccmux-bug-010` | `bug-010-mcp-pane-broadcast` | BUG-010 investigation |
+
+### BUG-010 Investigation Status
+
+MCP pane creation broadcast not reaching TUI. Features in progress:
+
+- **FEAT-041**: MCP explicit session/window targeting - Add `session` and `window` params to `ccmux_create_pane`
+- **FEAT-042**: Debug logging for MCP broadcast path - Trace message flow to find where broadcasts get lost
 
 ## Session Log (2026-01-09) - Continued
 
