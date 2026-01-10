@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-043",
+  "title": "MCP Session Rename Tool",
+  "component": "ccmux-server (MCP)",
+  "priority": "P2",
+  "status": "new",
+  "type": "enhancement",
+  "created_date": "2026-01-10",
+  "updated_date": "2026-01-10",
+  "assigned_to": null,
+  "tags": ["mcp", "session-management", "ux"],
+  "estimated_effort": "small",
+  "dependencies": [],
+  "description": "Add the ability to rename sessions via MCP. Currently sessions get auto-generated names like 'session-c21daf06519f410aaeadd1bb0ed9705f' which are not human-friendly. Users should be able to rename sessions to meaningful names like 'Orchestrator', 'Worker-1', etc.",
+  "business_value": "medium",
+  "technical_complexity": "low",
+  "user_impact": "Enables better session organization for multi-agent orchestration and project workflows"
+}
