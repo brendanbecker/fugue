@@ -142,23 +142,30 @@ impl Pane {
 
     /// Scroll up by given number of lines
     pub fn scroll_up(&mut self, lines: usize) {
-        let max_scroll = self.parser.screen().scrollback();
-        self.scroll_offset = (self.scroll_offset + lines).min(max_scroll);
-        // Sync with parser's scrollback view so screen() returns the scrolled content
-        self.parser.set_scrollback(self.scroll_offset);
+        // Calculate desired scroll position
+        let desired_offset = self.scroll_offset.saturating_add(lines);
+        // Set scrollback - vt100 will clamp to actual scrollback buffer size
+        self.parser.set_scrollback(desired_offset);
+        // Read back the clamped value to stay in sync with vt100's state
+        self.scroll_offset = self.parser.screen().scrollback();
     }
 
     /// Scroll down by given number of lines
     pub fn scroll_down(&mut self, lines: usize) {
-        self.scroll_offset = self.scroll_offset.saturating_sub(lines);
-        // Sync with parser's scrollback view so screen() returns the scrolled content
-        self.parser.set_scrollback(self.scroll_offset);
+        // Calculate desired scroll position
+        let desired_offset = self.scroll_offset.saturating_sub(lines);
+        // Set scrollback - vt100 will clamp to valid range
+        self.parser.set_scrollback(desired_offset);
+        // Read back the clamped value to stay in sync with vt100's state
+        self.scroll_offset = self.parser.screen().scrollback();
     }
 
     /// Scroll to top of scrollback
     pub fn scroll_to_top(&mut self) {
+        // Set to maximum possible value - vt100 will clamp to actual scrollback size
+        self.parser.set_scrollback(usize::MAX);
+        // Read back the clamped value
         self.scroll_offset = self.parser.screen().scrollback();
-        self.parser.set_scrollback(self.scroll_offset);
     }
 
     /// Scroll to bottom (live view)
