@@ -12,6 +12,7 @@ use uuid::Uuid;
 
 use ccmux_protocol::PaneState;
 
+use crate::claude::create_resume_command;
 use crate::isolation;
 use crate::pty::{PtyConfig, PtyManager};
 use crate::session::{Pane, Session, SessionManager, Window};
@@ -31,6 +32,10 @@ pub struct PaneRestorationResult {
     pub error: Option<String>,
     /// Whether CWD was available
     pub cwd_restored: bool,
+    /// Whether this was a Claude session resume
+    pub claude_resumed: bool,
+    /// The session ID used for Claude resume (if any)
+    pub claude_session_id: Option<String>,
 }
 
 /// Result of restoring a session
@@ -281,11 +286,42 @@ impl SessionRestorer {
             pty_spawned: false,
             error: None,
             cwd_restored: false,
+            claude_resumed: false,
+            claude_session_id: None,
         };
 
+        // Check if this is a Claude pane with a session ID to resume
+        let claude_session_id = if let PaneState::Claude(ref claude_state) = snapshot.state {
+            claude_state.session_id.clone()
+        } else {
+            None
+        };
+
+        // Track Claude resume intent (even if PTY spawning is disabled)
+        if let Some(ref session_id) = claude_session_id {
+            result.claude_resumed = true;
+            result.claude_session_id = Some(session_id.clone());
+        }
+
         if should_spawn_pty {
-            // Build PTY config
-            let mut pty_config = PtyConfig::shell().with_size(snapshot.cols, snapshot.rows);
+            // Build PTY config based on whether we're resuming a Claude session
+            let mut pty_config = if let Some(ref session_id) = claude_session_id {
+                // Resume Claude session
+                let (cmd, args) = create_resume_command(session_id);
+                info!(
+                    "Resuming Claude session {} for pane {}",
+                    session_id, snapshot.id
+                );
+
+                let mut config = PtyConfig::command(&cmd).with_size(snapshot.cols, snapshot.rows);
+                for arg in args {
+                    config = config.with_arg(arg);
+                }
+                config
+            } else {
+                // Normal shell or Claude without session ID
+                PtyConfig::shell().with_size(snapshot.cols, snapshot.rows)
+            };
 
             // Try to restore CWD
             if let Some(ref cwd) = snapshot.cwd {
@@ -591,6 +627,8 @@ mod tests {
                     pty_spawned: true,
                     error: None,
                     cwd_restored: true,
+                    claude_resumed: false,
+                    claude_session_id: None,
                 }],
             }],
             total_panes: 1,
@@ -634,6 +672,8 @@ mod tests {
                     pty_spawned: false,
                     error: Some("spawn failed".to_string()),
                     cwd_restored: false,
+                    claude_resumed: false,
+                    claude_session_id: None,
                 }],
             }],
             total_panes: 1,
@@ -697,5 +737,130 @@ mod tests {
         assert_eq!(result.successful_ptys, 0);
         assert_eq!(result.failed_ptys, 0); // Not a failure, just not attempted
         assert!(!result.sessions[0].pane_results[0].pty_spawned);
+    }
+
+    #[test]
+    fn test_restore_claude_pane_with_session_id() {
+        let restorer = SessionRestorer::without_pty_spawn();
+
+        let session_id_uuid = Uuid::new_v4();
+        let window_id = Uuid::new_v4();
+        let pane_id = Uuid::new_v4();
+        let claude_session_id = "test-claude-session-123".to_string();
+
+        let snapshot = SessionSnapshot {
+            id: session_id_uuid,
+            name: "claude-test".to_string(),
+            windows: vec![WindowSnapshot {
+                id: window_id,
+                session_id: session_id_uuid,
+                name: "main".to_string(),
+                index: 0,
+                panes: vec![PaneSnapshot {
+                    id: pane_id,
+                    window_id,
+                    index: 0,
+                    cols: 80,
+                    rows: 24,
+                    state: PaneState::Claude(ClaudeState {
+                        session_id: Some(claude_session_id.clone()),
+                        activity: ccmux_protocol::ClaudeActivity::Idle,
+                        model: Some("claude-3-opus".to_string()),
+                        tokens_used: Some(5000),
+                    }),
+                    title: Some("Claude".to_string()),
+                    cwd: Some("/tmp".to_string()),
+                    created_at: 12345,
+                    scrollback: None,
+                }],
+                active_pane_id: Some(pane_id),
+                created_at: 12345,
+            }],
+            active_window_id: Some(window_id),
+            created_at: 12345,
+        };
+
+        let state = RecoveryState {
+            sessions: vec![snapshot],
+            clean_shutdown: false, // Crash recovery
+            ..Default::default()
+        };
+
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        let result = restorer.restore(&state, &mut session_manager, &mut pty_manager);
+
+        // Check restoration result
+        assert_eq!(result.total_panes, 1);
+        assert!(result.was_crash_recovery);
+
+        // Check Claude session resume was marked
+        let pane_result = &result.sessions[0].pane_results[0];
+        assert!(pane_result.claude_resumed);
+        assert_eq!(pane_result.claude_session_id, Some(claude_session_id));
+
+        // Check pane was restored with Claude state
+        let (_, _, pane) = session_manager.find_pane(pane_id).unwrap();
+        assert!(pane.is_claude());
+        let claude_state = pane.claude_state().unwrap();
+        assert!(claude_state.session_id.is_some());
+    }
+
+    #[test]
+    fn test_restore_claude_pane_without_session_id() {
+        let restorer = SessionRestorer::without_pty_spawn();
+
+        let session_id_uuid = Uuid::new_v4();
+        let window_id = Uuid::new_v4();
+        let pane_id = Uuid::new_v4();
+
+        let snapshot = SessionSnapshot {
+            id: session_id_uuid,
+            name: "claude-test".to_string(),
+            windows: vec![WindowSnapshot {
+                id: window_id,
+                session_id: session_id_uuid,
+                name: "main".to_string(),
+                index: 0,
+                panes: vec![PaneSnapshot {
+                    id: pane_id,
+                    window_id,
+                    index: 0,
+                    cols: 80,
+                    rows: 24,
+                    state: PaneState::Claude(ClaudeState {
+                        session_id: None, // No session ID
+                        activity: ccmux_protocol::ClaudeActivity::Idle,
+                        model: None,
+                        tokens_used: None,
+                    }),
+                    title: None,
+                    cwd: None,
+                    created_at: 0,
+                    scrollback: None,
+                }],
+                active_pane_id: Some(pane_id),
+                created_at: 0,
+            }],
+            active_window_id: Some(window_id),
+            created_at: 0,
+        };
+
+        let state = RecoveryState {
+            sessions: vec![snapshot],
+            clean_shutdown: true,
+            ..Default::default()
+        };
+
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        let result = restorer.restore(&state, &mut session_manager, &mut pty_manager);
+
+        // Claude without session ID should NOT be resumed
+        let pane_result = &result.sessions[0].pane_results[0];
+        assert!(!pane_result.claude_resumed);
+        assert!(pane_result.claude_session_id.is_none());
     }
 }

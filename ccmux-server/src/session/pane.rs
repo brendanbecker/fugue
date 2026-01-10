@@ -249,6 +249,21 @@ impl Pane {
         }
     }
 
+    /// Mark this pane as running Claude Code with a specific session ID
+    ///
+    /// Call this when Claude is started with an injected session ID.
+    pub fn mark_as_claude_with_session(&mut self, session_id: String) {
+        self.claude_detector.mark_as_claude();
+        let state = ClaudeState {
+            session_id: Some(session_id),
+            activity: ClaudeActivity::Idle,
+            model: None,
+            tokens_used: None,
+        };
+        self.state = PaneState::Claude(state);
+        self.state_changed_at = SystemTime::now();
+    }
+
     /// Reset Claude detection state
     ///
     /// Call this when the process exits or restarts.

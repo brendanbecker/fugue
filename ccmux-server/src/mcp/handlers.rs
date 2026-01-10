@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use ccmux_protocol::PaneState;
 
+use crate::claude::{inject_session_id, is_claude_command};
 use crate::pty::{PtyConfig, PtyManager};
 use crate::session::SessionManager;
 
@@ -188,7 +189,29 @@ impl<'a> ToolContext<'a> {
         // Spawn PTY
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
         let cmd = command.unwrap_or(&shell);
-        let mut config = PtyConfig::command(cmd);
+
+        // Check if this is a Claude command and inject session ID if needed
+        let (actual_cmd, args, injected_session_id) = if is_claude_command(cmd, &[]) {
+            let injection = inject_session_id(cmd, &[]);
+            if injection.injected {
+                let session_id = injection.session_id.clone().unwrap();
+                tracing::info!(
+                    "Injected session ID {} for Claude pane {}",
+                    session_id,
+                    pane_id
+                );
+                // Mark pane as Claude immediately with the session ID
+                pane.mark_as_claude_with_session(session_id);
+            }
+            (cmd.to_string(), injection.args, injection.session_id)
+        } else {
+            (cmd.to_string(), vec![], None)
+        };
+
+        let mut config = PtyConfig::command(&actual_cmd);
+        for arg in &args {
+            config = config.with_arg(arg);
+        }
         if let Some(cwd) = cwd {
             config = config.with_cwd(cwd);
         }
@@ -197,7 +220,7 @@ impl<'a> ToolContext<'a> {
             .spawn(pane_id, config)
             .map_err(|e| McpError::Pty(e.to_string()))?;
 
-        let result = serde_json::json!({
+        let mut result = serde_json::json!({
             "pane_id": pane_id.to_string(),
             "session_id": session_id.to_string(),
             "session": session_name,
@@ -205,6 +228,11 @@ impl<'a> ToolContext<'a> {
             "direction": direction_str,
             "status": "created"
         });
+
+        // Include Claude session ID in response if injected
+        if let Some(claude_session_id) = injected_session_id {
+            result["claude_session_id"] = serde_json::json!(claude_session_id);
+        }
 
         serde_json::to_string_pretty(&result).map_err(|e| McpError::Internal(e.to_string()))
     }
@@ -396,18 +424,45 @@ impl<'a> ToolContext<'a> {
         // Spawn PTY
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
         let cmd = command.unwrap_or(&shell);
-        let config = PtyConfig::command(cmd);
+
+        // Check if this is a Claude command and inject session ID if needed
+        let (actual_cmd, args, injected_session_id) = if is_claude_command(cmd, &[]) {
+            let injection = inject_session_id(cmd, &[]);
+            if injection.injected {
+                let session_id = injection.session_id.clone().unwrap();
+                tracing::info!(
+                    "Injected session ID {} for Claude pane {} in new window",
+                    session_id,
+                    pane_id
+                );
+                // Mark pane as Claude immediately with the session ID
+                pane.mark_as_claude_with_session(session_id);
+            }
+            (cmd.to_string(), injection.args, injection.session_id)
+        } else {
+            (cmd.to_string(), vec![], None)
+        };
+
+        let mut config = PtyConfig::command(&actual_cmd);
+        for arg in &args {
+            config = config.with_arg(arg);
+        }
 
         self.pty_manager
             .spawn(pane_id, config)
             .map_err(|e| McpError::Pty(e.to_string()))?;
 
-        let result = serde_json::json!({
+        let mut result = serde_json::json!({
             "window_id": window_id.to_string(),
             "pane_id": pane_id.to_string(),
             "session": session_name,
             "status": "created"
         });
+
+        // Include Claude session ID in response if injected
+        if let Some(claude_session_id) = injected_session_id {
+            result["claude_session_id"] = serde_json::json!(claude_session_id);
+        }
 
         serde_json::to_string_pretty(&result).map_err(|e| McpError::Internal(e.to_string()))
     }

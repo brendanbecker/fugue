@@ -38,9 +38,11 @@
 //! }
 //! ```
 
+mod command;
 mod detector;
 mod state;
 
+pub use command::{create_resume_command, inject_session_id, is_claude_command};
 pub use detector::ClaudeDetector;
 // These types are part of the public API for external consumers
 #[allow(unused_imports)]
