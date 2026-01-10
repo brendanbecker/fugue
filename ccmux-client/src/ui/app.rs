@@ -436,6 +436,7 @@ impl App {
             }
 
             ClientCommand::ListSessions => {
+                self.state = AppState::SessionSelect;
                 self.connection.send(ClientMessage::ListSessions).await?;
             }
 
