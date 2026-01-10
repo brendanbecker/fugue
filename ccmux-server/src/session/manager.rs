@@ -75,8 +75,13 @@ impl SessionManager {
     }
 
     /// List all sessions
+    ///
+    /// Sessions are returned sorted by creation time (oldest first).
+    /// This ensures deterministic ordering when callers use `.first()`.
     pub fn list_sessions(&self) -> Vec<&Session> {
-        self.sessions.values().collect()
+        let mut sessions: Vec<&Session> = self.sessions.values().collect();
+        sessions.sort_by_key(|s| s.created_at_millis());
+        sessions
     }
 
     /// Get session count
@@ -415,6 +420,28 @@ mod tests {
 
         let sessions = manager.list_sessions();
         assert_eq!(sessions.len(), 3);
+    }
+
+    #[test]
+    fn test_manager_list_sessions_ordered_by_creation() {
+        let mut manager = SessionManager::new();
+
+        // Create sessions in order
+        manager.create_session("first").unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(10)); // Ensure different timestamps
+        manager.create_session("second").unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        manager.create_session("third").unwrap();
+
+        // List should return in creation order (oldest first)
+        let sessions = manager.list_sessions();
+        assert_eq!(sessions.len(), 3);
+        assert_eq!(sessions[0].name(), "first");
+        assert_eq!(sessions[1].name(), "second");
+        assert_eq!(sessions[2].name(), "third");
+
+        // .first() should always return the oldest session
+        assert_eq!(sessions.first().unwrap().name(), "first");
     }
 
     #[test]

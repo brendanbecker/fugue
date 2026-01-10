@@ -1145,4 +1145,133 @@ mod tests {
         assert_eq!(registry.client_count(), 1);
         assert_eq!(registry.session_client_count(session_id), 1);
     }
+
+    // ==================== MCP-to-TUI Broadcast Tests (BUG-010) ====================
+
+    /// Test that simulates MCP pane creation broadcast to TUI
+    ///
+    /// This test validates the fix for BUG-010: When MCP creates a pane,
+    /// the TUI client should receive the PaneCreated broadcast even though
+    /// the MCP client is not attached to any session.
+    #[tokio::test]
+    async fn test_mcp_to_tui_broadcast_except() {
+        let registry = ClientRegistry::new();
+        let session_id = Uuid::new_v4();
+
+        // Simulate TUI client: registered AND attached to session
+        let (tui_tx, mut tui_rx) = mpsc::channel(10);
+        let tui_client_id = registry.register_client(tui_tx);
+        registry.attach_to_session(tui_client_id, session_id);
+
+        // Simulate MCP client: registered but NOT attached to any session
+        let (mcp_tx, mut mcp_rx) = mpsc::channel(10);
+        let mcp_client_id = registry.register_client(mcp_tx);
+        // Note: MCP client is NOT attached to any session
+
+        // Verify initial state
+        assert_eq!(registry.client_count(), 2);
+        assert_eq!(registry.session_client_count(session_id), 1); // Only TUI is attached
+
+        // Simulate broadcasting PaneCreated to session, excluding MCP client
+        // This is exactly what happens in main.rs when processing ResponseWithBroadcast
+        let pane_info = ccmux_protocol::PaneInfo {
+            id: Uuid::new_v4(),
+            window_id: Uuid::new_v4(),
+            index: 1,
+            cols: 80,
+            rows: 24,
+            title: Some("test".to_string()),
+            cwd: None,
+            state: ccmux_protocol::PaneState::Normal,
+        };
+        let broadcast_msg = ServerMessage::PaneCreated { pane: pane_info };
+
+        let count = registry
+            .broadcast_to_session_except(session_id, mcp_client_id, broadcast_msg.clone())
+            .await;
+
+        // Should have sent to 1 client (TUI)
+        assert_eq!(count, 1, "Should broadcast to 1 client (TUI)");
+
+        // TUI should receive the message
+        let received = tui_rx.try_recv();
+        assert!(received.is_ok(), "TUI should receive the broadcast");
+        match received.unwrap() {
+            ServerMessage::PaneCreated { pane } => {
+                assert_eq!(pane.index, 1);
+            }
+            _ => panic!("Expected PaneCreated message"),
+        }
+
+        // MCP should NOT receive the message (it's the except_client AND not attached)
+        let mcp_received = mcp_rx.try_recv();
+        assert!(mcp_received.is_err(), "MCP should NOT receive the broadcast");
+    }
+
+    /// Test broadcast when except_client is not in the session
+    ///
+    /// This verifies that when the except_client (MCP) is not attached to
+    /// the session, filtering still works correctly and TUI receives message.
+    #[tokio::test]
+    async fn test_broadcast_except_unattached_client() {
+        let registry = ClientRegistry::new();
+        let session_id = Uuid::new_v4();
+
+        // Multiple TUI clients attached to the session
+        let (tui1_tx, mut tui1_rx) = mpsc::channel(10);
+        let (tui2_tx, mut tui2_rx) = mpsc::channel(10);
+        let tui1_id = registry.register_client(tui1_tx);
+        let tui2_id = registry.register_client(tui2_tx);
+        registry.attach_to_session(tui1_id, session_id);
+        registry.attach_to_session(tui2_id, session_id);
+
+        // MCP client NOT attached to any session
+        let (mcp_tx, mut mcp_rx) = mpsc::channel(10);
+        let mcp_client_id = registry.register_client(mcp_tx);
+
+        // Verify TUI clients are attached, MCP is not
+        assert_eq!(registry.session_client_count(session_id), 2);
+        assert!(registry.get_client_session(mcp_client_id).is_none());
+
+        // Broadcast excluding MCP client (which isn't in the session anyway)
+        let count = registry
+            .broadcast_to_session_except(session_id, mcp_client_id, ServerMessage::Pong)
+            .await;
+
+        // Both TUI clients should receive the message
+        assert_eq!(count, 2, "Should broadcast to 2 TUI clients");
+
+        assert!(tui1_rx.try_recv().is_ok(), "TUI 1 should receive broadcast");
+        assert!(tui2_rx.try_recv().is_ok(), "TUI 2 should receive broadcast");
+        assert!(mcp_rx.try_recv().is_err(), "MCP should NOT receive broadcast");
+    }
+
+    /// Test broadcast_to_session_except when TUI is attached to different session
+    ///
+    /// This tests the scenario where MCP broadcasts to session A but TUI is
+    /// attached to session B - TUI should NOT receive the message.
+    #[tokio::test]
+    async fn test_broadcast_to_different_session() {
+        let registry = ClientRegistry::new();
+        let session_a = Uuid::new_v4();
+        let session_b = Uuid::new_v4();
+
+        // TUI client attached to session B
+        let (tui_tx, mut tui_rx) = mpsc::channel(10);
+        let tui_client_id = registry.register_client(tui_tx);
+        registry.attach_to_session(tui_client_id, session_b);
+
+        // MCP client not attached
+        let (mcp_tx, _) = mpsc::channel(10);
+        let mcp_client_id = registry.register_client(mcp_tx);
+
+        // Broadcast to session A (where TUI is NOT attached)
+        let count = registry
+            .broadcast_to_session_except(session_a, mcp_client_id, ServerMessage::Pong)
+            .await;
+
+        // No clients should receive (session A has no clients)
+        assert_eq!(count, 0, "No clients attached to session A");
+        assert!(tui_rx.try_recv().is_err(), "TUI (in session B) should NOT receive");
+    }
 }

@@ -207,11 +207,19 @@ impl Session {
         self.windows.is_empty()
     }
 
-    /// Get creation timestamp as Unix time
+    /// Get creation timestamp as Unix time (seconds)
     pub fn created_at_unix(&self) -> u64 {
         self.created_at
             .duration_since(SystemTime::UNIX_EPOCH)
             .map(|d| d.as_secs())
+            .unwrap_or(0)
+    }
+
+    /// Get creation timestamp in milliseconds for high-resolution ordering
+    pub fn created_at_millis(&self) -> u128 {
+        self.created_at
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map(|d| d.as_millis())
             .unwrap_or(0)
     }
 

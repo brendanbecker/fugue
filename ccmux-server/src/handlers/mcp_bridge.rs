@@ -10,7 +10,7 @@ use ccmux_protocol::{
     ErrorCode, PaneListEntry, PaneState, ServerMessage, SplitDirection, WindowInfo,
 };
 
-use crate::pty::PtyConfig;
+use crate::pty::{PtyConfig, PtyOutputPoller};
 
 use super::{HandlerContext, HandlerResult};
 
@@ -341,9 +341,26 @@ impl HandlerContext {
 
         {
             let mut pty_manager = self.pty_manager.write().await;
-            if let Err(e) = pty_manager.spawn(pane_id, config) {
-                warn!("Failed to spawn PTY for pane {}: {}", pane_id, e);
-                // Continue anyway - pane exists but without PTY
+            match pty_manager.spawn(pane_id, config) {
+                Ok(handle) => {
+                    info!("PTY spawned for MCP pane {}", pane_id);
+
+                    // Start output poller with sideband parsing enabled
+                    let reader = handle.clone_reader();
+                    let _poller_handle = PtyOutputPoller::spawn_with_sideband(
+                        pane_id,
+                        session_id,
+                        reader,
+                        self.registry.clone(),
+                        Some(self.pane_closed_tx.clone()),
+                        self.command_executor.clone(),
+                    );
+                    info!("Output poller started for MCP pane {} (sideband enabled)", pane_id);
+                }
+                Err(e) => {
+                    warn!("Failed to spawn PTY for pane {}: {}", pane_id, e);
+                    // Continue anyway - pane exists but without PTY
+                }
             }
         }
 
@@ -862,5 +879,211 @@ mod tests {
             }
             _ => panic!("Expected PaneCreatedWithDetails response with broadcast"),
         }
+    }
+
+    // ==================== MCP-to-TUI Broadcast Integration Tests (BUG-010) ====================
+
+    /// Test that MCP pane creation broadcasts to TUI clients
+    ///
+    /// This is an integration test for BUG-010: verifies the full path from
+    /// MCP creating a pane to TUI receiving the PaneCreated broadcast.
+    #[tokio::test]
+    async fn test_mcp_pane_creation_broadcasts_to_tui() {
+        // Create shared infrastructure (simulating what main.rs does)
+        let session_manager = Arc::new(RwLock::new(SessionManager::new()));
+        let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
+        let registry = Arc::new(ClientRegistry::new());
+        let config = Arc::new(crate::config::AppConfig::default());
+        let command_executor = Arc::new(crate::sideband::AsyncCommandExecutor::new(
+            Arc::clone(&session_manager),
+            Arc::clone(&pty_manager),
+            Arc::clone(&registry),
+        ));
+        let (pane_closed_tx, _) = mpsc::channel(10);
+
+        // Create a session that both TUI and MCP will use
+        let session_id = {
+            let mut sm = session_manager.write().await;
+            let session = sm.create_session("test-session").unwrap();
+            let session_id = session.id();
+
+            // Add a window with a pane (simulating initial session state)
+            let session = sm.get_session_mut(session_id).unwrap();
+            let window = session.create_window(Some("main".to_string()));
+            let window_id = window.id();
+            let window = session.get_window_mut(window_id).unwrap();
+            window.create_pane();
+
+            session_id
+        };
+
+        // Register TUI client AND attach it to the session
+        let (tui_tx, mut tui_rx) = mpsc::channel(10);
+        let tui_client_id = registry.register_client(tui_tx);
+        registry.attach_to_session(tui_client_id, session_id);
+
+        // Register MCP client (NOT attached to any session - this is the key difference)
+        let (mcp_tx, _mcp_rx) = mpsc::channel(10);
+        let mcp_client_id = registry.register_client(mcp_tx);
+        // Note: MCP client is NOT attached to any session
+
+        // Verify initial state
+        assert_eq!(registry.session_client_count(session_id), 1, "Only TUI should be attached");
+        assert!(registry.get_client_session(mcp_client_id).is_none(), "MCP should not be attached");
+
+        // Create handler context for MCP client
+        let mcp_ctx = HandlerContext::new(
+            Arc::clone(&session_manager),
+            Arc::clone(&pty_manager),
+            Arc::clone(&registry),
+            Arc::clone(&config),
+            mcp_client_id,
+            pane_closed_tx,
+            Arc::clone(&command_executor),
+        );
+
+        // MCP creates a pane (uses first session since no filter provided)
+        let result = mcp_ctx
+            .handle_create_pane_with_options(None, None, SplitDirection::Vertical, None, None)
+            .await;
+
+        // Extract the broadcast info from the result
+        let (broadcast_session_id, broadcast_msg) = match result {
+            HandlerResult::ResponseWithBroadcast {
+                session_id: sid,
+                broadcast,
+                ..
+            } => (sid, broadcast),
+            _ => panic!("Expected ResponseWithBroadcast"),
+        };
+
+        // Verify the session_id matches the session TUI is attached to
+        assert_eq!(
+            broadcast_session_id, session_id,
+            "Broadcast should target the session TUI is attached to"
+        );
+
+        // Simulate what main.rs does: call broadcast_to_session_except
+        let broadcast_count = registry
+            .broadcast_to_session_except(broadcast_session_id, mcp_client_id, broadcast_msg)
+            .await;
+
+        // Verify broadcast succeeded
+        assert_eq!(broadcast_count, 1, "Should have broadcast to 1 client (TUI)");
+
+        // Verify TUI received the PaneCreated message
+        let received = tui_rx.try_recv();
+        assert!(received.is_ok(), "TUI should have received the broadcast");
+
+        match received.unwrap() {
+            ServerMessage::PaneCreated { pane } => {
+                // The new pane should have a valid ID
+                assert_ne!(pane.id, Uuid::nil());
+            }
+            msg => panic!("Expected PaneCreated, got {:?}", msg),
+        }
+    }
+
+    /// Test that broadcast fails when TUI is attached to a different session
+    ///
+    /// This tests Hypothesis 1 from BUG-010: session ID mismatch
+    #[tokio::test]
+    async fn test_mcp_broadcast_fails_with_session_mismatch() {
+        let session_manager = Arc::new(RwLock::new(SessionManager::new()));
+        let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
+        let registry = Arc::new(ClientRegistry::new());
+        let config = Arc::new(crate::config::AppConfig::default());
+        let command_executor = Arc::new(crate::sideband::AsyncCommandExecutor::new(
+            Arc::clone(&session_manager),
+            Arc::clone(&pty_manager),
+            Arc::clone(&registry),
+        ));
+        let (pane_closed_tx, _) = mpsc::channel(10);
+
+        // Create TWO sessions
+        let (session_a_id, session_b_id) = {
+            let mut sm = session_manager.write().await;
+
+            // Session A (the one MCP will target)
+            let session_a = sm.create_session("session-a").unwrap();
+            let session_a_id = session_a.id();
+            let session_a = sm.get_session_mut(session_a_id).unwrap();
+            let window = session_a.create_window(None);
+            let window_id = window.id();
+            let window = session_a.get_window_mut(window_id).unwrap();
+            window.create_pane();
+
+            // Session B (where TUI is attached)
+            let session_b = sm.create_session("session-b").unwrap();
+            let session_b_id = session_b.id();
+            let session_b = sm.get_session_mut(session_b_id).unwrap();
+            let window = session_b.create_window(None);
+            let window_id = window.id();
+            let window = session_b.get_window_mut(window_id).unwrap();
+            window.create_pane();
+
+            (session_a_id, session_b_id)
+        };
+
+        // TUI is attached to session B
+        let (tui_tx, mut tui_rx) = mpsc::channel(10);
+        let tui_client_id = registry.register_client(tui_tx);
+        registry.attach_to_session(tui_client_id, session_b_id);
+
+        // MCP client (not attached)
+        let (mcp_tx, _mcp_rx) = mpsc::channel(10);
+        let mcp_client_id = registry.register_client(mcp_tx);
+
+        // Create MCP handler context
+        let mcp_ctx = HandlerContext::new(
+            Arc::clone(&session_manager),
+            Arc::clone(&pty_manager),
+            Arc::clone(&registry),
+            Arc::clone(&config),
+            mcp_client_id,
+            pane_closed_tx,
+            Arc::clone(&command_executor),
+        );
+
+        // MCP creates a pane, explicitly targeting session A
+        let result = mcp_ctx
+            .handle_create_pane_with_options(
+                Some(session_a_id.to_string()),
+                None,
+                SplitDirection::Vertical,
+                None,
+                None,
+            )
+            .await;
+
+        // Extract broadcast info
+        let (broadcast_session_id, broadcast_msg) = match result {
+            HandlerResult::ResponseWithBroadcast {
+                session_id: sid,
+                broadcast,
+                ..
+            } => (sid, broadcast),
+            _ => panic!("Expected ResponseWithBroadcast"),
+        };
+
+        // The broadcast targets session A
+        assert_eq!(broadcast_session_id, session_a_id);
+
+        // Broadcast to session A (where TUI is NOT attached)
+        let broadcast_count = registry
+            .broadcast_to_session_except(broadcast_session_id, mcp_client_id, broadcast_msg)
+            .await;
+
+        // No clients attached to session A, so broadcast count should be 0
+        assert_eq!(
+            broadcast_count, 0,
+            "No clients attached to session A, so broadcast should reach 0 clients"
+        );
+
+        // TUI should NOT receive anything
+        assert!(
+            tui_rx.try_recv().is_err(),
+            "TUI (attached to session B) should NOT receive broadcast for session A"
+        );
     }
 }
