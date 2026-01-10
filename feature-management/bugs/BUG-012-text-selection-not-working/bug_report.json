@@ -1,0 +1,35 @@
+{
+  "bug_id": "BUG-012",
+  "title": "Text selection not working in TUI",
+  "component": "ccmux-client",
+  "severity": "medium",
+  "priority": "P2",
+  "status": "new",
+  "reported_date": "2026-01-10",
+  "updated_date": "2026-01-10",
+  "assigned_to": null,
+  "tags": ["tui", "mouse", "crossterm", "selection", "copy-paste", "ux"],
+  "affected_versions": ["0.1.0"],
+  "environment": "Linux terminal (WSL2)",
+  "reproducibility": "always",
+  "description": "Text selection does not work in the ccmux TUI client. When attempting to click and drag to select text, nothing happens - there is no selection, no highlight, and no ability to copy text. This is not just a visual issue; selection is completely non-functional.",
+  "steps_to_reproduce": [
+    "Start ccmux and attach to a session",
+    "Run a command that produces output (e.g., ls -la)",
+    "Attempt to click and drag to select text in the terminal output",
+    "Observe that no selection occurs",
+    "Attempt to copy with Ctrl+Shift+C or terminal context menu",
+    "Observe that nothing is copied (no selection to copy)"
+  ],
+  "expected_behavior": "Either native terminal selection should work (if mouse capture is disabled for selection) OR ccmux should implement a copy mode (like tmux's Prefix+[) that allows text selection and copying",
+  "actual_behavior": "Click and drag does not select text. No text can be copied from the terminal output. Selection is completely non-functional.",
+  "evidence": [
+    {
+      "type": "output",
+      "location": "inline",
+      "description": "No visual selection highlight when clicking and dragging in TUI"
+    }
+  ],
+  "root_cause": "To be determined. Likely causes: mouse selection events not being captured or handled, no selection state management implemented, mouse events being consumed for other purposes (scroll) but not selection, copy mode (Prefix+[) not implemented, or crossterm mouse capture intercepting selection before terminal can handle it.",
+  "impact": "Poor user experience - users cannot copy text from ccmux terminal output. This breaks a fundamental terminal workflow of copying command output, error messages, or other text."
+}

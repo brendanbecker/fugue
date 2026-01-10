@@ -66,6 +66,8 @@
 | BUG-007 | Shift+Tab not passed through | P1 | ✅ Fixed |
 | BUG-008 | Pane/window creation no PTY | P0 | ✅ Fixed |
 | BUG-010 | MCP pane broadcast not received by TUI | P1 | 🔍 Investigating |
+| BUG-011 | Large paste crashes session | P2 | 📋 New |
+| BUG-012 | Text selection not working in TUI | P2 | 📋 New |
 
 ## Post-MVP Features
 
@@ -83,6 +85,8 @@
 | FEAT-038 | Split Pane Rendering | P1 | ✅ Merged |
 | FEAT-039 | MCP Pane Creation Broadcast | P2 | ✅ Merged |
 | FEAT-040 | MCP Pane Reliability Improvements | P1 | ✅ Merged |
+| FEAT-041 | MCP Session/Window Targeting | P1 | ✅ Merged |
+| FEAT-042 | MCP Debug Logging | P1 | ✅ Merged |
 
 ### FEAT-040: MCP Pane Reliability (BUG-010 Investigation)
 - Added debug logging to broadcast_to_session_except() for diagnosis
@@ -105,15 +109,32 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 | Worktree | Branch | Purpose |
 |----------|--------|---------|
 | `ccmux-bug-010` | `bug-010-mcp-pane-broadcast` | BUG-010 investigation |
-| `ccmux-feat-041` | `feat-041-mcp-session-targeting` | FEAT-041: MCP session/window targeting |
-| `ccmux-feat-042` | `feat-042-mcp-debug-logging` | FEAT-042: Debug logging for broadcast path |
+| `ccmux-wt-bug-009` | `bug-009-flaky-persistence-tests` | BUG-009 investigation |
 
 ### BUG-010 Investigation Status
 
-MCP pane creation broadcast not reaching TUI. Features in progress:
+MCP pane creation broadcast not reaching TUI. FEAT-041 and FEAT-042 now merged - ready to debug with comprehensive logging.
 
-- **FEAT-041**: MCP explicit session/window targeting - Add `session` and `window` params to `ccmux_create_pane`
-- **FEAT-042**: Debug logging for MCP broadcast path - Trace message flow to find where broadcasts get lost
+## Session Log (2026-01-10)
+
+### Work Completed This Session
+1. **FEAT-041** merged - MCP session/window targeting for `ccmux_create_pane`
+2. **FEAT-042** merged - Comprehensive MCP broadcast path logging
+3. **BUG-011** created - Large paste crashes session
+4. **BUG-012** created - Text selection not working in TUI
+5. Cleaned up FEAT-041/042 worktrees after merge
+6. Rebuilt release binaries with new features
+
+### Commits Made
+- `4bd48ff` - docs: add BUG-011 large paste crashes session work item
+- Merge FEAT-041 and FEAT-042
+
+### Next Steps
+- Restart server to pick up FEAT-041/042 changes
+- Use FEAT-042 debug logging to trace BUG-010 root cause
+- Consider implementing copy mode (Prefix+[) for BUG-012
+
+---
 
 ## Session Log (2026-01-09) - Continued
 

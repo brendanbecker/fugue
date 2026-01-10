@@ -4,8 +4,8 @@
 **Last Updated**: 2026-01-10
 
 ## Summary Statistics
-- Total Bugs: 9
-- New: 3
+- Total Bugs: 10
+- New: 4
 - In Progress: 0
 - Resolved: 5
 
@@ -110,7 +110,33 @@ Shift+Tab keystrokes are silently dropped instead of being sent to the PTY. Prog
 **Resolution**:
 Added `KeyCode::BackTab => Some(b"\x1b[Z".to_vec())` to `keys.rs`.
 
-### P2 - Medium Priority (2)
+### P2 - Medium Priority (3)
+
+#### BUG-012: Text selection not working in TUI [NEW]
+
+**Status**: New
+**Filed**: 2026-01-10
+**Component**: ccmux-client
+**Directory**: [BUG-012-text-selection-not-working](BUG-012-text-selection-not-working/)
+
+**Description**:
+Text selection does not work in the ccmux TUI client. When attempting to click and drag to select text, nothing happens - there is no selection, no highlight, and no ability to copy text. This is not just a visual issue; selection is completely non-functional.
+
+**Symptoms**:
+- Click and drag does not select text
+- No text can be copied from the terminal output
+- Selection is completely non-functional, not just invisible
+
+**Suspected Root Cause**:
+Multiple potential causes to investigate:
+1. Mouse selection events not being captured or handled
+2. No selection state management implemented
+3. Mouse events being consumed for other purposes (scroll) but not selection
+4. Copy mode (Prefix+[) not implemented or not working
+5. crossterm mouse capture may be intercepting selection before terminal can handle it
+
+**Impact**:
+Poor user experience - users cannot copy text from ccmux terminal output. This breaks a fundamental terminal workflow.
 
 #### BUG-011: Large paste input crashes ccmux session [NEW]
 
@@ -200,6 +226,7 @@ Used `tempfile::TempDir` for test isolation in ensure_dir tests.
 
 | Date | Bug ID | Action | Description |
 |------|--------|--------|-------------|
+| 2026-01-10 | BUG-012 | Filed | Text selection not working in TUI |
 | 2026-01-10 | BUG-011 | Filed | Large paste input crashes ccmux session |
 | 2026-01-09 | BUG-010 | Filed | MCP pane broadcast not received by TUI |
 | 2026-01-09 | BUG-009 | Filed | Flaky persistence tests due to test isolation issues |
