@@ -4,8 +4,8 @@
 **Last Updated**: 2026-01-10
 
 ## Summary Statistics
-- Total Bugs: 10
-- New: 4
+- Total Bugs: 11
+- New: 5
 - In Progress: 0
 - Resolved: 5
 
@@ -110,7 +110,33 @@ Shift+Tab keystrokes are silently dropped instead of being sent to the PTY. Prog
 **Resolution**:
 Added `KeyCode::BackTab => Some(b"\x1b[Z".to_vec())` to `keys.rs`.
 
-### P2 - Medium Priority (3)
+### P2 - Medium Priority (4)
+
+#### BUG-013: Mouse scroll wheel not working for scrollback [NEW]
+
+**Status**: New
+**Filed**: 2026-01-10
+**Component**: ccmux-client
+**Directory**: [BUG-013-mouse-scroll-wheel-not-working](BUG-013-mouse-scroll-wheel-not-working/)
+
+**Description**:
+Mouse scroll wheel does not scroll through terminal scrollback history. FEAT-034 (Mouse Scroll Support) was supposedly implemented and merged, but scrolling with the mouse wheel is not functioning.
+
+**Symptoms**:
+- Scroll wheel does nothing in the TUI
+- Cannot scroll back through terminal output using mouse
+- FEAT-034 claims this feature works but it doesn't
+
+**Suspected Root Cause**:
+Multiple potential causes to investigate:
+1. Mouse scroll events not being captured after recent changes
+2. FEAT-034 implementation may have a bug or regression
+3. Mouse capture mode may be interfering
+4. Scroll events captured but not translated to viewport scroll
+5. Configuration issue or mouse mode not enabled
+
+**Impact**:
+UX issue - users cannot scroll through terminal output with mouse. Can still use copy mode or keyboard navigation as workaround.
 
 #### BUG-012: Text selection not working in TUI [NEW]
 
@@ -226,6 +252,7 @@ Used `tempfile::TempDir` for test isolation in ensure_dir tests.
 
 | Date | Bug ID | Action | Description |
 |------|--------|--------|-------------|
+| 2026-01-10 | BUG-013 | Filed | Mouse scroll wheel not working for scrollback |
 | 2026-01-10 | BUG-012 | Filed | Text selection not working in TUI |
 | 2026-01-10 | BUG-011 | Filed | Large paste input crashes ccmux session |
 | 2026-01-09 | BUG-010 | Filed | MCP pane broadcast not received by TUI |

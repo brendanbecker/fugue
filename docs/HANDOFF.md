@@ -68,6 +68,7 @@
 | BUG-010 | MCP pane broadcast not received by TUI | P1 | 🔍 Investigating |
 | BUG-011 | Large paste crashes session | P2 | 📋 New |
 | BUG-012 | Text selection not working in TUI | P2 | 📋 New |
+| BUG-013 | Mouse scroll wheel not working | P2 | 📋 New |
 
 ## Post-MVP Features
 
@@ -122,8 +123,9 @@ MCP pane creation broadcast not reaching TUI. FEAT-041 and FEAT-042 now merged -
 2. **FEAT-042** merged - Comprehensive MCP broadcast path logging
 3. **BUG-011** created - Large paste crashes session
 4. **BUG-012** created - Text selection not working in TUI
-5. Cleaned up FEAT-041/042 worktrees after merge
-6. Rebuilt release binaries with new features
+5. **BUG-013** created - Mouse scroll wheel not working (FEAT-034 regression?)
+6. Cleaned up FEAT-041/042 worktrees after merge
+7. Rebuilt release binaries with new features
 
 ### Commits Made
 - `4bd48ff` - docs: add BUG-011 large paste crashes session work item

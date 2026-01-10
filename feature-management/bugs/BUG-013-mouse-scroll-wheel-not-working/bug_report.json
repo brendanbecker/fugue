@@ -1,0 +1,39 @@
+{
+  "bug_id": "BUG-013",
+  "title": "Mouse scroll wheel not working for scrollback",
+  "component": "ccmux-client",
+  "severity": "medium",
+  "priority": "P2",
+  "status": "new",
+  "reported_date": "2026-01-10",
+  "updated_date": "2026-01-10",
+  "assigned_to": null,
+  "tags": ["tui", "mouse", "crossterm", "scroll", "regression", "ux"],
+  "affected_versions": ["0.1.0"],
+  "environment": "Linux terminal (WSL2)",
+  "reproducibility": "always",
+  "description": "Mouse scroll wheel does not scroll through terminal scrollback history. FEAT-034 (Mouse Scroll Support) was supposedly implemented and merged, but scrolling with the mouse wheel is not functioning. This appears to be a regression or incomplete implementation.",
+  "steps_to_reproduce": [
+    "Start ccmux and attach to a session",
+    "Run commands that produce enough output to create scrollback (e.g., ls -laR /)",
+    "Attempt to scroll up using mouse scroll wheel",
+    "Observe that scroll wheel does nothing",
+    "Verify scrollback exists by using keyboard (Ctrl+PageUp if available) or copy mode"
+  ],
+  "expected_behavior": "Mouse scroll wheel should scroll through terminal scrollback history, allowing users to view previous output without keyboard navigation",
+  "actual_behavior": "Scroll wheel input is completely ignored. No scrolling occurs in the TUI when using mouse scroll wheel. The terminal output remains static.",
+  "evidence": [
+    {
+      "type": "link",
+      "location": "feature-management/completed/features/FEAT-034-mouse-scroll-support/",
+      "description": "FEAT-034 was marked as completed but feature is not working"
+    },
+    {
+      "type": "output",
+      "location": "inline",
+      "description": "Mouse scroll wheel produces no visible effect in the TUI"
+    }
+  ],
+  "root_cause": "To be determined. Likely causes: (1) Mouse scroll events not being captured after recent changes, (2) FEAT-034 implementation may have a bug or regression, (3) Mouse capture mode may be interfering, (4) Scroll events captured but not translated to viewport scroll, (5) Configuration issue or mouse mode not enabled.",
+  "impact": "Poor user experience for mouse-based navigation. Users must use keyboard shortcuts or copy mode to navigate scrollback, which is less intuitive. This is a regression from expected behavior after FEAT-034."
+}
