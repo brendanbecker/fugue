@@ -1033,7 +1033,7 @@ impl App {
                 self.panes.remove(&pane_id);
                 self.pane_manager.remove_pane(pane_id);
 
-                // Remove from layout
+                // Remove from layout (which also prunes single-child splits)
                 if let Some(ref mut layout) = self.layout {
                     layout.remove_pane(pane_id);
                 }
@@ -1055,6 +1055,36 @@ impl App {
                         }
                     }
                 }
+
+                // BUG-015 FIX: Recalculate layout and resize remaining panes
+                // After removing a pane, remaining panes should expand to fill available space
+                if !self.panes.is_empty() {
+                    let (cols, rows) = self.terminal_size;
+                    let pane_area = Rect::new(0, 0, cols, rows.saturating_sub(1));
+
+                    if let Some(ref layout) = self.layout {
+                        let pane_rects = layout.calculate_rects(pane_area);
+
+                        for (remaining_pane_id, rect) in &pane_rects {
+                            let inner_width = rect.width.saturating_sub(2);
+                            let inner_height = rect.height.saturating_sub(2);
+
+                            // Resize UI pane to new dimensions
+                            self.pane_manager
+                                .resize_pane(*remaining_pane_id, inner_height, inner_width);
+
+                            // Notify server of new size so PTY gets resize signal
+                            self.connection
+                                .send(ClientMessage::Resize {
+                                    pane_id: *remaining_pane_id,
+                                    cols: inner_width,
+                                    rows: inner_height,
+                                })
+                                .await?;
+                        }
+                    }
+                }
+
                 // If no panes left, go back to session selection
                 if self.panes.is_empty() {
                     self.session = None;
