@@ -313,7 +313,8 @@ impl HandlerContext {
         };
 
         let pane = window.create_pane();
-        let pane_id = pane.id();
+        let pane_info = pane.to_info();
+        let pane_id = pane_info.id;
 
         // Initialize the parser
         let pane = match window.get_pane_mut(pane_id) {
@@ -353,13 +354,18 @@ impl HandlerContext {
 
         info!("Pane {} created in session {} window {}", pane_id, session_name, window_id);
 
-        HandlerResult::Response(ServerMessage::PaneCreatedWithDetails {
-            pane_id,
+        // Return detailed response to MCP client and broadcast to TUI clients
+        HandlerResult::ResponseWithBroadcast {
+            response: ServerMessage::PaneCreatedWithDetails {
+                pane_id,
+                session_id,
+                session_name,
+                window_id,
+                direction: direction_str.to_string(),
+            },
             session_id,
-            session_name,
-            window_id,
-            direction: direction_str.to_string(),
-        })
+            broadcast: ServerMessage::PaneCreated { pane: pane_info },
+        }
     }
 
     /// Handle CreateSessionWithOptions - create a session with full control
@@ -840,15 +846,21 @@ mod tests {
             .await;
 
         match result {
-            HandlerResult::Response(ServerMessage::PaneCreatedWithDetails {
-                session_name,
-                direction,
+            HandlerResult::ResponseWithBroadcast {
+                response: ServerMessage::PaneCreatedWithDetails {
+                    session_name,
+                    direction,
+                    ..
+                },
+                broadcast: ServerMessage::PaneCreated { pane },
                 ..
-            }) => {
+            } => {
                 assert_eq!(session_name, "default");
                 assert_eq!(direction, "vertical");
+                // Verify broadcast contains pane info
+                assert!(pane.id != Uuid::nil());
             }
-            _ => panic!("Expected PaneCreatedWithDetails response"),
+            _ => panic!("Expected PaneCreatedWithDetails response with broadcast"),
         }
     }
 }
