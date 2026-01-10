@@ -9,8 +9,8 @@ A terminal multiplexer built in Rust that understands Claude Code. Unlike tmux, 
 ### Working Now
 - **tmux-like experience**: Prefix keybinds (Ctrl+b), sessions, windows, panes
 - **Auto-start**: Just run `ccmux`, server starts automatically if not running
-- **Session persistence**: Sessions survive server restarts
-- **MCP integration**: Claude can control ccmux via 11 MCP tools
+- **Session persistence**: Sessions survive server restarts, Claude conversations auto-resume
+- **MCP integration**: Claude can control ccmux via 18 MCP tools
 - **Sideband commands**: Claude can spawn panes via `<ccmux:spawn>` tags in output
 - **Claude detection**: Tracks Claude state (thinking, waiting, tool use)
 - **Configurable**: Hot-reload config, customizable keybinds and default commands
@@ -86,11 +86,28 @@ Claude Code can control ccmux sessions via MCP. Add to `~/.claude/mcp.json`:
 }
 ```
 
-**Available MCP Tools**:
-- `ccmux_list_sessions`, `ccmux_create_session`, `ccmux_rename_session`
-- `ccmux_list_windows`, `ccmux_create_window`
-- `ccmux_list_panes`, `ccmux_create_pane`, `ccmux_close_pane`, `ccmux_focus_pane`
-- `ccmux_read_pane`, `ccmux_send_input`, `ccmux_get_status`
+**Available MCP Tools** (18 total):
+
+| Category | Tools |
+|----------|-------|
+| **Sessions** | `ccmux_list_sessions`, `ccmux_create_session`, `ccmux_rename_session`, `ccmux_select_session` |
+| **Windows** | `ccmux_list_windows`, `ccmux_create_window`, `ccmux_select_window` |
+| **Panes** | `ccmux_list_panes`, `ccmux_create_pane`, `ccmux_close_pane`, `ccmux_focus_pane`, `ccmux_select_pane` |
+| **I/O** | `ccmux_read_pane`, `ccmux_send_input`, `ccmux_get_status` |
+| **Layouts** | `ccmux_create_layout`, `ccmux_split_pane`, `ccmux_resize_pane` |
+
+**Layout Tools** enable declarative multi-pane layouts:
+```json
+{
+  "layout": {
+    "direction": "horizontal",
+    "splits": [
+      {"ratio": 0.6, "layout": {"pane": {"command": "vim"}}},
+      {"ratio": 0.4, "layout": {"pane": {"command": "claude"}}}
+    ]
+  }
+}
+```
 
 ## Architecture
 
@@ -114,7 +131,7 @@ ccmux/
 # Build
 cargo build --release
 
-# Run tests (1,200+ tests)
+# Run tests (1,400+ tests)
 cargo test --workspace
 
 # Run server manually
@@ -127,8 +144,6 @@ cargo test --workspace
 ## Known Issues
 
 - `kill -9` on server corrupts terminal (run `reset` to fix)
-- Mouse scroll not working (BUG-013)
-- Large paste can crash session (BUG-011)
 
 ## Prior Art
 
