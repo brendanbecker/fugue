@@ -8,6 +8,7 @@ use ccmux_utils::{init_logging_with_config, LogConfig, Result};
 mod auto_start;
 mod cli;
 mod commands;
+mod config;
 mod connection;
 mod input;
 mod ui;
@@ -16,6 +17,7 @@ pub use commands::{is_command, parse_command, Command, ParseError};
 
 use auto_start::{ensure_server_running, AutoStartConfig, ServerStartResult};
 use cli::Args;
+use config::load_quick_bindings;
 use ui::App;
 
 #[tokio::main]
@@ -72,11 +74,18 @@ async fn run_app(args: Args) -> Result<()> {
         }
     }
 
+    // Load keybindings from config
+    let quick_bindings = load_quick_bindings();
+
     // Create and run the app with optional custom socket path
     let mut app = if let Some(socket) = args.socket {
         App::with_socket_path(socket)?
     } else {
         App::new()?
     };
+
+    // Apply loaded keybindings
+    app.set_quick_bindings(quick_bindings);
+
     app.run().await
 }

@@ -11,8 +11,9 @@ mod keys;
 mod mouse;
 
 pub use commands::{ClientCommand, CommandHandler};
-pub use keys::translate_key;
+pub use keys::{translate_key, KeyBinding, KeyBindingError};
 pub use mouse::handle_mouse_event;
+// QuickBindings is defined in this module and is public
 
 use std::time::{Duration, Instant};
 
@@ -33,6 +34,78 @@ pub enum InputMode {
     Command,
     /// Copy/scroll mode (for browsing history)
     Copy,
+}
+
+/// Quick navigation bindings (no prefix required)
+///
+/// These bindings are checked before the prefix key, allowing
+/// fast navigation without the prefix key delay.
+#[derive(Debug, Clone)]
+pub struct QuickBindings {
+    /// Switch to next window (default: Ctrl+PageDown)
+    pub next_window: Option<KeyBinding>,
+    /// Switch to previous window (default: Ctrl+PageUp)
+    pub prev_window: Option<KeyBinding>,
+    /// Switch to next pane in current window (default: Ctrl+Shift+PageDown)
+    pub next_pane: Option<KeyBinding>,
+    /// Switch to previous pane (default: Ctrl+Shift+PageUp)
+    pub prev_pane: Option<KeyBinding>,
+}
+
+impl Default for QuickBindings {
+    fn default() -> Self {
+        Self {
+            next_window: KeyBinding::parse("Ctrl-PageDown").ok(),
+            prev_window: KeyBinding::parse("Ctrl-PageUp").ok(),
+            next_pane: KeyBinding::parse("Ctrl-Shift-PageDown").ok(),
+            prev_pane: KeyBinding::parse("Ctrl-Shift-PageUp").ok(),
+        }
+    }
+}
+
+impl QuickBindings {
+    /// Create empty quick bindings (all disabled)
+    pub fn none() -> Self {
+        Self {
+            next_window: None,
+            prev_window: None,
+            next_pane: None,
+            prev_pane: None,
+        }
+    }
+
+    /// Create quick bindings from config strings
+    ///
+    /// Empty strings disable the binding.
+    /// Invalid strings are logged and treated as disabled.
+    pub fn from_config(
+        next_window: &str,
+        prev_window: &str,
+        next_pane: &str,
+        prev_pane: &str,
+    ) -> Self {
+        Self {
+            next_window: Self::parse_optional(next_window, "next_window"),
+            prev_window: Self::parse_optional(prev_window, "prev_window"),
+            next_pane: Self::parse_optional(next_pane, "next_pane"),
+            prev_pane: Self::parse_optional(prev_pane, "prev_pane"),
+        }
+    }
+
+    /// Parse an optional binding (empty = disabled)
+    fn parse_optional(s: &str, name: &str) -> Option<KeyBinding> {
+        let s = s.trim();
+        if s.is_empty() {
+            return None;
+        }
+        match KeyBinding::parse(s) {
+            Ok(binding) => Some(binding),
+            Err(e) => {
+                tracing::warn!("Invalid quick binding for {}: {} ({})", name, s, e);
+                None
+            }
+        }
+    }
 }
 
 /// Result of processing an input event
@@ -76,6 +149,8 @@ pub struct InputHandler {
     scroll_offset: usize,
     /// Mouse capture enabled
     mouse_enabled: bool,
+    /// Quick navigation bindings (no prefix required)
+    quick_bindings: QuickBindings,
 }
 
 impl Default for InputHandler {
@@ -96,6 +171,7 @@ impl InputHandler {
             active_pane_id: None,
             scroll_offset: 0,
             mouse_enabled: true,
+            quick_bindings: QuickBindings::default(),
         }
     }
 
@@ -104,6 +180,16 @@ impl InputHandler {
         let mut handler = Self::new();
         handler.prefix = prefix;
         handler
+    }
+
+    /// Set quick navigation bindings
+    pub fn set_quick_bindings(&mut self, bindings: QuickBindings) {
+        self.quick_bindings = bindings;
+    }
+
+    /// Get quick bindings (for testing/inspection)
+    pub fn quick_bindings(&self) -> &QuickBindings {
+        &self.quick_bindings
     }
 
     /// Get current input mode
@@ -182,6 +268,11 @@ impl InputHandler {
             return InputAction::Quit;
         }
 
+        // Check for quick navigation bindings (no prefix required)
+        if let Some(action) = self.check_quick_bindings(&key) {
+            return action;
+        }
+
         // Check for prefix key
         if self.is_prefix_key(&key) {
             self.mode = InputMode::PrefixPending;
@@ -195,6 +286,31 @@ impl InputHandler {
         } else {
             InputAction::None
         }
+    }
+
+    /// Check if key matches any quick navigation binding
+    fn check_quick_bindings(&self, key: &KeyEvent) -> Option<InputAction> {
+        if let Some(ref binding) = self.quick_bindings.next_window {
+            if binding.matches(key) {
+                return Some(InputAction::Command(ClientCommand::NextWindow));
+            }
+        }
+        if let Some(ref binding) = self.quick_bindings.prev_window {
+            if binding.matches(key) {
+                return Some(InputAction::Command(ClientCommand::PreviousWindow));
+            }
+        }
+        if let Some(ref binding) = self.quick_bindings.next_pane {
+            if binding.matches(key) {
+                return Some(InputAction::Command(ClientCommand::NextPane));
+            }
+        }
+        if let Some(ref binding) = self.quick_bindings.prev_pane {
+            if binding.matches(key) {
+                return Some(InputAction::Command(ClientCommand::PreviousPane));
+            }
+        }
+        None
     }
 
     /// Handle key after prefix was pressed
@@ -632,5 +748,158 @@ mod tests {
         handler.handle_key(prefix);
         let l_key = KeyEvent::new(KeyCode::Char('l'), KeyModifiers::empty());
         assert_eq!(handler.handle_key(l_key), InputAction::Command(ClientCommand::PaneRight));
+    }
+
+    // ==================== Quick Bindings Tests ====================
+
+    #[test]
+    fn test_quick_bindings_default() {
+        let bindings = QuickBindings::default();
+        assert!(bindings.next_window.is_some());
+        assert!(bindings.prev_window.is_some());
+        assert!(bindings.next_pane.is_some());
+        assert!(bindings.prev_pane.is_some());
+    }
+
+    #[test]
+    fn test_quick_bindings_none() {
+        let bindings = QuickBindings::none();
+        assert!(bindings.next_window.is_none());
+        assert!(bindings.prev_window.is_none());
+        assert!(bindings.next_pane.is_none());
+        assert!(bindings.prev_pane.is_none());
+    }
+
+    #[test]
+    fn test_quick_bindings_from_config() {
+        let bindings = QuickBindings::from_config(
+            "Ctrl-Tab",
+            "Ctrl-Shift-Tab",
+            "Alt-n",
+            "Alt-p",
+        );
+        assert!(bindings.next_window.is_some());
+        assert!(bindings.prev_window.is_some());
+        assert!(bindings.next_pane.is_some());
+        assert!(bindings.prev_pane.is_some());
+    }
+
+    #[test]
+    fn test_quick_bindings_from_config_empty_disabled() {
+        let bindings = QuickBindings::from_config("", "", "", "");
+        assert!(bindings.next_window.is_none());
+        assert!(bindings.prev_window.is_none());
+        assert!(bindings.next_pane.is_none());
+        assert!(bindings.prev_pane.is_none());
+    }
+
+    #[test]
+    fn test_quick_bindings_from_config_invalid_disabled() {
+        let bindings = QuickBindings::from_config(
+            "Invalid-Binding",
+            "Ctrl-PageUp",
+            "Notakey",
+            "Ctrl-Shift-PageUp",
+        );
+        // Invalid ones should be None
+        assert!(bindings.next_window.is_none());
+        assert!(bindings.next_pane.is_none());
+        // Valid ones should work
+        assert!(bindings.prev_window.is_some());
+        assert!(bindings.prev_pane.is_some());
+    }
+
+    #[test]
+    fn test_quick_binding_next_window() {
+        let mut handler = InputHandler::new();
+
+        // Default: Ctrl+PageDown triggers NextWindow
+        let key = KeyEvent::new(KeyCode::PageDown, KeyModifiers::CONTROL);
+        let result = handler.handle_key(key);
+        assert_eq!(result, InputAction::Command(ClientCommand::NextWindow));
+    }
+
+    #[test]
+    fn test_quick_binding_prev_window() {
+        let mut handler = InputHandler::new();
+
+        // Default: Ctrl+PageUp triggers PreviousWindow
+        let key = KeyEvent::new(KeyCode::PageUp, KeyModifiers::CONTROL);
+        let result = handler.handle_key(key);
+        assert_eq!(result, InputAction::Command(ClientCommand::PreviousWindow));
+    }
+
+    #[test]
+    fn test_quick_binding_next_pane() {
+        let mut handler = InputHandler::new();
+
+        // Default: Ctrl+Shift+PageDown triggers NextPane
+        let key = KeyEvent::new(KeyCode::PageDown, KeyModifiers::CONTROL | KeyModifiers::SHIFT);
+        let result = handler.handle_key(key);
+        assert_eq!(result, InputAction::Command(ClientCommand::NextPane));
+    }
+
+    #[test]
+    fn test_quick_binding_prev_pane() {
+        let mut handler = InputHandler::new();
+
+        // Default: Ctrl+Shift+PageUp triggers PreviousPane
+        let key = KeyEvent::new(KeyCode::PageUp, KeyModifiers::CONTROL | KeyModifiers::SHIFT);
+        let result = handler.handle_key(key);
+        assert_eq!(result, InputAction::Command(ClientCommand::PreviousPane));
+    }
+
+    #[test]
+    fn test_quick_bindings_disabled() {
+        let mut handler = InputHandler::new();
+        handler.set_quick_bindings(QuickBindings::none());
+
+        // Ctrl+PageDown should now pass through to pane (not trigger quick binding)
+        let key = KeyEvent::new(KeyCode::PageDown, KeyModifiers::CONTROL);
+        let result = handler.handle_key(key);
+        // Should be SendToPane with the key translated to bytes
+        assert!(matches!(result, InputAction::SendToPane(_)));
+    }
+
+    #[test]
+    fn test_quick_bindings_custom() {
+        let mut handler = InputHandler::new();
+        handler.set_quick_bindings(QuickBindings::from_config(
+            "F7",      // next window
+            "Shift-F7", // prev window
+            "F8",      // next pane
+            "Shift-F8", // prev pane
+        ));
+
+        // F7 should now trigger NextWindow
+        let f7 = KeyEvent::new(KeyCode::F(7), KeyModifiers::empty());
+        let result = handler.handle_key(f7);
+        assert_eq!(result, InputAction::Command(ClientCommand::NextWindow));
+
+        // Shift+F7 should trigger PreviousWindow
+        let shift_f7 = KeyEvent::new(KeyCode::F(7), KeyModifiers::SHIFT);
+        let result = handler.handle_key(shift_f7);
+        assert_eq!(result, InputAction::Command(ClientCommand::PreviousWindow));
+    }
+
+    #[test]
+    fn test_quick_bindings_dont_interfere_with_quit() {
+        let mut handler = InputHandler::new();
+
+        // Even with quick bindings, Ctrl+Q should still quit
+        let quit_key = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::CONTROL);
+        let result = handler.handle_key(quit_key);
+        assert_eq!(result, InputAction::Quit);
+    }
+
+    #[test]
+    fn test_quick_bindings_dont_interfere_with_prefix() {
+        let mut handler = InputHandler::new();
+
+        // Prefix key (Ctrl+B) should still work
+        let prefix = KeyEvent::new(KeyCode::Char('b'), KeyModifiers::CONTROL);
+        let result = handler.handle_key(prefix);
+        assert_eq!(result, InputAction::None);
+        assert_eq!(handler.mode(), InputMode::PrefixPending);
     }
 }

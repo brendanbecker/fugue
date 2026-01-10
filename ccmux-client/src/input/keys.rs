@@ -1,9 +1,151 @@
 //! Key translation for terminal input
 //!
 //! Translates crossterm key events to byte sequences that can be sent
-//! to a PTY for proper terminal emulation.
+//! to a PTY for proper terminal emulation. Also provides key binding
+//! parsing for configurable keybindings.
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use std::fmt;
+
+/// Error type for key binding parsing
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum KeyBindingError {
+    /// Empty binding string
+    Empty,
+    /// Unknown modifier name
+    UnknownModifier(String),
+    /// Unknown key name
+    UnknownKey(String),
+    /// Invalid function key number
+    InvalidFunctionKey(String),
+}
+
+impl fmt::Display for KeyBindingError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            KeyBindingError::Empty => write!(f, "empty key binding string"),
+            KeyBindingError::UnknownModifier(m) => write!(f, "unknown modifier: {}", m),
+            KeyBindingError::UnknownKey(k) => write!(f, "unknown key: {}", k),
+            KeyBindingError::InvalidFunctionKey(k) => write!(f, "invalid function key: {}", k),
+        }
+    }
+}
+
+impl std::error::Error for KeyBindingError {}
+
+/// A parsed key binding that can match against KeyEvents
+#[derive(Debug, Clone)]
+pub struct KeyBinding {
+    /// The key code to match
+    pub code: KeyCode,
+    /// The modifiers to match
+    pub modifiers: KeyModifiers,
+}
+
+impl KeyBinding {
+    /// Create a new key binding
+    pub fn new(code: KeyCode, modifiers: KeyModifiers) -> Self {
+        Self { code, modifiers }
+    }
+
+    /// Check if this binding matches a key event
+    pub fn matches(&self, event: &KeyEvent) -> bool {
+        // For character keys, we need to handle case sensitivity
+        // The binding "Ctrl-PageDown" should match regardless of shift state
+        // when not explicitly specified
+        match (&self.code, &event.code) {
+            (KeyCode::Char(a), KeyCode::Char(b)) => {
+                // For character comparison, normalize case
+                a.to_ascii_lowercase() == b.to_ascii_lowercase()
+                    && self.modifiers == event.modifiers
+            }
+            _ => self.code == event.code && self.modifiers == event.modifiers,
+        }
+    }
+
+    /// Parse a key binding from a string like "Ctrl-PageDown" or "Alt-Shift-a"
+    pub fn parse(s: &str) -> Result<Self, KeyBindingError> {
+        parse_key_binding(s)
+    }
+}
+
+/// Parse a key binding string like "Ctrl-Tab" or "Alt-Shift-a"
+///
+/// Format:
+/// - Single keys: `Tab`, `F1`, `Enter`, `Space`, `PageUp`, `PageDown`
+/// - With modifiers: `Ctrl-Tab`, `Alt-a`, `Shift-F1`
+/// - Multiple modifiers: `Ctrl-Shift-Tab`, `Ctrl-Alt-Delete`
+/// - Case insensitive: `ctrl-tab`, `CTRL-TAB`, `Ctrl-Tab` all work
+pub fn parse_key_binding(s: &str) -> Result<KeyBinding, KeyBindingError> {
+    let s = s.trim();
+    if s.is_empty() {
+        return Err(KeyBindingError::Empty);
+    }
+
+    let parts: Vec<&str> = s.split('-').collect();
+    let mut modifiers = KeyModifiers::empty();
+
+    // All parts except the last are modifiers
+    for part in &parts[..parts.len().saturating_sub(1)] {
+        match part.to_lowercase().as_str() {
+            "ctrl" | "control" => modifiers |= KeyModifiers::CONTROL,
+            "alt" | "meta" | "option" => modifiers |= KeyModifiers::ALT,
+            "shift" => modifiers |= KeyModifiers::SHIFT,
+            "super" | "cmd" | "win" => modifiers |= KeyModifiers::SUPER,
+            _ => return Err(KeyBindingError::UnknownModifier((*part).to_string())),
+        }
+    }
+
+    // Last part is the key
+    let key_part = parts.last().ok_or(KeyBindingError::Empty)?;
+    let code = parse_key_code(key_part)?;
+
+    Ok(KeyBinding::new(code, modifiers))
+}
+
+/// Parse a key code from a string
+fn parse_key_code(s: &str) -> Result<KeyCode, KeyBindingError> {
+    let lower = s.to_lowercase();
+    match lower.as_str() {
+        // Whitespace and control
+        "tab" => Ok(KeyCode::Tab),
+        "enter" | "return" | "cr" => Ok(KeyCode::Enter),
+        "space" | "spc" => Ok(KeyCode::Char(' ')),
+        "backspace" | "bs" => Ok(KeyCode::Backspace),
+        "delete" | "del" => Ok(KeyCode::Delete),
+        "insert" | "ins" => Ok(KeyCode::Insert),
+        "esc" | "escape" => Ok(KeyCode::Esc),
+
+        // Navigation
+        "home" => Ok(KeyCode::Home),
+        "end" => Ok(KeyCode::End),
+        "pageup" | "pgup" | "prior" => Ok(KeyCode::PageUp),
+        "pagedown" | "pgdn" | "pgdown" | "next" => Ok(KeyCode::PageDown),
+
+        // Arrows
+        "up" | "uparrow" => Ok(KeyCode::Up),
+        "down" | "downarrow" => Ok(KeyCode::Down),
+        "left" | "leftarrow" => Ok(KeyCode::Left),
+        "right" | "rightarrow" => Ok(KeyCode::Right),
+
+        // Function keys
+        s if s.starts_with('f') && s.len() > 1 => {
+            let num_str = &s[1..];
+            let num: u8 = num_str
+                .parse()
+                .map_err(|_| KeyBindingError::InvalidFunctionKey(s.to_string()))?;
+            if num == 0 || num > 24 {
+                return Err(KeyBindingError::InvalidFunctionKey(s.to_string()));
+            }
+            Ok(KeyCode::F(num))
+        }
+
+        // Single character
+        s if s.chars().count() == 1 => Ok(KeyCode::Char(s.chars().next().unwrap())),
+
+        _ => Err(KeyBindingError::UnknownKey(s.to_string())),
+    }
+}
 
 /// Translate a key event to its terminal byte sequence
 ///
@@ -525,6 +667,190 @@ mod tests {
         assert_eq!(
             get_modifier_code(KeyModifiers::SHIFT | KeyModifiers::ALT | KeyModifiers::CONTROL),
             8
+        );
+    }
+
+    // ==================== Key Binding Parser Tests ====================
+
+    #[test]
+    fn test_parse_simple_key() {
+        let binding = parse_key_binding("Tab").unwrap();
+        assert_eq!(binding.code, KeyCode::Tab);
+        assert_eq!(binding.modifiers, KeyModifiers::empty());
+    }
+
+    #[test]
+    fn test_parse_ctrl_key() {
+        let binding = parse_key_binding("Ctrl-Tab").unwrap();
+        assert_eq!(binding.code, KeyCode::Tab);
+        assert_eq!(binding.modifiers, KeyModifiers::CONTROL);
+    }
+
+    #[test]
+    fn test_parse_ctrl_pagedown() {
+        let binding = parse_key_binding("Ctrl-PageDown").unwrap();
+        assert_eq!(binding.code, KeyCode::PageDown);
+        assert_eq!(binding.modifiers, KeyModifiers::CONTROL);
+    }
+
+    #[test]
+    fn test_parse_ctrl_shift_pageup() {
+        let binding = parse_key_binding("Ctrl-Shift-PageUp").unwrap();
+        assert_eq!(binding.code, KeyCode::PageUp);
+        assert_eq!(binding.modifiers, KeyModifiers::CONTROL | KeyModifiers::SHIFT);
+    }
+
+    #[test]
+    fn test_parse_case_insensitive() {
+        let lower = parse_key_binding("ctrl-pagedown").unwrap();
+        let upper = parse_key_binding("CTRL-PAGEDOWN").unwrap();
+        let mixed = parse_key_binding("Ctrl-PageDown").unwrap();
+
+        assert_eq!(lower.code, upper.code);
+        assert_eq!(lower.modifiers, upper.modifiers);
+        assert_eq!(lower.code, mixed.code);
+        assert_eq!(lower.modifiers, mixed.modifiers);
+    }
+
+    #[test]
+    fn test_parse_function_keys() {
+        let f1 = parse_key_binding("F1").unwrap();
+        assert_eq!(f1.code, KeyCode::F(1));
+
+        let f12 = parse_key_binding("F12").unwrap();
+        assert_eq!(f12.code, KeyCode::F(12));
+
+        let shift_f7 = parse_key_binding("Shift-F7").unwrap();
+        assert_eq!(shift_f7.code, KeyCode::F(7));
+        assert_eq!(shift_f7.modifiers, KeyModifiers::SHIFT);
+    }
+
+    #[test]
+    fn test_parse_single_char() {
+        let a = parse_key_binding("a").unwrap();
+        assert_eq!(a.code, KeyCode::Char('a'));
+
+        let ctrl_a = parse_key_binding("Ctrl-a").unwrap();
+        assert_eq!(ctrl_a.code, KeyCode::Char('a'));
+        assert_eq!(ctrl_a.modifiers, KeyModifiers::CONTROL);
+    }
+
+    #[test]
+    fn test_parse_navigation_keys() {
+        assert_eq!(parse_key_binding("Home").unwrap().code, KeyCode::Home);
+        assert_eq!(parse_key_binding("End").unwrap().code, KeyCode::End);
+        assert_eq!(parse_key_binding("PgUp").unwrap().code, KeyCode::PageUp);
+        assert_eq!(parse_key_binding("PgDn").unwrap().code, KeyCode::PageDown);
+        assert_eq!(parse_key_binding("Insert").unwrap().code, KeyCode::Insert);
+        assert_eq!(parse_key_binding("Delete").unwrap().code, KeyCode::Delete);
+    }
+
+    #[test]
+    fn test_parse_arrow_keys() {
+        assert_eq!(parse_key_binding("Up").unwrap().code, KeyCode::Up);
+        assert_eq!(parse_key_binding("Down").unwrap().code, KeyCode::Down);
+        assert_eq!(parse_key_binding("Left").unwrap().code, KeyCode::Left);
+        assert_eq!(parse_key_binding("Right").unwrap().code, KeyCode::Right);
+    }
+
+    #[test]
+    fn test_parse_special_keys() {
+        assert_eq!(parse_key_binding("Enter").unwrap().code, KeyCode::Enter);
+        assert_eq!(parse_key_binding("Space").unwrap().code, KeyCode::Char(' '));
+        assert_eq!(parse_key_binding("Backspace").unwrap().code, KeyCode::Backspace);
+        assert_eq!(parse_key_binding("Esc").unwrap().code, KeyCode::Esc);
+    }
+
+    #[test]
+    fn test_parse_alt_modifier() {
+        let binding = parse_key_binding("Alt-Tab").unwrap();
+        assert_eq!(binding.modifiers, KeyModifiers::ALT);
+
+        let meta = parse_key_binding("Meta-a").unwrap();
+        assert_eq!(meta.modifiers, KeyModifiers::ALT);
+    }
+
+    #[test]
+    fn test_parse_empty_string() {
+        assert!(matches!(
+            parse_key_binding(""),
+            Err(KeyBindingError::Empty)
+        ));
+        assert!(matches!(
+            parse_key_binding("  "),
+            Err(KeyBindingError::Empty)
+        ));
+    }
+
+    #[test]
+    fn test_parse_unknown_modifier() {
+        assert!(matches!(
+            parse_key_binding("Foo-Tab"),
+            Err(KeyBindingError::UnknownModifier(_))
+        ));
+    }
+
+    #[test]
+    fn test_parse_unknown_key() {
+        assert!(matches!(
+            parse_key_binding("Ctrl-Unknown"),
+            Err(KeyBindingError::UnknownKey(_))
+        ));
+    }
+
+    #[test]
+    fn test_parse_invalid_function_key() {
+        assert!(matches!(
+            parse_key_binding("F0"),
+            Err(KeyBindingError::InvalidFunctionKey(_))
+        ));
+        assert!(matches!(
+            parse_key_binding("F99"),
+            Err(KeyBindingError::InvalidFunctionKey(_))
+        ));
+    }
+
+    #[test]
+    fn test_keybinding_matches() {
+        let binding = parse_key_binding("Ctrl-PageDown").unwrap();
+
+        let matching_event = KeyEvent::new(KeyCode::PageDown, KeyModifiers::CONTROL);
+        assert!(binding.matches(&matching_event));
+
+        let wrong_modifier = KeyEvent::new(KeyCode::PageDown, KeyModifiers::ALT);
+        assert!(!binding.matches(&wrong_modifier));
+
+        let wrong_key = KeyEvent::new(KeyCode::PageUp, KeyModifiers::CONTROL);
+        assert!(!binding.matches(&wrong_key));
+
+        let no_modifier = KeyEvent::new(KeyCode::PageDown, KeyModifiers::empty());
+        assert!(!binding.matches(&no_modifier));
+    }
+
+    #[test]
+    fn test_keybinding_matches_shift_combo() {
+        let binding = parse_key_binding("Ctrl-Shift-PageUp").unwrap();
+        let event = KeyEvent::new(KeyCode::PageUp, KeyModifiers::CONTROL | KeyModifiers::SHIFT);
+        assert!(binding.matches(&event));
+
+        // Wrong - missing shift
+        let wrong = KeyEvent::new(KeyCode::PageUp, KeyModifiers::CONTROL);
+        assert!(!binding.matches(&wrong));
+    }
+
+    #[test]
+    fn test_keybinding_error_display() {
+        assert_eq!(
+            format!("{}", KeyBindingError::Empty),
+            "empty key binding string"
+        );
+        assert_eq!(
+            format!("{}", KeyBindingError::UnknownModifier("foo".into())),
+            "unknown modifier: foo"
+        );
+        assert_eq!(
+            format!("{}", KeyBindingError::UnknownKey("bar".into())),
+            "unknown key: bar"
         );
     }
 }

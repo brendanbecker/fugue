@@ -164,6 +164,7 @@ impl Default for ColorConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct KeybindingConfig {
+    // Prefix-based bindings (existing)
     pub split_horizontal: String,
     pub split_vertical: String,
     pub focus_left: String,
@@ -173,11 +174,23 @@ pub struct KeybindingConfig {
     pub new_session: String,
     pub detach: String,
     pub list_sessions: String,
+
+    // Quick navigation bindings (no prefix required)
+    // Empty string disables the binding
+    /// Quick binding for next window (default: Ctrl-PageDown)
+    pub next_window_quick: String,
+    /// Quick binding for previous window (default: Ctrl-PageUp)
+    pub prev_window_quick: String,
+    /// Quick binding for next pane in window (default: Ctrl-Shift-PageDown)
+    pub next_pane_quick: String,
+    /// Quick binding for previous pane (default: Ctrl-Shift-PageUp)
+    pub prev_pane_quick: String,
 }
 
 impl Default for KeybindingConfig {
     fn default() -> Self {
         Self {
+            // Prefix-based bindings
             split_horizontal: "prefix %".into(),
             split_vertical: "prefix \"".into(),
             focus_left: "prefix h".into(),
@@ -187,6 +200,12 @@ impl Default for KeybindingConfig {
             new_session: "prefix c".into(),
             detach: "prefix d".into(),
             list_sessions: "prefix s".into(),
+
+            // Quick navigation (no prefix)
+            next_window_quick: "Ctrl-PageDown".into(),
+            prev_window_quick: "Ctrl-PageUp".into(),
+            next_pane_quick: "Ctrl-Shift-PageDown".into(),
+            prev_pane_quick: "Ctrl-Shift-PageUp".into(),
         }
     }
 }
@@ -426,6 +445,27 @@ mod tests {
         let config = KeybindingConfig::default();
         assert_eq!(config.split_horizontal, "prefix %");
         assert_eq!(config.detach, "prefix d");
+        // Quick bindings
+        assert_eq!(config.next_window_quick, "Ctrl-PageDown");
+        assert_eq!(config.prev_window_quick, "Ctrl-PageUp");
+        assert_eq!(config.next_pane_quick, "Ctrl-Shift-PageDown");
+        assert_eq!(config.prev_pane_quick, "Ctrl-Shift-PageUp");
+    }
+
+    #[test]
+    fn test_keybinding_config_quick_bindings_parse() {
+        let toml_str = r#"
+            [keybindings]
+            next_window_quick = "F7"
+            prev_window_quick = "Shift-F7"
+            next_pane_quick = ""
+            prev_pane_quick = "Alt-p"
+        "#;
+        let config: AppConfig = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.keybindings.next_window_quick, "F7");
+        assert_eq!(config.keybindings.prev_window_quick, "Shift-F7");
+        assert_eq!(config.keybindings.next_pane_quick, ""); // Disabled
+        assert_eq!(config.keybindings.prev_pane_quick, "Alt-p");
     }
 
     #[test]

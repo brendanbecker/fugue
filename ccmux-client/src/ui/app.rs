@@ -128,6 +128,11 @@ impl App {
         self.state
     }
 
+    /// Set quick navigation keybindings
+    pub fn set_quick_bindings(&mut self, bindings: crate::input::QuickBindings) {
+        self.input_handler.set_quick_bindings(bindings);
+    }
+
     /// Check if application should quit
     pub fn should_quit(&self) -> bool {
         self.state == AppState::Quitting
@@ -486,10 +491,16 @@ impl App {
                     Some("Ctrl+B: prefix | c: new pane | x: close | n/p: next/prev".to_string());
             }
 
+            ClientCommand::NextWindow => {
+                self.cycle_window(1);
+            }
+
+            ClientCommand::PreviousWindow => {
+                self.cycle_window(-1);
+            }
+
             // Commands not yet implemented
             ClientCommand::CloseWindow
-            | ClientCommand::NextWindow
-            | ClientCommand::PreviousWindow
             | ClientCommand::SelectWindow(_)
             | ClientCommand::RenameWindow(_)
             | ClientCommand::RenameSession(_)
@@ -526,6 +537,51 @@ impl App {
         let new_pane_id = pane_ids[new_index];
         self.active_pane_id = Some(new_pane_id);
         self.pane_manager.set_active(new_pane_id);
+    }
+
+    /// Cycle through windows by offset (positive = forward, negative = backward)
+    fn cycle_window(&mut self, offset: i32) {
+        if self.windows.is_empty() {
+            return;
+        }
+
+        // Get current window ID from active pane
+        let current_window_id = self
+            .active_pane_id
+            .and_then(|pid| self.panes.get(&pid))
+            .map(|p| p.window_id);
+
+        // Get sorted list of window IDs for consistent ordering
+        let mut window_ids: Vec<Uuid> = self.windows.keys().copied().collect();
+        window_ids.sort(); // Consistent ordering
+
+        let current_index = current_window_id
+            .and_then(|wid| window_ids.iter().position(|&w| w == wid))
+            .unwrap_or(0);
+
+        let new_index = if offset > 0 {
+            (current_index + offset as usize) % window_ids.len()
+        } else {
+            let abs_offset = (-offset) as usize;
+            (current_index + window_ids.len() - (abs_offset % window_ids.len())) % window_ids.len()
+        };
+
+        let new_window_id = window_ids[new_index];
+
+        // Focus first pane in the new window
+        if let Some(pane_id) = self.first_pane_in_window(new_window_id) {
+            self.active_pane_id = Some(pane_id);
+            self.pane_manager.set_active(pane_id);
+        }
+    }
+
+    /// Get the first pane in a window (by index)
+    fn first_pane_in_window(&self, window_id: Uuid) -> Option<Uuid> {
+        self.panes
+            .values()
+            .filter(|p| p.window_id == window_id)
+            .min_by_key(|p| p.index)
+            .map(|p| p.id)
     }
 
     /// Handle input in session select state
