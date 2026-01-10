@@ -1610,4 +1610,200 @@ mod tests {
             _ => panic!("Expected SessionList response"),
         }
     }
+
+    // ==================== MCP-to-TUI Broadcast Integration Test (BUG-010) ====================
+
+    /// Full integration test for MCP-to-TUI broadcast through sockets
+    ///
+    /// This tests the COMPLETE path including:
+    /// 1. TUI client connects and attaches to session
+    /// 2. MCP client connects
+    /// 3. MCP creates pane (returns ResponseWithBroadcast)
+    /// 4. Server broadcasts PaneCreated to TUI
+    /// 5. TUI receives PaneCreated through socket
+    ///
+    /// This is a BUG-010 investigation test to verify the full broadcast path.
+    #[tokio::test]
+    async fn test_mcp_to_tui_broadcast_via_socket() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio_util::codec::{Decoder, Encoder};
+
+        let temp_dir = TempDir::new().unwrap();
+        let socket_path = temp_dir.path().join("test.sock");
+
+        let listener = UnixListener::bind(&socket_path).unwrap();
+        let shared_state = create_test_shared_state();
+
+        // --- Connect TUI client ---
+        let tui_client_handle = tokio::spawn({
+            let socket_path = socket_path.clone();
+            async move {
+                tokio::net::UnixStream::connect(&socket_path).await.unwrap()
+            }
+        });
+
+        let (tui_server_stream, _) = listener.accept().await.unwrap();
+        let mut tui_client_stream = tui_client_handle.await.unwrap();
+
+        let state_clone = shared_state.clone();
+        let tui_server_handle = tokio::spawn(async move {
+            handle_client(tui_server_stream, state_clone).await;
+        });
+
+        // --- TUI: Send Connect ---
+        let mut tui_codec = ccmux_protocol::ClientCodec::new();
+        let mut buf = bytes::BytesMut::new();
+        let connect_msg = ClientMessage::Connect {
+            client_id: uuid::Uuid::new_v4(),
+            protocol_version: PROTOCOL_VERSION,
+        };
+        Encoder::encode(&mut tui_codec, connect_msg, &mut buf).unwrap();
+        tui_client_stream.write_all(&buf).await.unwrap();
+
+        // Read Connected response
+        let mut response_buf = vec![0u8; 4096];
+        let n = tui_client_stream.read(&mut response_buf).await.unwrap();
+        let mut response_bytes = bytes::BytesMut::from(&response_buf[..n]);
+        let response: ServerMessage = Decoder::decode(&mut tui_codec, &mut response_bytes)
+            .unwrap()
+            .unwrap();
+        assert!(matches!(response, ServerMessage::Connected { .. }), "Expected Connected");
+
+        // --- TUI: Create a session ---
+        buf.clear();
+        let create_session_msg = ClientMessage::CreateSession {
+            name: "test-session".to_string(),
+            command: None,
+        };
+        Encoder::encode(&mut tui_codec, create_session_msg, &mut buf).unwrap();
+        tui_client_stream.write_all(&buf).await.unwrap();
+
+        // Read SessionCreated response
+        let n = tui_client_stream.read(&mut response_buf).await.unwrap();
+        let mut response_bytes = bytes::BytesMut::from(&response_buf[..n]);
+        let response: ServerMessage = Decoder::decode(&mut tui_codec, &mut response_bytes)
+            .unwrap()
+            .unwrap();
+        let session_id = match response {
+            ServerMessage::SessionCreated { session } => session.id,
+            _ => panic!("Expected SessionCreated, got {:?}", response),
+        };
+
+        // --- TUI: Attach to session ---
+        buf.clear();
+        let attach_msg = ClientMessage::AttachSession { session_id };
+        Encoder::encode(&mut tui_codec, attach_msg, &mut buf).unwrap();
+        tui_client_stream.write_all(&buf).await.unwrap();
+
+        // Read Attached response
+        let n = tui_client_stream.read(&mut response_buf).await.unwrap();
+        let mut response_bytes = bytes::BytesMut::from(&response_buf[..n]);
+        let response: ServerMessage = Decoder::decode(&mut tui_codec, &mut response_bytes)
+            .unwrap()
+            .unwrap();
+        assert!(matches!(response, ServerMessage::Attached { .. }), "Expected Attached");
+
+        // Verify TUI is registered in session_clients
+        let tui_count = shared_state.registry.session_client_count(session_id);
+        assert_eq!(tui_count, 1, "TUI should be attached to session");
+
+        // --- Connect MCP client ---
+        let mcp_client_handle = tokio::spawn({
+            let socket_path = socket_path.clone();
+            async move {
+                tokio::net::UnixStream::connect(&socket_path).await.unwrap()
+            }
+        });
+
+        let (mcp_server_stream, _) = listener.accept().await.unwrap();
+        let mut mcp_client_stream = mcp_client_handle.await.unwrap();
+
+        let state_clone = shared_state.clone();
+        let _mcp_server_handle = tokio::spawn(async move {
+            handle_client(mcp_server_stream, state_clone).await;
+        });
+
+        // --- MCP: Send Connect ---
+        let mut mcp_codec = ccmux_protocol::ClientCodec::new();
+        buf.clear();
+        let connect_msg = ClientMessage::Connect {
+            client_id: uuid::Uuid::new_v4(),
+            protocol_version: PROTOCOL_VERSION,
+        };
+        Encoder::encode(&mut mcp_codec, connect_msg, &mut buf).unwrap();
+        mcp_client_stream.write_all(&buf).await.unwrap();
+
+        // Read Connected response
+        let n = mcp_client_stream.read(&mut response_buf).await.unwrap();
+        let mut response_bytes = bytes::BytesMut::from(&response_buf[..n]);
+        let response: ServerMessage = Decoder::decode(&mut mcp_codec, &mut response_bytes)
+            .unwrap()
+            .unwrap();
+        assert!(matches!(response, ServerMessage::Connected { .. }), "Expected Connected");
+
+        // Small delay to ensure TUI's handler is waiting in select loop
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+        // --- MCP: Create pane (should broadcast to TUI) ---
+        buf.clear();
+        let create_pane_msg = ClientMessage::CreatePaneWithOptions {
+            session_filter: None,  // Use active session
+            window_filter: None,
+            direction: ccmux_protocol::SplitDirection::Vertical,
+            command: None,
+            cwd: None,
+        };
+        Encoder::encode(&mut mcp_codec, create_pane_msg, &mut buf).unwrap();
+        mcp_client_stream.write_all(&buf).await.unwrap();
+
+        // MCP reads its response (PaneCreatedWithDetails)
+        let n = mcp_client_stream.read(&mut response_buf).await.unwrap();
+        let mut response_bytes = bytes::BytesMut::from(&response_buf[..n]);
+        let mcp_response: ServerMessage = Decoder::decode(&mut mcp_codec, &mut response_bytes)
+            .unwrap()
+            .unwrap();
+        assert!(
+            matches!(mcp_response, ServerMessage::PaneCreatedWithDetails { .. }),
+            "MCP should receive PaneCreatedWithDetails, got {:?}", mcp_response
+        );
+
+        // --- TUI should receive PaneCreated broadcast ---
+        // Use timeout to avoid hanging forever if broadcast fails
+        let tui_broadcast_result = tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            async {
+                let n = tui_client_stream.read(&mut response_buf).await.unwrap();
+                let mut response_bytes = bytes::BytesMut::from(&response_buf[..n]);
+                Decoder::decode(&mut tui_codec, &mut response_bytes)
+                    .unwrap()
+                    .unwrap()
+            }
+        ).await;
+
+        match tui_broadcast_result {
+            Ok(msg) => {
+                match msg {
+                    ServerMessage::PaneCreated { pane, .. } => {
+                        // Success! TUI received the broadcast
+                        assert!(!pane.id.is_nil(), "Pane ID should be valid");
+                    }
+                    other => panic!(
+                        "TUI received unexpected message: {:?}. Expected PaneCreated broadcast.",
+                        other
+                    ),
+                }
+            }
+            Err(_) => {
+                panic!(
+                    "TIMEOUT: TUI did not receive PaneCreated broadcast within 2 seconds. \
+                     This confirms BUG-010: MCP pane creation broadcast is not reaching TUI."
+                );
+            }
+        }
+
+        // Clean up
+        drop(tui_client_stream);
+        drop(mcp_client_stream);
+        tui_server_handle.await.ok();
+    }
 }
