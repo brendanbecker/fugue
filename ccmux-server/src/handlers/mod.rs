@@ -52,6 +52,14 @@ pub enum HandlerResult {
         session_id: Uuid,
         broadcast: ServerMessage,
     },
+    /// Response to client followed by additional messages to the same client
+    ///
+    /// Used when attaching to a session to send the initial response followed
+    /// by the current scrollback content for each pane.
+    ResponseWithFollowUp {
+        response: ServerMessage,
+        follow_up: Vec<ServerMessage>,
+    },
     /// No response needed (for fire-and-forget messages like Input)
     NoResponse,
 }

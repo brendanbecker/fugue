@@ -616,6 +616,24 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
                                     "Broadcast complete"
                                 );
                             }
+                            HandlerResult::ResponseWithFollowUp {
+                                response,
+                                follow_up,
+                            } => {
+                                // Send the main response first
+                                if let Err(e) = framed_writer.send(response).await {
+                                    error!("Failed to send response to {}: {}", client_id, e);
+                                    break;
+                                }
+
+                                // Send follow-up messages (e.g., initial scrollback on attach)
+                                for msg in follow_up {
+                                    if let Err(e) = framed_writer.send(msg).await {
+                                        error!("Failed to send follow-up message to {}: {}", client_id, e);
+                                        break;
+                                    }
+                                }
+                            }
                             HandlerResult::NoResponse => {
                                 // No response needed (e.g., Input message)
                             }

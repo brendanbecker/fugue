@@ -44,6 +44,9 @@ impl HandlerContext {
     }
 
     /// Handle Sync message - return full state dump
+    ///
+    /// If attached to a session, returns session state along with current
+    /// scrollback content for all panes.
     pub async fn handle_sync(&self) -> HandlerResult {
         debug!("Sync request from {}", self.client_id);
 
@@ -58,19 +61,39 @@ impl HandlerContext {
                 if let Some(session) = session_manager.get_session(session_id) {
                     let session_info = session.to_info();
 
-                    // Collect window and pane info
+                    // Collect window and pane info, along with scrollback content
                     let windows: Vec<_> = session.windows().map(|w| w.to_info()).collect();
 
-                    let panes: Vec<_> = session
-                        .windows()
-                        .flat_map(|w| w.panes().map(|p| p.to_info()))
-                        .collect();
+                    let mut panes = Vec::new();
+                    let mut initial_output: Vec<ServerMessage> = Vec::new();
 
-                    HandlerResult::Response(ServerMessage::Attached {
-                        session: session_info,
-                        windows,
-                        panes,
-                    })
+                    for window in session.windows() {
+                        for pane in window.panes() {
+                            panes.push(pane.to_info());
+
+                            // Get the current scrollback content for this pane
+                            let scrollback = pane.scrollback();
+                            let lines: Vec<&str> = scrollback.get_lines().collect();
+                            if !lines.is_empty() {
+                                let content = lines.join("\n");
+                                if !content.is_empty() {
+                                    initial_output.push(ServerMessage::Output {
+                                        pane_id: pane.id(),
+                                        data: content.into_bytes(),
+                                    });
+                                }
+                            }
+                        }
+                    }
+
+                    HandlerResult::ResponseWithFollowUp {
+                        response: ServerMessage::Attached {
+                            session: session_info,
+                            windows,
+                            panes,
+                        },
+                        follow_up: initial_output,
+                    }
                 } else {
                     // Session no longer exists - detach and return session list
                     drop(session_manager); // Release read lock before modifying registry
@@ -235,10 +258,15 @@ mod tests {
         let result = ctx.handle_sync().await;
 
         match result {
-            HandlerResult::Response(ServerMessage::Attached { session, .. }) => {
+            HandlerResult::ResponseWithFollowUp {
+                response: ServerMessage::Attached { session, .. },
+                follow_up,
+            } => {
                 assert_eq!(session.name, "test");
+                // Fresh session has no scrollback yet
+                assert!(follow_up.is_empty());
             }
-            _ => panic!("Expected Attached response"),
+            _ => panic!("Expected Attached response with follow_up"),
         }
     }
 

@@ -133,6 +133,10 @@ impl HandlerContext {
     }
 
     /// Handle AttachSession message - attach to an existing session
+    ///
+    /// After sending the Attached message with session/window/pane metadata,
+    /// this also sends the current scrollback content for each pane so the
+    /// client can display the existing terminal state.
     pub async fn handle_attach_session(&self, session_id: Uuid) -> HandlerResult {
         info!(
             "AttachSession {} request from {}",
@@ -162,14 +166,42 @@ impl HandlerContext {
 
             let session_info = session.to_info();
 
-            // Collect window and pane info
+            // Collect window and pane info, along with scrollback content for each pane
             let session = session_manager.get_session(session_id).unwrap();
             let windows: Vec<_> = session.windows().map(|w| w.to_info()).collect();
 
-            let panes: Vec<_> = session
-                .windows()
-                .flat_map(|w| w.panes().map(|p| p.to_info()))
-                .collect();
+            // Collect pane info and scrollback content
+            let mut panes = Vec::new();
+            let mut initial_output: Vec<ServerMessage> = Vec::new();
+
+            for window in session.windows() {
+                for pane in window.panes() {
+                    panes.push(pane.to_info());
+
+                    // Get the current scrollback content for this pane
+                    // This allows the client to see existing terminal content on attach
+                    let scrollback = pane.scrollback();
+                    let lines: Vec<&str> = scrollback.get_lines().collect();
+                    if !lines.is_empty() {
+                        // Join lines with newlines and send as output
+                        let content = lines.join("\n");
+                        let content_len = content.len();
+                        let line_count = lines.len();
+                        if !content.is_empty() {
+                            initial_output.push(ServerMessage::Output {
+                                pane_id: pane.id(),
+                                data: content.into_bytes(),
+                            });
+                            debug!(
+                                "Prepared initial scrollback for pane {} ({} lines, {} bytes)",
+                                pane.id(),
+                                line_count,
+                                content_len
+                            );
+                        }
+                    }
+                }
+            }
 
             // Set this as the active session for MCP commands that don't specify a session
             session_manager.set_active_session(session_id);
@@ -180,18 +212,23 @@ impl HandlerContext {
             self.registry.attach_to_session(self.client_id, session_id);
 
             info!(
-                "Client {} attached to session {} ({} windows, {} panes)",
+                "Client {} attached to session {} ({} windows, {} panes, {} panes with scrollback)",
                 self.client_id,
                 session_id,
                 windows.len(),
-                panes.len()
+                panes.len(),
+                initial_output.len()
             );
 
-            HandlerResult::Response(ServerMessage::Attached {
-                session: session_info,
-                windows,
-                panes,
-            })
+            // Return response with follow-up output messages for initial scrollback
+            HandlerResult::ResponseWithFollowUp {
+                response: ServerMessage::Attached {
+                    session: session_info,
+                    windows,
+                    panes,
+                },
+                follow_up: initial_output,
+            }
         } else {
             debug!("Session {} not found", session_id);
             HandlerContext::error(
@@ -580,11 +617,16 @@ mod tests {
         let result = ctx.handle_attach_session(session_id).await;
 
         match result {
-            HandlerResult::Response(ServerMessage::Attached { session, .. }) => {
+            HandlerResult::ResponseWithFollowUp {
+                response: ServerMessage::Attached { session, .. },
+                follow_up,
+            } => {
                 assert_eq!(session.name, "test");
                 assert_eq!(session.attached_clients, 1);
+                // Fresh session has no scrollback yet
+                assert!(follow_up.is_empty());
             }
-            _ => panic!("Expected Attached response"),
+            _ => panic!("Expected Attached response with follow_up"),
         }
 
         // Verify registry was updated
@@ -592,6 +634,59 @@ mod tests {
             ctx.registry.get_client_session(ctx.client_id),
             Some(session_id)
         );
+    }
+
+    #[tokio::test]
+    async fn test_handle_attach_session_sends_scrollback() {
+        let ctx = create_test_context();
+
+        // Create a session with a pane that has scrollback
+        let session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session = session_manager.create_session("test").unwrap();
+            let session_id = session.id();
+
+            // Create a window and pane
+            let session = session_manager.get_session_mut(session_id).unwrap();
+            let window = session.create_window(None);
+            let window_id = window.id();
+
+            let session = session_manager.get_session_mut(session_id).unwrap();
+            let window = session.get_window_mut(window_id).unwrap();
+            let pane = window.create_pane();
+            let pane_id = pane.id();
+
+            // Add some scrollback content via session manager
+            let pane = session_manager.find_pane_mut(pane_id).unwrap();
+            pane.push_output(b"Hello, World!\nThis is a test.\n");
+
+            session_id
+        };
+
+        let result = ctx.handle_attach_session(session_id).await;
+
+        match result {
+            HandlerResult::ResponseWithFollowUp {
+                response: ServerMessage::Attached { session, panes, .. },
+                follow_up,
+            } => {
+                assert_eq!(session.name, "test");
+                assert_eq!(panes.len(), 1);
+
+                // Should have follow-up Output messages with scrollback
+                assert_eq!(follow_up.len(), 1);
+                match &follow_up[0] {
+                    ServerMessage::Output { pane_id, data } => {
+                        assert_eq!(*pane_id, panes[0].id);
+                        let content = String::from_utf8_lossy(data);
+                        assert!(content.contains("Hello, World!"));
+                        assert!(content.contains("This is a test."));
+                    }
+                    _ => panic!("Expected Output message in follow_up"),
+                }
+            }
+            _ => panic!("Expected Attached response with follow_up"),
+        }
     }
 
     #[tokio::test]
