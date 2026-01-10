@@ -206,6 +206,15 @@ impl HandlerContext {
         command: Option<String>,
         cwd: Option<String>,
     ) -> HandlerResult {
+        debug!(
+            client_id = %self.client_id,
+            session_filter = ?session_filter,
+            window_filter = ?window_filter,
+            direction = ?direction,
+            command = ?command,
+            cwd = ?cwd,
+            "handle_create_pane_with_options called"
+        );
         info!(
             "CreatePaneWithOptions request from {} (session: {:?}, window: {:?}, direction: {:?})",
             self.client_id, session_filter, window_filter, direction
@@ -369,9 +378,21 @@ impl HandlerContext {
             SplitDirection::Vertical => "vertical",
         };
 
-        info!("Pane {} created in session {} window {}", pane_id, session_name, window_id);
+        info!(
+            pane_id = %pane_id,
+            session_id = %session_id,
+            session_name = %session_name,
+            window_id = %window_id,
+            "Pane created in session"
+        );
 
         // Return detailed response to MCP client and broadcast to TUI clients
+        debug!(
+            pane_id = %pane_id,
+            session_id = %session_id,
+            broadcast_type = "PaneCreated",
+            "Returning ResponseWithBroadcast for pane creation - TUI clients in session should receive PaneCreated"
+        );
         HandlerResult::ResponseWithBroadcast {
             response: ServerMessage::PaneCreatedWithDetails {
                 pane_id,

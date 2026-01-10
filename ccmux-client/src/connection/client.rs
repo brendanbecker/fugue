@@ -162,8 +162,13 @@ impl Connection {
                 result = framed.next() => {
                     match result {
                         Some(Ok(msg)) => {
+                            tracing::debug!(
+                                message_type = ?std::mem::discriminant(&msg),
+                                "Received message from server socket"
+                            );
                             if incoming.send(msg).await.is_err() {
                                 // Receiver dropped
+                                tracing::debug!("Incoming channel closed, receiver dropped");
                                 break;
                             }
                         }

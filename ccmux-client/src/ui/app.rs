@@ -277,6 +277,10 @@ impl App {
     /// Poll for pending server messages
     async fn poll_server_messages(&mut self) -> Result<()> {
         while let Some(msg) = self.connection.try_recv() {
+            tracing::debug!(
+                message_type = ?std::mem::discriminant(&msg),
+                "poll_server_messages received message"
+            );
             self.handle_server_message(msg).await?;
         }
         Ok(())
@@ -768,6 +772,10 @@ impl App {
 
     /// Handle server messages
     async fn handle_server_message(&mut self, msg: ServerMessage) -> Result<()> {
+        tracing::debug!(
+            message_type = ?std::mem::discriminant(&msg),
+            "handle_server_message processing"
+        );
         match msg {
             ServerMessage::Connected {
                 server_version,
@@ -857,6 +865,13 @@ impl App {
                 self.windows.insert(window.id, window);
             }
             ServerMessage::PaneCreated { pane } => {
+                tracing::info!(
+                    pane_id = %pane.id,
+                    window_id = %pane.window_id,
+                    pane_index = pane.index,
+                    "Handling PaneCreated broadcast from server"
+                );
+
                 // Get the split direction from pending or default to vertical
                 let direction = self
                     .pending_split_direction

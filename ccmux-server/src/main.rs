@@ -586,16 +586,35 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
                                 session_id,
                                 broadcast,
                             } => {
+                                debug!(
+                                    client_id = %client_id,
+                                    session_id = %session_id,
+                                    response_type = ?std::mem::discriminant(&response),
+                                    broadcast_type = ?std::mem::discriminant(&broadcast),
+                                    "Received ResponseWithBroadcast from handler"
+                                );
+
                                 // Send response to this client
                                 if let Err(e) = framed_writer.send(response).await {
                                     error!("Failed to send response to {}: {}", client_id, e);
                                     break;
                                 }
+
                                 // Broadcast to other clients in the session
-                                shared_state
+                                debug!(
+                                    session_id = %session_id,
+                                    except_client = %client_id,
+                                    "About to broadcast to session"
+                                );
+                                let broadcast_count = shared_state
                                     .registry
                                     .broadcast_to_session_except(session_id, client_id, broadcast)
                                     .await;
+                                info!(
+                                    session_id = %session_id,
+                                    clients_notified = broadcast_count,
+                                    "Broadcast complete"
+                                );
                             }
                             HandlerResult::NoResponse => {
                                 // No response needed (e.g., Input message)
@@ -616,10 +635,19 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
 
             // Handle messages from registry (broadcasts from other clients)
             Some(msg) = rx.recv() => {
+                debug!(
+                    client_id = %client_id,
+                    message_type = ?std::mem::discriminant(&msg),
+                    "Client handler received broadcast from channel"
+                );
                 if let Err(e) = framed_writer.send(msg).await {
                     error!("Failed to send broadcast to {}: {}", client_id, e);
                     break;
                 }
+                debug!(
+                    client_id = %client_id,
+                    "Broadcast written to socket successfully"
+                );
             }
 
             // Handle shutdown signal
