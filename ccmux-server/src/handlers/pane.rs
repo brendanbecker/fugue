@@ -7,6 +7,8 @@ use uuid::Uuid;
 
 use ccmux_protocol::{ErrorCode, ServerMessage, SplitDirection};
 
+use crate::pty::{PtyConfig, PtyOutputPoller};
+
 use super::{HandlerContext, HandlerResult};
 
 impl HandlerContext {
@@ -24,59 +26,102 @@ impl HandlerContext {
             window_id, self.client_id, direction
         );
 
-        let mut session_manager = self.session_manager.write().await;
+        // Default terminal size for new panes
+        let (cols, rows) = (80, 24);
 
-        // Find the session that contains this window
-        let session_id = session_manager
-            .find_window(window_id)
-            .map(|(session, _)| session.id());
+        let (session_id, pane_id, pane_info) = {
+            let mut session_manager = self.session_manager.write().await;
 
-        match session_id {
-            Some(session_id) => {
-                // Get the window and create the pane
-                if let Some(session) = session_manager.get_session_mut(session_id) {
-                    if let Some(window) = session.get_window_mut(window_id) {
-                        let pane = window.create_pane();
-                        let pane_info = pane.to_info();
-                        let pane_id = pane_info.id;
+            // Find the session that contains this window
+            let session_id = session_manager
+                .find_window(window_id)
+                .map(|(session, _)| session.id());
 
-                        info!(
-                            "Pane created in window {} with ID {}",
-                            window_id, pane_id
-                        );
+            match session_id {
+                Some(session_id) => {
+                    // Get the window and create the pane
+                    if let Some(session) = session_manager.get_session_mut(session_id) {
+                        if let Some(window) = session.get_window_mut(window_id) {
+                            let pane = window.create_pane();
+                            let pane_info = pane.to_info();
+                            let pane_id = pane_info.id;
 
-                        // Broadcast to all clients attached to this session
-                        HandlerResult::ResponseWithBroadcast {
-                            response: ServerMessage::PaneCreated {
-                                pane: pane_info.clone(),
-                            },
-                            session_id,
-                            broadcast: ServerMessage::PaneCreated { pane: pane_info },
+                            info!(
+                                "Pane created in window {} with ID {}",
+                                window_id, pane_id
+                            );
+
+                            (session_id, pane_id, pane_info)
+                        } else {
+                            debug!("Window {} not found in session", window_id);
+                            return HandlerContext::error(
+                                ErrorCode::WindowNotFound,
+                                format!("Window {} not found", window_id),
+                            );
                         }
                     } else {
-                        // Window not found (shouldn't happen since we just found it)
-                        debug!("Window {} not found in session", window_id);
-                        HandlerContext::error(
-                            ErrorCode::WindowNotFound,
-                            format!("Window {} not found", window_id),
-                        )
+                        debug!("Session {} not found", session_id);
+                        return HandlerContext::error(
+                            ErrorCode::SessionNotFound,
+                            format!("Session {} not found", session_id),
+                        );
                     }
-                } else {
-                    // Session not found (shouldn't happen)
-                    debug!("Session {} not found", session_id);
-                    HandlerContext::error(
-                        ErrorCode::SessionNotFound,
-                        format!("Session {} not found", session_id),
-                    )
+                }
+                None => {
+                    debug!("Window {} not found in any session", window_id);
+                    return HandlerContext::error(
+                        ErrorCode::WindowNotFound,
+                        format!("Window {} not found", window_id),
+                    );
                 }
             }
-            None => {
-                debug!("Window {} not found in any session", window_id);
-                HandlerContext::error(
-                    ErrorCode::WindowNotFound,
-                    format!("Window {} not found", window_id),
-                )
+        };
+
+        // Spawn PTY for the new pane
+        {
+            let mut pty_manager = self.pty_manager.write().await;
+
+            // Use default_command from config if set, otherwise shell
+            let mut pty_config = if let Some(ref cmd) = self.config.general.default_command {
+                PtyConfig::command(cmd).with_size(cols, rows)
+            } else {
+                PtyConfig::shell().with_size(cols, rows)
+            };
+
+            // Inherit server's working directory so new panes start in the project
+            if let Ok(cwd) = std::env::current_dir() {
+                pty_config = pty_config.with_cwd(cwd);
             }
+
+            match pty_manager.spawn(pane_id, pty_config) {
+                Ok(handle) => {
+                    info!("PTY spawned for pane {}", pane_id);
+
+                    // Start output poller with sideband parsing enabled
+                    let reader = handle.clone_reader();
+                    let _poller_handle = PtyOutputPoller::spawn_with_sideband(
+                        pane_id,
+                        session_id,
+                        reader,
+                        self.registry.clone(),
+                        Some(self.pane_closed_tx.clone()),
+                        self.command_executor.clone(),
+                    );
+                    info!("Output poller started for pane {} (sideband enabled)", pane_id);
+                }
+                Err(e) => {
+                    warn!("Failed to spawn PTY for pane {}: {}", pane_id, e);
+                }
+            }
+        }
+
+        // Broadcast to all clients attached to this session
+        HandlerResult::ResponseWithBroadcast {
+            response: ServerMessage::PaneCreated {
+                pane: pane_info.clone(),
+            },
+            session_id,
+            broadcast: ServerMessage::PaneCreated { pane: pane_info },
         }
     }
 
