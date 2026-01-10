@@ -74,13 +74,13 @@
 | BUG-011 | Large paste crashes session | P2 | ✅ Fixed |
 | BUG-012 | Text selection not working in TUI | P2 | ❌ Deprecated (Shift+click works) |
 | BUG-013 | Mouse scroll wheel not working | P2 | ✅ Fixed |
-| BUG-014 | Large output buffer overflow | P2 | 📋 New |
-| BUG-015 | Layout not recalculated on pane close | P2 | 📋 New |
+| BUG-014 | Large output buffer overflow | P2 | ✅ Fixed (stream-c) |
+| BUG-015 | Layout not recalculated on pane close | P2 | ✅ Fixed (stream-b) |
 | BUG-016 | PTY output not routed to pane state (breaks Claude detection + MCP read_pane) | P1 | ✅ Fixed |
 | BUG-017 | MCP send_input doesn't handle Enter key | P1 | ✅ Fixed |
-| BUG-018 | TUI pane interaction failure (can't see input bar) | P1 | 🔍 Needs investigation |
+| BUG-018 | TUI pane interaction failure (can't see input bar) | P1 | ✅ Fixed (stream-a) |
 | BUG-019 | Claude detector UTF-8 panic causes TUI hang | P1 | ✅ Fixed |
-| BUG-020 | Session reattach from session manager creates client without PTY | P1 | 📋 New |
+| BUG-020 | Session reattach from session manager creates client without PTY | P1 | ✅ Fixed (stream-a) |
 
 ## Parallel Execution Plan
 
@@ -329,9 +329,9 @@ With 3-way parallelism: **10-16 hours wall time** for all items.
 | FEAT-041 | MCP Session/Window Targeting | P1 | ✅ Merged |
 | FEAT-042 | MCP Debug Logging | P1 | ✅ Merged |
 | FEAT-043 | MCP Session Rename Tool | P2 | ✅ Merged |
-| FEAT-044 | Claude Session Persistence & Auto-Resume | P1 | 📋 Planned |
-| FEAT-045 | MCP Declarative Layout Tools | P2 | 📋 Planned |
-| FEAT-046 | MCP Focus/Select Control | P1 | 📋 New |
+| FEAT-044 | Claude Session Persistence & Auto-Resume | P1 | ✅ Done (stream-d) |
+| FEAT-045 | MCP Declarative Layout Tools | P2 | 📋 Planned (stream-e) |
+| FEAT-046 | MCP Focus/Select Control | P1 | ✅ Done (stream-e) |
 
 ### Open Features (blocked/in-progress)
 | ID | Feature | Notes |
@@ -362,23 +362,24 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-| Worktree | Branch | Items | Priority | Focus |
-|----------|--------|-------|----------|-------|
-| `ccmux-stream-a-reattach` | stream-a-reattach | BUG-018, BUG-020 | P1 | Session reattach - client has no PTY |
-| `ccmux-stream-b-layout` | stream-b-layout | BUG-015 | P2 | Layout not recalculated on pane close |
-| `ccmux-stream-c-buffer` | stream-c-buffer | BUG-014 | P2 | Large output buffer overflow |
-| `ccmux-stream-d-claude` | stream-d-claude | FEAT-044 | P1 | Claude session persistence & auto-resume |
-| `ccmux-stream-e-mcp` | stream-e-mcp | FEAT-045, FEAT-046 | P1/P2 | MCP declarative layouts + focus control |
+| Worktree | Branch | Items | Status | Commit |
+|----------|--------|-------|--------|--------|
+| `ccmux-stream-a-reattach` | stream-a-reattach | BUG-018, BUG-020 | ✅ Ready to merge | `8f53895` |
+| `ccmux-stream-b-layout` | stream-b-layout | BUG-015 | ✅ Ready to merge | `ffd4d5a` |
+| `ccmux-stream-c-buffer` | stream-c-buffer | BUG-014 | ✅ Ready to merge | `c5aec64` |
+| `ccmux-stream-d-claude` | stream-d-claude | FEAT-044 | ✅ Ready to merge | `f1adb24` |
+| `ccmux-stream-e-mcp` | stream-e-mcp | FEAT-046 ✅, FEAT-045 📋 | 🔄 In progress | `aa76f8c` |
 
 All worktrees branched from `33b5984` (2026-01-10).
 
-**Note**: BUG-018 and BUG-020 likely share root cause (both: can't interact with pane after reattach).
-
 ### Next Session Checklist
-- [x] Check if BUG-013 (mouse scroll) is complete in `ccmux-bug-013` worktree
-- [x] Merged FEAT-015 from `ccmux-stream-a`
-- [x] Clean up merged worktrees (bug-010, bug-011, bug-013, feat-043, wt-bug-009)
-- [x] Set up parallel worktrees for remaining work items
+- [ ] Merge stream-a (BUG-018/020 fix)
+- [ ] Merge stream-b (BUG-015 fix)
+- [ ] Merge stream-c (BUG-014 fix)
+- [ ] Merge stream-d (FEAT-044)
+- [ ] Merge stream-e after FEAT-045 complete (or merge FEAT-046 now)
+- [ ] Clean up worktrees after merge
+- [ ] Rebuild and test all fixes together
 - [x] Rebuild server with all fixes and test `read_pane` works (BUG-016 fix)
 
 ## Session Log (2026-01-10) - BUG-019 Fix: UTF-8 Panic in Claude Detector
