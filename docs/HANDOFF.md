@@ -77,7 +77,7 @@
 | BUG-014 | Large output buffer overflow | P2 | 📋 New |
 | BUG-015 | Layout not recalculated on pane close | P2 | 📋 New |
 | BUG-016 | PTY output not routed to pane state (breaks Claude detection + MCP read_pane) | P1 | ✅ Fixed |
-| BUG-017 | MCP send_input doesn't handle Enter key | P1 | 📋 New |
+| BUG-017 | MCP send_input doesn't handle Enter key | P1 | ✅ Fixed |
 | BUG-018 | TUI pane interaction failure (can't see input bar) | P1 | 🔍 Needs investigation |
 
 ## Parallel Execution Plan
@@ -360,9 +360,7 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-| Worktree | Branch | Status | Next Task |
-|----------|--------|--------|-----------|
-| `ccmux-stream-a` | `stream-a-critical-path` | ✅ FEAT-015 merged | Rebase, reassign to FEAT-044 or BUG-017 |
+None - all work merged to main.
 
 ### Next Session Checklist
 - [x] Check if BUG-013 (mouse scroll) is complete in `ccmux-bug-013` worktree
