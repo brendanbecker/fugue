@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 
 use std::fmt;
+use std::path::PathBuf;
 use std::time::SystemTime;
 use uuid::Uuid;
 use vt100::Parser;
@@ -42,6 +43,8 @@ pub struct Pane {
     parser: Option<Parser>,
     /// Claude detector for state tracking
     claude_detector: ClaudeDetector,
+    /// Beads root directory if detected (FEAT-057)
+    beads_root: Option<PathBuf>,
 }
 
 impl fmt::Debug for Pane {
@@ -62,6 +65,7 @@ impl fmt::Debug for Pane {
             .field("scrollback", &self.scrollback)
             .field("parser", &self.parser.as_ref().map(|_| "Parser { ... }"))
             .field("claude_detector", &self.claude_detector)
+            .field("beads_root", &self.beads_root)
             .finish()
     }
 }
@@ -99,6 +103,7 @@ impl Pane {
             scrollback: ScrollbackBuffer::new(scrollback_lines),
             parser: None,
             claude_detector: ClaudeDetector::new(),
+            beads_root: None,
         }
     }
 
@@ -140,6 +145,7 @@ impl Pane {
             scrollback: ScrollbackBuffer::new(DEFAULT_SCROLLBACK_LINES),
             parser: None,
             claude_detector,
+            beads_root: None,
         }
     }
 
@@ -344,6 +350,21 @@ impl Pane {
     /// Set current working directory
     pub fn set_cwd(&mut self, cwd: Option<String>) {
         self.cwd = cwd;
+    }
+
+    /// Get beads root directory (FEAT-057)
+    pub fn beads_root(&self) -> Option<&PathBuf> {
+        self.beads_root.as_ref()
+    }
+
+    /// Set beads root directory (FEAT-057)
+    pub fn set_beads_root(&mut self, beads_root: Option<PathBuf>) {
+        self.beads_root = beads_root;
+    }
+
+    /// Check if this pane is in a beads-tracked repository (FEAT-057)
+    pub fn is_beads_tracked(&self) -> bool {
+        self.beads_root.is_some()
     }
 
     /// Get session type
