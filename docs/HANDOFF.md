@@ -182,16 +182,24 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-Two worktrees remain for blocked features:
+Six worktrees configured:
 
 | Stream | Path | Branch | Feature | Status |
 |--------|------|--------|---------|--------|
 | **A** | `ccmux-stream-a/` | `feat/feat-048-mcp-orchestration-tools` | FEAT-048: MCP Orchestration Tools | ✅ **MERGED** |
 | **B** | `ccmux-stream-b/` | `feat/feat-057-beads-passive-awareness` | FEAT-057: Beads Passive Awareness | ✅ **MERGED** |
-| **C** | `ccmux-stream-c/` | `feat/feat-058-beads-query-integration` | FEAT-058: Beads Query Integration | **READY** (unblocked) |
+| **C** | `ccmux-stream-c/` | `feat/feat-058-beads-query-integration` | FEAT-058: Beads Query Integration | **READY** (rebased) |
 | **D** | `ccmux-stream-d/` | `feat/feat-059-beads-workflow-integration` | FEAT-059: Beads Workflow Integration | BLOCKED (058) |
+| **E** | `ccmux-stream-e/` | `fix/bug-028-create-layout-crash` | BUG-028: Daemon crash fix | **READY** (P0) |
+| **F** | `ccmux-stream-f/` | `feat/feat-060-mcp-daemon-recovery` | FEAT-060: MCP Auto-Recovery | **READY** (P1) |
 
-**Parallel work available:** Stream C now unblocked. FEAT-060 (new) has no worktree yet.
+**Parallel work available:** Streams C, E, F can all be worked simultaneously.
+
+**To start a worker:**
+```bash
+cd /home/becker/projects/tools/ccmux-stream-e  # or stream-c, stream-f
+cat SESSION.md  # Read instructions
+```
 
 ### Recently Merged (2026-01-11) - This Session
 - ✅ **FEAT-048**: MCP Orchestration Protocol Tools (stream-a)
