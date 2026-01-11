@@ -189,14 +189,12 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-**All streams merged** - worktrees available for new work.
+**None** - All worktrees merged and cleaned up. Create new worktrees as needed:
 
-| Stream | Path | Branch | Status |
-|--------|------|--------|--------|
-| **A** | `ccmux-stream-a/` | `stream-a-text-selection` | ✅ Merged |
-| **B** | `ccmux-stream-b/` | `stream-b-mcp-tools` | ✅ Merged |
-| **C** | `ccmux-stream-c/` | `stream-c-env-injection` | ✅ Merged |
-| **D** | `ccmux-stream-d/` | `stream-d-tmux-wrapper` | ✅ Merged |
+```bash
+# Example: Create worktree for BUG-027
+git worktree add ../ccmux-bug027 -b fix/bug-027-response-routing
+```
 
 ### Recently Merged (2026-01-11) - This Session
 - ✅ FEAT-054: Pane-bounded text selection in copy mode
