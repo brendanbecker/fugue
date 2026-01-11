@@ -12,12 +12,12 @@
 
 ## Current State (2026-01-11)
 
-**3 NEW BUGS** discovered during QA demo run. 6 features merged from parallel streams.
+**ALL BUGS FIXED** - QA demo bugs resolved. 3 more features merged + FEAT-056 work item added.
 
 **Key Metrics:**
-- 27 bugs tracked, 23 resolved, 3 open, 1 deprecated
-- 55 features tracked, 50 completed, 5 in backlog
-- 1,466+ tests passing
+- 27 bugs tracked, 26 resolved, 0 open, 1 deprecated
+- 56 features tracked, 51 completed, 5 in backlog
+- 1,487 tests passing
 - Clean git working tree on main branch
 
 ### What Works
@@ -48,6 +48,7 @@
 - **Environment tools**: `ccmux_set_environment`, `ccmux_get_environment`, `ccmux_kill_session` (FEAT-047/051/052)
 - **Context env vars**: CCMUX_PANE_ID, CCMUX_SESSION_ID auto-injected (FEAT-053)
 - **tmux CLI wrapper**: `ccmux-compat` for tmux command compatibility (FEAT-049)
+- **Full tmux keybinding parity**: Complete tmux keybind compatibility in TUI (FEAT-055)
 
 ### Known Issues
 - `kill -9` corrupts terminal (SIGKILL can't be caught - run `reset` to fix)
@@ -67,20 +68,16 @@
 | FEAT-025 | Pane Output Rendering | P0 | ✅ Merged |
 | FEAT-026 | Input Testing | P1 | ✅ Working (verified manually) |
 
-## Bug Status: 3 OPEN
+## Bug Status: ALL RESOLVED ✅
 
-**Open Bugs: 3** - Discovered during QA demo run.
-
-### Open Bugs (from QA Demo)
-| Bug | Priority | Description | Notes |
-|-----|----------|-------------|-------|
-| **BUG-027** | P0 | MCP response routing swapped | Responses going to wrong handlers - actions work but wrong types returned |
-| **BUG-026** | P1 | Focus management broken | Auto-focus on create, focus_pane/select_window have no effect |
-| **BUG-025** | P2 | create_pane direction response mismatch | Response says "horizontal" when "vertical" was requested (cosmetic) |
+**Open Bugs: 0** - All QA demo bugs fixed!
 
 ### Recent Critical Fixes
 | Bug | Priority | Description | Resolution |
 |-----|----------|-------------|------------|
+| BUG-027 | P0 | MCP response routing swapped | Fixed - filter broadcast messages in recv_response_from_daemon |
+| BUG-026 | P1 | Focus management broken | Fixed - broadcast focus changes to TUI clients |
+| BUG-025 | P2 | Direction response mismatch | Fixed - return user's requested direction |
 | BUG-024 | P0 | Runaway pane spawning via sideband | Fixed - OSC escape sequences (5da1697) |
 | BUG-023 | P1 | create_session no shell in pane | Fixed - command param + output poller (1ac7e60) |
 | BUG-022 | P2 | Viewport stuck above bottom | Fixed - scroll position reset on resize (b567daf) |
@@ -90,7 +87,7 @@
 |----|-------------|--------|
 | BUG-001 to BUG-021 | Various integration bugs | ✅ All Fixed |
 | BUG-012 | Text selection not working | ❌ Deprecated (Shift+click works) |
-| BUG-022 to BUG-024 | Recent fixes | ✅ All Fixed |
+| BUG-022 to BUG-027 | QA demo bugs + recent fixes | ✅ All Fixed |
 
 ## Feature Backlog (Prioritized)
 
@@ -101,18 +98,16 @@ All Gas Town P1 features completed. 6 features merged from parallel streams.
 ### Just Merged (This Session)
 | ID | Title | Status |
 |----|-------|--------|
-| ✅ FEAT-054 | Pane-bounded text selection in copy mode | Merged |
-| ✅ FEAT-052 | ccmux_kill_session MCP tool | Merged |
-| ✅ FEAT-047 | ccmux_set_environment MCP tool | Merged |
-| ✅ FEAT-051 | ccmux_get_environment MCP tool | Merged |
-| ✅ FEAT-053 | Auto-inject CCMUX context env vars | Merged |
-| ✅ FEAT-049 | tmux-compatible CLI wrapper (ccmux-compat) | Merged |
+| ✅ FEAT-055 | Full tmux keybinding parity in TUI | Merged |
+| ✅ BUG-027 | MCP response routing fix | Merged |
+| ✅ BUG-026 | Focus management fix | Merged |
+| ✅ BUG-025 | Direction response fix | Merged |
 
-### P1 - High Priority (TUI Improvements)
+### P1 - High Priority (New)
 
 | ID | Title | Component | Effort | Notes |
 |----|-------|-----------|--------|-------|
-| **FEAT-055** | tmux Keybinding Parity | Client TUI | Medium | Full tmux keybind compatibility in TUI |
+| **FEAT-056** | User Priority Lockout | MCP/TUI | Medium | Prevent MCP/user focus conflicts - lock MCP during Ctrl+B |
 
 ### P2 - Medium Priority (Enhancements)
 
@@ -189,31 +184,22 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-Three parallel streams for bug fixes and features:
+**None active** - All parallel work streams merged and cleaned up.
 
-| Stream | Path | Branch | Work Items | Focus |
-|--------|------|--------|------------|-------|
-| **A** | `ccmux-stream-a/` | `fix/bug-027-response-routing` | BUG-027 (P0) | MCP response routing |
-| **B** | `ccmux-stream-b/` | `fix/bug-025-026-mcp-handlers` | BUG-025, BUG-026 | MCP handler fixes |
-| **C** | `ccmux-stream-c/` | `feat/feat-055-tmux-keybinds` | FEAT-055 (P1) | TUI keybindings |
-
-Each worktree has a `SESSION.md` (gitignored) with detailed instructions.
-
-**To start a worker:**
-```bash
-cd /home/becker/projects/tools/ccmux-stream-X
-cat SESSION.md  # Read instructions
-```
+Available for new parallel work:
+- `ccmux-stream-a/` through `ccmux-stream-d/` can be recreated as needed
 
 ### Recently Merged (2026-01-11) - This Session
+- ✅ **FEAT-055**: Full tmux keybinding parity in TUI
+- ✅ **BUG-027**: MCP response routing (P0 critical)
+- ✅ **BUG-026**: Focus management broken
+- ✅ **BUG-025**: Direction response mismatch
 - ✅ FEAT-054: Pane-bounded text selection in copy mode
 - ✅ FEAT-052: ccmux_kill_session MCP tool
 - ✅ FEAT-047: ccmux_set_environment MCP tool
 - ✅ FEAT-051: ccmux_get_environment MCP tool
 - ✅ FEAT-053: Auto-inject CCMUX context env vars
 - ✅ FEAT-049: tmux-compatible CLI wrapper (ccmux-compat)
-- ✅ Advanced MCP pane management tools (ccmux_split_pane, ccmux_resize_pane, ccmux_create_layout)
-- ✅ BUG-022, BUG-023, BUG-024 moved to completed
 
 ### Recently Merged (2026-01-10)
 - ✅ BUG-014: Large output buffer overflow
@@ -225,11 +211,13 @@ cat SESSION.md  # Read instructions
 - ✅ FEAT-046: MCP focus/select control
 
 ### Next Session Checklist
-- [ ] Fix BUG-027 (P0): MCP response routing - critical blocker
-- [ ] Fix BUG-026 (P1): Focus management broken
-- [ ] Fix BUG-025 (P2): Direction response mismatch (cosmetic)
+- [x] ~~Fix BUG-027 (P0): MCP response routing~~ - DONE
+- [x] ~~Fix BUG-026 (P1): Focus management broken~~ - DONE
+- [x] ~~Fix BUG-025 (P2): Direction response mismatch~~ - DONE
+- [x] ~~Cleanup merged worktree branches~~ - DONE
 - [ ] Update README with new MCP tools
-- [ ] Cleanup merged worktree branches
+- [ ] Implement FEAT-056: User priority lockout for MCP focus control
+- [ ] Create release build and test full workflow
 
 ## Session Log (2026-01-11) - Feature Merge & QA Bugs
 

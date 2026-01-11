@@ -6,22 +6,21 @@
 ## Summary Statistics
 
 - **Total Features**: 56
-- **Completed**: 50
-- **Backlog**: 6
+- **Completed**: 51
+- **Backlog**: 5
 
 ## Current Status
 
-All Gas Town integration features have been implemented. Six features remain in backlog for future consideration.
+All Gas Town integration features have been implemented. Five features remain in backlog for future consideration.
 
 ### Backlog Features
 
 | ID | Title | Component | Priority | Notes |
 |----|-------|-----------|----------|-------|
-| FEAT-055 | tmux Keybinding Parity in TUI | ccmux-client | P1 | Full tmux keybind compatibility in TUI |
+| FEAT-056 | User Priority Lockout for MCP Focus Control | ccmux-server, ccmux-client, ccmux-protocol | P1 | Prevent MCP focus ops from conflicting with user commands |
 | FEAT-028 | Orchestration Flexibility Refactor | ccmux-protocol | P2 | Generalize orchestrator/worker to tag-based roles |
 | FEAT-036 | Session-Aware MCP Commands | ccmux-server (MCP) | P2 | May overlap with FEAT-043 (session rename) |
 | FEAT-048 | Expose orchestration protocol via MCP tools | ccmux-server (MCP) | P2 | Agent-to-agent orchestration API surface |
-| FEAT-056 | User Priority Lockout for MCP Focus Control | ccmux-server, ccmux-client, ccmux-protocol | P2 | Prevent MCP focus ops from conflicting with user commands |
 | FEAT-050 | Session Metadata Storage | ccmux-server (MCP) | P3 | Arbitrary key-value metadata on sessions for agent identity |
 
 ## Completed Features
@@ -75,7 +74,7 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | FEAT-026 | Input Handling Integration and Testing | Complete |
 | FEAT-027 | Client Connection Registry | Complete |
 
-### Post-MVP Features (23 features)
+### Post-MVP Features (24 features)
 | ID | Title | Status |
 |----|-------|--------|
 | FEAT-029 | MCP Natural Language Terminal Control | Complete |
@@ -101,6 +100,7 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | FEAT-052 | ccmux_kill_session MCP tool | Complete |
 | FEAT-053 | Auto-inject CCMUX Context Environment Variables | Complete |
 | FEAT-054 | Pane-bounded text selection in copy mode | Complete |
+| FEAT-055 | Full tmux keybinding parity in TUI | Complete |
 
 ## Test Coverage
 
@@ -111,8 +111,8 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | Wave 2 | 3 | 224 |
 | Wave 3 | 2 | 49 |
 | Wave 4 | 7 | 126 |
-| Post-MVP | 23 | 247 |
-| **Total** | **50** | **1,466+** |
+| Post-MVP | 24 | 268 |
+| **Total** | **51** | **1,487** |
 
 ## Architecture
 
