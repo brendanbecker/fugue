@@ -5,13 +5,13 @@
 
 ## Summary Statistics
 
-- **Total Features**: 56
+- **Total Features**: 59
 - **Completed**: 51
-- **Backlog**: 5
+- **Backlog**: 8
 
 ## Current Status
 
-All Gas Town integration features have been implemented. Five features remain in backlog for future consideration.
+All Gas Town integration features have been implemented. Eight features remain in backlog for future consideration.
 
 ### Backlog Features
 
@@ -21,7 +21,10 @@ All Gas Town integration features have been implemented. Five features remain in
 | FEAT-028 | Orchestration Flexibility Refactor | ccmux-protocol | P2 | Generalize orchestrator/worker to tag-based roles |
 | FEAT-036 | Session-Aware MCP Commands | ccmux-server (MCP) | P2 | May overlap with FEAT-043 (session rename) |
 | FEAT-048 | Expose orchestration protocol via MCP tools | ccmux-server (MCP) | P2 | Agent-to-agent orchestration API surface |
+| FEAT-057 | Beads Passive Awareness | ccmux-server | P2 | Auto-detect .beads/ and configure env vars |
 | FEAT-050 | Session Metadata Storage | ccmux-server (MCP) | P3 | Arbitrary key-value metadata on sessions for agent identity |
+| FEAT-058 | Beads Query Integration | ccmux-server, ccmux-client | P3 | TUI visibility into beads work queue via daemon socket |
+| FEAT-059 | Beads Workflow Integration | ccmux-server, ccmux-protocol | P3 | Pane-issue correlation, audit trails, recovery hints |
 
 ## Completed Features
 

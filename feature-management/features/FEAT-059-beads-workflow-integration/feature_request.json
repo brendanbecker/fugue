@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-059",
+  "title": "Beads Workflow Integration - Pane-Issue Correlation and Audit Trail",
+  "component": "ccmux-server, ccmux-protocol",
+  "priority": "P3",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-11",
+  "updated_date": "2026-01-11",
+  "assigned_to": null,
+  "tags": ["orchestration", "session-management", "crash-recovery", "mcp"],
+  "estimated_effort": "large",
+  "dependencies": ["FEAT-057", "FEAT-058", "FEAT-050"],
+  "description": "Add deep workflow integration between ccmux panes and beads issues, enabling automatic correlation, audit trails, and recovery hints for multi-agent development workflows. This includes pane-issue assignment tracking, auto-injection of pane context into beads operations, issue creation from pane events, recovery/query tools, and orchestration integration.",
+  "business_value": "high",
+  "technical_complexity": "high",
+  "user_impact": "Provides complete audit trail of pane-issue work, easy debugging (what was pane X working on when it crashed), recovery support (restart work on issue Y), and accurate attribution (which pane/session completed each task)."
+}

@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-057",
+  "title": "Beads Passive Awareness - Auto-Detection and Environment Setup",
+  "component": "ccmux-server",
+  "priority": "P2",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-11",
+  "updated_date": "2026-01-11",
+  "assigned_to": null,
+  "tags": ["session-management", "enhancement", "config"],
+  "estimated_effort": "medium",
+  "dependencies": [],
+  "description": "Add passive beads awareness to ccmux that automatically detects when panes are operating in beads-tracked repositories and configures them appropriately. Currently, using beads with ccmux requires manual configuration of environment variables (BEADS_DIR, BEADS_NO_DAEMON) for each session/pane. This is error-prone and tedious, especially in multi-agent workflows where many panes are created dynamically.",
+  "business_value": "medium",
+  "technical_complexity": "medium",
+  "user_impact": "Zero-configuration beads integration for new panes, eliminating manual env var setup errors and enabling seamless multi-agent workflows"
+}

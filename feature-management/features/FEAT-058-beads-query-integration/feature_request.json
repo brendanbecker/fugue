@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-058",
+  "title": "Beads Query Integration - TUI Visibility into Work Queue",
+  "component": "ccmux-server, ccmux-client",
+  "priority": "P3",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-11",
+  "updated_date": "2026-01-11",
+  "assigned_to": null,
+  "tags": ["beads", "tui", "daemon", "work-queue", "status-bar", "integration"],
+  "estimated_effort": "large",
+  "dependencies": ["FEAT-057"],
+  "description": "Add beads query integration to ccmux's TUI, providing visibility into the beads work queue directly in the terminal multiplexer interface. When working in beads-tracked repositories, users and agents must shell out to `bd ready`, `bd list`, etc. to see the work queue. This feature provides at-a-glance visibility into pending tasks without context switching.",
+  "business_value": "medium",
+  "technical_complexity": "medium",
+  "user_impact": "Provides at-a-glance work queue visibility without context switching. Users can see pending tasks, daemon health, and quickly navigate to work items."
+}
