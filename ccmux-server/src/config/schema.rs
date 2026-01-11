@@ -16,6 +16,29 @@ pub struct AppConfig {
     pub claude: ClaudeConfig,
     pub persistence: PersistenceConfig,
     pub session_logging: SessionLoggingConfig,
+    pub beads: BeadsConfig,
+}
+
+/// Beads integration settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct BeadsConfig {
+    /// Enable auto-detection of .beads/ directory (default: true)
+    pub auto_detect: bool,
+    /// Auto-set BEADS_DIR when detected (default: true)
+    pub auto_set_beads_dir: bool,
+    /// Set BEADS_NO_DAEMON for new panes (useful for worktrees)
+    pub no_daemon_default: bool,
+}
+
+impl Default for BeadsConfig {
+    fn default() -> Self {
+        Self {
+            auto_detect: true,
+            auto_set_beads_dir: true,
+            no_daemon_default: false,
+        }
+    }
 }
 
 /// Per-session logging settings
@@ -888,5 +911,70 @@ screen_snapshot_lines = 1000
                 .to_lowercase()
                 .contains(level));
         }
+    }
+
+    // ==================== BeadsConfig Tests ====================
+
+    #[test]
+    fn test_beads_config_defaults() {
+        let config = BeadsConfig::default();
+        assert!(config.auto_detect);
+        assert!(config.auto_set_beads_dir);
+        assert!(!config.no_daemon_default);
+    }
+
+    #[test]
+    fn test_beads_config_parse() {
+        let toml_str = r#"
+            [beads]
+            auto_detect = false
+            auto_set_beads_dir = false
+            no_daemon_default = true
+        "#;
+        let config: AppConfig = toml::from_str(toml_str).unwrap();
+        assert!(!config.beads.auto_detect);
+        assert!(!config.beads.auto_set_beads_dir);
+        assert!(config.beads.no_daemon_default);
+    }
+
+    #[test]
+    fn test_beads_config_partial_parse() {
+        let toml_str = r#"
+            [beads]
+            no_daemon_default = true
+        "#;
+        let config: AppConfig = toml::from_str(toml_str).unwrap();
+        assert!(config.beads.auto_detect); // Default
+        assert!(config.beads.auto_set_beads_dir); // Default
+        assert!(config.beads.no_daemon_default); // Explicitly set
+    }
+
+    #[test]
+    fn test_beads_config_debug() {
+        let config = BeadsConfig::default();
+        let debug = format!("{:?}", config);
+        assert!(debug.contains("BeadsConfig"));
+        assert!(debug.contains("auto_detect"));
+    }
+
+    #[test]
+    fn test_beads_config_clone() {
+        let config = BeadsConfig {
+            auto_detect: true,
+            auto_set_beads_dir: false,
+            no_daemon_default: true,
+        };
+        let cloned = config.clone();
+        assert_eq!(config.auto_detect, cloned.auto_detect);
+        assert_eq!(config.auto_set_beads_dir, cloned.auto_set_beads_dir);
+        assert_eq!(config.no_daemon_default, cloned.no_daemon_default);
+    }
+
+    #[test]
+    fn test_beads_config_in_full_config() {
+        let config = AppConfig::default();
+        assert!(config.beads.auto_detect);
+        assert!(config.beads.auto_set_beads_dir);
+        assert!(!config.beads.no_daemon_default);
     }
 }

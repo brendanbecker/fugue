@@ -16,6 +16,7 @@ use handlers::{HandlerContext, HandlerResult};
 use ccmux_protocol::{ServerCodec, ServerMessage};
 use ccmux_utils::Result;
 
+mod beads;
 mod claude;
 mod config;
 mod handlers;

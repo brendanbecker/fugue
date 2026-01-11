@@ -2,11 +2,14 @@
 //!
 //! Handles: CreatePane, SelectPane, ClosePane, Resize
 
+use std::path::PathBuf;
+
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use ccmux_protocol::{ErrorCode, ServerMessage, SplitDirection};
 
+use crate::beads::{self, metadata_keys};
 use crate::pty::{PtyConfig, PtyOutputPoller};
 
 use super::{HandlerContext, HandlerResult};
@@ -81,7 +84,7 @@ impl HandlerContext {
         };
 
         // Spawn PTY for the new pane
-        {
+        let beads_detection: Option<PathBuf> = {
             let mut pty_manager = self.pty_manager.write().await;
 
             // Use default_command from config if set, otherwise shell
@@ -92,8 +95,25 @@ impl HandlerContext {
             };
 
             // Inherit server's working directory so new panes start in the project
+            // Also detect beads root if auto_detect is enabled (FEAT-057)
+            let mut detected_beads: Option<PathBuf> = None;
             if let Ok(cwd) = std::env::current_dir() {
-                pty_config = pty_config.with_cwd(cwd);
+                pty_config = pty_config.with_cwd(&cwd);
+
+                // FEAT-057: Detect beads root and configure environment
+                if self.config.beads.auto_detect {
+                    if let Some(detection) = beads::detect_beads_root(&cwd) {
+                        info!(
+                            "Beads detected for pane {}: {:?}",
+                            pane_id, detection.beads_dir
+                        );
+                        pty_config = pty_config.with_beads_config(
+                            &detection.beads_dir,
+                            &self.config.beads,
+                        );
+                        detected_beads = Some(detection.beads_dir);
+                    }
+                }
             }
             pty_config = pty_config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
 
@@ -119,6 +139,29 @@ impl HandlerContext {
                 Err(e) => {
                     warn!("Failed to spawn PTY for pane {}: {}", pane_id, e);
                 }
+            }
+
+            detected_beads
+        };
+
+        // FEAT-057: Store beads state in pane and session metadata
+        if let Some(beads_dir) = beads_detection {
+            let mut session_manager = self.session_manager.write().await;
+
+            // Store beads root in pane metadata
+            if let Some(pane) = session_manager.find_pane_mut(pane_id) {
+                pane.set_beads_root(Some(beads_dir.clone()));
+                debug!("Beads root set on pane {}: {:?}", pane_id, beads_dir);
+            }
+
+            // Store beads state in session metadata for persistence
+            if let Some(session) = session_manager.get_session_mut(session_id) {
+                session.set_metadata(metadata_keys::BEADS_DETECTED, "true");
+                session.set_metadata(
+                    metadata_keys::BEADS_ROOT,
+                    beads_dir.to_string_lossy().to_string(),
+                );
+                debug!("Beads metadata stored in session {}", session_id);
             }
         }
 

@@ -62,6 +62,8 @@ pub struct StatusBar {
     show_hints: bool,
     /// Animation tick counter
     tick_count: u64,
+    /// Whether the current pane is in a beads-tracked repo (FEAT-057)
+    is_beads_tracked: bool,
 }
 
 impl StatusBar {
@@ -76,6 +78,7 @@ impl StatusBar {
             message: None,
             show_hints: true,
             tick_count: 0,
+            is_beads_tracked: false,
         }
     }
 
@@ -124,6 +127,16 @@ impl StatusBar {
         self.show_hints = !self.show_hints;
     }
 
+    /// Set beads tracking status (FEAT-057)
+    pub fn set_beads_tracked(&mut self, is_tracked: bool) {
+        self.is_beads_tracked = is_tracked;
+    }
+
+    /// Check if beads tracking is enabled
+    pub fn is_beads_tracked(&self) -> bool {
+        self.is_beads_tracked
+    }
+
     /// Update tick count for animations
     pub fn tick(&mut self) {
         self.tick_count = self.tick_count.wrapping_add(1);
@@ -150,6 +163,15 @@ impl StatusBar {
                 format!(" {} panes ", self.pane_count)
             };
             spans.push(Span::styled(pane_text, Style::default().fg(Color::White)));
+        }
+
+        // FEAT-057: Beads indicator
+        if self.is_beads_tracked {
+            spans.push(Span::raw("|"));
+            spans.push(Span::styled(
+                " beads ",
+                Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD),
+            ));
         }
 
         spans
@@ -500,5 +522,66 @@ mod tests {
 
         render_status_bar(&bar, area, &mut buf);
         // Should not panic
+    }
+
+    // ==================== FEAT-057 Beads Indicator Tests ====================
+
+    #[test]
+    fn test_beads_tracked_default_false() {
+        let bar = StatusBar::new();
+        assert!(!bar.is_beads_tracked());
+    }
+
+    #[test]
+    fn test_set_beads_tracked() {
+        let mut bar = StatusBar::new();
+
+        bar.set_beads_tracked(true);
+        assert!(bar.is_beads_tracked());
+
+        bar.set_beads_tracked(false);
+        assert!(!bar.is_beads_tracked());
+    }
+
+    #[test]
+    fn test_left_section_with_beads() {
+        let mut bar = StatusBar::new();
+        bar.set_session(Some(SessionInfo {
+            id: uuid::Uuid::new_v4(),
+            name: "my-session".to_string(),
+            created_at: 0,
+            window_count: 1,
+            attached_clients: 1,
+            worktree: None,
+            tags: std::collections::HashSet::new(),
+            metadata: HashMap::new(),
+        }));
+        bar.set_beads_tracked(true);
+
+        let spans = bar.left_section();
+        let text: String = spans.iter().map(|s| s.content.as_ref()).collect();
+
+        assert!(text.contains("beads"), "Status bar should show beads indicator");
+    }
+
+    #[test]
+    fn test_left_section_without_beads() {
+        let mut bar = StatusBar::new();
+        bar.set_session(Some(SessionInfo {
+            id: uuid::Uuid::new_v4(),
+            name: "my-session".to_string(),
+            created_at: 0,
+            window_count: 1,
+            attached_clients: 1,
+            worktree: None,
+            tags: std::collections::HashSet::new(),
+            metadata: HashMap::new(),
+        }));
+        bar.set_beads_tracked(false);
+
+        let spans = bar.left_section();
+        let text: String = spans.iter().map(|s| s.content.as_ref()).collect();
+
+        assert!(!text.contains("beads"), "Status bar should not show beads indicator when not tracked");
     }
 }

@@ -149,6 +149,32 @@ impl PtyConfig {
         self.env.extend(env.iter().map(|(k, v)| (k.clone(), v.clone())));
         self
     }
+
+    /// Configure beads environment variables (FEAT-057)
+    ///
+    /// Sets the following environment variables based on beads config:
+    /// - `BEADS_DIR`: Path to the .beads/ directory (if auto_set_beads_dir)
+    /// - `BEADS_NO_DAEMON`: Set to "true" if no_daemon_default is enabled
+    ///
+    /// # Arguments
+    /// * `beads_dir` - Path to the .beads/ directory
+    /// * `config` - Beads configuration settings
+    pub fn with_beads_config(
+        mut self,
+        beads_dir: &std::path::Path,
+        config: &crate::config::BeadsConfig,
+    ) -> Self {
+        if config.auto_set_beads_dir {
+            self.env.insert(
+                "BEADS_DIR".to_string(),
+                beads_dir.to_string_lossy().into_owned(),
+            );
+        }
+        if config.no_daemon_default {
+            self.env.insert("BEADS_NO_DAEMON".to_string(), "true".to_string());
+        }
+        self
+    }
 }
 
 #[cfg(test)]
@@ -468,5 +494,89 @@ mod tests {
         assert!(config.env.contains_key("CCMUX_SESSION_NAME"));
         assert!(config.env.contains_key("CCMUX_WINDOW_ID"));
         assert!(config.env.contains_key("CCMUX_PANE_ID"));
+    }
+
+    // ==================== Beads Config Tests (FEAT-057) ====================
+
+    #[test]
+    fn test_with_beads_config_all_enabled() {
+        let beads_config = crate::config::BeadsConfig {
+            auto_detect: true,
+            auto_set_beads_dir: true,
+            no_daemon_default: true,
+        };
+        let beads_dir = PathBuf::from("/path/to/repo/.beads");
+
+        let config = PtyConfig::default().with_beads_config(&beads_dir, &beads_config);
+
+        assert_eq!(
+            config.env.get("BEADS_DIR"),
+            Some(&"/path/to/repo/.beads".to_string())
+        );
+        assert_eq!(config.env.get("BEADS_NO_DAEMON"), Some(&"true".to_string()));
+    }
+
+    #[test]
+    fn test_with_beads_config_only_beads_dir() {
+        let beads_config = crate::config::BeadsConfig {
+            auto_detect: true,
+            auto_set_beads_dir: true,
+            no_daemon_default: false,
+        };
+        let beads_dir = PathBuf::from("/path/to/repo/.beads");
+
+        let config = PtyConfig::default().with_beads_config(&beads_dir, &beads_config);
+
+        assert_eq!(
+            config.env.get("BEADS_DIR"),
+            Some(&"/path/to/repo/.beads".to_string())
+        );
+        assert!(config.env.get("BEADS_NO_DAEMON").is_none());
+    }
+
+    #[test]
+    fn test_with_beads_config_only_no_daemon() {
+        let beads_config = crate::config::BeadsConfig {
+            auto_detect: true,
+            auto_set_beads_dir: false,
+            no_daemon_default: true,
+        };
+        let beads_dir = PathBuf::from("/path/to/repo/.beads");
+
+        let config = PtyConfig::default().with_beads_config(&beads_dir, &beads_config);
+
+        assert!(config.env.get("BEADS_DIR").is_none());
+        assert_eq!(config.env.get("BEADS_NO_DAEMON"), Some(&"true".to_string()));
+    }
+
+    #[test]
+    fn test_with_beads_config_all_disabled() {
+        let beads_config = crate::config::BeadsConfig {
+            auto_detect: false,
+            auto_set_beads_dir: false,
+            no_daemon_default: false,
+        };
+        let beads_dir = PathBuf::from("/path/to/repo/.beads");
+
+        let config = PtyConfig::default().with_beads_config(&beads_dir, &beads_config);
+
+        assert!(config.env.get("BEADS_DIR").is_none());
+        assert!(config.env.get("BEADS_NO_DAEMON").is_none());
+    }
+
+    #[test]
+    fn test_with_beads_config_builder_chain() {
+        let beads_config = crate::config::BeadsConfig::default();
+        let beads_dir = PathBuf::from("/project/.beads");
+
+        let config = PtyConfig::command("bash")
+            .with_cwd("/project/src")
+            .with_beads_config(&beads_dir, &beads_config)
+            .with_size(120, 40);
+
+        assert_eq!(config.command, "bash");
+        assert_eq!(config.cwd, Some(PathBuf::from("/project/src")));
+        assert_eq!(config.size, (120, 40));
+        assert!(config.env.contains_key("BEADS_DIR"));
     }
 }
