@@ -12,14 +12,14 @@
 
 ## Current State (2026-01-11)
 
-**QA Demo Complete** - Found 3 new bugs in MCP layer during comprehensive testing.
+**All major bugs fixed** - MCP layer now stable. One bug pending retest.
 
 **Key Metrics:**
-- 31 bugs tracked, 27 resolved, 3 open, 1 deprecated
-- 60 features tracked, 59 completed, 1 in backlog
-- 1,526 tests passing
+- 32 bugs tracked, 30 resolved, 1 open, 1 deprecated
+- 60 features tracked, 60 completed
+- 1,526+ tests passing
 - Clean git working tree on main branch
-- No active worktrees - all streams merged
+- 1 active worktree (BUG-030 retest)
 
 ### What Works
 - Server accepts client connections via Unix socket
@@ -69,18 +69,23 @@
 | FEAT-025 | Pane Output Rendering | P0 | ✅ Merged |
 | FEAT-026 | Input Testing | P1 | ✅ Working (verified manually) |
 
-## Bug Status: 3 Open (MCP Layer)
+## Bug Status: 1 Open (Pending Retest)
 
-**Open Bugs: 3** - Found during QA demo, all in MCP/daemon layer.
+**Open Bugs: 1** - BUG-030 needs retest after BUG-029 fix.
 
-### Open Bugs (P0/P2)
+### Open Bugs
 | Bug | Priority | Description | Status |
 |-----|----------|-------------|--------|
-| BUG-029 | P0 | MCP response synchronization - responses lag by one call | Open |
-| BUG-030 | P0 | Daemon unresponsive after create_window/kill_session/create_layout | Open |
-| BUG-031 | P2 | Session metadata not persisting across restarts (FEAT-050 incomplete) | Open |
+| BUG-030 | P0 | Daemon unresponsive after certain operations | Pending retest (may be fixed by BUG-029) |
 
-### Recent Critical Fixes
+### Recently Fixed (This Session)
+| Bug | Priority | Description | Resolution |
+|-----|----------|-------------|------------|
+| BUG-032 | P0 | MCP handlers missing TUI broadcasts | Fixed - add ResponseWithBroadcast to 4 handlers |
+| BUG-031 | P2 | Session metadata not persisting | Fixed - persist metadata in WAL/checkpoint |
+| BUG-029 | P0 | MCP response synchronization lag | Fixed - filter broadcast messages properly |
+
+### Previous Critical Fixes
 | Bug | Priority | Description | Resolution |
 |-----|----------|-------------|------------|
 | BUG-028 | P0 | Daemon crash on nested create_layout | Fixed - two-phase pane creation to avoid lock contention |
@@ -102,11 +107,15 @@
 
 **Last Updated**: 2026-01-11
 
-All parallel worktree features merged. 1 feature remains in backlog (beads workflow).
+**ALL FEATURES COMPLETE** - 60/60 features implemented.
 
 ### Just Merged (This Session)
 | ID | Title | Status |
 |----|-------|--------|
+| ✅ FEAT-059 | Beads Workflow Integration | Merged |
+| ✅ BUG-032 | MCP handlers missing TUI broadcasts | Fixed |
+| ✅ BUG-031 | Metadata persistence | Fixed |
+| ✅ BUG-029 | MCP response synchronization | Fixed |
 | ✅ FEAT-058 | Beads Query Integration | Merged |
 | ✅ BUG-028 | Daemon crash on nested create_layout | Fixed |
 | ✅ FEAT-060 | MCP Daemon Auto-Recovery | Merged |
@@ -119,9 +128,7 @@ All parallel worktree features merged. 1 feature remains in backlog (beads workf
 
 ### P3 - Low Priority (Nice to Have)
 
-| ID | Title | Component | Effort | Notes |
-|----|-------|-----------|--------|-------|
-| **FEAT-059** | Beads Workflow Integration | Server/Protocol | Medium | Pane-issue correlation (ready now) |
+All P3 features complete.
 
 ### Gas Town Integration: COMPLETE ✅
 
@@ -186,22 +193,24 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-**None** - All streams merged and cleaned up.
+**1 worktree** - BUG-030 retest pending.
 
-| Stream | Feature | Status |
-|--------|---------|--------|
-| A | FEAT-048, FEAT-057 | ✅ Merged |
-| B | BUG-028 | ✅ Merged |
-| C | FEAT-058 | ✅ Merged |
-| D | QA Demo | ✅ Complete (bugs filed) |
-| E | FEAT-060 | ✅ Merged |
-| F | Various | ✅ Merged |
+| Worktree | Branch | Purpose |
+|----------|--------|---------|
+| `ccmux-bug-030` | `fix/bug-030-daemon-unresponsive` | Retest after BUG-029 fix |
 
-### Recently Merged (2026-01-11) - This Session
+### Recently Merged (2026-01-11) - Latest Session
+- ✅ **FEAT-059**: Beads Workflow Integration (4 new MCP tools)
+- ✅ **BUG-032**: MCP handlers missing TUI broadcasts
+- ✅ **BUG-031**: Metadata persistence across restarts
+- ✅ **BUG-029**: MCP response synchronization
+
+### Recently Merged (2026-01-11) - Earlier
 - ✅ **BUG-028**: Daemon crash on nested create_layout (stream-e)
 - ✅ **FEAT-060**: MCP Daemon Auto-Recovery (stream-f)
 - ✅ **FEAT-048**: MCP Orchestration Protocol Tools (stream-a)
 - ✅ **FEAT-057**: Beads Passive Awareness (stream-b)
+- ✅ **FEAT-058**: Beads Query Integration (stream-c)
 - ✅ **FEAT-056**: User Priority Lockout for MCP Focus Control
 - ✅ **FEAT-028**: Orchestration Flexibility Refactor (Tag-based Routing)
 - ✅ **FEAT-036**: Session-Aware MCP Commands
@@ -227,22 +236,43 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 - ✅ FEAT-046: MCP focus/select control
 
 ### Next Session Checklist
-- [x] ~~Implement FEAT-048: MCP Orchestration Protocol Tools~~ - MERGED
-- [x] ~~Implement FEAT-057: Beads Passive Awareness~~ - MERGED
-- [x] ~~Fix BUG-028 (P0): Daemon crash on nested create_layout~~ - MERGED
-- [x] ~~Implement FEAT-060: MCP Daemon Auto-Recovery~~ - MERGED
-- [x] ~~Cleanup merged worktree branches~~ - DONE
-- [x] ~~Implement FEAT-058: Beads Query Integration~~ - MERGED
-- [x] ~~QA Demo of MCP tools~~ - Complete (3 bugs filed)
-- [ ] Fix BUG-029 (P0): MCP response synchronization
-- [ ] Fix BUG-030 (P0): Daemon unresponsive after certain operations
-- [ ] Fix BUG-031 (P2): Metadata persistence
+- [x] ~~Fix BUG-029 (P0): MCP response synchronization~~ - MERGED
+- [x] ~~Fix BUG-031 (P2): Metadata persistence~~ - MERGED
+- [x] ~~Fix BUG-032 (P0): MCP handlers missing TUI broadcasts~~ - MERGED
+- [x] ~~Implement FEAT-059: Beads Workflow Integration~~ - MERGED
+- [ ] Retest BUG-030: Daemon unresponsive (may be fixed by BUG-029)
 - [ ] Update README with new MCP tools
 - [ ] Create release build and test full workflow
 
-## Session Log (2026-01-11) - QA Demo & Stream C Merge
+## Session Log (2026-01-11) - Bug Fixes & Feature Completion
 
 ### Work Completed This Session
+1. **BUG-029 fixed & merged** - MCP response synchronization (filter broadcast messages)
+2. **BUG-031 fixed & merged** - Metadata persistence across restarts
+3. **FEAT-059 implemented & merged** - Beads workflow integration (4 new MCP tools)
+4. **BUG-032 discovered & fixed** - MCP handlers missing TUI broadcasts (split_pane, create_window, create_layout, resize_pane now broadcast to TUI)
+5. **Worktrees cleaned up** - Removed completed worktrees, only BUG-030 remains
+6. **All features complete** - 60/60 features implemented
+
+### Key Fixes
+- **BUG-029**: `is_broadcast_message()` now filters `SessionFocused`, `WindowFocused`, `PaneFocused`
+- **BUG-031**: WAL entries for metadata set/remove, checkpoint includes metadata
+- **BUG-032**: 4 handlers changed from `Response` to `ResponseWithBroadcast`
+- **FEAT-059**: New tools: `ccmux_beads_assign`, `ccmux_beads_release`, `ccmux_beads_find_pane`, `ccmux_beads_pane_history`
+
+### Commits Made
+- `4e64391` - fix(mcp): correct response synchronization (BUG-029)
+- `f055f56` - fix(persistence): persist session metadata across restarts (BUG-031)
+- `3b08b8e` - feat(beads): add workflow integration tools (FEAT-059)
+- `c9d916d` - fix(mcp): add TUI broadcasts to state-modifying handlers (BUG-032)
+- `c7de119` - docs: add BUG-032 MCP handlers missing TUI broadcasts
+- `38e6ff4` - chore: remove unused HashMap imports in persistence module
+
+---
+
+## Session Log (2026-01-11) - QA Demo & Stream C Merge
+
+### Work Completed This Session (Earlier)
 1. **Comprehensive QA demo of MCP tools** - Tested 15+ operations
 2. **FEAT-058 merged** - Beads query integration (stream-c)
 3. **3 new bugs filed**:
