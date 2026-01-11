@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-054",
+  "title": "Pane-bounded text selection in copy mode",
+  "component": "ccmux-client (UI/Input)",
+  "priority": "P2",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-11",
+  "updated_date": "2026-01-11",
+  "assigned_to": null,
+  "tags": ["tui", "input", "clipboard", "ux", "rendering"],
+  "estimated_effort": "large",
+  "dependencies": ["FEAT-010"],
+  "description": "Implement proper text selection within copy mode that respects pane boundaries. Currently, shift+click text selection is handled by the terminal emulator, which doesn't know about ccmux pane boundaries, resulting in selection spanning across panes or including border characters. This feature adds vim-style keyboard selection (v/V for visual modes), mouse drag selection clipped to pane bounds, visual highlighting of selected text, and clipboard integration via OSC 52 escape sequences.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Enables users to select and copy text from terminal panes without accidentally selecting content from adjacent panes or border characters, matching expectations from tmux copy mode"
+}
