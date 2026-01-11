@@ -248,7 +248,8 @@ impl HandlerContext {
                 window_filter,
                 layout,
             } => {
-                self.handle_create_layout(session_filter, window_filter, layout)
+                // Convert JsonValue back to serde_json::Value for the handler
+                self.handle_create_layout(session_filter, window_filter, layout.into_inner())
                     .await
             }
 

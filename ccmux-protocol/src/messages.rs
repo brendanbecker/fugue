@@ -20,21 +20,22 @@ use crate::types::*;
 /// use ccmux_protocol::OrchestrationMessage;
 /// use serde_json::json;
 ///
-/// let msg = OrchestrationMessage {
-///     msg_type: "workflow.task_assigned".to_string(),
-///     payload: json!({
+/// let msg = OrchestrationMessage::new(
+///     "workflow.task_assigned",
+///     json!({
 ///         "task_id": "abc123",
 ///         "description": "Fix the bug",
 ///         "files": ["src/main.rs"]
 ///     }),
-/// };
+/// );
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct OrchestrationMessage {
     /// User-defined message type identifier (e.g., "status_update", "task.assigned")
     pub msg_type: String,
     /// Message payload as JSON - structure is defined by the workflow
-    pub payload: serde_json::Value,
+    /// Uses JsonValue wrapper for bincode compatibility (BUG-030)
+    pub payload: crate::types::JsonValue,
 }
 
 impl OrchestrationMessage {
@@ -42,8 +43,13 @@ impl OrchestrationMessage {
     pub fn new(msg_type: impl Into<String>, payload: serde_json::Value) -> Self {
         Self {
             msg_type: msg_type.into(),
-            payload,
+            payload: crate::types::JsonValue::new(payload),
         }
+    }
+
+    /// Get the payload as a serde_json::Value reference
+    pub fn payload(&self) -> &serde_json::Value {
+        self.payload.inner()
     }
 }
 
@@ -260,7 +266,8 @@ pub enum ClientMessage {
         /// Window filter (name or ID, uses first if omitted)
         window_filter: Option<String>,
         /// Layout specification as JSON
-        layout: serde_json::Value,
+        /// Uses JsonValue wrapper for bincode compatibility (BUG-030)
+        layout: crate::types::JsonValue,
     },
 
     /// Set an environment variable on a session (for MCP bridge)
@@ -1449,7 +1456,7 @@ tags: HashSet::new(),
                 "task_id": "abc123",
                 "description": "Fix the bug",
                 "files": ["src/main.rs", "src/lib.rs"]
-            }),
+            }).into(),
         };
 
         assert_eq!(msg.msg_type, "task.assigned");

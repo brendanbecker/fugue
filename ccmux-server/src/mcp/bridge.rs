@@ -1509,7 +1509,7 @@ impl McpBridge {
         self.send_to_daemon(ClientMessage::CreateLayout {
             session_filter: session,
             window_filter: window,
-            layout,
+            layout: layout.into(), // Convert to JsonValue for bincode compatibility (BUG-030)
         })
         .await?;
 

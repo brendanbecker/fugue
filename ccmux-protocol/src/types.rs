@@ -6,6 +6,74 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
+/// A wrapper for serde_json::Value that serializes as a JSON string for bincode compatibility.
+///
+/// Bincode doesn't support `deserialize_any` which `serde_json::Value` requires.
+/// This wrapper serializes the JSON value as a string, which bincode can handle.
+#[derive(Debug, Clone, PartialEq)]
+pub struct JsonValue(pub serde_json::Value);
+
+impl JsonValue {
+    /// Create a new JsonValue from a serde_json::Value
+    pub fn new(value: serde_json::Value) -> Self {
+        Self(value)
+    }
+
+    /// Get a reference to the inner value
+    pub fn inner(&self) -> &serde_json::Value {
+        &self.0
+    }
+
+    /// Consume the wrapper and return the inner value
+    pub fn into_inner(self) -> serde_json::Value {
+        self.0
+    }
+}
+
+impl From<serde_json::Value> for JsonValue {
+    fn from(value: serde_json::Value) -> Self {
+        Self(value)
+    }
+}
+
+impl From<JsonValue> for serde_json::Value {
+    fn from(value: JsonValue) -> Self {
+        value.0
+    }
+}
+
+impl std::ops::Deref for JsonValue {
+    type Target = serde_json::Value;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Serialize for JsonValue {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // Serialize as a JSON string for bincode compatibility
+        let json_string = serde_json::to_string(&self.0).map_err(serde::ser::Error::custom)?;
+        serializer.serialize_str(&json_string)
+    }
+}
+
+impl<'de> Deserialize<'de> for JsonValue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        // Deserialize from a JSON string
+        let json_string = String::deserialize(deserializer)?;
+        let value: serde_json::Value =
+            serde_json::from_str(&json_string).map_err(serde::de::Error::custom)?;
+        Ok(Self(value))
+    }
+}
+
 /// Split direction for creating panes
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SplitDirection {
