@@ -188,8 +188,13 @@ impl SessionRestorer {
     ) -> SessionRestorationResult {
         debug!("Restoring session '{}' ({})", snapshot.name, snapshot.id);
 
-        // Create restored session
-        let mut session = Session::restore(snapshot.id, &snapshot.name, snapshot.created_at);
+        // Create restored session with metadata
+        let mut session = Session::restore_with_metadata(
+            snapshot.id,
+            &snapshot.name,
+            snapshot.created_at,
+            snapshot.metadata.clone(),
+        );
 
         let mut pane_results = Vec::new();
 
@@ -888,5 +893,69 @@ mod tests {
         let pane_result = &result.sessions[0].pane_results[0];
         assert!(!pane_result.claude_resumed);
         assert!(pane_result.claude_session_id.is_none());
+    }
+
+    #[test]
+    fn test_restore_preserves_metadata() {
+        let restorer = SessionRestorer::without_pty_spawn();
+
+        let session_id = Uuid::new_v4();
+        let window_id = Uuid::new_v4();
+        let pane_id = Uuid::new_v4();
+
+        // Create metadata to persist
+        let mut metadata = HashMap::new();
+        metadata.insert("qa.tester".to_string(), "claude".to_string());
+        metadata.insert("beads.root".to_string(), "/path/to/beads".to_string());
+
+        let snapshot = SessionSnapshot {
+            id: session_id,
+            name: "test-session".to_string(),
+            windows: vec![WindowSnapshot {
+                id: window_id,
+                session_id,
+                name: "main".to_string(),
+                index: 0,
+                panes: vec![PaneSnapshot {
+                    id: pane_id,
+                    window_id,
+                    index: 0,
+                    cols: 80,
+                    rows: 24,
+                    state: PaneState::Normal,
+                    name: None,
+                    title: None,
+                    cwd: None,
+                    created_at: 12345,
+                    scrollback: None,
+                }],
+                active_pane_id: Some(pane_id),
+                created_at: 12345,
+            }],
+            active_window_id: Some(window_id),
+            created_at: 12345,
+            metadata,
+        };
+
+        let state = RecoveryState {
+            sessions: vec![snapshot],
+            clean_shutdown: true,
+            ..Default::default()
+        };
+
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        let result = restorer.restore(&state, &mut session_manager, &mut pty_manager);
+
+        assert_eq!(result.sessions.len(), 1);
+        assert_eq!(result.total_panes, 1);
+
+        // Check session was added with metadata
+        let session = session_manager.get_session(session_id);
+        assert!(session.is_some());
+        let session = session.unwrap();
+        assert_eq!(session.get_metadata("qa.tester"), Some(&"claude".to_string()));
+        assert_eq!(session.get_metadata("beads.root"), Some(&"/path/to/beads".to_string()));
     }
 }

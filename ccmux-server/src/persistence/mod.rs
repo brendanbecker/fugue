@@ -249,6 +249,22 @@ impl PersistenceManager {
         Ok(())
     }
 
+    /// Log a session metadata change
+    pub fn log_session_metadata_set(
+        &self,
+        session_id: Uuid,
+        key: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Result<()> {
+        let entry = WalEntry::SessionMetadataSet {
+            session_id,
+            key: key.into(),
+            value: value.into(),
+        };
+        self.recovery_manager.wal().append(&entry)?;
+        Ok(())
+    }
+
     /// Log a window creation
     pub fn log_window_created(
         &self,
@@ -682,5 +698,96 @@ mod tests {
         assert!(state.has_sessions());
         assert_eq!(state.sessions[0].name, "work");
         assert_eq!(state.sessions[0].windows[0].panes.len(), 2);
+    }
+
+    #[test]
+    fn test_persistence_metadata_via_checkpoint() {
+        let (temp_dir, mut manager) = create_test_manager();
+
+        // Create session with metadata
+        let session_id = Uuid::new_v4();
+        let window_id = Uuid::new_v4();
+        let pane_id = Uuid::new_v4();
+
+        manager.log_session_created(session_id, "test-session").unwrap();
+
+        // Create metadata map
+        let mut metadata = HashMap::new();
+        metadata.insert("qa.tester".to_string(), "claude".to_string());
+        metadata.insert("beads.root".to_string(), "/path/to/beads".to_string());
+
+        let sessions = vec![SessionSnapshot {
+            id: session_id,
+            name: "test-session".to_string(),
+            windows: vec![WindowSnapshot {
+                id: window_id,
+                session_id,
+                name: "main".to_string(),
+                index: 0,
+                panes: vec![PaneSnapshot {
+                    id: pane_id,
+                    window_id,
+                    index: 0,
+                    cols: 80,
+                    rows: 24,
+                    state: PaneState::Normal,
+                    name: None,
+                    title: None,
+                    cwd: None,
+                    created_at: 0,
+                    scrollback: None,
+                }],
+                active_pane_id: Some(pane_id),
+                created_at: 0,
+            }],
+            active_window_id: Some(window_id),
+            created_at: 0,
+            metadata,
+        }];
+
+        manager.create_checkpoint(sessions).unwrap();
+        manager.shutdown(vec![]).unwrap();
+
+        // Recover and verify metadata is preserved
+        let manager2 = PersistenceManager::new(
+            temp_dir.path().join("state"),
+            PersistenceConfig::default(),
+        )
+        .unwrap();
+
+        let state = manager2.recover().unwrap();
+
+        assert!(state.has_sessions());
+        let session = &state.sessions[0];
+        assert_eq!(session.metadata.get("qa.tester"), Some(&"claude".to_string()));
+        assert_eq!(session.metadata.get("beads.root"), Some(&"/path/to/beads".to_string()));
+    }
+
+    #[test]
+    fn test_persistence_metadata_via_wal() {
+        let (temp_dir, manager) = create_test_manager();
+
+        let session_id = Uuid::new_v4();
+
+        // Log session creation and metadata set
+        manager.log_session_created(session_id, "test-session").unwrap();
+        manager.log_session_metadata_set(session_id, "qa.tester", "claude").unwrap();
+        manager.log_session_metadata_set(session_id, "beads.root", "/path/to/beads").unwrap();
+
+        manager.finalize().unwrap();
+
+        // Recover and verify metadata is preserved
+        let manager2 = PersistenceManager::new(
+            temp_dir.path().join("state"),
+            PersistenceConfig::default(),
+        )
+        .unwrap();
+
+        let state = manager2.recover().unwrap();
+
+        assert!(state.has_sessions());
+        let session = &state.sessions[0];
+        assert_eq!(session.metadata.get("qa.tester"), Some(&"claude".to_string()));
+        assert_eq!(session.metadata.get("beads.root"), Some(&"/path/to/beads".to_string()));
     }
 }
