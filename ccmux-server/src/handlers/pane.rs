@@ -134,6 +134,8 @@ impl HandlerContext {
     }
 
     /// Handle SelectPane message - update focused pane
+    ///
+    /// BUG-026 FIX: Now broadcasts PaneFocused to TUI clients so they update their UI.
     pub async fn handle_select_pane(&self, pane_id: Uuid) -> HandlerResult {
         debug!("SelectPane {} request from {}", pane_id, self.client_id);
 
@@ -145,13 +147,28 @@ impl HandlerContext {
                 let session_id = session.id();
                 let window_id = window.id();
 
-                // Set as active pane in window
+                // Set as active pane in window and active window in session
                 if let Some(session) = session_manager.get_session_mut(session_id) {
+                    // Also set this window as active in the session
+                    session.set_active_window(window_id);
+
                     if let Some(window) = session.get_window_mut(window_id) {
                         if window.set_active_pane(pane_id) {
                             debug!("Pane {} selected as active", pane_id);
-                            // No response needed for SelectPane
-                            return HandlerResult::NoResponse;
+                            // BUG-026: Broadcast focus change to TUI clients
+                            return HandlerResult::ResponseWithBroadcast {
+                                response: ServerMessage::PaneFocused {
+                                    session_id,
+                                    window_id,
+                                    pane_id,
+                                },
+                                session_id,
+                                broadcast: ServerMessage::PaneFocused {
+                                    session_id,
+                                    window_id,
+                                    pane_id,
+                                },
+                            };
                         }
                     }
                 }
@@ -170,6 +187,8 @@ impl HandlerContext {
     }
 
     /// Handle SelectWindow message - update active window in session
+    ///
+    /// BUG-026 FIX: Now broadcasts WindowFocused to TUI clients so they update their UI.
     pub async fn handle_select_window(&self, window_id: Uuid) -> HandlerResult {
         debug!("SelectWindow {} request from {}", window_id, self.client_id);
 
@@ -186,7 +205,18 @@ impl HandlerContext {
                 if let Some(session) = session_manager.get_session_mut(session_id) {
                     session.set_active_window(window_id);
                     debug!("Window {} selected as active", window_id);
-                    return HandlerResult::NoResponse;
+                    // BUG-026: Broadcast window focus change to TUI clients
+                    return HandlerResult::ResponseWithBroadcast {
+                        response: ServerMessage::WindowFocused {
+                            session_id,
+                            window_id,
+                        },
+                        session_id,
+                        broadcast: ServerMessage::WindowFocused {
+                            session_id,
+                            window_id,
+                        },
+                    };
                 }
                 HandlerContext::error(ErrorCode::InternalError, "Session disappeared")
             }
@@ -201,6 +231,8 @@ impl HandlerContext {
     }
 
     /// Handle SelectSession message - update active session
+    ///
+    /// BUG-026 FIX: Now broadcasts SessionFocused to TUI clients so they update their UI.
     pub async fn handle_select_session(&self, session_id: Uuid) -> HandlerResult {
         debug!("SelectSession {} request from {}", session_id, self.client_id);
 
@@ -218,7 +250,12 @@ impl HandlerContext {
         // Set as active session
         session_manager.set_active_session(session_id);
         debug!("Session {} selected as active", session_id);
-        HandlerResult::NoResponse
+        // BUG-026: Broadcast session focus change to TUI clients
+        HandlerResult::ResponseWithBroadcast {
+            response: ServerMessage::SessionFocused { session_id },
+            session_id,
+            broadcast: ServerMessage::SessionFocused { session_id },
+        }
     }
 
     /// Handle ClosePane message - kill PTY and cleanup
@@ -437,9 +474,15 @@ mod tests {
         // Select second pane
         let result = ctx.handle_select_pane(pane2_id).await;
 
+        // BUG-026: Now returns ResponseWithBroadcast with PaneFocused
         match result {
-            HandlerResult::NoResponse => {}
-            _ => panic!("Expected NoResponse"),
+            HandlerResult::ResponseWithBroadcast {
+                response: ServerMessage::PaneFocused { pane_id, .. },
+                ..
+            } => {
+                assert_eq!(pane_id, pane2_id);
+            }
+            _ => panic!("Expected ResponseWithBroadcast with PaneFocused"),
         }
 
         // Verify pane2 is now active

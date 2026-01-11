@@ -472,6 +472,26 @@ pub enum ServerMessage {
         /// All environment variables (or single requested variable)
         environment: std::collections::HashMap<String, String>,
     },
+
+    // ==================== Focus Change Broadcasts (BUG-026) ====================
+
+    /// Pane focus changed - broadcast to TUI clients
+    PaneFocused {
+        session_id: Uuid,
+        window_id: Uuid,
+        pane_id: Uuid,
+    },
+
+    /// Window selection changed - broadcast to TUI clients
+    WindowFocused {
+        session_id: Uuid,
+        window_id: Uuid,
+    },
+
+    /// Active session changed - broadcast to TUI clients
+    SessionFocused {
+        session_id: Uuid,
+    },
 }
 
 /// Entry in the pane list (for MCP bridge)

@@ -1317,6 +1317,36 @@ impl App {
                     delivered_count
                 ));
             }
+            // BUG-026 FIX: Focus change broadcasts from MCP commands
+            ServerMessage::PaneFocused { pane_id, window_id, .. } => {
+                // Update active pane if we know about this pane
+                if self.panes.contains_key(&pane_id) {
+                    self.active_pane_id = Some(pane_id);
+                    tracing::debug!("Focus changed to pane {} (via MCP)", pane_id);
+                    // If the window is known, ensure it's the active window display
+                    if let Some(window) = self.windows.get_mut(&window_id) {
+                        window.active_pane_id = Some(pane_id);
+                    }
+                }
+            }
+            ServerMessage::WindowFocused { window_id, .. } => {
+                // Update active window - focus its active pane
+                if let Some(window) = self.windows.get(&window_id) {
+                    if let Some(active_pane) = window.active_pane_id {
+                        self.active_pane_id = Some(active_pane);
+                        tracing::debug!("Window {} focused, now focusing pane {} (via MCP)", window_id, active_pane);
+                    }
+                }
+            }
+            ServerMessage::SessionFocused { session_id } => {
+                // Session focus change - if this is our attached session, log it
+                if let Some(ref session) = self.session {
+                    if session.id == session_id {
+                        tracing::debug!("Our session {} is now the active session (via MCP)", session_id);
+                    }
+                }
+            }
+
             // MCP bridge messages - not used by TUI client
             ServerMessage::AllPanesList { .. }
             | ServerMessage::WindowList { .. }
