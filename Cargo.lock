@@ -172,6 +172,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "ccmux-compat"
+version = "0.1.0"
+dependencies = [
+ "ccmux-protocol",
+ "ccmux-utils",
+ "clap",
+ "futures",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "ccmux-protocol"
 version = "0.1.0"
 dependencies = [

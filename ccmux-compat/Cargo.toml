@@ -1,0 +1,40 @@
+[package]
+name = "ccmux-compat"
+description = "tmux-compatible CLI wrapper for ccmux"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "ccmux-compat"
+path = "src/main.rs"
+
+[dependencies]
+ccmux-protocol = { path = "../ccmux-protocol" }
+ccmux-utils = { path = "../ccmux-utils" }
+
+# Async
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+futures = "0.3"
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# IDs
+uuid = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# CLI argument parsing
+clap = { version = "4", features = ["derive"] }
+
+# Error handling
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
