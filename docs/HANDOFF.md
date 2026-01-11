@@ -12,14 +12,14 @@
 
 ## Current State (2026-01-11)
 
-**All major bugs fixed** - MCP layer now stable. One bug pending retest.
+**All bugs fixed, all features complete.** Production ready.
 
 **Key Metrics:**
-- 32 bugs tracked, 30 resolved, 1 open, 1 deprecated
+- 32 bugs tracked, 31 resolved, 1 deprecated
 - 60 features tracked, 60 completed
 - 1,526+ tests passing
 - Clean git working tree on main branch
-- 1 active worktree (BUG-030 retest)
+- No active worktrees
 
 ### What Works
 - Server accepts client connections via Unix socket
@@ -69,20 +69,16 @@
 | FEAT-025 | Pane Output Rendering | P0 | ✅ Merged |
 | FEAT-026 | Input Testing | P1 | ✅ Working (verified manually) |
 
-## Bug Status: 1 Open (Pending Retest)
+## Bug Status: All Resolved
 
-**Open Bugs: 1** - BUG-030 needs retest after BUG-029 fix.
-
-### Open Bugs
-| Bug | Priority | Description | Status |
-|-----|----------|-------------|--------|
-| BUG-030 | P0 | Daemon unresponsive after certain operations | Pending retest (may be fixed by BUG-029) |
+**Open Bugs: 0** - All bugs fixed.
 
 ### Recently Fixed (This Session)
 | Bug | Priority | Description | Resolution |
 |-----|----------|-------------|------------|
 | BUG-032 | P0 | MCP handlers missing TUI broadcasts | Fixed - add ResponseWithBroadcast to 4 handlers |
 | BUG-031 | P2 | Session metadata not persisting | Fixed - persist metadata in WAL/checkpoint |
+| BUG-030 | P0 | Daemon unresponsive after operations | Fixed - wrap serde_json::Value for bincode compatibility |
 | BUG-029 | P0 | MCP response synchronization lag | Fixed - filter broadcast messages properly |
 
 ### Previous Critical Fixes
@@ -193,13 +189,10 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-**1 worktree** - BUG-030 retest pending.
-
-| Worktree | Branch | Purpose |
-|----------|--------|---------|
-| `ccmux-bug-030` | `fix/bug-030-daemon-unresponsive` | Retest after BUG-029 fix |
+**None** - All work complete and merged.
 
 ### Recently Merged (2026-01-11) - Latest Session
+- ✅ **BUG-030**: Daemon unresponsive (serde_json::Value bincode fix)
 - ✅ **FEAT-059**: Beads Workflow Integration (4 new MCP tools)
 - ✅ **BUG-032**: MCP handlers missing TUI broadcasts
 - ✅ **BUG-031**: Metadata persistence across restarts
@@ -237,10 +230,10 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ### Next Session Checklist
 - [x] ~~Fix BUG-029 (P0): MCP response synchronization~~ - MERGED
+- [x] ~~Fix BUG-030 (P0): Daemon unresponsive~~ - MERGED (bincode fix)
 - [x] ~~Fix BUG-031 (P2): Metadata persistence~~ - MERGED
 - [x] ~~Fix BUG-032 (P0): MCP handlers missing TUI broadcasts~~ - MERGED
 - [x] ~~Implement FEAT-059: Beads Workflow Integration~~ - MERGED
-- [ ] Retest BUG-030: Daemon unresponsive (may be fixed by BUG-029)
 - [ ] Update README with new MCP tools
 - [ ] Create release build and test full workflow
 
@@ -248,23 +241,27 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ### Work Completed This Session
 1. **BUG-029 fixed & merged** - MCP response synchronization (filter broadcast messages)
-2. **BUG-031 fixed & merged** - Metadata persistence across restarts
-3. **FEAT-059 implemented & merged** - Beads workflow integration (4 new MCP tools)
-4. **BUG-032 discovered & fixed** - MCP handlers missing TUI broadcasts (split_pane, create_window, create_layout, resize_pane now broadcast to TUI)
-5. **Worktrees cleaned up** - Removed completed worktrees, only BUG-030 remains
-6. **All features complete** - 60/60 features implemented
+2. **BUG-030 fixed & merged** - Daemon unresponsive (serde_json::Value bincode wrapper)
+3. **BUG-031 fixed & merged** - Metadata persistence across restarts
+4. **BUG-032 discovered & fixed** - MCP handlers missing TUI broadcasts
+5. **FEAT-059 implemented & merged** - Beads workflow integration (4 new MCP tools)
+6. **All worktrees cleaned up** - No active worktrees
+7. **All bugs resolved** - 31/32 fixed, 1 deprecated
+8. **All features complete** - 60/60 features implemented
 
 ### Key Fixes
 - **BUG-029**: `is_broadcast_message()` now filters `SessionFocused`, `WindowFocused`, `PaneFocused`
+- **BUG-030**: Wrap `serde_json::Value` in newtype for bincode serialization compatibility
 - **BUG-031**: WAL entries for metadata set/remove, checkpoint includes metadata
 - **BUG-032**: 4 handlers changed from `Response` to `ResponseWithBroadcast`
 - **FEAT-059**: New tools: `ccmux_beads_assign`, `ccmux_beads_release`, `ccmux_beads_find_pane`, `ccmux_beads_pane_history`
 
 ### Commits Made
 - `4e64391` - fix(mcp): correct response synchronization (BUG-029)
+- `1305744` - fix(protocol): wrap serde_json::Value for bincode compatibility (BUG-030)
 - `f055f56` - fix(persistence): persist session metadata across restarts (BUG-031)
-- `3b08b8e` - feat(beads): add workflow integration tools (FEAT-059)
 - `c9d916d` - fix(mcp): add TUI broadcasts to state-modifying handlers (BUG-032)
+- `3b08b8e` - feat(beads): add workflow integration tools (FEAT-059)
 - `c7de119` - docs: add BUG-032 MCP handlers missing TUI broadcasts
 - `38e6ff4` - chore: remove unused HashMap imports in persistence module
 
