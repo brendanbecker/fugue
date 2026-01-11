@@ -483,6 +483,73 @@ impl HandlerContext {
             }
         }
     }
+
+    /// Handle RenamPane message - rename a pane (FEAT-036)
+    pub async fn handle_rename_pane(&self, pane_id: Uuid, new_name: String) -> HandlerResult {
+        info!(
+            "RenamPane {} -> '{}' request from {}",
+            pane_id, new_name, self.client_id
+        );
+
+        let mut session_manager = self.session_manager.write().await;
+
+        // Use find_pane_mut which searches across all sessions
+        if let Some(pane) = session_manager.find_pane_mut(pane_id) {
+            let previous_name = pane.name().map(String::from);
+            pane.set_name(Some(new_name.clone()));
+
+            info!(
+                "Pane {} renamed from {:?} to '{}'",
+                pane_id, previous_name, new_name
+            );
+
+            return HandlerResult::Response(ServerMessage::PaneRenamed {
+                pane_id,
+                previous_name,
+                new_name,
+            });
+        }
+
+        HandlerContext::error(ErrorCode::PaneNotFound, format!("Pane '{}' not found", pane_id))
+    }
+
+    /// Handle RenameWindow message - rename a window (FEAT-036)
+    pub async fn handle_rename_window(&self, window_id: Uuid, new_name: String) -> HandlerResult {
+        info!(
+            "RenameWindow {} -> '{}' request from {}",
+            window_id, new_name, self.client_id
+        );
+
+        let mut session_manager = self.session_manager.write().await;
+
+        // First find the window to get session_id (immutable), then get mutable access
+        let session_id = session_manager.find_window(window_id).map(|(s, _)| s.id());
+
+        if let Some(session_id) = session_id {
+            if let Some(session) = session_manager.get_session_mut(session_id) {
+                if let Some(window) = session.get_window_mut(window_id) {
+                    let previous_name = window.name().to_string();
+                    window.set_name(new_name.clone());
+
+                    info!(
+                        "Window {} renamed from '{}' to '{}'",
+                        window_id, previous_name, new_name
+                    );
+
+                    return HandlerResult::Response(ServerMessage::WindowRenamed {
+                        window_id,
+                        previous_name,
+                        new_name,
+                    });
+                }
+            }
+        }
+
+        HandlerContext::error(
+            ErrorCode::WindowNotFound,
+            format!("Window '{}' not found", window_id),
+        )
+    }
 }
 
 #[cfg(test)]

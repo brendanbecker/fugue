@@ -118,10 +118,12 @@ impl<'a> ToolContext<'a> {
     /// When window is provided (UUID or name), the pane is created in that window.
     /// If not specified, uses the first available session/window.
     /// If select is true, the new pane will be focused after creation.
+    /// If name is provided, it will be set as the pane's user-assigned name (FEAT-036).
     pub fn create_pane(
         &mut self,
         session_filter: Option<&str>,
         window_filter: Option<&str>,
+        name: Option<&str>,
         direction: Option<&str>,
         command: Option<&str>,
         cwd: Option<&str>,
@@ -199,11 +201,14 @@ impl<'a> ToolContext<'a> {
             window.set_active_pane(pane_id);
         }
 
-        // Initialize the parser
+        // Initialize the parser and set the name (FEAT-036)
         let pane = window
             .get_pane_mut(pane_id)
             .ok_or_else(|| McpError::Internal("Pane disappeared".into()))?;
         pane.init_parser();
+        if let Some(pane_name) = name {
+            pane.set_name(Some(pane_name.to_string()));
+        }
 
         // Spawn PTY
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
@@ -1384,7 +1389,7 @@ mod tests {
         session_manager.create_session("test").unwrap();
 
         let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(None, None, Some("horizontal"), None, None, false).unwrap();
+        let result = ctx.create_pane(None, None, None, Some("horizontal"), None, None, false).unwrap();
 
         assert!(result.contains("\"direction\": \"horizontal\""));
     }
@@ -1397,7 +1402,7 @@ mod tests {
         session_manager.create_session("test").unwrap();
 
         let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(None, None, None, None, None, false).unwrap();
+        let result = ctx.create_pane(None, None, None, None, None, None, false).unwrap();
 
         assert!(result.contains("\"direction\": \"vertical\""));
     }
@@ -1411,7 +1416,7 @@ mod tests {
         session_manager.create_session("session2").unwrap();
 
         let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(Some("session2"), None, None, None, None, false).unwrap();
+        let result = ctx.create_pane(Some("session2"), None, None, None, None, None, false).unwrap();
 
         assert!(result.contains("session2"));
         assert!(result.contains("session_id"));
@@ -1425,7 +1430,7 @@ mod tests {
         session_manager.create_session("existing").unwrap();
 
         let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(Some("nonexistent"), None, None, None, None, false);
+        let result = ctx.create_pane(Some("nonexistent"), None, None, None, None, None, false);
 
         assert!(result.is_err());
     }
@@ -1442,7 +1447,7 @@ mod tests {
         session.create_window(Some("window2".to_string()));
 
         let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(None, Some("window2"), None, None, None, false).unwrap();
+        let result = ctx.create_pane(None, Some("window2"), None, None, None, None, false).unwrap();
 
         assert!(result.contains("pane_id"));
         assert!(result.contains("window_id"));
@@ -1456,7 +1461,7 @@ mod tests {
         session_manager.create_session("test").unwrap();
 
         let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(None, Some("nonexistent"), None, None, None, false);
+        let result = ctx.create_pane(None, Some("nonexistent"), None, None, None, None, false);
 
         assert!(result.is_err());
     }
@@ -1469,7 +1474,7 @@ mod tests {
         session_manager.create_session("test").unwrap();
 
         let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(None, None, None, None, None, false).unwrap();
+        let result = ctx.create_pane(None, None, None, None, None, None, false).unwrap();
 
         assert!(result.contains("session_id"));
         assert!(result.contains("pane_id"));

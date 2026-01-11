@@ -445,6 +445,7 @@ mod tests {
                     cols: 80,
                     rows: 24,
                     state: PaneState::Normal,
+                    name: None,
                     title: None,
                     cwd: Some("/home/user".to_string()),
                     created_at: 12345,

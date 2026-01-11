@@ -189,6 +189,7 @@ impl McpServer {
             "ccmux_create_pane" => ToolParams::CreatePane {
                 session: arguments["session"].as_str().map(String::from),
                 window: arguments["window"].as_str().map(String::from),
+                name: arguments["name"].as_str().map(String::from),
                 direction: arguments["direction"].as_str().map(String::from),
                 command: arguments["command"].as_str().map(String::from),
                 cwd: arguments["cwd"].as_str().map(String::from),
@@ -267,10 +268,11 @@ impl McpServer {
         let result = match params {
             ToolParams::ListPanes { session } => ctx.list_panes(session.as_deref()),
             ToolParams::ReadPane { pane_id, lines } => ctx.read_pane(pane_id, lines),
-            ToolParams::CreatePane { session, window, direction, command, cwd, select } => {
+            ToolParams::CreatePane { session, window, name, direction, command, cwd, select } => {
                 ctx.create_pane(
                     session.as_deref(),
                     window.as_deref(),
+                    name.as_deref(),
                     direction.as_deref(),
                     command.as_deref(),
                     cwd.as_deref(),
@@ -349,6 +351,7 @@ enum ToolParams {
     CreatePane {
         session: Option<String>,
         window: Option<String>,
+        name: Option<String>,
         direction: Option<String>,
         command: Option<String>,
         cwd: Option<String>,

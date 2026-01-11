@@ -75,6 +75,9 @@ pub struct PaneInfo {
     pub cols: u16,
     pub rows: u16,
     pub state: PaneState,
+    /// User-assigned name for the pane (FEAT-036)
+    pub name: Option<String>,
+    /// Terminal title from escape sequences
     pub title: Option<String>,
     pub cwd: Option<String>,
 }
@@ -544,6 +547,7 @@ mod tests {
             cols: 80,
             rows: 24,
             state: PaneState::Normal,
+            name: None,
             title: None,
             cwd: None,
         };
@@ -567,6 +571,7 @@ mod tests {
             cols: 120,
             rows: 40,
             state: PaneState::Claude(ClaudeState::default()),
+            name: None,
             title: Some("vim".to_string()),
             cwd: Some("/home/user/project".to_string()),
         };
@@ -587,6 +592,7 @@ mod tests {
             cols: 80,
             rows: 24,
             state: PaneState::Normal,
+            name: None,
             title: Some("bash".to_string()),
             cwd: Some("/tmp".to_string()),
         };
@@ -607,6 +613,7 @@ mod tests {
             cols: 80,
             rows: 24,
             state: PaneState::Normal,
+            name: None,
             title: None,
             cwd: None,
         };
@@ -618,6 +625,7 @@ mod tests {
             cols: 80,
             rows: 24,
             state: PaneState::Normal,
+            name: None,
             title: None,
             cwd: None,
         };
@@ -629,6 +637,7 @@ mod tests {
             cols: 80,
             rows: 24,
             state: PaneState::Normal,
+            name: None,
             title: None,
             cwd: None,
         };
@@ -920,6 +929,7 @@ mod tests {
             cols: 80,
             rows: 24,
             state: PaneState::Normal,
+            name: None,
             title: Some("test".to_string()),
             cwd: Some("/home".to_string()),
         };

@@ -644,6 +644,7 @@ mod tests {
                     cols: 80,
                     rows: 24,
                     state: PaneState::Normal,
+                    name: None,
                     title: None,
                     cwd: None,
                     created_at: 0,

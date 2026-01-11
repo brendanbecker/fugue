@@ -180,6 +180,8 @@ pub enum ClientMessage {
         cwd: Option<String>,
         /// If true, focus the new pane after creation (default: false)
         select: bool,
+        /// Optional name for the pane (FEAT-036)
+        name: Option<String>,
     },
 
     /// Create a new session with options (for MCP bridge)
@@ -207,6 +209,22 @@ pub enum ClientMessage {
         /// Session to rename (UUID or current name)
         session_filter: String,
         /// New name for the session
+        new_name: String,
+    },
+
+    /// Rename a pane (FEAT-036)
+    RenamPane {
+        /// Pane to rename (UUID)
+        pane_id: Uuid,
+        /// New name for the pane
+        new_name: String,
+    },
+
+    /// Rename a window (FEAT-036)
+    RenameWindow {
+        /// Window to rename (UUID)
+        window_id: Uuid,
+        /// New name for the window
         new_name: String,
     },
 
@@ -426,6 +444,20 @@ pub enum ServerMessage {
         new_name: String,
     },
 
+    /// Pane was renamed (FEAT-036)
+    PaneRenamed {
+        pane_id: Uuid,
+        previous_name: Option<String>,
+        new_name: String,
+    },
+
+    /// Window was renamed (FEAT-036)
+    WindowRenamed {
+        window_id: Uuid,
+        previous_name: String,
+        new_name: String,
+    },
+
     /// Pane was split successfully (for MCP bridge)
     PaneSplit {
         /// The new pane that was created
@@ -513,6 +545,9 @@ pub struct PaneListEntry {
     pub pane_index: usize,
     pub cols: u16,
     pub rows: u16,
+    /// User-assigned name for the pane (FEAT-036)
+    pub name: Option<String>,
+    /// Terminal title from escape sequences
     pub title: Option<String>,
     pub cwd: Option<String>,
     pub state: PaneState,
@@ -821,6 +856,7 @@ mod tests {
                 cols: 80,
                 rows: 24,
                 state: PaneState::Normal,
+                name: None,
                 title: None,
                 cwd: None,
             }],
@@ -868,6 +904,7 @@ mod tests {
             cols: 80,
             rows: 24,
             state: PaneState::Normal,
+            name: None,
             title: Some("bash".to_string()),
             cwd: Some("/home/user".to_string()),
         };

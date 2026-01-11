@@ -232,6 +232,7 @@ impl Server {
                                     cols,
                                     rows,
                                     state: pane.state().clone(),
+                                    name: pane.name().map(String::from),
                                     title: pane.title().map(String::from),
                                     cwd: pane.cwd().map(String::from),
                                     created_at: pane.created_at_unix(),
@@ -327,6 +328,7 @@ impl Server {
                                     cols,
                                     rows,
                                     state: pane.state().clone(),
+                                    name: pane.name().map(String::from),
                                     title: pane.title().map(String::from),
                                     cwd: pane.cwd().map(String::from),
                                     created_at: pane.created_at_unix(),
@@ -1782,6 +1784,7 @@ mod tests {
             command: None,
             cwd: None,
             select: false,
+            name: None,
         };
         Encoder::encode(&mut mcp_codec, create_pane_msg, &mut buf).unwrap();
         mcp_client_stream.write_all(&buf).await.unwrap();
