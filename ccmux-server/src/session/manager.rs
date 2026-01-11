@@ -140,16 +140,36 @@ impl SessionManager {
 
     /// Get the active session ID
     ///
-    /// Returns the currently active session, or the most recently created
-    /// session if no session is explicitly active.
+    /// Returns the session that should be used when no session is explicitly specified.
+    /// Priority order (FEAT-036 session-aware defaults):
+    /// 1. Session with most attached clients (indicates active TUI usage)
+    /// 2. If tie on attached clients, prefer most recently created
+    /// 3. If no sessions have attached clients, return most recent session
+    ///
+    /// This ensures MCP commands default to the session the user is actively using,
+    /// rather than an orphaned session from a previous TUI instance.
     pub fn active_session_id(&self) -> Option<Uuid> {
-        // Return explicitly set active session if valid
-        if let Some(id) = self.active_session_id {
-            if self.sessions.contains_key(&id) {
-                return Some(id);
-            }
+        if self.sessions.is_empty() {
+            return None;
         }
-        // Fall back to most recently created session
+
+        // Find sessions with attached clients, sorted by client count (desc) then creation time (desc)
+        let mut sessions_with_clients: Vec<_> = self.sessions
+            .values()
+            .filter(|s| s.attached_clients() > 0)
+            .collect();
+
+        if !sessions_with_clients.is_empty() {
+            // Sort by attached_clients descending, then by creation time descending (most recent first)
+            sessions_with_clients.sort_by(|a, b| {
+                b.attached_clients().cmp(&a.attached_clients())
+                    .then_with(|| b.created_at_millis().cmp(&a.created_at_millis()))
+            });
+            return Some(sessions_with_clients[0].id());
+        }
+
+        // No sessions have attached clients - fall back to most recent session
+        // (list_sessions returns sorted by creation time, oldest first)
         self.list_sessions().last().map(|s| s.id())
     }
 
@@ -1185,5 +1205,122 @@ mod tests {
         let mut manager = SessionManager::new();
 
         assert!(manager.get_session_by_name_mut("nonexistent").is_none());
+    }
+
+    // ==================== FEAT-036: Active Session Tests ====================
+
+    #[test]
+    fn test_active_session_prefers_attached_clients() {
+        let mut manager = SessionManager::new();
+
+        // Create two sessions
+        let session1 = manager.create_session("orphaned").unwrap();
+        let session1_id = session1.id();
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        let session2 = manager.create_session("active").unwrap();
+        let session2_id = session2.id();
+
+        // Attach a client to session2
+        manager.get_session_mut(session2_id).unwrap().attach_client();
+
+        // Active session should be session2 (has attached client)
+        assert_eq!(manager.active_session_id(), Some(session2_id));
+
+        // session1 has no attached clients, but is older
+        let session1 = manager.get_session(session1_id).unwrap();
+        assert_eq!(session1.attached_clients(), 0);
+    }
+
+    #[test]
+    fn test_active_session_most_attached_clients_wins() {
+        let mut manager = SessionManager::new();
+
+        // Create two sessions
+        let session1 = manager.create_session("session1").unwrap();
+        let session1_id = session1.id();
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        let session2 = manager.create_session("session2").unwrap();
+        let session2_id = session2.id();
+
+        // Attach 2 clients to session1, 1 client to session2
+        manager.get_session_mut(session1_id).unwrap().attach_client();
+        manager.get_session_mut(session1_id).unwrap().attach_client();
+        manager.get_session_mut(session2_id).unwrap().attach_client();
+
+        // Active session should be session1 (has more attached clients)
+        assert_eq!(manager.active_session_id(), Some(session1_id));
+    }
+
+    #[test]
+    fn test_active_session_tie_prefers_recent() {
+        let mut manager = SessionManager::new();
+
+        // Create two sessions with gap for timestamp difference
+        let session1 = manager.create_session("session1").unwrap();
+        let session1_id = session1.id();
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        let session2 = manager.create_session("session2").unwrap();
+        let session2_id = session2.id();
+
+        // Attach 1 client to each (tie)
+        manager.get_session_mut(session1_id).unwrap().attach_client();
+        manager.get_session_mut(session2_id).unwrap().attach_client();
+
+        // Active session should be session2 (more recent, same attached count)
+        assert_eq!(manager.active_session_id(), Some(session2_id));
+    }
+
+    #[test]
+    fn test_active_session_no_attached_clients_falls_back_to_recent() {
+        let mut manager = SessionManager::new();
+
+        // Create two sessions with no attached clients
+        let _session1 = manager.create_session("session1").unwrap();
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        let session2 = manager.create_session("session2").unwrap();
+        let session2_id = session2.id();
+
+        // No attached clients - should fall back to most recent session
+        assert_eq!(manager.active_session_id(), Some(session2_id));
+    }
+
+    #[test]
+    fn test_active_session_empty() {
+        let manager = SessionManager::new();
+        assert_eq!(manager.active_session_id(), None);
+    }
+
+    #[test]
+    fn test_active_session_detach_updates_selection() {
+        let mut manager = SessionManager::new();
+
+        // Create two sessions
+        let session1 = manager.create_session("session1").unwrap();
+        let session1_id = session1.id();
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        let session2 = manager.create_session("session2").unwrap();
+        let session2_id = session2.id();
+
+        // Attach clients to session1
+        manager.get_session_mut(session1_id).unwrap().attach_client();
+
+        // Active should be session1
+        assert_eq!(manager.active_session_id(), Some(session1_id));
+
+        // Detach client from session1
+        manager.get_session_mut(session1_id).unwrap().detach_client();
+
+        // Now no attached clients - should fall back to most recent (session2)
+        assert_eq!(manager.active_session_id(), Some(session2_id));
     }
 }

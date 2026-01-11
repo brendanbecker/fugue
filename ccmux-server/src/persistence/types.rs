@@ -92,6 +92,9 @@ pub struct PaneSnapshot {
     pub rows: u16,
     /// Pane state
     pub state: PaneState,
+    /// User-assigned name (FEAT-036)
+    #[serde(default)]
+    pub name: Option<String>,
     /// Terminal title
     pub title: Option<String>,
     /// Current working directory
@@ -330,6 +333,7 @@ mod tests {
             cols: 80,
             rows: 24,
             state: PaneState::Claude(ClaudeState::default()),
+            name: None,
             title: Some("vim".to_string()),
             cwd: Some("/home/user".to_string()),
             created_at: 1000,

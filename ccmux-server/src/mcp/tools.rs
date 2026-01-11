@@ -15,7 +15,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "properties": {
                     "session": {
                         "type": "string",
-                        "description": "Optional session name to filter by"
+                        "description": "Session name or ID to filter by. Uses active session if omitted."
                     }
                 }
             }),
@@ -51,6 +51,10 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                     "window": {
                         "type": "string",
                         "description": "Target window (UUID or name). Uses first window in session if omitted."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Optional name for the pane"
                     },
                     "direction": {
                         "type": "string",
@@ -182,7 +186,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "properties": {
                     "session": {
                         "type": "string",
-                        "description": "Session name or ID (uses first session if omitted)"
+                        "description": "Session name or ID. Uses active session if omitted."
                     }
                 }
             }),
@@ -216,7 +220,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "properties": {
                     "session": {
                         "type": "string",
-                        "description": "Session name or ID (uses first session if omitted)"
+                        "description": "Session name or ID. Uses active session if omitted."
                     },
                     "name": {
                         "type": "string",
@@ -245,6 +249,43 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                     }
                 },
                 "required": ["session", "name"]
+            }),
+        },
+        // FEAT-036: Pane and window rename tools
+        Tool {
+            name: "ccmux_rename_pane".into(),
+            description: "Rename a pane for easier identification".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "pane_id": {
+                        "type": "string",
+                        "description": "UUID of the pane to rename"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "New display name for the pane"
+                    }
+                },
+                "required": ["pane_id", "name"]
+            }),
+        },
+        Tool {
+            name: "ccmux_rename_window".into(),
+            description: "Rename a window for easier identification".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "window_id": {
+                        "type": "string",
+                        "description": "UUID of the window to rename"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "New display name for the window"
+                    }
+                },
+                "required": ["window_id", "name"]
             }),
         },
         Tool {
@@ -473,6 +514,9 @@ mod tests {
         assert!(names.contains(&"ccmux_create_session"));
         assert!(names.contains(&"ccmux_create_window"));
         assert!(names.contains(&"ccmux_rename_session"));
+        // FEAT-036: Pane and window rename tools
+        assert!(names.contains(&"ccmux_rename_pane"));
+        assert!(names.contains(&"ccmux_rename_window"));
         // New declarative layout tools (FEAT-045)
         assert!(names.contains(&"ccmux_split_pane"));
         assert!(names.contains(&"ccmux_resize_pane"));

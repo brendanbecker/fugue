@@ -24,6 +24,8 @@ pub struct Pane {
     rows: u16,
     /// Current pane state
     state: PaneState,
+    /// User-assigned name (FEAT-036)
+    name: Option<String>,
     /// Terminal title (from escape sequences)
     title: Option<String>,
     /// Current working directory
@@ -51,6 +53,7 @@ impl fmt::Debug for Pane {
             .field("cols", &self.cols)
             .field("rows", &self.rows)
             .field("state", &self.state)
+            .field("name", &self.name)
             .field("title", &self.title)
             .field("cwd", &self.cwd)
             .field("created_at", &self.created_at)
@@ -87,6 +90,7 @@ impl Pane {
             cols: 80,
             rows: 24,
             state: PaneState::Normal,
+            name: None,
             title: None,
             cwd: None,
             created_at: now,
@@ -109,6 +113,7 @@ impl Pane {
         cols: u16,
         rows: u16,
         state: PaneState,
+        name: Option<String>,
         title: Option<String>,
         cwd: Option<String>,
         created_at: u64,
@@ -126,6 +131,7 @@ impl Pane {
             cols,
             rows,
             state,
+            name,
             title,
             cwd,
             created_at,
@@ -310,6 +316,16 @@ impl Pane {
         isolation::pane_config_dir(self.id)
     }
 
+    /// Get pane name (user-assigned, FEAT-036)
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    /// Set pane name (user-assigned, FEAT-036)
+    pub fn set_name(&mut self, name: Option<String>) {
+        self.name = name;
+    }
+
     /// Get title
     pub fn title(&self) -> Option<&str> {
         self.title.as_deref()
@@ -415,6 +431,7 @@ impl Pane {
             cols: self.cols,
             rows: self.rows,
             state: self.state.clone(),
+            name: self.name.clone(),
             title: self.title.clone(),
             cwd: self.cwd.clone(),
         }

@@ -396,11 +396,12 @@ impl McpBridge {
             "ccmux_create_pane" => {
                 let session = arguments["session"].as_str().map(String::from);
                 let window = arguments["window"].as_str().map(String::from);
+                let name = arguments["name"].as_str().map(String::from);
                 let direction = arguments["direction"].as_str().map(String::from);
                 let command = arguments["command"].as_str().map(String::from);
                 let cwd = arguments["cwd"].as_str().map(String::from);
                 let select = arguments["select"].as_bool().unwrap_or(false);
-                self.tool_create_pane(session, window, direction, command, cwd, select)
+                self.tool_create_pane(session, window, name, direction, command, cwd, select)
                     .await
             }
             "ccmux_send_input" => {
@@ -435,6 +436,21 @@ impl McpBridge {
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'name' parameter".into()))?;
                 self.tool_rename_session(session, name).await
+            }
+            // FEAT-036: Pane and window rename tools
+            "ccmux_rename_pane" => {
+                let pane_id = parse_uuid(arguments, "pane_id")?;
+                let name = arguments["name"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'name' parameter".into()))?;
+                self.tool_rename_pane(pane_id, name).await
+            }
+            "ccmux_rename_window" => {
+                let window_id = parse_uuid(arguments, "window_id")?;
+                let name = arguments["name"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'name' parameter".into()))?;
+                self.tool_rename_window(window_id, name).await
             }
             "ccmux_split_pane" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
@@ -735,6 +751,7 @@ impl McpBridge {
         &mut self,
         session: Option<String>,
         window: Option<String>,
+        name: Option<String>,
         direction: Option<String>,
         command: Option<String>,
         cwd: Option<String>,
@@ -762,6 +779,7 @@ impl McpBridge {
             command,
             cwd,
             select,
+            name,
         })
         .await?;
 
@@ -901,6 +919,78 @@ impl McpBridge {
                 let result = serde_json::json!({
                     "success": true,
                     "session_id": session_id.to_string(),
+                    "previous_name": previous_name,
+                    "new_name": new_name
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
+    // FEAT-036: Pane rename tool
+    async fn tool_rename_pane(
+        &mut self,
+        pane_id: Uuid,
+        new_name: &str,
+    ) -> Result<ToolResult, McpError> {
+        self.send_to_daemon(ClientMessage::RenamPane {
+            pane_id,
+            new_name: new_name.to_string(),
+        })
+        .await?;
+
+        match self.recv_response_from_daemon().await? {
+            ServerMessage::PaneRenamed {
+                pane_id,
+                previous_name,
+                new_name,
+            } => {
+                let result = serde_json::json!({
+                    "success": true,
+                    "pane_id": pane_id.to_string(),
+                    "previous_name": previous_name,
+                    "new_name": new_name
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
+    // FEAT-036: Window rename tool
+    async fn tool_rename_window(
+        &mut self,
+        window_id: Uuid,
+        new_name: &str,
+    ) -> Result<ToolResult, McpError> {
+        self.send_to_daemon(ClientMessage::RenameWindow {
+            window_id,
+            new_name: new_name.to_string(),
+        })
+        .await?;
+
+        match self.recv_response_from_daemon().await? {
+            ServerMessage::WindowRenamed {
+                window_id,
+                previous_name,
+                new_name,
+            } => {
+                let result = serde_json::json!({
+                    "success": true,
+                    "window_id": window_id.to_string(),
                     "previous_name": previous_name,
                     "new_name": new_name
                 });
@@ -1310,6 +1400,7 @@ mod tests {
                 cols: 80,
                 rows: 24,
                 state: ccmux_protocol::PaneState::Normal,
+                name: None,
                 title: None,
                 cwd: None,
             },

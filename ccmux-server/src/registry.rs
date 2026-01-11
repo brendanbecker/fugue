@@ -1180,9 +1180,10 @@ mod tests {
             index: 1,
             cols: 80,
             rows: 24,
+            state: ccmux_protocol::PaneState::Normal,
+            name: None,
             title: Some("test".to_string()),
             cwd: None,
-            state: ccmux_protocol::PaneState::Normal,
         };
         let broadcast_msg = ServerMessage::PaneCreated {
             pane: pane_info,

@@ -65,6 +65,7 @@ impl HandlerContext {
                         pane_index: pane.index(),
                         cols: pane.dimensions().0,
                         rows: pane.dimensions().1,
+                        name: pane.name().map(|s| s.to_string()),
                         title: pane.title().map(|s| s.to_string()),
                         cwd: pane.cwd().map(|s| s.to_string()),
                         state: pane.state().clone(),
@@ -219,6 +220,7 @@ impl HandlerContext {
         command: Option<String>,
         cwd: Option<String>,
         select: bool,
+        name: Option<String>,
     ) -> HandlerResult {
         debug!(
             client_id = %self.client_id,
@@ -228,6 +230,7 @@ impl HandlerContext {
             command = ?command,
             cwd = ?cwd,
             select = select,
+            name = ?name,
             "handle_create_pane_with_options called"
         );
         info!(
@@ -340,7 +343,7 @@ impl HandlerContext {
         let pane_info = pane.to_info();
         let pane_id = pane_info.id;
 
-        // Initialize the parser
+        // Initialize the parser and set the name (FEAT-036)
         let pane = match window.get_pane_mut(pane_id) {
             Some(p) => p,
             None => {
@@ -351,6 +354,9 @@ impl HandlerContext {
             }
         };
         pane.init_parser();
+        if let Some(ref pane_name) = name {
+            pane.set_name(Some(pane_name.clone()));
+        }
 
         // If select is true, focus the new pane (set as active pane in window and window as active)
         if select {
@@ -1506,7 +1512,7 @@ mod tests {
 
         // No sessions exist, should create default
         let result = ctx
-            .handle_create_pane_with_options(None, None, SplitDirection::Vertical, None, None, false)
+            .handle_create_pane_with_options(None, None, SplitDirection::Vertical, None, None, false, None)
             .await;
 
         match result {
@@ -1592,7 +1598,7 @@ mod tests {
 
         // MCP creates a pane (uses first session since no filter provided)
         let result = mcp_ctx
-            .handle_create_pane_with_options(None, None, SplitDirection::Vertical, None, None, false)
+            .handle_create_pane_with_options(None, None, SplitDirection::Vertical, None, None, false, None)
             .await;
 
         // Extract the broadcast info from the result
@@ -1702,6 +1708,7 @@ mod tests {
                 None,
                 None,
                 false,
+                None,
             )
             .await;
 

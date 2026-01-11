@@ -238,6 +238,7 @@ impl RecoveryManager {
                             cols,
                             rows,
                             state: ccmux_protocol::PaneState::Normal,
+                            name: None,
                             title: None,
                             cwd: None,
                             created_at,

@@ -1469,6 +1469,8 @@ impl App {
             | ServerMessage::SessionCreatedWithDetails { .. }
             | ServerMessage::WindowCreatedWithDetails { .. }
             | ServerMessage::SessionRenamed { .. }
+            | ServerMessage::PaneRenamed { .. }
+            | ServerMessage::WindowRenamed { .. }
             | ServerMessage::PaneSplit { .. }
             | ServerMessage::PaneResized { .. }
             | ServerMessage::LayoutCreated { .. }

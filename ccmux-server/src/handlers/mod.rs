@@ -181,6 +181,7 @@ impl HandlerContext {
                 command,
                 cwd,
                 select,
+                name,
             } => {
                 self.handle_create_pane_with_options(
                     session_filter,
@@ -189,6 +190,7 @@ impl HandlerContext {
                     command,
                     cwd,
                     select,
+                    name,
                 )
                 .await
             }
@@ -210,6 +212,15 @@ impl HandlerContext {
                 session_filter,
                 new_name,
             } => self.handle_rename_session(session_filter, new_name).await,
+
+            // FEAT-036: Pane and window rename handlers
+            ClientMessage::RenamPane { pane_id, new_name } => {
+                self.handle_rename_pane(pane_id, new_name).await
+            }
+
+            ClientMessage::RenameWindow { window_id, new_name } => {
+                self.handle_rename_window(window_id, new_name).await
+            }
 
             ClientMessage::SplitPane {
                 pane_id,
