@@ -235,6 +235,20 @@ impl HandlerContext {
                 self.handle_create_layout(session_filter, window_filter, layout)
                     .await
             }
+
+            ClientMessage::SetEnvironment {
+                session_filter,
+                key,
+                value,
+            } => {
+                self.handle_set_environment(session_filter, key, value)
+                    .await
+            }
+
+            ClientMessage::GetEnvironment {
+                session_filter,
+                key,
+            } => self.handle_get_environment(session_filter, key).await,
         }
     }
 

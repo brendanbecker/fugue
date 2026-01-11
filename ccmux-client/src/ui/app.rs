@@ -1178,7 +1178,9 @@ impl App {
             | ServerMessage::PaneSplit { .. }
             | ServerMessage::PaneResized { .. }
             | ServerMessage::LayoutCreated { .. }
-            | ServerMessage::SessionDestroyed { .. } => {
+            | ServerMessage::SessionDestroyed { .. }
+            | ServerMessage::EnvironmentSet { .. }
+            | ServerMessage::EnvironmentList { .. } => {
                 // These messages are for the MCP bridge, not the TUI client
             }
         }

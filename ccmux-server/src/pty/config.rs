@@ -118,6 +118,14 @@ impl PtyConfig {
         self.scrollback_lines
             .unwrap_or_else(|| config.lines_for_type(self.session_type))
     }
+
+    /// Merge environment variables from a HashMap
+    ///
+    /// Used to propagate session-level environment variables to PTY spawn.
+    pub fn with_env_map(mut self, env: &HashMap<String, String>) -> Self {
+        self.env.extend(env.iter().map(|(k, v)| (k.clone(), v.clone())));
+        self
+    }
 }
 
 #[cfg(test)]

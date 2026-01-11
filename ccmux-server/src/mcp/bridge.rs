@@ -410,6 +410,25 @@ impl McpBridge {
                     .ok_or_else(|| McpError::InvalidParams("Missing 'session' parameter".into()))?;
                 self.tool_kill_session(session).await
             }
+            "ccmux_set_environment" => {
+                let session = arguments["session"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'session' parameter".into()))?;
+                let key = arguments["key"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'key' parameter".into()))?;
+                let value = arguments["value"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'value' parameter".into()))?;
+                self.tool_set_environment(session, key, value).await
+            }
+            "ccmux_get_environment" => {
+                let session = arguments["session"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'session' parameter".into()))?;
+                let key = arguments["key"].as_str().map(String::from);
+                self.tool_get_environment(session, key).await
+            }
             _ => Err(McpError::UnknownTool(name.into())),
         }
     }
@@ -998,6 +1017,79 @@ impl McpBridge {
                     "message": "Session killed",
                     "session_id": session_id.to_string(),
                     "session_name": session_name,
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
+    async fn tool_set_environment(
+        &mut self,
+        session_filter: &str,
+        key: &str,
+        value: &str,
+    ) -> Result<ToolResult, McpError> {
+        self.send_to_daemon(ClientMessage::SetEnvironment {
+            session_filter: session_filter.to_string(),
+            key: key.to_string(),
+            value: value.to_string(),
+        })
+        .await?;
+
+        match self.recv_from_daemon().await? {
+            ServerMessage::EnvironmentSet {
+                session_id,
+                session_name,
+                key,
+                value,
+            } => {
+                let result = serde_json::json!({
+                    "success": true,
+                    "session_id": session_id.to_string(),
+                    "session_name": session_name,
+                    "key": key,
+                    "value": value,
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
+    async fn tool_get_environment(
+        &mut self,
+        session_filter: &str,
+        key: Option<String>,
+    ) -> Result<ToolResult, McpError> {
+        self.send_to_daemon(ClientMessage::GetEnvironment {
+            session_filter: session_filter.to_string(),
+            key,
+        })
+        .await?;
+
+        match self.recv_from_daemon().await? {
+            ServerMessage::EnvironmentList {
+                session_id,
+                session_name,
+                environment,
+            } => {
+                let result = serde_json::json!({
+                    "session_id": session_id.to_string(),
+                    "session_name": session_name,
+                    "environment": environment,
                 });
 
                 let json = serde_json::to_string_pretty(&result)

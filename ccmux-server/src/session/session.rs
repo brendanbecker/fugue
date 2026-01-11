@@ -27,6 +27,8 @@ pub struct Session {
     worktree: Option<WorktreeInfo>,
     /// Whether this is the orchestrator session
     is_orchestrator: bool,
+    /// Session-level environment variables (inherited by new panes)
+    environment: HashMap<String, String>,
 }
 
 impl Session {
@@ -42,6 +44,7 @@ impl Session {
             created_at: SystemTime::now(),
             worktree: None,
             is_orchestrator: false,
+            environment: HashMap::new(),
         }
     }
 
@@ -59,6 +62,7 @@ impl Session {
             created_at: SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(created_at),
             worktree: None,
             is_orchestrator: false,
+            environment: HashMap::new(),
         }
     }
 
@@ -140,6 +144,28 @@ impl Session {
     pub fn set_worktree(&mut self, worktree: WorktreeInfo, is_orchestrator: bool) {
         self.is_orchestrator = is_orchestrator;
         self.worktree = Some(worktree);
+    }
+
+    /// Set an environment variable on this session
+    ///
+    /// Environment variables are inherited by newly created panes.
+    pub fn set_env(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        self.environment.insert(key.into(), value.into());
+    }
+
+    /// Remove an environment variable from this session
+    pub fn unset_env(&mut self, key: &str) -> Option<String> {
+        self.environment.remove(key)
+    }
+
+    /// Get an environment variable value
+    pub fn get_env(&self, key: &str) -> Option<&String> {
+        self.environment.get(key)
+    }
+
+    /// Get all session environment variables
+    pub fn environment(&self) -> &HashMap<String, String> {
+        &self.environment
     }
 
     /// Create a new window

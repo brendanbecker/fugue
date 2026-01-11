@@ -250,6 +250,24 @@ pub enum ClientMessage {
         /// Layout specification as JSON
         layout: serde_json::Value,
     },
+
+    /// Set an environment variable on a session (for MCP bridge)
+    SetEnvironment {
+        /// Session filter (name or ID)
+        session_filter: String,
+        /// Environment variable key
+        key: String,
+        /// Environment variable value
+        value: String,
+    },
+
+    /// Get session environment variables (for MCP bridge)
+    GetEnvironment {
+        /// Session filter (name or ID)
+        session_filter: String,
+        /// Specific key to get (None = get all)
+        key: Option<String>,
+    },
 }
 
 /// Messages sent from server to client
@@ -437,6 +455,22 @@ pub enum ServerMessage {
     SessionDestroyed {
         session_id: Uuid,
         session_name: String,
+    },
+
+    /// Environment variable was set (for MCP bridge)
+    EnvironmentSet {
+        session_id: Uuid,
+        session_name: String,
+        key: String,
+        value: String,
+    },
+
+    /// Session environment variables (for MCP bridge)
+    EnvironmentList {
+        session_id: Uuid,
+        session_name: String,
+        /// All environment variables (or single requested variable)
+        environment: std::collections::HashMap<String, String>,
     },
 }
 

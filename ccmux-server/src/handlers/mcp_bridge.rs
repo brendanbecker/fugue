@@ -358,6 +358,12 @@ impl HandlerContext {
             debug!(pane_id = %pane_id, "Pane focused after creation (select=true)");
         }
 
+        // Capture session environment before dropping lock
+        let session_env = session_manager
+            .get_session(session_id)
+            .map(|s| s.environment().clone())
+            .unwrap_or_default();
+
         // Drop session_manager lock before spawning PTY
         // Note: If select is true, we also need to set the window as active
         let select_window_id = if select { Some(window_id) } else { None };
@@ -383,6 +389,8 @@ impl HandlerContext {
         if let Some(ref cwd) = cwd {
             config = config.with_cwd(cwd);
         }
+        // Apply session environment variables
+        config = config.with_env_map(&session_env);
 
         {
             let mut pty_manager = self.pty_manager.write().await;
@@ -653,17 +661,25 @@ impl HandlerContext {
         };
         pane.init_parser();
 
+        // Capture session environment before dropping lock
+        let session_env = session_manager
+            .get_session(session_id)
+            .map(|s| s.environment().clone())
+            .unwrap_or_default();
+
         // Drop session_manager lock before spawning PTY
         drop(session_manager);
 
         // Spawn PTY
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
-        let config = if let Some(ref cmd) = command {
+        let mut config = if let Some(ref cmd) = command {
             // Wrap user command in shell to handle arguments and shell syntax
             PtyConfig::command("sh").with_arg("-c").with_arg(cmd)
         } else {
             PtyConfig::command(&shell)
         };
+        // Apply session environment variables
+        config = config.with_env_map(&session_env);
 
         {
             let mut pty_manager = self.pty_manager.write().await;
@@ -769,6 +785,12 @@ impl HandlerContext {
             window.set_active_pane(new_pane_id);
         }
 
+        // Capture session environment before dropping lock
+        let session_env = session_manager
+            .get_session(session_id)
+            .map(|s| s.environment().clone())
+            .unwrap_or_default();
+
         // Drop lock before spawning PTY
         drop(session_manager);
 
@@ -782,6 +804,8 @@ impl HandlerContext {
         if let Some(ref cwd) = cwd {
             config = config.with_cwd(cwd);
         }
+        // Apply session environment variables
+        config = config.with_env_map(&session_env);
 
         {
             let mut pty_manager = self.pty_manager.write().await;
@@ -1040,6 +1064,12 @@ impl HandlerContext {
 
             pane_ids.push(pane_id);
 
+            // Get session environment before spawning
+            let session_env = session_manager
+                .get_session(session_id)
+                .map(|s| s.environment().clone())
+                .unwrap_or_default();
+
             // Spawn PTY (need to drop session_manager first)
             let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
             let mut config = if let Some(ref cmd) = command {
@@ -1050,6 +1080,8 @@ impl HandlerContext {
             if let Some(ref cwd) = cwd {
                 config = config.with_cwd(cwd);
             }
+            // Apply session environment variables
+            config = config.with_env_map(&session_env);
 
             // We can't spawn PTY here because we hold session_manager lock
             // Store config for later spawning
@@ -1091,6 +1123,115 @@ impl HandlerContext {
         }
 
         Err("Invalid layout specification: must contain 'pane' or 'splits'".to_string())
+    }
+
+    /// Handle SetEnvironment - set an environment variable on a session
+    pub async fn handle_set_environment(
+        &self,
+        session_filter: String,
+        key: String,
+        value: String,
+    ) -> HandlerResult {
+        info!(
+            "SetEnvironment request from {}: session={}, key={}",
+            self.client_id, session_filter, key
+        );
+
+        let mut session_manager = self.session_manager.write().await;
+
+        // Find the session by UUID or name
+        let session_id = if let Ok(uuid) = Uuid::parse_str(&session_filter) {
+            if session_manager.get_session(uuid).is_some() {
+                uuid
+            } else {
+                return HandlerContext::error(
+                    ErrorCode::SessionNotFound,
+                    format!("Session {} not found", session_filter),
+                );
+            }
+        } else {
+            // Try by name
+            match session_manager.get_session_by_name(&session_filter) {
+                Some(session) => session.id(),
+                None => {
+                    return HandlerContext::error(
+                        ErrorCode::SessionNotFound,
+                        format!("Session '{}' not found", session_filter),
+                    );
+                }
+            }
+        };
+
+        // Get the session and set the environment variable
+        let session_name = if let Some(session) = session_manager.get_session_mut(session_id) {
+            session.set_env(&key, &value);
+            session.name().to_string()
+        } else {
+            return HandlerContext::error(
+                ErrorCode::SessionNotFound,
+                format!("Session {} not found", session_id),
+            );
+        };
+
+        HandlerResult::Response(ServerMessage::EnvironmentSet {
+            session_id,
+            session_name,
+            key,
+            value,
+        })
+    }
+
+    /// Handle GetEnvironment - get environment variables from a session
+    pub async fn handle_get_environment(
+        &self,
+        session_filter: String,
+        key: Option<String>,
+    ) -> HandlerResult {
+        debug!(
+            "GetEnvironment request from {}: session={}, key={:?}",
+            self.client_id, session_filter, key
+        );
+
+        let session_manager = self.session_manager.read().await;
+
+        // Find the session by UUID or name
+        let session = if let Ok(uuid) = Uuid::parse_str(&session_filter) {
+            session_manager.get_session(uuid)
+        } else {
+            session_manager.get_session_by_name(&session_filter)
+        };
+
+        let session = match session {
+            Some(s) => s,
+            None => {
+                return HandlerContext::error(
+                    ErrorCode::SessionNotFound,
+                    format!("Session '{}' not found", session_filter),
+                );
+            }
+        };
+
+        let session_id = session.id();
+        let session_name = session.name().to_string();
+
+        // Get environment - either specific key or all
+        let environment = if let Some(ref k) = key {
+            // Get single key
+            let mut env = std::collections::HashMap::new();
+            if let Some(v) = session.get_env(k) {
+                env.insert(k.clone(), v.clone());
+            }
+            env
+        } else {
+            // Get all
+            session.environment().clone()
+        };
+
+        HandlerResult::Response(ServerMessage::EnvironmentList {
+            session_id,
+            session_name,
+            environment,
+        })
     }
 }
 
