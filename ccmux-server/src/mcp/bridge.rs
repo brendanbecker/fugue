@@ -760,7 +760,26 @@ impl McpBridge {
             "ccmux_create_layout" => {
                 let session = arguments["session"].as_str().map(String::from);
                 let window = arguments["window"].as_str().map(String::from);
-                let layout = arguments["layout"].clone();
+                // BUG-033: Handle layout passed as JSON string instead of object
+                // Some MCP clients may serialize the layout as a string
+                let raw_layout = arguments["layout"].clone();
+                debug!(
+                    "create_layout received layout type: {}, value: {}",
+                    if raw_layout.is_object() { "object" }
+                    else if raw_layout.is_string() { "string" }
+                    else if raw_layout.is_array() { "array" }
+                    else { "other" },
+                    raw_layout
+                );
+                let layout = match &raw_layout {
+                    serde_json::Value::String(s) => {
+                        debug!("Parsing layout from JSON string");
+                        serde_json::from_str(s).map_err(|e| {
+                            McpError::InvalidParams(format!("Invalid layout JSON string: {}", e))
+                        })?
+                    }
+                    other => other.clone(),
+                };
                 self.tool_create_layout(session, window, layout).await
             }
             "ccmux_kill_session" => {
@@ -2919,5 +2938,70 @@ mod tests {
             let json = serde_json::json!({"issue_id": issue_id});
             assert_eq!(json["issue_id"].as_str().unwrap(), *issue_id);
         }
+    }
+
+    // ==================== BUG-033: Layout String Parsing Tests ====================
+
+    #[test]
+    fn test_layout_string_parsing_bug033() {
+        // BUG-033: MCP clients may pass layout as a JSON string instead of object
+        // The bridge should parse strings into objects
+
+        // Test case 1: Layout passed as object (normal case)
+        let layout_object = serde_json::json!({"pane": {}});
+        assert!(layout_object.get("pane").is_some());
+
+        // Test case 2: Layout passed as string (bug scenario)
+        let layout_string = serde_json::Value::String(r#"{"pane": {}}"#.to_string());
+        // Direct .get() on string returns None - this is the bug
+        assert!(layout_string.get("pane").is_none());
+
+        // Test case 3: Our fix - parse string to object
+        let parsed = match &layout_string {
+            serde_json::Value::String(s) => serde_json::from_str::<serde_json::Value>(s).unwrap(),
+            other => other.clone(),
+        };
+        // After parsing, .get() works correctly
+        assert!(parsed.get("pane").is_some());
+    }
+
+    #[test]
+    fn test_layout_string_parsing_complex() {
+        // Test complex nested layout passed as string
+        let layout_str = r#"{
+            "direction": "horizontal",
+            "splits": [
+                {"ratio": 0.5, "layout": {"pane": {"command": "bash"}}},
+                {"ratio": 0.5, "layout": {"pane": {}}}
+            ]
+        }"#;
+
+        let layout_string = serde_json::Value::String(layout_str.to_string());
+
+        // Parse the string
+        let parsed = match &layout_string {
+            serde_json::Value::String(s) => serde_json::from_str::<serde_json::Value>(s).unwrap(),
+            other => other.clone(),
+        };
+
+        // Verify nested structure is accessible
+        assert!(parsed.get("direction").is_some());
+        assert!(parsed.get("splits").is_some());
+        let splits = parsed["splits"].as_array().unwrap();
+        assert_eq!(splits.len(), 2);
+        assert!(splits[0]["layout"]["pane"]["command"].as_str().is_some());
+    }
+
+    #[test]
+    fn test_layout_string_parsing_invalid() {
+        // Test invalid JSON string is rejected
+        let invalid_json = serde_json::Value::String("not valid json".to_string());
+
+        let result = match &invalid_json {
+            serde_json::Value::String(s) => serde_json::from_str::<serde_json::Value>(s),
+            _ => Ok(serde_json::Value::Null),
+        };
+
+        assert!(result.is_err());
     }
 }

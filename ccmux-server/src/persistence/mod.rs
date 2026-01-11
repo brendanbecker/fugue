@@ -481,6 +481,7 @@ impl PersistenceManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
     use tempfile::TempDir;
 
     fn create_test_manager() -> (TempDir, PersistenceManager) {
