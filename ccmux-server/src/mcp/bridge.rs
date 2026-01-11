@@ -171,7 +171,7 @@ impl McpBridge {
             .map_err(|_| McpError::DaemonDisconnected)
     }
 
-    /// Receive a message from the daemon
+    /// Receive a message from the daemon (raw, includes broadcasts)
     async fn recv_from_daemon(&mut self) -> Result<ServerMessage, McpError> {
         let rx = self
             .daemon_rx
@@ -181,6 +181,62 @@ impl McpBridge {
         rx.recv()
             .await
             .ok_or(McpError::DaemonDisconnected)
+    }
+
+    /// Receive a response from the daemon, filtering out broadcast messages
+    ///
+    /// The daemon sends both direct responses to requests AND broadcast messages
+    /// (like Output, PaneStateChanged, etc.) to all clients. This method filters
+    /// out broadcasts and only returns messages that are actual responses.
+    ///
+    /// BUG-027 FIX: Without this filtering, tools like `read_pane` could receive
+    /// a broadcast message (like `PaneCreated` from another client) instead of
+    /// the expected `PaneContent` response, causing response type mismatches.
+    async fn recv_response_from_daemon(&mut self) -> Result<ServerMessage, McpError> {
+        loop {
+            let msg = self.recv_from_daemon().await?;
+
+            // Check if this is a broadcast message that should be skipped
+            if Self::is_broadcast_message(&msg) {
+                debug!("Skipping broadcast message: {:?}", std::mem::discriminant(&msg));
+                continue;
+            }
+
+            // This is a response message, return it
+            return Ok(msg);
+        }
+    }
+
+    /// Check if a message is a broadcast (not a direct response to a request)
+    ///
+    /// Broadcast messages are sent to all clients attached to a session and
+    /// include things like terminal output, pane state changes, and notifications
+    /// about other clients' actions.
+    fn is_broadcast_message(msg: &ServerMessage) -> bool {
+        matches!(
+            msg,
+            // Terminal output from panes
+            ServerMessage::Output { .. }
+            // Pane state changes (normal, claude, exited)
+            | ServerMessage::PaneStateChanged { .. }
+            // Claude activity updates
+            | ServerMessage::ClaudeStateChanged { .. }
+            // Simple pane created (broadcast from other clients, not the WithDetails response)
+            | ServerMessage::PaneCreated { .. }
+            // Pane closed notifications (broadcast, but we handle it specially for close_pane)
+            // Note: We DON'T filter PaneClosed here because tool_close_pane expects it as a response
+            // | ServerMessage::PaneClosed { .. }
+            // Simple window created (broadcast from other clients)
+            | ServerMessage::WindowCreated { .. }
+            // Window closed notifications
+            | ServerMessage::WindowClosed { .. }
+            // Session ended notifications
+            | ServerMessage::SessionEnded { .. }
+            // Viewport updates
+            | ServerMessage::ViewportUpdated { .. }
+            // Orchestration messages from other sessions
+            | ServerMessage::OrchestrationReceived { .. }
+        )
     }
 
     /// Run the MCP bridge, reading from stdin and writing to stdout
@@ -438,7 +494,7 @@ impl McpBridge {
     async fn tool_list_sessions(&mut self) -> Result<ToolResult, McpError> {
         self.send_to_daemon(ClientMessage::ListSessions).await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::SessionList { sessions } => {
                 let result: Vec<serde_json::Value> = sessions
                     .iter()
@@ -471,7 +527,7 @@ impl McpBridge {
         self.send_to_daemon(ClientMessage::ListWindows { session_filter })
             .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::WindowList {
                 session_name,
                 windows,
@@ -508,7 +564,7 @@ impl McpBridge {
         self.send_to_daemon(ClientMessage::ListAllPanes { session_filter })
             .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::AllPanesList { panes } => {
                 let result = format_pane_list(&panes);
                 let json = serde_json::to_string_pretty(&result)
@@ -530,7 +586,7 @@ impl McpBridge {
         self.send_to_daemon(ClientMessage::ReadPane { pane_id, lines })
             .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::PaneContent { content, .. } => Ok(ToolResult::text(content)),
             ServerMessage::Error { code, message } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
@@ -543,7 +599,7 @@ impl McpBridge {
         self.send_to_daemon(ClientMessage::GetPaneStatus { pane_id })
             .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::PaneStatus {
                 pane_id,
                 session_name,
@@ -612,7 +668,7 @@ impl McpBridge {
         self.send_to_daemon(ClientMessage::CreateSessionWithOptions { name, command, cwd })
             .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::SessionCreatedWithDetails {
                 session_id,
                 session_name,
@@ -651,7 +707,7 @@ impl McpBridge {
         })
         .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::WindowCreatedWithDetails {
                 window_id,
                 pane_id,
@@ -702,7 +758,7 @@ impl McpBridge {
         })
         .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::PaneCreatedWithDetails {
                 pane_id,
                 session_id,
@@ -754,7 +810,7 @@ impl McpBridge {
         self.send_to_daemon(ClientMessage::ClosePane { pane_id })
             .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::PaneClosed { pane_id, .. } => {
                 let result = serde_json::json!({
                     "pane_id": pane_id.to_string(),
@@ -829,7 +885,7 @@ impl McpBridge {
         })
         .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::SessionRenamed {
                 session_id,
                 previous_name,
@@ -878,7 +934,7 @@ impl McpBridge {
         })
         .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::PaneSplit {
                 new_pane_id,
                 original_pane_id,
@@ -915,7 +971,7 @@ impl McpBridge {
         self.send_to_daemon(ClientMessage::ResizePaneDelta { pane_id, delta })
             .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::PaneResized {
                 pane_id,
                 new_cols,
@@ -951,7 +1007,7 @@ impl McpBridge {
         })
         .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::LayoutCreated {
                 session_id,
                 session_name,
@@ -984,7 +1040,7 @@ impl McpBridge {
         } else {
             // Need to list sessions and find by name
             self.send_to_daemon(ClientMessage::ListSessions).await?;
-            match self.recv_from_daemon().await? {
+            match self.recv_response_from_daemon().await? {
                 ServerMessage::SessionList { sessions } => {
                     sessions
                         .iter()
@@ -1007,7 +1063,7 @@ impl McpBridge {
         self.send_to_daemon(ClientMessage::DestroySession { session_id })
             .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::SessionDestroyed {
                 session_id,
                 session_name,
@@ -1043,7 +1099,7 @@ impl McpBridge {
         })
         .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::EnvironmentSet {
                 session_id,
                 session_name,
@@ -1080,7 +1136,7 @@ impl McpBridge {
         })
         .await?;
 
-        match self.recv_from_daemon().await? {
+        match self.recv_response_from_daemon().await? {
             ServerMessage::EnvironmentList {
                 session_id,
                 session_name,
@@ -1198,5 +1254,186 @@ mod tests {
         let panes = vec![];
         let result = format_pane_list(&panes);
         assert!(result.is_empty());
+    }
+
+    // ==================== BUG-027 Fix Tests ====================
+
+    #[test]
+    fn test_is_broadcast_message_output() {
+        // Output messages are broadcasts (terminal output from panes)
+        let msg = ServerMessage::Output {
+            pane_id: Uuid::new_v4(),
+            data: vec![b'h', b'i'],
+        };
+        assert!(McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_broadcast_message_pane_state_changed() {
+        let msg = ServerMessage::PaneStateChanged {
+            pane_id: Uuid::new_v4(),
+            state: ccmux_protocol::PaneState::Normal,
+        };
+        assert!(McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_broadcast_message_claude_state_changed() {
+        let msg = ServerMessage::ClaudeStateChanged {
+            pane_id: Uuid::new_v4(),
+            state: ccmux_protocol::ClaudeState::default(),
+        };
+        assert!(McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_broadcast_message_pane_created() {
+        // Simple PaneCreated is a broadcast (from other clients)
+        let msg = ServerMessage::PaneCreated {
+            pane: ccmux_protocol::PaneInfo {
+                id: Uuid::new_v4(),
+                window_id: Uuid::new_v4(),
+                index: 0,
+                cols: 80,
+                rows: 24,
+                state: ccmux_protocol::PaneState::Normal,
+                title: None,
+                cwd: None,
+            },
+            direction: ccmux_protocol::SplitDirection::Horizontal,
+        };
+        assert!(McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_broadcast_message_window_created() {
+        let msg = ServerMessage::WindowCreated {
+            window: ccmux_protocol::WindowInfo {
+                id: Uuid::new_v4(),
+                session_id: Uuid::new_v4(),
+                name: "test".to_string(),
+                index: 0,
+                pane_count: 1,
+                active_pane_id: None,
+            },
+        };
+        assert!(McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_broadcast_message_window_closed() {
+        let msg = ServerMessage::WindowClosed {
+            window_id: Uuid::new_v4(),
+        };
+        assert!(McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_broadcast_message_session_ended() {
+        let msg = ServerMessage::SessionEnded {
+            session_id: Uuid::new_v4(),
+        };
+        assert!(McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_broadcast_message_viewport_updated() {
+        let msg = ServerMessage::ViewportUpdated {
+            pane_id: Uuid::new_v4(),
+            state: ccmux_protocol::ViewportState::new(),
+        };
+        assert!(McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_broadcast_message_orchestration_received() {
+        let msg = ServerMessage::OrchestrationReceived {
+            from_session_id: Uuid::new_v4(),
+            message: ccmux_protocol::OrchestrationMessage::SyncRequest,
+        };
+        assert!(McpBridge::is_broadcast_message(&msg));
+    }
+
+    // Test that response messages are NOT broadcasts
+    #[test]
+    fn test_is_not_broadcast_session_list() {
+        let msg = ServerMessage::SessionList { sessions: vec![] };
+        assert!(!McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_not_broadcast_pane_content() {
+        let msg = ServerMessage::PaneContent {
+            pane_id: Uuid::new_v4(),
+            content: "test".to_string(),
+        };
+        assert!(!McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_not_broadcast_all_panes_list() {
+        let msg = ServerMessage::AllPanesList { panes: vec![] };
+        assert!(!McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_not_broadcast_pane_status() {
+        let msg = ServerMessage::PaneStatus {
+            pane_id: Uuid::new_v4(),
+            session_name: "test".to_string(),
+            window_name: "main".to_string(),
+            window_index: 0,
+            pane_index: 0,
+            cols: 80,
+            rows: 24,
+            title: None,
+            cwd: None,
+            state: ccmux_protocol::PaneState::Normal,
+            has_pty: true,
+            is_awaiting_input: false,
+            is_awaiting_confirmation: false,
+        };
+        assert!(!McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_not_broadcast_pane_created_with_details() {
+        // PaneCreatedWithDetails is a response (not a broadcast)
+        let msg = ServerMessage::PaneCreatedWithDetails {
+            pane_id: Uuid::new_v4(),
+            session_id: Uuid::new_v4(),
+            session_name: "test".to_string(),
+            window_id: Uuid::new_v4(),
+            direction: "horizontal".to_string(),
+        };
+        assert!(!McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_not_broadcast_error() {
+        let msg = ServerMessage::Error {
+            code: ccmux_protocol::ErrorCode::PaneNotFound,
+            message: "Pane not found".to_string(),
+        };
+        assert!(!McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_not_broadcast_pane_closed() {
+        // PaneClosed is NOT filtered because tool_close_pane expects it
+        let msg = ServerMessage::PaneClosed {
+            pane_id: Uuid::new_v4(),
+            exit_code: Some(0),
+        };
+        assert!(!McpBridge::is_broadcast_message(&msg));
+    }
+
+    #[test]
+    fn test_is_not_broadcast_connected() {
+        let msg = ServerMessage::Connected {
+            server_version: "1.0.0".to_string(),
+            protocol_version: 1,
+        };
+        assert!(!McpBridge::is_broadcast_message(&msg));
     }
 }
