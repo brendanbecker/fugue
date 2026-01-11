@@ -1514,32 +1514,66 @@ impl App {
                 ));
             }
             // BUG-026 FIX: Focus change broadcasts from MCP commands
-            ServerMessage::PaneFocused { pane_id, window_id, .. } => {
-                // Update active pane if we know about this pane
-                if self.panes.contains_key(&pane_id) {
-                    self.active_pane_id = Some(pane_id);
-                    tracing::debug!("Focus changed to pane {} (via MCP)", pane_id);
-                    // If the window is known, ensure it's the active window display
-                    if let Some(window) = self.windows.get_mut(&window_id) {
-                        window.active_pane_id = Some(pane_id);
+            // BUG-036 FIX: Switch sessions when focusing pane in different session
+            ServerMessage::PaneFocused { session_id, window_id, pane_id } => {
+                let should_switch = match &self.session {
+                    Some(current) => current.id != session_id,
+                    None => true,
+                };
+
+                if should_switch {
+                    tracing::debug!("Switching to session {} for pane {} (via MCP)", session_id, pane_id);
+                    self.connection
+                        .send(ClientMessage::AttachSession { session_id })
+                        .await?;
+                } else {
+                    // Update active pane if we know about this pane
+                    if self.panes.contains_key(&pane_id) {
+                        self.active_pane_id = Some(pane_id);
+                        tracing::debug!("Focus changed to pane {} (via MCP)", pane_id);
+                        // If the window is known, ensure it's the active window display
+                        if let Some(window) = self.windows.get_mut(&window_id) {
+                            window.active_pane_id = Some(pane_id);
+                        }
                     }
                 }
             }
-            ServerMessage::WindowFocused { window_id, .. } => {
-                // Update active window - focus its active pane
-                if let Some(window) = self.windows.get(&window_id) {
-                    if let Some(active_pane) = window.active_pane_id {
-                        self.active_pane_id = Some(active_pane);
-                        tracing::debug!("Window {} focused, now focusing pane {} (via MCP)", window_id, active_pane);
+            ServerMessage::WindowFocused { session_id, window_id } => {
+                // BUG-036 FIX: Switch to the session if different from current
+                let should_switch = match &self.session {
+                    Some(current) => current.id != session_id,
+                    None => true,
+                };
+
+                if should_switch {
+                    tracing::debug!("Switching to session {} for window {} (via MCP)", session_id, window_id);
+                    self.connection
+                        .send(ClientMessage::AttachSession { session_id })
+                        .await?;
+                } else {
+                    // Update active window - focus its active pane
+                    if let Some(window) = self.windows.get(&window_id) {
+                        if let Some(active_pane) = window.active_pane_id {
+                            self.active_pane_id = Some(active_pane);
+                            tracing::debug!("Window {} focused, now focusing pane {} (via MCP)", window_id, active_pane);
+                        }
                     }
                 }
             }
             ServerMessage::SessionFocused { session_id } => {
-                // Session focus change - if this is our attached session, log it
-                if let Some(ref session) = self.session {
-                    if session.id == session_id {
-                        tracing::debug!("Our session {} is now the active session (via MCP)", session_id);
-                    }
+                // BUG-036 FIX: Switch to the focused session if different from current
+                let should_switch = match &self.session {
+                    Some(current) => current.id != session_id,
+                    None => true,
+                };
+
+                if should_switch {
+                    tracing::debug!("Switching to focused session {} (via MCP)", session_id);
+                    self.connection
+                        .send(ClientMessage::AttachSession { session_id })
+                        .await?;
+                } else {
+                    tracing::debug!("Our session {} is now the active session (via MCP)", session_id);
                 }
             }
 
