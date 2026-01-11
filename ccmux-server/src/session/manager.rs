@@ -141,16 +141,26 @@ impl SessionManager {
     /// Get the active session ID
     ///
     /// Returns the session that should be used when no session is explicitly specified.
-    /// Priority order (FEAT-036 session-aware defaults):
-    /// 1. Session with most attached clients (indicates active TUI usage)
-    /// 2. If tie on attached clients, prefer most recently created
-    /// 3. If no sessions have attached clients, return most recent session
+    /// Priority order (BUG-034 fix + FEAT-036 session-aware defaults):
+    /// 1. Explicitly set active session (via select_session MCP command)
+    /// 2. Session with most attached clients (indicates active TUI usage)
+    /// 3. If tie on attached clients, prefer most recently created
+    /// 4. If no sessions have attached clients, return most recent session
     ///
     /// This ensures MCP commands default to the session the user is actively using,
-    /// rather than an orphaned session from a previous TUI instance.
+    /// whether set explicitly via select_session or implicitly via TUI attachment.
     pub fn active_session_id(&self) -> Option<Uuid> {
         if self.sessions.is_empty() {
             return None;
+        }
+
+        // First, check if there's an explicitly set active session (BUG-034)
+        if let Some(explicit_id) = self.active_session_id {
+            // Verify the session still exists
+            if self.sessions.contains_key(&explicit_id) {
+                return Some(explicit_id);
+            }
+            // If session was deleted, fall through to heuristics
         }
 
         // Find sessions with attached clients, sorted by client count (desc) then creation time (desc)
@@ -1322,5 +1332,122 @@ mod tests {
 
         // Now no attached clients - should fall back to most recent (session2)
         assert_eq!(manager.active_session_id(), Some(session2_id));
+    }
+
+    // ==================== BUG-034: Explicit Session Selection Tests ====================
+
+    #[test]
+    fn test_bug034_set_active_session_takes_priority() {
+        let mut manager = SessionManager::new();
+
+        // Create two sessions
+        let session1 = manager.create_session("session1").unwrap();
+        let session1_id = session1.id();
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        let session2 = manager.create_session("session2").unwrap();
+        let session2_id = session2.id();
+
+        // Without explicit selection, should return session2 (most recent, no attached clients)
+        assert_eq!(manager.active_session_id(), Some(session2_id));
+
+        // Explicitly select session1
+        manager.set_active_session(session1_id);
+
+        // Now should return session1 (explicitly selected, even though session2 is more recent)
+        assert_eq!(manager.active_session_id(), Some(session1_id));
+    }
+
+    #[test]
+    fn test_bug034_explicit_selection_overrides_attached_clients() {
+        let mut manager = SessionManager::new();
+
+        // Create two sessions
+        let session1 = manager.create_session("session1").unwrap();
+        let session1_id = session1.id();
+
+        let session2 = manager.create_session("session2").unwrap();
+        let session2_id = session2.id();
+
+        // Attach multiple clients to session2
+        manager.get_session_mut(session2_id).unwrap().attach_client();
+        manager.get_session_mut(session2_id).unwrap().attach_client();
+
+        // Without explicit selection, session2 should be active (has most attached clients)
+        assert_eq!(manager.active_session_id(), Some(session2_id));
+
+        // Explicitly select session1
+        manager.set_active_session(session1_id);
+
+        // Now should return session1 (explicit selection takes priority over attached clients)
+        assert_eq!(manager.active_session_id(), Some(session1_id));
+    }
+
+    #[test]
+    fn test_bug034_clear_active_session_falls_back_to_heuristics() {
+        let mut manager = SessionManager::new();
+
+        // Create two sessions
+        let session1 = manager.create_session("session1").unwrap();
+        let session1_id = session1.id();
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        let session2 = manager.create_session("session2").unwrap();
+        let session2_id = session2.id();
+
+        // Attach client to session1
+        manager.get_session_mut(session1_id).unwrap().attach_client();
+
+        // Explicitly select session2
+        manager.set_active_session(session2_id);
+        assert_eq!(manager.active_session_id(), Some(session2_id));
+
+        // Clear explicit selection
+        manager.clear_active_session();
+
+        // Should fall back to session1 (has attached clients)
+        assert_eq!(manager.active_session_id(), Some(session1_id));
+    }
+
+    #[test]
+    fn test_bug034_deleted_session_falls_back_to_heuristics() {
+        let mut manager = SessionManager::new();
+
+        // Create two sessions
+        let session1 = manager.create_session("session1").unwrap();
+        let session1_id = session1.id();
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        let session2 = manager.create_session("session2").unwrap();
+        let session2_id = session2.id();
+
+        // Explicitly select session1
+        manager.set_active_session(session1_id);
+        assert_eq!(manager.active_session_id(), Some(session1_id));
+
+        // Delete session1
+        manager.remove_session(session1_id);
+
+        // Should fall back to session2 (session1 no longer exists)
+        assert_eq!(manager.active_session_id(), Some(session2_id));
+    }
+
+    #[test]
+    fn test_bug034_set_active_session_invalid_id() {
+        let mut manager = SessionManager::new();
+
+        // Create a session
+        let session1 = manager.create_session("session1").unwrap();
+        let session1_id = session1.id();
+
+        // Try to set an invalid session as active
+        let invalid_id = Uuid::new_v4();
+        manager.set_active_session(invalid_id);
+
+        // Should fall back to the existing session
+        assert_eq!(manager.active_session_id(), Some(session1_id));
     }
 }

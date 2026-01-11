@@ -135,7 +135,7 @@ impl<'a> ToolContext<'a> {
             _ => "vertical",
         };
 
-        // Resolve session: by UUID, by name, or use first available
+        // Resolve session: by UUID, by name, or use active session (BUG-034 fix)
         let session = if let Some(filter) = session_filter {
             // Try to parse as UUID first
             if let Ok(id) = uuid::Uuid::parse_str(filter) {
@@ -153,7 +153,10 @@ impl<'a> ToolContext<'a> {
                 .create_session("default")
                 .map_err(|e| McpError::Internal(e.to_string()))?
         } else {
-            self.session_manager.list_sessions()[0]
+            // Use active session instead of first session
+            self.session_manager
+                .active_session()
+                .ok_or_else(|| McpError::Internal("No sessions exist".into()))?
         };
         let session_id = session.id();
         let session_name = session.name().to_string();
@@ -305,8 +308,8 @@ impl<'a> ToolContext<'a> {
                 self.session_manager.get_session_by_name(filter)
             }
         } else {
-            // Use first session if not specified
-            self.session_manager.list_sessions().first().copied()
+            // Use active session if not specified (BUG-034 fix)
+            self.session_manager.active_session()
         };
 
         let session = session.ok_or_else(|| {
@@ -418,11 +421,9 @@ impl<'a> ToolContext<'a> {
                     .ok_or_else(|| McpError::Internal(format!("Session '{}' not found", filter)))?
             }
         } else {
-            // Use first session if not specified
+            // Use active session if not specified (BUG-034 fix)
             self.session_manager
-                .list_sessions()
-                .first()
-                .map(|s| s.id())
+                .active_session_id()
                 .ok_or_else(|| McpError::Internal("No sessions exist".into()))?
         };
 
@@ -876,7 +877,7 @@ impl<'a> ToolContext<'a> {
         window_filter: Option<&str>,
         layout_spec: &serde_json::Value,
     ) -> Result<String, McpError> {
-        // Resolve session
+        // Resolve session (BUG-034 fix: use active session instead of first)
         let session = if let Some(filter) = session_filter {
             if let Ok(id) = uuid::Uuid::parse_str(filter) {
                 self.session_manager
@@ -892,7 +893,10 @@ impl<'a> ToolContext<'a> {
                 .create_session("default")
                 .map_err(|e| McpError::Internal(e.to_string()))?
         } else {
-            self.session_manager.list_sessions()[0]
+            // Use active session instead of first session
+            self.session_manager
+                .active_session()
+                .ok_or_else(|| McpError::Internal("No sessions exist".into()))?
         };
         let session_id = session.id();
         let session_name = session.name().to_string();
@@ -1377,6 +1381,98 @@ mod tests {
         let result = ctx.create_window(Some("nonexistent"), None, None);
 
         assert!(result.is_err());
+    }
+
+    // ==================== BUG-034: Active Session Selection Tests ====================
+
+    #[test]
+    fn test_bug034_create_window_uses_selected_session() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        // Create two sessions (session1 is created first)
+        let session1 = session_manager.create_session("session1").unwrap();
+        let session1_id = session1.id();
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        session_manager.create_session("session2").unwrap();
+
+        // Select session1 as active (even though session2 is more recent)
+        session_manager.set_active_session(session1_id);
+
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+
+        // Create window without specifying session - should use active session (session1)
+        let result = ctx.create_window(None, Some("test-window"), None).unwrap();
+
+        // Verify the window was created in session1, not session2
+        assert!(result.contains("session1"));
+        assert!(!result.contains("session2"));
+    }
+
+    #[test]
+    fn test_bug034_create_pane_uses_selected_session() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        // Create two sessions
+        let session1 = session_manager.create_session("session1").unwrap();
+        let session1_id = session1.id();
+
+        // Add a window to session1
+        {
+            let session1_mut = session_manager.get_session_mut(session1_id).unwrap();
+            session1_mut.create_window(None);
+        }
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        {
+            let session2 = session_manager.create_session("session2").unwrap();
+            // Add a window to session2
+            let session2_mut = session_manager.get_session_mut(session2.id()).unwrap();
+            session2_mut.create_window(None);
+        }
+
+        // Select session1 as active
+        session_manager.set_active_session(session1_id);
+
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+
+        // Create pane without specifying session - should use active session (session1)
+        let result = ctx.create_pane(None, None, None, None, None, None, false).unwrap();
+
+        // Verify the pane was created in session1
+        assert!(result.contains("session1"));
+        assert!(!result.contains("session2"));
+    }
+
+    #[test]
+    fn test_bug034_select_session_then_create_window() {
+        let mut session_manager = SessionManager::new();
+        let mut pty_manager = PtyManager::new();
+
+        // Create two sessions
+        let session1 = session_manager.create_session("dev-qa").unwrap();
+        let session1_id = session1.id();
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
+        session_manager.create_session("session-0").unwrap();
+
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+
+        // Simulate the MCP flow: select_session then create_window
+        // This is the exact scenario from BUG-034
+        let _select_result = ctx.select_session(session1_id).unwrap();
+
+        // Now create_window should use dev-qa, not session-0
+        let create_result = ctx.create_window(None, Some("new-window"), None).unwrap();
+
+        // Verify window was created in dev-qa
+        assert!(create_result.contains("dev-qa"));
+        assert!(!create_result.contains("session-0"));
     }
 
     // ==================== Create Pane Direction Tests ====================
