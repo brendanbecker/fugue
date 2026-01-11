@@ -46,7 +46,6 @@ pub mod scrollback;
 pub mod types;
 pub mod wal;
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 

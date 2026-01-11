@@ -5,7 +5,6 @@
 //! - Spawning new PTYs for each pane
 //! - Handling failures gracefully with detailed status reporting
 
-use std::collections::HashMap;
 use std::path::Path;
 
 use tracing::{debug, error, info, warn};

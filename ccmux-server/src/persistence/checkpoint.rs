@@ -3,7 +3,6 @@
 //! Checkpoints provide a complete snapshot of session state at a point in time.
 //! They are used as the base for recovery, with WAL entries replayed on top.
 
-use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
