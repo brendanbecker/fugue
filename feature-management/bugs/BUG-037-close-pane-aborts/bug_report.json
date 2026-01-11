@@ -1,0 +1,13 @@
+{
+  "id": "BUG-037",
+  "title": "close_pane Returns AbortError",
+  "priority": "P2",
+  "severity": "medium",
+  "component": "daemon",
+  "subcomponent": "close_pane",
+  "status": "new",
+  "created": "2026-01-11",
+  "reporter": "claude-qa-demo",
+  "labels": ["mcp", "pane-management"],
+  "workaround": "User manually closes pane via keyboard"
+}

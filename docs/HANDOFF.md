@@ -12,13 +12,13 @@
 
 ## Current State (2026-01-11)
 
-**All bugs fixed, all features complete.** Production ready.
+**QA Demo revealed 5 new bugs.** See priority queue below.
 
 **Key Metrics:**
-- 32 bugs tracked, 31 resolved, 1 deprecated
+- 37 bugs tracked, 27 resolved, 1 deprecated, 9 open
 - 60 features tracked, 60 completed
 - 1,526+ tests passing
-- Clean git working tree on main branch
+- Main branch with pending bug fixes
 - No active worktrees
 
 ### What Works
@@ -69,9 +69,28 @@
 | FEAT-025 | Pane Output Rendering | P0 | ✅ Merged |
 | FEAT-026 | Input Testing | P1 | ✅ Working (verified manually) |
 
-## Bug Status: All Resolved
+## Bug Status: 9 Open Bugs
 
-**Open Bugs: 0** - All bugs fixed.
+**Open Bugs: 9** - QA Demo run discovered 5 new bugs requiring ULTRATHINK analysis.
+
+### Priority Queue (P0/P1 from QA Demo)
+
+| Priority | Bug | Status | Root Cause | Next Step |
+|----------|-----|--------|------------|-----------|
+| **P0** | BUG-036 | ROOT CAUSE FOUND | TUI handlers don't switch sessions | Implement fix in `app.rs:1521-1548` |
+| **P0** | BUG-032 | new | MCP handlers missing broadcasts | Add ResponseWithBroadcast to 4 handlers |
+| **P1** | BUG-033 | Investigation complete | Layout passed as string not object? | Add debug logging at `bridge.rs:763` |
+| **P1** | BUG-035 | new | Response types drift after many ops | Stress test to reproduce |
+| **P2** | BUG-034 | new | Session state not propagating | May fix with BUG-036 |
+| **P2** | BUG-037 | new | close_pane timeout/abort | Investigate abort handling |
+
+### Root Cause Clusters (from Retrospective)
+
+| Cluster | Bugs | Risk | Key Insight |
+|---------|------|------|-------------|
+| **Protocol/Serialization** | BUG-033, BUG-035 | HIGH | JsonValue wrapper may break JSON access |
+| **Session State Management** | BUG-034, BUG-036 | HIGH | State doesn't propagate across MCP bridge |
+| **Broadcast Filtering** | BUG-036 | HIGH | BUG-029 fix may have over-filtered |
 
 ### Recently Fixed (This Session)
 | Bug | Priority | Description | Resolution |
@@ -234,8 +253,54 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 - [x] ~~Fix BUG-031 (P2): Metadata persistence~~ - MERGED
 - [x] ~~Fix BUG-032 (P0): MCP handlers missing TUI broadcasts~~ - MERGED
 - [x] ~~Implement FEAT-059: Beads Workflow Integration~~ - MERGED
+- [ ] **BUG-036 (P0)**: Selection tools don't switch TUI view - ROOT CAUSE FOUND
+- [ ] **BUG-033 (P1)**: create_layout rejects all formats - needs debug logging
+- [ ] **BUG-035 (P1)**: MCP handlers return wrong response types - needs stress test
+- [ ] **BUG-034 (P2)**: create_window ignores selected session
+- [ ] **BUG-037 (P2)**: close_pane returns AbortError
 - [ ] Update README with new MCP tools
 - [ ] Create release build and test full workflow
+
+## Session Log (2026-01-11) - QA Demo Run & Bug Discovery
+
+### Work Completed This Session
+1. **Comprehensive QA Demo** - Tested 20+ MCP operations end-to-end
+2. **5 new bugs discovered**:
+   - BUG-033 (P1): create_layout rejects all layout formats
+   - BUG-034 (P2): create_window ignores selected session
+   - BUG-035 (P1): MCP handlers return wrong response types
+   - BUG-036 (P0): Selection tools don't switch TUI view
+   - BUG-037 (P2): close_pane returns AbortError
+3. **Retrospective analysis** - Identified root cause clusters and paths to rule out
+4. **Parallel investigation streams** - 3 agents launched to investigate root causes
+5. **BUG-036 root cause found** - TUI handlers at `app.rs:1521-1548` only update local state, don't switch sessions
+
+### Key Findings
+
+**BUG-036 (P0) - ROOT CAUSE CONFIRMED**:
+- Location: `ccmux-client/src/ui/app.rs` lines 1521-1548
+- Problem: `SessionFocused` handler only logs, doesn't send `AttachSession` to switch
+- Fix: When `session_id` differs from current, send `ClientMessage::AttachSession`
+
+**BUG-033 (P1) - Investigation Complete**:
+- Tests that bypass MCP bridge pass correctly
+- At `bridge.rs:763`: `arguments["layout"].clone()` may extract wrong type
+- Hypothesis: Layout passed as JSON string instead of object
+- Next step: Add debug logging to confirm
+
+**BUG-035 (P1) - Needs Stress Testing**:
+- Response types only drift after many operations
+- May be state corruption or response queue drift
+- Need to run 100+ operations to reproduce
+
+### ULTRATHINK Required
+
+These bugs have interconnected root causes:
+- **Protocol/Serialization**: BUG-033, BUG-035 - JsonValue wrapper compatibility
+- **Session State Management**: BUG-034, BUG-036 - State doesn't propagate across MCP bridge
+- **Broadcast Filtering**: BUG-036 - Previous BUG-029 fix may have over-filtered
+
+---
 
 ## Session Log (2026-01-11) - Bug Fixes & Feature Completion
 

@@ -1,0 +1,14 @@
+{
+  "id": "BUG-033",
+  "title": "ccmux_create_layout Validation Rejects All Layout Formats",
+  "priority": "P1",
+  "severity": "high",
+  "component": "daemon",
+  "subcomponent": "create_layout",
+  "status": "open",
+  "created": "2026-01-11",
+  "reporter": "claude-qa-demo",
+  "labels": ["mcp", "validation", "layout", "regression"],
+  "related_bugs": ["BUG-028"],
+  "workaround": "Use ccmux_split_pane repeatedly"
+}

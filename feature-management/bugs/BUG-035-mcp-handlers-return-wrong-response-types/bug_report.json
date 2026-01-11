@@ -1,0 +1,13 @@
+{
+  "id": "BUG-035",
+  "title": "MCP Handlers Return Wrong Response Types",
+  "priority": "P1",
+  "severity": "high",
+  "component": "daemon",
+  "subcomponent": "mcp_response_routing",
+  "status": "open",
+  "created": "2026-01-11",
+  "reporter": "claude-qa-demo",
+  "labels": ["mcp", "response-type", "intermittent", "serialization"],
+  "workaround": "Retry the call"
+}

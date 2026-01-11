@@ -1,0 +1,14 @@
+{
+  "id": "BUG-036",
+  "title": "Selection Tools Don't Switch TUI View",
+  "priority": "P0",
+  "severity": "critical",
+  "component": "daemon",
+  "subcomponent": "mcp_selection_handlers",
+  "status": "new",
+  "created": "2026-01-11",
+  "reporter": "claude-qa-demo",
+  "labels": ["mcp", "tui", "navigation", "selection", "broadcast"],
+  "related_bugs": ["BUG-026", "BUG-032"],
+  "workaround": "None - user must manually switch via keyboard"
+}

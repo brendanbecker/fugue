@@ -1,0 +1,13 @@
+{
+  "id": "BUG-034",
+  "title": "ccmux_create_window Ignores Selected Session",
+  "priority": "P2",
+  "severity": "medium",
+  "component": "daemon",
+  "subcomponent": "create_window",
+  "status": "open",
+  "created": "2026-01-11",
+  "reporter": "claude-qa-demo",
+  "labels": ["mcp", "session-context", "create-window"],
+  "workaround": "Always pass explicit session parameter"
+}
