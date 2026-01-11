@@ -184,10 +184,24 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-**None active** - All parallel work streams merged and cleaned up.
+Four parallel streams for feature development:
 
-Available for new parallel work:
-- `ccmux-stream-a/` through `ccmux-stream-d/` can be recreated as needed
+| Stream | Path | Branch | Feature | Priority |
+|--------|------|--------|---------|----------|
+| **A** | `ccmux-stream-a/` | `feat/feat-056-user-priority-lockout` | FEAT-056: User Priority Lockout | P1 |
+| **B** | `ccmux-stream-b/` | `feat/feat-028-orchestration-refactor` | FEAT-028: Orchestration Flexibility | P2 |
+| **C** | `ccmux-stream-c/` | `feat/feat-036-session-aware-mcp` | FEAT-036: Session-Aware MCP | P2 |
+| **D** | `ccmux-stream-d/` | `feat/feat-050-session-metadata` | FEAT-050: Session Metadata | P3 |
+
+Each worktree has a `SESSION.md` (gitignored) with detailed instructions.
+
+**Blocked**: FEAT-048 (MCP Orchestration Protocol Tools) - depends on FEAT-028
+
+**To start a worker:**
+```bash
+cd /home/becker/projects/tools/ccmux-stream-X
+cat SESSION.md  # Read instructions
+```
 
 ### Recently Merged (2026-01-11) - This Session
 - ✅ **FEAT-055**: Full tmux keybinding parity in TUI
