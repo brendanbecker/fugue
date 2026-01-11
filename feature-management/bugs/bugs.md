@@ -5,8 +5,8 @@
 
 ## Summary Statistics
 - Total Bugs: 27
-- Open: 3
-- Resolved: 23
+- Open: 1
+- Resolved: 25
 - Deprecated: 1
 
 ## Active Bugs
@@ -14,8 +14,6 @@
 | ID | Description | Priority | Status |
 |----|-------------|----------|--------|
 | **BUG-027** | MCP response routing swapped between handlers | P0 | Open |
-| **BUG-026** | Focus management broken (auto-focus, focus_pane, select_window) | P1 | Open |
-| **BUG-025** | create_pane direction response mismatch | P2 | Open |
 
 ## Bug Status
 
@@ -25,6 +23,8 @@ See `feature-management/completed/` for resolved work items.
 
 | ID | Description | Priority | Resolution |
 |----|-------------|----------|------------|
+| BUG-026 | Focus management broken (auto-focus, focus_pane, select_window) | P1 | Fixed - broadcast focus changes to TUI |
+| BUG-025 | create_pane direction response mismatch | P2 | Fixed - return user's requested direction |
 | BUG-001 | Client input not captured | P0 | Fixed |
 | BUG-002 | Flaky test (shared temp dir) | P2 | Fixed - used tempfile::TempDir |
 | BUG-003 | Session missing default pane | P0 | Fixed |
@@ -59,6 +59,8 @@ See `feature-management/completed/` for resolved work items.
 
 | Date | Bug ID | Action | Description |
 |------|--------|--------|-------------|
+| 2026-01-11 | BUG-026 | Resolved | Fixed: broadcast focus changes to TUI clients |
+| 2026-01-11 | BUG-025 | Resolved | Fixed: return user's requested direction in response |
 | 2026-01-11 | BUG-027 | Created | MCP response routing swapped - responses going to wrong handlers |
 | 2026-01-11 | BUG-026 | Created | Focus management broken - auto-focus, focus_pane, select_window |
 | 2026-01-11 | BUG-025 | Created | create_pane direction response mismatch (cosmetic) |
