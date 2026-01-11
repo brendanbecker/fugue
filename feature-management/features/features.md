@@ -6,14 +6,16 @@
 ## Summary Statistics
 
 - **Total Features**: 60
-- **Completed**: 55
-- **Backlog**: 5
+- **Completed**: 57
+- **Backlog**: 3
 
 ## Current Status
 
-Core terminal multiplexer features complete. Five features remain in backlog focused on agent orchestration, reliability, and beads integration.
+Core terminal multiplexer features complete. Three features remain in backlog focused on reliability and beads integration.
 
 **Recent Completions (2026-01-11)**:
+- FEAT-048: MCP orchestration protocol tools (tag-based agent communication)
+- FEAT-057: Beads passive awareness (auto-detect .beads/, env var injection)
 - FEAT-028: Tag-based routing (replaces binary orchestrator/worker model)
 - FEAT-036: Session-aware MCP commands (auto-defaults, pane/window naming)
 - FEAT-050: Session metadata storage (arbitrary key-value metadata)
@@ -24,10 +26,8 @@ Core terminal multiplexer features complete. Five features remain in backlog foc
 | ID | Title | Component | Priority | Status | Notes |
 |----|-------|-----------|----------|--------|-------|
 | FEAT-060 | MCP Daemon Auto-Recovery | ccmux-server (MCP) | P1 | **Ready** | Triggered by BUG-028. Adds reconnection + state recovery. |
-| FEAT-048 | Expose orchestration protocol via MCP tools | ccmux-server (MCP) | P2 | **Ready** | UNBLOCKED - FEAT-028 complete. Now uses tag-based routing. |
-| FEAT-057 | Beads Passive Awareness | ccmux-server | P2 | **Ready** | Can use FEAT-050 metadata for state storage |
-| FEAT-058 | Beads Query Integration | ccmux-server, ccmux-client | P3 | Blocked | Depends on FEAT-057. Can leverage FEAT-050/028 |
-| FEAT-059 | Beads Workflow Integration | ccmux-server, ccmux-protocol | P3 | Blocked | SCOPE REDUCED - FEAT-050 provides core infrastructure |
+| FEAT-058 | Beads Query Integration | ccmux-server, ccmux-client | P3 | **Ready** | UNBLOCKED - FEAT-057 complete. TUI visibility into work queue. |
+| FEAT-059 | Beads Workflow Integration | ccmux-server, ccmux-protocol | P3 | Blocked | Depends on FEAT-058. Scope reduced by FEAT-050. |
 
 ### Backlog Dependencies
 
@@ -36,22 +36,14 @@ FEAT-060 (Ready) - P1 Priority
   |-- No blocking dependencies
   |-- Related: BUG-028 (trigger), FEAT-018 (base MCP)
 
-FEAT-048 (Ready)
-  |-- FEAT-028 (complete) - Tag-based routing
-  |-- FEAT-050 (complete) - Metadata storage
-
-FEAT-057 (Ready)
-  |-- FEAT-047 (complete) - Environment variables
-  |-- FEAT-050 (complete) - Metadata storage
-
-FEAT-058 (Blocked)
-  |-- FEAT-057 (not started) - Beads detection
+FEAT-058 (Ready) - UNBLOCKED
+  |-- FEAT-057 (complete) - Beads detection
   |-- FEAT-050 (complete) - Metadata caching
   |-- FEAT-028 (complete) - Orchestration notifications
 
 FEAT-059 (Blocked)
-  |-- FEAT-057 (not started) - Beads detection
   |-- FEAT-058 (not started) - Daemon communication
+  |-- FEAT-057 (complete) - Beads detection
   |-- FEAT-050 (complete) - Issue tracking infrastructure
   |-- FEAT-028 (complete) - Orchestration integration
 ```
@@ -59,9 +51,8 @@ FEAT-059 (Blocked)
 ### Implementation Priority
 
 1. **FEAT-060** - P1, improves reliability for agent workflows
-2. **FEAT-048** or **FEAT-057** - Both ready, no blocking dependencies
-3. **FEAT-058** - After FEAT-057
-4. **FEAT-059** - After FEAT-058 (scope significantly reduced by FEAT-050)
+2. **FEAT-058** - P3, ready now (FEAT-057 complete)
+3. **FEAT-059** - P3, after FEAT-058 (scope reduced by FEAT-050)
 
 ## Completed Features
 
@@ -114,7 +105,7 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | FEAT-026 | Input Handling Integration and Testing | Complete |
 | FEAT-027 | Client Connection Registry | Complete |
 
-### Post-MVP Features (24 features)
+### Post-MVP Features (26 features)
 | ID | Title | Status |
 |----|-------|--------|
 | FEAT-029 | MCP Natural Language Terminal Control | Complete |
@@ -135,6 +126,7 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | FEAT-045 | MCP Declarative Layout Tools | Complete |
 | FEAT-046 | MCP Focus/Select Control | Complete |
 | FEAT-047 | ccmux_set_environment MCP tool | Complete |
+| FEAT-048 | MCP Orchestration Protocol Tools | Complete |
 | FEAT-049 | tmux-compatible CLI wrapper (ccmux-compat) | Complete |
 | FEAT-051 | ccmux_get_environment MCP tool | Complete |
 | FEAT-052 | ccmux_kill_session MCP tool | Complete |
@@ -142,6 +134,7 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | FEAT-054 | Pane-bounded text selection in copy mode | Complete |
 | FEAT-055 | Full tmux keybinding parity in TUI | Complete |
 | FEAT-056 | User Priority Lockout for MCP Focus Control | Complete |
+| FEAT-057 | Beads Passive Awareness | Complete |
 | FEAT-028 | Orchestration Flexibility Refactor (Tag-based Routing) | Complete |
 | FEAT-036 | Session-Aware MCP Commands | Complete |
 | FEAT-050 | Session Metadata Storage | Complete |
@@ -155,8 +148,8 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | Wave 2 | 3 | 224 |
 | Wave 3 | 2 | 49 |
 | Wave 4 | 7 | 126 |
-| Post-MVP | 28 | 307 |
-| **Total** | **55** | **1,526** |
+| Post-MVP | 30 | 337 |
+| **Total** | **57** | **1,556** |
 
 ## Architecture
 

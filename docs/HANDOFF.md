@@ -12,12 +12,12 @@
 
 ## Current State (2026-01-11)
 
-**MAJOR MILESTONE** - 4 features merged from parallel worktrees. Core multiplexer feature-complete.
+**MAJOR MILESTONE** - 6 features merged from parallel worktrees. Core multiplexer feature-complete.
 
 **Key Metrics:**
-- 27 bugs tracked, 26 resolved, 0 open, 1 deprecated
-- 59 features tracked, 55 completed, 4 in backlog
-- 1,526 tests passing
+- 28 bugs tracked, 26 resolved, 1 open (BUG-028 P0), 1 deprecated
+- 60 features tracked, 57 completed, 3 in backlog
+- 1,556 tests passing
 - Clean git working tree on main branch
 
 ### What Works
@@ -53,6 +53,7 @@
 ### Known Issues
 - `kill -9` corrupts terminal (SIGKILL can't be caught - run `reset` to fix)
 - Legacy zombie sessions from before BUG-004 fix need manual cleanup (clear `~/.local/share/.ccmux/state/`)
+- **BUG-028 (P0)**: Daemon crashes on `ccmux_create_layout` with nested layout spec
 
 ## Wave 4: Integration Features
 
@@ -68,9 +69,9 @@
 | FEAT-025 | Pane Output Rendering | P0 | ✅ Merged |
 | FEAT-026 | Input Testing | P1 | ✅ Working (verified manually) |
 
-## Bug Status: ALL RESOLVED ✅
+## Bug Status
 
-**Open Bugs: 0** - All QA demo bugs fixed!
+**Open Bugs: 1** (BUG-028 P0 - daemon crash on nested layout)
 
 ### Recent Critical Fixes
 | Bug | Priority | Description | Resolution |
@@ -93,29 +94,30 @@
 
 **Last Updated**: 2026-01-11
 
-All parallel worktree features merged. 4 features remain in backlog focused on agent orchestration and beads integration.
+All parallel worktree features merged. 3 features remain in backlog.
 
 ### Just Merged (This Session)
 | ID | Title | Status |
 |----|-------|--------|
+| ✅ FEAT-048 | MCP Orchestration Protocol Tools | Merged |
+| ✅ FEAT-057 | Beads Passive Awareness | Merged |
 | ✅ FEAT-056 | User Priority Lockout for MCP Focus Control | Merged |
 | ✅ FEAT-028 | Orchestration Flexibility Refactor (Tag-based Routing) | Merged |
 | ✅ FEAT-036 | Session-Aware MCP Commands | Merged |
 | ✅ FEAT-050 | Session Metadata Storage | Merged |
 
-### P2 - Medium Priority (Enhancements)
+### P1 - High Priority
 
 | ID | Title | Component | Effort | Notes |
 |----|-------|-----------|--------|-------|
-| **FEAT-048** | MCP Orchestration Protocol Tools | MCP | Medium | Agent-to-agent communication API (unblocked by FEAT-028) |
-| **FEAT-057** | Beads Passive Awareness | Server | Medium | Auto-detect .beads/ and configure env vars |
+| **FEAT-060** | MCP Daemon Auto-Recovery | MCP | Medium | Triggered by BUG-028. Reconnection + state recovery. |
 
 ### P3 - Low Priority (Nice to Have)
 
 | ID | Title | Component | Effort | Notes |
 |----|-------|-----------|--------|-------|
-| **FEAT-058** | Beads Query Integration | Server/Client | Medium | TUI visibility into beads work queue |
-| **FEAT-059** | Beads Workflow Integration | Server/Protocol | Medium | Pane-issue correlation, audit trails |
+| **FEAT-058** | Beads Query Integration | Server/Client | Medium | TUI visibility into beads work queue (UNBLOCKED) |
+| **FEAT-059** | Beads Workflow Integration | Server/Protocol | Medium | Pane-issue correlation (blocked by FEAT-058) |
 
 ### Gas Town Integration: COMPLETE ✅
 
@@ -180,26 +182,20 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-Four parallel streams created for remaining backlog features:
+Two worktrees remain for blocked features:
 
 | Stream | Path | Branch | Feature | Status |
 |--------|------|--------|---------|--------|
-| **A** | `ccmux-stream-a/` | `feat/feat-048-mcp-orchestration-tools` | FEAT-048: MCP Orchestration Tools | **READY** |
-| **B** | `ccmux-stream-b/` | `feat/feat-057-beads-passive-awareness` | FEAT-057: Beads Passive Awareness | **READY** |
-| **C** | `ccmux-stream-c/` | `feat/feat-058-beads-query-integration` | FEAT-058: Beads Query Integration | BLOCKED (057) |
-| **D** | `ccmux-stream-d/` | `feat/feat-059-beads-workflow-integration` | FEAT-059: Beads Workflow Integration | BLOCKED (057,058) |
+| **A** | `ccmux-stream-a/` | `feat/feat-048-mcp-orchestration-tools` | FEAT-048: MCP Orchestration Tools | ✅ **MERGED** |
+| **B** | `ccmux-stream-b/` | `feat/feat-057-beads-passive-awareness` | FEAT-057: Beads Passive Awareness | ✅ **MERGED** |
+| **C** | `ccmux-stream-c/` | `feat/feat-058-beads-query-integration` | FEAT-058: Beads Query Integration | **READY** (unblocked) |
+| **D** | `ccmux-stream-d/` | `feat/feat-059-beads-workflow-integration` | FEAT-059: Beads Workflow Integration | BLOCKED (058) |
 
-Each worktree has a `SESSION.md` (gitignored) with detailed instructions.
-
-**Parallel work available:** Streams A and B can be worked simultaneously.
-
-**To start a worker:**
-```bash
-cd /home/becker/projects/tools/ccmux-stream-a  # or stream-b
-cat SESSION.md  # Read instructions
-```
+**Parallel work available:** Stream C now unblocked. FEAT-060 (new) has no worktree yet.
 
 ### Recently Merged (2026-01-11) - This Session
+- ✅ **FEAT-048**: MCP Orchestration Protocol Tools (stream-a)
+- ✅ **FEAT-057**: Beads Passive Awareness (stream-b)
 - ✅ **FEAT-056**: User Priority Lockout for MCP Focus Control
 - ✅ **FEAT-028**: Orchestration Flexibility Refactor (Tag-based Routing)
 - ✅ **FEAT-036**: Session-Aware MCP Commands
@@ -225,20 +221,13 @@ cat SESSION.md  # Read instructions
 - ✅ FEAT-046: MCP focus/select control
 
 ### Next Session Checklist
-- [x] ~~Fix BUG-027 (P0): MCP response routing~~ - DONE
-- [x] ~~Fix BUG-026 (P1): Focus management broken~~ - DONE
-- [x] ~~Fix BUG-025 (P2): Direction response mismatch~~ - DONE
-- [x] ~~Cleanup merged worktree branches~~ - DONE
-- [x] ~~Implement FEAT-056: User priority lockout~~ - DONE
-- [x] ~~Implement FEAT-028: Tag-based routing~~ - DONE
-- [x] ~~Implement FEAT-036: Session-aware MCP~~ - DONE
-- [x] ~~Implement FEAT-050: Session metadata~~ - DONE
-- [x] ~~Run retrospective on backlog features~~ - DONE
-- [x] ~~Create worktrees for remaining features~~ - DONE
+- [x] ~~Implement FEAT-048: MCP Orchestration Protocol Tools~~ - MERGED
+- [x] ~~Implement FEAT-057: Beads Passive Awareness~~ - MERGED
+- [ ] **Fix BUG-028 (P0)**: Daemon crashes on `ccmux_create_layout` with nested layout
+- [ ] Implement FEAT-060: MCP Daemon Auto-Recovery (triggered by BUG-028)
 - [ ] Update README with new MCP tools
 - [ ] Create release build and test full workflow
-- [ ] Implement FEAT-048: MCP Orchestration Protocol Tools (stream-a)
-- [ ] Implement FEAT-057: Beads Passive Awareness (stream-b)
+- [ ] Cleanup merged worktree branches (stream-a, stream-b)
 
 ## Session Log (2026-01-11) - Feature Merge & QA Bugs
 
