@@ -1260,46 +1260,108 @@ impl McpBridge {
         self.send_to_daemon(ClientMessage::SelectPane { pane_id })
             .await?;
 
-        // SelectPane doesn't have a dedicated response in current protocol
-        // Wait briefly and return success
-        let result = serde_json::json!({
-            "pane_id": pane_id.to_string(),
-            "status": "focused"
-        });
+        // BUG-035 FIX: Properly consume the response from daemon.
+        // The handler returns PaneFocused on success or Error on failure.
+        // We need to loop and skip other broadcasts that might arrive before our response.
+        loop {
+            match self.recv_from_daemon().await? {
+                ServerMessage::PaneFocused { pane_id, session_id, window_id } => {
+                    let result = serde_json::json!({
+                        "pane_id": pane_id.to_string(),
+                        "session_id": session_id.to_string(),
+                        "window_id": window_id.to_string(),
+                        "status": "focused"
+                    });
 
-        let json = serde_json::to_string_pretty(&result)
-            .map_err(|e| McpError::Internal(e.to_string()))?;
-        Ok(ToolResult::text(json))
+                    let json = serde_json::to_string_pretty(&result)
+                        .map_err(|e| McpError::Internal(e.to_string()))?;
+                    return Ok(ToolResult::text(json));
+                }
+                ServerMessage::Error { code, message } => {
+                    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
+                }
+                msg if Self::is_broadcast_message(&msg) => {
+                    // Skip broadcasts from other clients, keep waiting for our response
+                    debug!("Skipping broadcast in tool_focus_pane: {:?}", std::mem::discriminant(&msg));
+                    continue;
+                }
+                msg => {
+                    // Unexpected non-broadcast response
+                    return Err(McpError::UnexpectedResponse(format!("{:?}", msg)));
+                }
+            }
+        }
     }
 
     async fn tool_select_window(&mut self, window_id: Uuid) -> Result<ToolResult, McpError> {
         self.send_to_daemon(ClientMessage::SelectWindow { window_id })
             .await?;
 
-        // SelectWindow doesn't have a dedicated response in current protocol
-        let result = serde_json::json!({
-            "window_id": window_id.to_string(),
-            "status": "selected"
-        });
+        // BUG-035 FIX: Properly consume the response from daemon.
+        // The handler returns WindowFocused on success or Error on failure.
+        // We need to loop and skip other broadcasts that might arrive before our response.
+        loop {
+            match self.recv_from_daemon().await? {
+                ServerMessage::WindowFocused { window_id, session_id } => {
+                    let result = serde_json::json!({
+                        "window_id": window_id.to_string(),
+                        "session_id": session_id.to_string(),
+                        "status": "selected"
+                    });
 
-        let json = serde_json::to_string_pretty(&result)
-            .map_err(|e| McpError::Internal(e.to_string()))?;
-        Ok(ToolResult::text(json))
+                    let json = serde_json::to_string_pretty(&result)
+                        .map_err(|e| McpError::Internal(e.to_string()))?;
+                    return Ok(ToolResult::text(json));
+                }
+                ServerMessage::Error { code, message } => {
+                    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
+                }
+                msg if Self::is_broadcast_message(&msg) => {
+                    // Skip broadcasts from other clients, keep waiting for our response
+                    debug!("Skipping broadcast in tool_select_window: {:?}", std::mem::discriminant(&msg));
+                    continue;
+                }
+                msg => {
+                    // Unexpected non-broadcast response
+                    return Err(McpError::UnexpectedResponse(format!("{:?}", msg)));
+                }
+            }
+        }
     }
 
     async fn tool_select_session(&mut self, session_id: Uuid) -> Result<ToolResult, McpError> {
         self.send_to_daemon(ClientMessage::SelectSession { session_id })
             .await?;
 
-        // SelectSession doesn't have a dedicated response in current protocol
-        let result = serde_json::json!({
-            "session_id": session_id.to_string(),
-            "status": "selected"
-        });
+        // BUG-035 FIX: Properly consume the response from daemon.
+        // The handler returns SessionFocused on success or Error on failure.
+        // We need to loop and skip other broadcasts that might arrive before our response.
+        loop {
+            match self.recv_from_daemon().await? {
+                ServerMessage::SessionFocused { session_id } => {
+                    let result = serde_json::json!({
+                        "session_id": session_id.to_string(),
+                        "status": "selected"
+                    });
 
-        let json = serde_json::to_string_pretty(&result)
-            .map_err(|e| McpError::Internal(e.to_string()))?;
-        Ok(ToolResult::text(json))
+                    let json = serde_json::to_string_pretty(&result)
+                        .map_err(|e| McpError::Internal(e.to_string()))?;
+                    return Ok(ToolResult::text(json));
+                }
+                ServerMessage::Error { code, message } => {
+                    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
+                }
+                msg if Self::is_broadcast_message(&msg) => {
+                    // Skip broadcasts from other clients, keep waiting for our response
+                    debug!("Skipping broadcast in tool_select_session: {:?}", std::mem::discriminant(&msg));
+                    continue;
+                }
+                msg => {
+                    // Unexpected non-broadcast response
+                    return Err(McpError::UnexpectedResponse(format!("{:?}", msg)));
+                }
+            }
+        }
     }
 
     async fn tool_rename_session(

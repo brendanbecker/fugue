@@ -2508,4 +2508,84 @@ mod tests {
             _ => panic!("Expected LayoutCreated response with broadcast"),
         }
     }
+
+    /// BUG-035: Stress test to verify response types remain consistent under load
+    ///
+    /// This test runs 100+ MCP operations in sequence and verifies that each
+    /// response type matches the request type. The bug manifests as wrong wrapper
+    /// types after many operations (e.g., list_windows returning SessionList).
+    #[tokio::test]
+    async fn test_response_type_consistency_under_load_bug035() {
+        let ctx = create_test_context();
+
+        // Create a session with multiple windows and panes to have actual data
+        let _ = ctx.handle_create_session_with_options(Some("stress-test".to_string()), None, None).await;
+        let _ = ctx.handle_create_window_with_options(Some("stress-test".to_string()), Some("window-2".to_string()), None).await;
+        let _ = ctx.handle_create_window_with_options(Some("stress-test".to_string()), Some("window-3".to_string()), None).await;
+
+        // Track expected response types for each operation
+        let mut errors: Vec<String> = Vec::new();
+
+        // Run 150 operations in sequence
+        for i in 0..150 {
+            // Rotate through different operations
+            match i % 3 {
+                0 => {
+                    // ListSessions should return SessionList
+                    let result = ctx.handle_list_sessions().await;
+                    match result {
+                        HandlerResult::Response(ServerMessage::SessionList { .. }) => {}
+                        HandlerResult::Response(ServerMessage::Error { .. }) => {}
+                        other => {
+                            errors.push(format!(
+                                "Iteration {}: ListSessions returned {:?} instead of SessionList",
+                                i,
+                                std::mem::discriminant(&other)
+                            ));
+                        }
+                    }
+                }
+                1 => {
+                    // ListWindows should return WindowList
+                    let result = ctx.handle_list_windows(Some("stress-test".to_string())).await;
+                    match result {
+                        HandlerResult::Response(ServerMessage::WindowList { .. }) => {}
+                        HandlerResult::Response(ServerMessage::Error { .. }) => {}
+                        other => {
+                            errors.push(format!(
+                                "Iteration {}: ListWindows returned {:?} instead of WindowList",
+                                i,
+                                std::mem::discriminant(&other)
+                            ));
+                        }
+                    }
+                }
+                2 => {
+                    // ListAllPanes should return AllPanesList
+                    let result = ctx.handle_list_all_panes(Some("stress-test".to_string())).await;
+                    match result {
+                        HandlerResult::Response(ServerMessage::AllPanesList { .. }) => {}
+                        HandlerResult::Response(ServerMessage::Error { .. }) => {}
+                        other => {
+                            errors.push(format!(
+                                "Iteration {}: ListAllPanes returned {:?} instead of AllPanesList",
+                                i,
+                                std::mem::discriminant(&other)
+                            ));
+                        }
+                    }
+                }
+                _ => unreachable!()
+            }
+        }
+
+        // Report all errors
+        if !errors.is_empty() {
+            panic!(
+                "BUG-035: Response type mismatch detected after {} operations:\n{}",
+                150,
+                errors.join("\n")
+            );
+        }
+    }
 }
