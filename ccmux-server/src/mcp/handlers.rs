@@ -234,6 +234,7 @@ impl<'a> ToolContext<'a> {
         if let Some(cwd) = cwd {
             config = config.with_cwd(cwd);
         }
+        config = config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
 
         self.pty_manager
             .spawn(pane_id, config)
@@ -368,7 +369,8 @@ impl<'a> ToolContext<'a> {
 
         // Spawn PTY for the default pane
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
-        let config = PtyConfig::command(&shell);
+        let config = PtyConfig::command(&shell)
+            .with_ccmux_context(session_id, &session_name, window_id, pane_id);
 
         self.pty_manager
             .spawn(pane_id, config)
@@ -475,6 +477,7 @@ impl<'a> ToolContext<'a> {
         for arg in &args {
             config = config.with_arg(arg);
         }
+        config = config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
 
         self.pty_manager
             .spawn(pane_id, config)
@@ -798,6 +801,7 @@ impl<'a> ToolContext<'a> {
         if let Some(cwd) = cwd {
             config = config.with_cwd(cwd);
         }
+        config = config.with_ccmux_context(session_id, &session_name, window_id, new_pane_id);
 
         self.pty_manager
             .spawn(new_pane_id, config)
@@ -1011,6 +1015,7 @@ impl<'a> ToolContext<'a> {
             .session_manager
             .get_session_mut(session_id)
             .ok_or_else(|| McpError::Internal("Session disappeared".into()))?;
+        let session_name = session.name().to_string();
         let window = session
             .get_window_mut(window_id)
             .ok_or_else(|| McpError::Internal("Window disappeared".into()))?;
@@ -1051,6 +1056,7 @@ impl<'a> ToolContext<'a> {
         if let Some(cwd) = cwd {
             config = config.with_cwd(cwd);
         }
+        config = config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
 
         self.pty_manager
             .spawn(pane_id, config)

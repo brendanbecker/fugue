@@ -195,7 +195,7 @@ impl SessionRestorer {
         // Restore windows
         for window_snapshot in &snapshot.windows {
             let (window, window_pane_results) =
-                self.restore_window(window_snapshot, pty_manager);
+                self.restore_window(window_snapshot, pty_manager, &snapshot.name);
 
             pane_results.extend(window_pane_results);
             session.add_restored_window(window);
@@ -222,6 +222,7 @@ impl SessionRestorer {
         &self,
         snapshot: &WindowSnapshot,
         pty_manager: &mut PtyManager,
+        session_name: &str,
     ) -> (Window, Vec<PaneRestorationResult>) {
         debug!(
             "Restoring window '{}' ({}) with {} panes",
@@ -242,7 +243,12 @@ impl SessionRestorer {
 
         // Restore panes
         for pane_snapshot in &snapshot.panes {
-            let (pane, pane_result) = self.restore_pane(pane_snapshot, pty_manager);
+            let (pane, pane_result) = self.restore_pane(
+                pane_snapshot,
+                pty_manager,
+                snapshot.session_id,
+                session_name,
+            );
             pane_results.push(pane_result);
             window.add_restored_pane(pane);
         }
@@ -258,6 +264,8 @@ impl SessionRestorer {
         &self,
         snapshot: &PaneSnapshot,
         pty_manager: &mut PtyManager,
+        session_id: Uuid,
+        session_name: &str,
     ) -> (Pane, PaneRestorationResult) {
         debug!(
             "Restoring pane {} ({}x{})",
@@ -358,6 +366,14 @@ impl SessionRestorer {
                     }
                 }
             }
+
+            // Add CCMUX context environment variables
+            pty_config = pty_config.with_ccmux_context(
+                session_id,
+                session_name,
+                snapshot.window_id,
+                snapshot.id,
+            );
 
             // Spawn PTY
             match pty_manager.spawn(snapshot.id, pty_config) {

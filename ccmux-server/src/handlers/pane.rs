@@ -29,7 +29,7 @@ impl HandlerContext {
         // Default terminal size for new panes
         let (cols, rows) = (80, 24);
 
-        let (session_id, pane_id, pane_info, session_env) = {
+        let (session_id, pane_id, pane_info, session_env, session_name) = {
             let mut session_manager = self.session_manager.write().await;
 
             // Find the session that contains this window
@@ -43,7 +43,7 @@ impl HandlerContext {
                     if let Some(session) = session_manager.get_session_mut(session_id) {
                         // Capture session environment before mutable borrow of window
                         let env = session.environment().clone();
-
+                        let session_name = session.name().to_string();
                         if let Some(window) = session.get_window_mut(window_id) {
                             let pane = window.create_pane();
                             let pane_info = pane.to_info();
@@ -54,7 +54,7 @@ impl HandlerContext {
                                 window_id, pane_id
                             );
 
-                            (session_id, pane_id, pane_info, env)
+                            (session_id, pane_id, pane_info, env, session_name)
                         } else {
                             debug!("Window {} not found in session", window_id);
                             return HandlerContext::error(
@@ -95,6 +95,7 @@ impl HandlerContext {
             if let Ok(cwd) = std::env::current_dir() {
                 pty_config = pty_config.with_cwd(cwd);
             }
+            pty_config = pty_config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
 
             // Apply session environment variables
             pty_config = pty_config.with_env_map(&session_env);

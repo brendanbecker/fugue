@@ -389,6 +389,7 @@ impl HandlerContext {
         if let Some(ref cwd) = cwd {
             config = config.with_cwd(cwd);
         }
+        config = config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
         // Apply session environment variables
         config = config.with_env_map(&session_env);
 
@@ -531,6 +532,7 @@ impl HandlerContext {
         if let Some(ref cwd) = cwd {
             config = config.with_cwd(cwd);
         }
+        config = config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
 
         {
             let mut pty_manager = self.pty_manager.write().await;
@@ -677,7 +679,8 @@ impl HandlerContext {
             PtyConfig::command("sh").with_arg("-c").with_arg(cmd)
         } else {
             PtyConfig::command(&shell)
-        };
+        }
+        .with_ccmux_context(session_id, &session_name, window_id, pane_id);
         // Apply session environment variables
         config = config.with_env_map(&session_env);
 
@@ -804,6 +807,7 @@ impl HandlerContext {
         if let Some(ref cwd) = cwd {
             config = config.with_cwd(cwd);
         }
+        config = config.with_ccmux_context(session_id, &session_name, window_id, new_pane_id);
         // Apply session environment variables
         config = config.with_env_map(&session_env);
 
@@ -1051,6 +1055,7 @@ impl HandlerContext {
             let session = session_manager
                 .get_session_mut(session_id)
                 .ok_or("Session not found")?;
+            let session_name = session.name().to_string();
             let window = session
                 .get_window_mut(window_id)
                 .ok_or("Window not found")?;
@@ -1080,6 +1085,7 @@ impl HandlerContext {
             if let Some(ref cwd) = cwd {
                 config = config.with_cwd(cwd);
             }
+            config = config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
             // Apply session environment variables
             config = config.with_env_map(&session_env);
 

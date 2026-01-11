@@ -233,19 +233,26 @@ impl CommandExecutor {
         );
 
         // Step 1: Create the new pane in SessionManager
-        let (session_id, pane_id, pane_info, pane_cwd, pane_size) = {
+        let (session_id, window_id, pane_id, pane_info, pane_cwd, pane_size, session_name) = {
             let mut manager = self.session_manager.lock();
 
-            let (session_id, _window_id, new_pane) = manager
+            let (session_id, window_id, new_pane) = manager
                 .split_pane(source_pane, cwd.clone())
                 .map_err(|e| ExecuteError::ExecutionFailed(e.to_string()))?;
 
+            // Extract pane info before borrowing manager again
             let pane_info = new_pane.to_info();
             let pane_id = new_pane.id();
             let pane_cwd = new_pane.cwd().map(String::from);
             let pane_size = new_pane.dimensions();
 
-            (session_id, pane_id, pane_info, pane_cwd, pane_size)
+            // Now we can safely get session name
+            let session_name = manager
+                .get_session(session_id)
+                .map(|s| s.name().to_string())
+                .unwrap_or_default();
+
+            (session_id, window_id, pane_id, pane_info, pane_cwd, pane_size, session_name)
         };
 
         info!(
@@ -278,7 +285,9 @@ impl CommandExecutor {
         } else {
             pty_config
         };
-        let pty_config = pty_config.with_size(pane_size.0, pane_size.1);
+        let pty_config = pty_config
+            .with_size(pane_size.0, pane_size.1)
+            .with_ccmux_context(session_id, &session_name, window_id, pane_id);
 
         // Step 3: Spawn PTY for the new pane
         let pty_reader = {

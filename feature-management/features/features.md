@@ -19,7 +19,6 @@ All planned features for MVP and post-MVP have been implemented. Nine features r
 |----|-------|-----------|----------|-------|
 | FEAT-052 | Add ccmux_kill_session MCP tool | ccmux-server (MCP) | P1 | Blocking Gas Town integration |
 | FEAT-047 | Add ccmux_set_environment MCP tool | ccmux-server (MCP) | P1 | Blocking Gas Town integration |
-| FEAT-053 | Auto-inject CCMUX context environment variables | ccmux-server (PTY) | P1 | Enables Claude Code self-identification |
 | FEAT-028 | Orchestration Flexibility Refactor | ccmux-protocol | P2 | Generalize orchestrator/worker to tag-based roles |
 | FEAT-036 | Session-Aware MCP Commands | ccmux-server (MCP) | P2 | May overlap with FEAT-043 (session rename) |
 | FEAT-048 | Expose orchestration protocol via MCP tools | ccmux-server (MCP) | P2 | Agent-to-agent orchestration API surface |
@@ -78,7 +77,7 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | FEAT-026 | Input Handling Integration and Testing | Complete |
 | FEAT-027 | Client Connection Registry | Complete |
 
-### Post-MVP Features (17 features)
+### Post-MVP Features (18 features)
 | ID | Title | Status |
 |----|-------|--------|
 | FEAT-029 | MCP Natural Language Terminal Control | Complete |
@@ -98,6 +97,7 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | FEAT-044 | Claude Session Persistence & Auto-Resume | Complete |
 | FEAT-045 | MCP Declarative Layout Tools | Complete |
 | FEAT-046 | MCP Focus/Select Control | Complete |
+| FEAT-053 | Auto-inject CCMUX Context Environment Variables | Complete |
 | FEAT-054 | Pane-bounded text selection in copy mode | Complete |
 
 ## Test Coverage
