@@ -154,11 +154,13 @@ All Gas Town integration features have been implemented:
 |----|---------|-------|
 | FEAT-015 | Claude Detection from PTY Output | ✅ Merged |
 
-### Backlog Features (future enhancements)
-| ID | Feature | Notes |
-|----|---------|-------|
-| FEAT-028 | Orchestration Flexibility Refactor | Generalize orchestrator/worker to tag-based roles |
-| FEAT-036 | Session-Aware MCP Commands | May overlap with FEAT-043 |
+### Backlog Features (updated after retrospective)
+| ID | Feature | Status | Notes |
+|----|---------|--------|-------|
+| FEAT-048 | MCP Orchestration Protocol Tools | Ready | Agent-to-agent messaging via MCP |
+| FEAT-057 | Beads Passive Awareness | Ready | Auto-detect .beads/, set env vars |
+| FEAT-058 | Beads Query Integration | Blocked | TUI visibility into work queue |
+| FEAT-059 | Beads Workflow Integration | Blocked | Pane-issue correlation |
 
 ### FEAT-040: MCP Pane Reliability (BUG-010 Investigation)
 - Added debug logging to broadcast_to_session_except() for diagnosis
@@ -178,14 +180,24 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-**No active worktrees** - All parallel streams merged to main.
+Four parallel streams created for remaining backlog features:
 
-**Available for next features:**
-- `ccmux-stream-a/` through `ccmux-stream-d/` can be created as needed
+| Stream | Path | Branch | Feature | Status |
+|--------|------|--------|---------|--------|
+| **A** | `ccmux-stream-a/` | `feat/feat-048-mcp-orchestration-tools` | FEAT-048: MCP Orchestration Tools | **READY** |
+| **B** | `ccmux-stream-b/` | `feat/feat-057-beads-passive-awareness` | FEAT-057: Beads Passive Awareness | **READY** |
+| **C** | `ccmux-stream-c/` | `feat/feat-058-beads-query-integration` | FEAT-058: Beads Query Integration | BLOCKED (057) |
+| **D** | `ccmux-stream-d/` | `feat/feat-059-beads-workflow-integration` | FEAT-059: Beads Workflow Integration | BLOCKED (057,058) |
 
-**Ready to implement:**
-- FEAT-048 (MCP Orchestration Protocol Tools) - now unblocked by FEAT-028
-- FEAT-057/058/059 (Beads integration) - requires beads project availability
+Each worktree has a `SESSION.md` (gitignored) with detailed instructions.
+
+**Parallel work available:** Streams A and B can be worked simultaneously.
+
+**To start a worker:**
+```bash
+cd /home/becker/projects/tools/ccmux-stream-a  # or stream-b
+cat SESSION.md  # Read instructions
+```
 
 ### Recently Merged (2026-01-11) - This Session
 - ✅ **FEAT-056**: User Priority Lockout for MCP Focus Control
@@ -221,9 +233,12 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 - [x] ~~Implement FEAT-028: Tag-based routing~~ - DONE
 - [x] ~~Implement FEAT-036: Session-aware MCP~~ - DONE
 - [x] ~~Implement FEAT-050: Session metadata~~ - DONE
+- [x] ~~Run retrospective on backlog features~~ - DONE
+- [x] ~~Create worktrees for remaining features~~ - DONE
 - [ ] Update README with new MCP tools
 - [ ] Create release build and test full workflow
-- [ ] Implement FEAT-048: MCP Orchestration Protocol Tools (unblocked)
+- [ ] Implement FEAT-048: MCP Orchestration Protocol Tools (stream-a)
+- [ ] Implement FEAT-057: Beads Passive Awareness (stream-b)
 
 ## Session Log (2026-01-11) - Feature Merge & QA Bugs
 
