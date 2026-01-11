@@ -6,6 +6,9 @@
 // Allow unused code that's part of the public API for future features
 #![allow(dead_code)]
 
+use std::io::Write;
+
+use base64::{engine::general_purpose, Engine as _};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -15,6 +18,104 @@ use tui_term::widget::PseudoTerminal;
 use uuid::Uuid;
 
 use ccmux_protocol::{ClaudeActivity, PaneState};
+
+/// Visual mode type for text selection
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VisualMode {
+    /// Character-wise selection (vim 'v')
+    Character,
+    /// Line-wise selection (vim 'V')
+    Line,
+}
+
+/// Position in the terminal buffer
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SelectionPos {
+    /// Row index relative to current viewport (0 = top visible line)
+    pub row: usize,
+    /// Column (0-indexed)
+    pub col: usize,
+}
+
+impl SelectionPos {
+    pub fn new(row: usize, col: usize) -> Self {
+        Self { row, col }
+    }
+}
+
+/// Tracks text selection state within a pane
+#[derive(Debug, Clone)]
+pub struct Selection {
+    /// Anchor position (where selection started)
+    pub anchor: SelectionPos,
+    /// Cursor position (current end of selection, moves with hjkl)
+    pub cursor: SelectionPos,
+    /// Visual mode type
+    pub mode: VisualMode,
+}
+
+impl Selection {
+    /// Create a new selection at the given position
+    pub fn new(pos: SelectionPos, mode: VisualMode) -> Self {
+        Self {
+            anchor: pos,
+            cursor: pos,
+            mode,
+        }
+    }
+
+    /// Returns (start, end) with start <= end (normalized for iteration)
+    pub fn normalized(&self) -> (SelectionPos, SelectionPos) {
+        if self.anchor.row < self.cursor.row
+            || (self.anchor.row == self.cursor.row && self.anchor.col <= self.cursor.col)
+        {
+            (self.anchor, self.cursor)
+        } else {
+            (self.cursor, self.anchor)
+        }
+    }
+
+    /// Check if a position is within the selection
+    pub fn contains(&self, row: usize, col: usize) -> bool {
+        let (start, end) = self.normalized();
+        match self.mode {
+            VisualMode::Line => row >= start.row && row <= end.row,
+            VisualMode::Character => {
+                if row < start.row || row > end.row {
+                    false
+                } else if row == start.row && row == end.row {
+                    col >= start.col && col <= end.col
+                } else if row == start.row {
+                    col >= start.col
+                } else if row == end.row {
+                    col <= end.col
+                } else {
+                    true // Middle rows are fully selected
+                }
+            }
+        }
+    }
+
+    /// Move cursor up by given number of lines
+    pub fn move_up(&mut self, lines: usize) {
+        self.cursor.row = self.cursor.row.saturating_sub(lines);
+    }
+
+    /// Move cursor down by given number of lines
+    pub fn move_down(&mut self, lines: usize, max_row: usize) {
+        self.cursor.row = (self.cursor.row + lines).min(max_row);
+    }
+
+    /// Move cursor left by given number of columns
+    pub fn move_left(&mut self, cols: usize) {
+        self.cursor.col = self.cursor.col.saturating_sub(cols);
+    }
+
+    /// Move cursor right by given number of columns
+    pub fn move_right(&mut self, cols: usize, max_col: usize) {
+        self.cursor.col = (self.cursor.col + cols).min(max_col);
+    }
+}
 
 /// Pane focus state
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -46,6 +147,12 @@ pub struct Pane {
     scroll_offset: usize,
     /// Whether to show scrollbar
     show_scrollbar: bool,
+    /// Copy mode cursor position (row, col) in viewport coordinates
+    copy_mode_cursor: Option<SelectionPos>,
+    /// Current text selection (when in visual mode)
+    selection: Option<Selection>,
+    /// Internal paste buffer (fallback when OSC 52 not available)
+    paste_buffer: Option<String>,
 }
 
 impl Pane {
@@ -60,6 +167,9 @@ impl Pane {
             pane_state: PaneState::Normal,
             scroll_offset: 0,
             show_scrollbar: true,
+            copy_mode_cursor: None,
+            selection: None,
+            paste_buffer: None,
         }
     }
 
@@ -235,6 +345,280 @@ impl Pane {
             }
         }
     }
+
+    // ==================== Copy Mode & Selection Methods ====================
+
+    /// Enter copy mode and initialize cursor at the screen center
+    pub fn enter_copy_mode(&mut self) {
+        let (rows, _cols) = self.size();
+        // Start cursor in the middle of the screen
+        let cursor_row = (rows / 2) as usize;
+        self.copy_mode_cursor = Some(SelectionPos::new(cursor_row, 0));
+        self.selection = None;
+    }
+
+    /// Exit copy mode and clear selection
+    pub fn exit_copy_mode(&mut self) {
+        self.copy_mode_cursor = None;
+        self.selection = None;
+        self.focus_state = FocusState::Focused;
+    }
+
+    /// Get copy mode cursor position
+    pub fn copy_mode_cursor(&self) -> Option<SelectionPos> {
+        self.copy_mode_cursor
+    }
+
+    /// Move copy mode cursor (before selection is started)
+    pub fn move_copy_cursor(&mut self, row_delta: i32, col_delta: i32) {
+        let (rows, cols) = self.size();
+        let max_row = rows.saturating_sub(1) as usize;
+        let max_col = cols.saturating_sub(1) as usize;
+
+        if let Some(ref mut cursor) = self.copy_mode_cursor {
+            if row_delta < 0 {
+                cursor.row = cursor.row.saturating_sub((-row_delta) as usize);
+            } else {
+                cursor.row = (cursor.row + row_delta as usize).min(max_row);
+            }
+
+            if col_delta < 0 {
+                cursor.col = cursor.col.saturating_sub((-col_delta) as usize);
+            } else {
+                cursor.col = (cursor.col + col_delta as usize).min(max_col);
+            }
+        }
+
+        // If selection is active, also move the selection cursor
+        if let Some(ref mut selection) = self.selection {
+            if row_delta < 0 {
+                selection.move_up((-row_delta) as usize);
+            } else {
+                selection.move_down(row_delta as usize, max_row);
+            }
+
+            if col_delta < 0 {
+                selection.move_left((-col_delta) as usize);
+            } else {
+                selection.move_right(col_delta as usize, max_col);
+            }
+        }
+    }
+
+    /// Start character-wise visual selection at current cursor
+    pub fn start_visual_selection(&mut self) {
+        if let Some(cursor) = self.copy_mode_cursor {
+            self.selection = Some(Selection::new(cursor, VisualMode::Character));
+            self.focus_state = FocusState::Selecting;
+        }
+    }
+
+    /// Start line-wise visual selection at current cursor
+    pub fn start_visual_line_selection(&mut self) {
+        if let Some(cursor) = self.copy_mode_cursor {
+            self.selection = Some(Selection::new(cursor, VisualMode::Line));
+            self.focus_state = FocusState::Selecting;
+        }
+    }
+
+    /// Get current selection
+    pub fn selection(&self) -> Option<&Selection> {
+        self.selection.as_ref()
+    }
+
+    /// Check if selection is active
+    pub fn has_selection(&self) -> bool {
+        self.selection.is_some()
+    }
+
+    /// Cancel current selection but stay in copy mode
+    pub fn cancel_selection(&mut self) {
+        self.selection = None;
+        self.focus_state = FocusState::Focused;
+    }
+
+    /// Extract selected text from the screen buffer
+    pub fn extract_selection(&self) -> Option<String> {
+        let selection = self.selection.as_ref()?;
+        let (start, end) = selection.normalized();
+        let screen = self.parser.screen();
+        let (_rows, cols) = self.size();
+
+        let mut result = String::new();
+
+        for row in start.row..=end.row {
+            let mut line = String::new();
+
+            // Get the row's content
+            for col in 0..cols {
+                let cell = screen.cell(row as u16, col);
+                if let Some(cell) = cell {
+                    line.push(cell.contents().chars().next().unwrap_or(' '));
+                } else {
+                    line.push(' ');
+                }
+            }
+
+            // Trim trailing whitespace from line
+            let trimmed = line.trim_end();
+
+            match selection.mode {
+                VisualMode::Line => {
+                    result.push_str(trimmed);
+                    result.push('\n');
+                }
+                VisualMode::Character => {
+                    if row == start.row && row == end.row {
+                        // Single line selection
+                        let start_col = start.col.min(trimmed.len());
+                        let end_col = (end.col + 1).min(trimmed.len());
+                        if start_col < end_col {
+                            result.push_str(&trimmed[start_col..end_col]);
+                        }
+                    } else if row == start.row {
+                        // First line of multi-line selection
+                        let start_col = start.col.min(trimmed.len());
+                        result.push_str(&trimmed[start_col..]);
+                        result.push('\n');
+                    } else if row == end.row {
+                        // Last line of multi-line selection
+                        let end_col = (end.col + 1).min(trimmed.len());
+                        result.push_str(&trimmed[..end_col]);
+                    } else {
+                        // Middle lines
+                        result.push_str(trimmed);
+                        result.push('\n');
+                    }
+                }
+            }
+        }
+
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+
+    /// Copy selected text to system clipboard via OSC 52 and internal buffer
+    pub fn yank_selection(&mut self) -> Option<String> {
+        let text = self.extract_selection()?;
+
+        // Store in internal paste buffer (fallback)
+        self.paste_buffer = Some(text.clone());
+
+        // Send OSC 52 to system clipboard
+        // Format: ESC ] 52 ; c ; BASE64_TEXT BEL
+        let encoded = general_purpose::STANDARD.encode(&text);
+        let osc52 = format!("\x1b]52;c;{}\x07", encoded);
+
+        // Write directly to stdout (terminal)
+        let mut stdout = std::io::stdout();
+        let _ = stdout.write_all(osc52.as_bytes());
+        let _ = stdout.flush();
+
+        Some(text)
+    }
+
+    /// Get text from internal paste buffer
+    pub fn paste_buffer(&self) -> Option<&str> {
+        self.paste_buffer.as_deref()
+    }
+
+    /// Get visual mode indicator for status bar
+    pub fn visual_mode_indicator(&self) -> Option<&'static str> {
+        self.selection.as_ref().map(|s| match s.mode {
+            VisualMode::Character => "-- VISUAL --",
+            VisualMode::Line => "-- VISUAL LINE --",
+        })
+    }
+
+    // ==================== Mouse Selection Methods ====================
+
+    /// Start mouse selection at the given pane-relative position
+    pub fn mouse_selection_start(&mut self, row: usize, col: usize) {
+        let pos = SelectionPos::new(row, col);
+        self.copy_mode_cursor = Some(pos);
+        self.selection = Some(Selection::new(pos, VisualMode::Character));
+        self.focus_state = FocusState::Selecting;
+    }
+
+    /// Update mouse selection end position
+    pub fn mouse_selection_update(&mut self, row: usize, col: usize) {
+        let (rows, cols) = self.size();
+        let row = row.min(rows.saturating_sub(1) as usize);
+        let col = col.min(cols.saturating_sub(1) as usize);
+
+        if let Some(ref mut selection) = self.selection {
+            selection.cursor = SelectionPos::new(row, col);
+        }
+        if let Some(ref mut cursor) = self.copy_mode_cursor {
+            cursor.row = row;
+            cursor.col = col;
+        }
+    }
+
+    /// Finalize mouse selection
+    pub fn mouse_selection_end(&mut self, row: usize, col: usize) {
+        // Update to final position
+        self.mouse_selection_update(row, col);
+        // Selection remains active - user can yank with 'y' or cancel with 'q'
+    }
+
+    /// Select word at position (for double-click)
+    pub fn select_word_at(&mut self, row: usize, col: usize) {
+        let screen = self.parser.screen();
+        let (_, cols) = self.size();
+
+        // Find word boundaries
+        let mut start_col = col;
+        let mut end_col = col;
+
+        // Move start_col left to word boundary
+        while start_col > 0 {
+            if let Some(cell) = screen.cell(row as u16, (start_col - 1) as u16) {
+                let ch = cell.contents().chars().next().unwrap_or(' ');
+                if ch.is_whitespace() {
+                    break;
+                }
+                start_col -= 1;
+            } else {
+                break;
+            }
+        }
+
+        // Move end_col right to word boundary
+        while end_col < cols as usize - 1 {
+            if let Some(cell) = screen.cell(row as u16, (end_col + 1) as u16) {
+                let ch = cell.contents().chars().next().unwrap_or(' ');
+                if ch.is_whitespace() {
+                    break;
+                }
+                end_col += 1;
+            } else {
+                break;
+            }
+        }
+
+        // Create selection
+        let anchor = SelectionPos::new(row, start_col);
+        let cursor = SelectionPos::new(row, end_col);
+        self.selection = Some(Selection {
+            anchor,
+            cursor,
+            mode: VisualMode::Character,
+        });
+        self.copy_mode_cursor = Some(cursor);
+        self.focus_state = FocusState::Selecting;
+    }
+
+    /// Select entire line at position (for triple-click)
+    pub fn select_line_at(&mut self, row: usize) {
+        let pos = SelectionPos::new(row, 0);
+        self.selection = Some(Selection::new(pos, VisualMode::Line));
+        self.copy_mode_cursor = Some(pos);
+        self.focus_state = FocusState::Selecting;
+    }
 }
 
 /// Widget state for pane rendering
@@ -354,10 +738,109 @@ pub fn render_pane(pane: &Pane, area: Rect, buf: &mut Buffer, tick_count: u64) {
 
         pseudo_term.render(inner, buf);
 
+        // Render selection highlighting
+        render_selection(pane, inner, buf);
+
+        // Render copy mode cursor
+        render_copy_mode_cursor(pane, inner, buf, tick_count);
+
         // Render Claude state indicator if applicable
         if let Some(activity) = pane.claude_activity() {
             render_claude_indicator(activity, inner, buf, tick_count);
         }
+    }
+}
+
+/// Render selection highlighting
+fn render_selection(pane: &Pane, area: Rect, buf: &mut Buffer) {
+    let selection = match pane.selection() {
+        Some(s) => s,
+        None => return,
+    };
+
+    // Selection highlight style - reversed colors
+    let selection_style = Style::default()
+        .fg(Color::Black)
+        .bg(Color::White)
+        .add_modifier(Modifier::REVERSED);
+
+    let (start, end) = selection.normalized();
+
+    for row in start.row..=end.row {
+        if row >= area.height as usize {
+            continue;
+        }
+
+        let y = area.y + row as u16;
+
+        match selection.mode {
+            VisualMode::Line => {
+                // Highlight entire line
+                for col in 0..area.width {
+                    let x = area.x + col;
+                    if let Some(cell) = buf.cell_mut((x, y)) {
+                        // Apply reversed style to existing cell
+                        cell.set_style(selection_style);
+                    }
+                }
+            }
+            VisualMode::Character => {
+                // Determine column range for this row
+                let (start_col, end_col) = if row == start.row && row == end.row {
+                    (start.col, end.col)
+                } else if row == start.row {
+                    (start.col, area.width as usize - 1)
+                } else if row == end.row {
+                    (0, end.col)
+                } else {
+                    (0, area.width as usize - 1)
+                };
+
+                for col in start_col..=end_col {
+                    if col >= area.width as usize {
+                        continue;
+                    }
+                    let x = area.x + col as u16;
+                    if let Some(cell) = buf.cell_mut((x, y)) {
+                        cell.set_style(selection_style);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Render copy mode cursor (blinking block cursor)
+fn render_copy_mode_cursor(pane: &Pane, area: Rect, buf: &mut Buffer, tick_count: u64) {
+    let cursor = match pane.copy_mode_cursor() {
+        Some(c) => c,
+        None => return,
+    };
+
+    // Skip if selection is active (cursor is shown via selection highlight)
+    if pane.has_selection() {
+        return;
+    }
+
+    // Blink cursor (on for 3 ticks, off for 3 ticks)
+    if (tick_count / 3) % 2 == 1 {
+        return;
+    }
+
+    if cursor.row >= area.height as usize || cursor.col >= area.width as usize {
+        return;
+    }
+
+    let x = area.x + cursor.col as u16;
+    let y = area.y + cursor.row as u16;
+
+    // Block cursor style - inverse video
+    let cursor_style = Style::default()
+        .fg(Color::Black)
+        .bg(Color::White);
+
+    if let Some(cell) = buf.cell_mut((x, y)) {
+        cell.set_style(cursor_style);
     }
 }
 
@@ -686,5 +1169,278 @@ mod tests {
 
         assert_ne!(unfocused, focused);
         assert_ne!(focused, selecting);
+    }
+
+    // ==================== Selection Tests ====================
+
+    #[test]
+    fn test_selection_pos_new() {
+        let pos = SelectionPos::new(5, 10);
+        assert_eq!(pos.row, 5);
+        assert_eq!(pos.col, 10);
+    }
+
+    #[test]
+    fn test_selection_new() {
+        let pos = SelectionPos::new(3, 5);
+        let selection = Selection::new(pos, VisualMode::Character);
+
+        assert_eq!(selection.anchor.row, 3);
+        assert_eq!(selection.anchor.col, 5);
+        assert_eq!(selection.cursor.row, 3);
+        assert_eq!(selection.cursor.col, 5);
+        assert_eq!(selection.mode, VisualMode::Character);
+    }
+
+    #[test]
+    fn test_selection_normalized_forward() {
+        let mut selection = Selection::new(SelectionPos::new(2, 5), VisualMode::Character);
+        selection.cursor = SelectionPos::new(5, 10);
+
+        let (start, end) = selection.normalized();
+        assert_eq!(start.row, 2);
+        assert_eq!(start.col, 5);
+        assert_eq!(end.row, 5);
+        assert_eq!(end.col, 10);
+    }
+
+    #[test]
+    fn test_selection_normalized_backward() {
+        let mut selection = Selection::new(SelectionPos::new(5, 10), VisualMode::Character);
+        selection.cursor = SelectionPos::new(2, 5);
+
+        let (start, end) = selection.normalized();
+        assert_eq!(start.row, 2);
+        assert_eq!(start.col, 5);
+        assert_eq!(end.row, 5);
+        assert_eq!(end.col, 10);
+    }
+
+    #[test]
+    fn test_selection_contains_character_mode() {
+        let mut selection = Selection::new(SelectionPos::new(2, 5), VisualMode::Character);
+        selection.cursor = SelectionPos::new(4, 10);
+
+        // Middle row should be fully selected
+        assert!(selection.contains(3, 0));
+        assert!(selection.contains(3, 50));
+
+        // Start row - only from start col
+        assert!(!selection.contains(2, 3));
+        assert!(selection.contains(2, 5));
+        assert!(selection.contains(2, 10));
+
+        // End row - only up to end col
+        assert!(selection.contains(4, 0));
+        assert!(selection.contains(4, 10));
+        assert!(!selection.contains(4, 11));
+
+        // Outside rows
+        assert!(!selection.contains(1, 5));
+        assert!(!selection.contains(5, 5));
+    }
+
+    #[test]
+    fn test_selection_contains_line_mode() {
+        let mut selection = Selection::new(SelectionPos::new(2, 5), VisualMode::Line);
+        selection.cursor = SelectionPos::new(4, 10);
+
+        // All columns in selected rows should be selected
+        assert!(selection.contains(2, 0));
+        assert!(selection.contains(2, 100));
+        assert!(selection.contains(3, 50));
+        assert!(selection.contains(4, 0));
+
+        // Outside rows
+        assert!(!selection.contains(1, 5));
+        assert!(!selection.contains(5, 5));
+    }
+
+    #[test]
+    fn test_selection_move_up() {
+        let mut selection = Selection::new(SelectionPos::new(5, 0), VisualMode::Character);
+        selection.move_up(2);
+        assert_eq!(selection.cursor.row, 3);
+
+        selection.move_up(10); // Should saturate at 0
+        assert_eq!(selection.cursor.row, 0);
+    }
+
+    #[test]
+    fn test_selection_move_down() {
+        let mut selection = Selection::new(SelectionPos::new(5, 0), VisualMode::Character);
+        selection.move_down(3, 20);
+        assert_eq!(selection.cursor.row, 8);
+
+        selection.move_down(100, 20); // Should clamp to max
+        assert_eq!(selection.cursor.row, 20);
+    }
+
+    #[test]
+    fn test_pane_enter_copy_mode() {
+        let id = Uuid::new_v4();
+        let mut pane = Pane::new(id, 24, 80);
+
+        assert!(pane.copy_mode_cursor().is_none());
+
+        pane.enter_copy_mode();
+
+        assert!(pane.copy_mode_cursor().is_some());
+        let cursor = pane.copy_mode_cursor().unwrap();
+        assert_eq!(cursor.row, 12); // Middle of 24 rows
+        assert_eq!(cursor.col, 0);
+        assert!(pane.selection().is_none());
+    }
+
+    #[test]
+    fn test_pane_exit_copy_mode() {
+        let id = Uuid::new_v4();
+        let mut pane = Pane::new(id, 24, 80);
+
+        pane.enter_copy_mode();
+        pane.start_visual_selection();
+
+        assert!(pane.copy_mode_cursor().is_some());
+        assert!(pane.selection().is_some());
+
+        pane.exit_copy_mode();
+
+        assert!(pane.copy_mode_cursor().is_none());
+        assert!(pane.selection().is_none());
+        assert_eq!(pane.focus_state(), FocusState::Focused);
+    }
+
+    #[test]
+    fn test_pane_start_visual_selection() {
+        let id = Uuid::new_v4();
+        let mut pane = Pane::new(id, 24, 80);
+
+        pane.enter_copy_mode();
+        pane.start_visual_selection();
+
+        assert!(pane.selection().is_some());
+        let selection = pane.selection().unwrap();
+        assert_eq!(selection.mode, VisualMode::Character);
+        assert_eq!(pane.focus_state(), FocusState::Selecting);
+    }
+
+    #[test]
+    fn test_pane_start_visual_line_selection() {
+        let id = Uuid::new_v4();
+        let mut pane = Pane::new(id, 24, 80);
+
+        pane.enter_copy_mode();
+        pane.start_visual_line_selection();
+
+        assert!(pane.selection().is_some());
+        let selection = pane.selection().unwrap();
+        assert_eq!(selection.mode, VisualMode::Line);
+    }
+
+    #[test]
+    fn test_pane_move_copy_cursor() {
+        let id = Uuid::new_v4();
+        let mut pane = Pane::new(id, 24, 80);
+
+        pane.enter_copy_mode();
+        let initial = pane.copy_mode_cursor().unwrap();
+
+        pane.move_copy_cursor(2, 5);
+        let moved = pane.copy_mode_cursor().unwrap();
+
+        assert_eq!(moved.row, initial.row + 2);
+        assert_eq!(moved.col, initial.col + 5);
+    }
+
+    #[test]
+    fn test_pane_move_copy_cursor_with_selection() {
+        let id = Uuid::new_v4();
+        let mut pane = Pane::new(id, 24, 80);
+
+        pane.enter_copy_mode();
+        pane.start_visual_selection();
+        pane.move_copy_cursor(3, 10);
+
+        let selection = pane.selection().unwrap();
+        // Anchor should stay at original position
+        assert_eq!(selection.anchor.row, 12); // Middle of 24
+        assert_eq!(selection.anchor.col, 0);
+        // Cursor should have moved
+        assert_eq!(selection.cursor.row, 15);
+        assert_eq!(selection.cursor.col, 10);
+    }
+
+    #[test]
+    fn test_pane_cancel_selection() {
+        let id = Uuid::new_v4();
+        let mut pane = Pane::new(id, 24, 80);
+
+        pane.enter_copy_mode();
+        pane.start_visual_selection();
+
+        assert!(pane.selection().is_some());
+
+        pane.cancel_selection();
+
+        assert!(pane.selection().is_none());
+        assert!(pane.copy_mode_cursor().is_some()); // Still in copy mode
+        assert_eq!(pane.focus_state(), FocusState::Focused);
+    }
+
+    #[test]
+    fn test_pane_visual_mode_indicator() {
+        let id = Uuid::new_v4();
+        let mut pane = Pane::new(id, 24, 80);
+
+        assert!(pane.visual_mode_indicator().is_none());
+
+        pane.enter_copy_mode();
+        pane.start_visual_selection();
+        assert_eq!(pane.visual_mode_indicator(), Some("-- VISUAL --"));
+
+        pane.cancel_selection();
+        pane.start_visual_line_selection();
+        assert_eq!(pane.visual_mode_indicator(), Some("-- VISUAL LINE --"));
+    }
+
+    #[test]
+    fn test_pane_mouse_selection_start() {
+        let id = Uuid::new_v4();
+        let mut pane = Pane::new(id, 24, 80);
+
+        pane.mouse_selection_start(5, 10);
+
+        assert!(pane.selection().is_some());
+        let selection = pane.selection().unwrap();
+        assert_eq!(selection.anchor.row, 5);
+        assert_eq!(selection.anchor.col, 10);
+        assert_eq!(pane.focus_state(), FocusState::Selecting);
+    }
+
+    #[test]
+    fn test_pane_mouse_selection_update() {
+        let id = Uuid::new_v4();
+        let mut pane = Pane::new(id, 24, 80);
+
+        pane.mouse_selection_start(5, 10);
+        pane.mouse_selection_update(8, 15);
+
+        let selection = pane.selection().unwrap();
+        assert_eq!(selection.anchor.row, 5);
+        assert_eq!(selection.anchor.col, 10);
+        assert_eq!(selection.cursor.row, 8);
+        assert_eq!(selection.cursor.col, 15);
+    }
+
+    #[test]
+    fn test_pane_select_line_at() {
+        let id = Uuid::new_v4();
+        let mut pane = Pane::new(id, 24, 80);
+
+        pane.select_line_at(7);
+
+        let selection = pane.selection().unwrap();
+        assert_eq!(selection.mode, VisualMode::Line);
+        assert_eq!(selection.anchor.row, 7);
     }
 }

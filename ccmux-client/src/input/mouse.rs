@@ -4,7 +4,7 @@
 
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 
-use super::{InputAction, InputMode};
+use super::{ClientCommand, InputAction, InputMode};
 
 /// Default scroll lines per wheel event
 const DEFAULT_SCROLL_LINES: usize = 3;
@@ -12,11 +12,23 @@ const DEFAULT_SCROLL_LINES: usize = 3;
 /// Handle a mouse event and return the appropriate action
 pub fn handle_mouse_event(event: MouseEvent, mode: InputMode) -> InputAction {
     match event.kind {
-        // Left click - focus pane at cursor position
+        // Left click - focus pane or start selection in copy mode
         MouseEventKind::Down(MouseButton::Left) => {
-            InputAction::FocusPane {
-                x: event.column,
-                y: event.row,
+            match mode {
+                InputMode::Copy => {
+                    // In copy mode, start selection at click position
+                    InputAction::Command(ClientCommand::MouseSelectionStart {
+                        x: event.column,
+                        y: event.row,
+                    })
+                }
+                _ => {
+                    // In normal mode, focus pane at cursor position
+                    InputAction::FocusPane {
+                        x: event.column,
+                        y: event.row,
+                    }
+                }
             }
         }
 
@@ -71,16 +83,39 @@ pub fn handle_mouse_event(event: MouseEvent, mode: InputMode) -> InputAction {
             InputAction::None
         }
 
-        // Mouse drag - could be used for pane resizing or text selection
+        // Mouse drag - text selection in copy mode
         MouseEventKind::Drag(MouseButton::Left) => {
-            // Future: implement pane border dragging for resize
-            // For now, no action
-            InputAction::None
+            match mode {
+                InputMode::Copy => {
+                    // In copy mode, update selection end position
+                    InputAction::Command(ClientCommand::MouseSelectionUpdate {
+                        x: event.column,
+                        y: event.row,
+                    })
+                }
+                _ => {
+                    // In normal mode, no action for drag
+                    InputAction::None
+                }
+            }
         }
 
         MouseEventKind::Drag(_) => InputAction::None,
 
         // Mouse up events
+        MouseEventKind::Up(MouseButton::Left) => {
+            match mode {
+                InputMode::Copy => {
+                    // In copy mode, finalize selection
+                    InputAction::Command(ClientCommand::MouseSelectionEnd {
+                        x: event.column,
+                        y: event.row,
+                    })
+                }
+                _ => InputAction::None,
+            }
+        }
+
         MouseEventKind::Up(_) => InputAction::None,
 
         // Mouse movement (not dragging)

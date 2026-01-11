@@ -63,6 +63,26 @@ pub enum ClientCommand {
     ExitCopyMode,
     /// Clear scrollback buffer
     ClearHistory,
+    /// Start character-wise visual selection (v)
+    StartVisualMode,
+    /// Start line-wise visual selection (V)
+    StartVisualLineMode,
+    /// Yank (copy) the current selection
+    YankSelection,
+    /// Move copy mode cursor (row_delta, col_delta)
+    MoveCopyCursor { row_delta: i32, col_delta: i32 },
+    /// Cancel selection (stay in copy mode)
+    CancelSelection,
+    /// Start mouse selection at position
+    MouseSelectionStart { x: u16, y: u16 },
+    /// Update mouse selection end position
+    MouseSelectionUpdate { x: u16, y: u16 },
+    /// Finalize mouse selection
+    MouseSelectionEnd { x: u16, y: u16 },
+    /// Select word at position (double-click)
+    SelectWord { x: u16, y: u16 },
+    /// Select line at position (triple-click)
+    SelectLine { x: u16, y: u16 },
 
     // Layout
     /// Toggle pane zoom (fullscreen)

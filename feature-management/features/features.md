@@ -6,12 +6,12 @@
 ## Summary Statistics
 
 - **Total Features**: 54
-- **Completed**: 44
-- **Backlog**: 10
+- **Completed**: 45
+- **Backlog**: 9
 
 ## Current Status
 
-All planned features for MVP and post-MVP have been implemented. Ten features remain in backlog for future consideration.
+All planned features for MVP and post-MVP have been implemented. Nine features remain in backlog for future consideration.
 
 ### Backlog Features
 
@@ -24,7 +24,6 @@ All planned features for MVP and post-MVP have been implemented. Ten features re
 | FEAT-036 | Session-Aware MCP Commands | ccmux-server (MCP) | P2 | May overlap with FEAT-043 (session rename) |
 | FEAT-048 | Expose orchestration protocol via MCP tools | ccmux-server (MCP) | P2 | Agent-to-agent orchestration API surface |
 | FEAT-049 | tmux-compatible CLI wrapper (ccmux-compat) | ccmux-compat | P2 | Drop-in tmux replacement for Gas Town integration |
-| FEAT-054 | Pane-bounded text selection in copy mode | ccmux-client (UI/Input) | P2 | Vim-style selection, OSC 52 clipboard |
 | FEAT-051 | Add ccmux_get_environment MCP tool | ccmux-server (MCP) | P2 | Pairs with set_environment for full parity |
 | FEAT-050 | Session Metadata Storage | ccmux-server (MCP) | P3 | Arbitrary key-value metadata on sessions for agent identity |
 
@@ -99,6 +98,7 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | FEAT-044 | Claude Session Persistence & Auto-Resume | Complete |
 | FEAT-045 | MCP Declarative Layout Tools | Complete |
 | FEAT-046 | MCP Focus/Select Control | Complete |
+| FEAT-054 | Pane-bounded text selection in copy mode | Complete |
 
 ## Test Coverage
 

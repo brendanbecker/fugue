@@ -423,25 +423,83 @@ impl InputHandler {
     fn handle_copy_key(&mut self, key: KeyEvent) -> InputAction {
         match key.code {
             // Exit copy mode
-            KeyCode::Esc | KeyCode::Char('q') => {
+            KeyCode::Esc => {
                 self.mode = InputMode::Normal;
                 self.scroll_offset = 0;
                 InputAction::Command(ClientCommand::ExitCopyMode)
             }
 
-            // Navigation
+            // Cancel selection / exit (q)
+            KeyCode::Char('q') => {
+                // If in visual mode, first cancel selection
+                // If not, exit copy mode
+                self.mode = InputMode::Normal;
+                self.scroll_offset = 0;
+                InputAction::Command(ClientCommand::ExitCopyMode)
+            }
+
+            // Start visual mode (character-wise)
+            KeyCode::Char('v') => {
+                InputAction::Command(ClientCommand::StartVisualMode)
+            }
+
+            // Start visual line mode
+            KeyCode::Char('V') => {
+                InputAction::Command(ClientCommand::StartVisualLineMode)
+            }
+
+            // Yank selection
+            KeyCode::Char('y') | KeyCode::Enter | KeyCode::Char(' ') => {
+                // Yank will be handled by app - it will yank and exit copy mode
+                let action = InputAction::Command(ClientCommand::YankSelection);
+                self.mode = InputMode::Normal;
+                self.scroll_offset = 0;
+                action
+            }
+
+            // Vertical navigation (cursor up/down)
             KeyCode::Up | KeyCode::Char('k') => {
-                self.scroll_offset = self.scroll_offset.saturating_add(1);
-                InputAction::ScrollUp { lines: 1 }
+                InputAction::Command(ClientCommand::MoveCopyCursor {
+                    row_delta: -1,
+                    col_delta: 0,
+                })
             }
             KeyCode::Down | KeyCode::Char('j') => {
-                if self.scroll_offset > 0 {
-                    self.scroll_offset = self.scroll_offset.saturating_sub(1);
-                    InputAction::ScrollDown { lines: 1 }
-                } else {
-                    InputAction::None
-                }
+                InputAction::Command(ClientCommand::MoveCopyCursor {
+                    row_delta: 1,
+                    col_delta: 0,
+                })
             }
+
+            // Horizontal navigation (cursor left/right)
+            KeyCode::Left | KeyCode::Char('h') => {
+                InputAction::Command(ClientCommand::MoveCopyCursor {
+                    row_delta: 0,
+                    col_delta: -1,
+                })
+            }
+            KeyCode::Right | KeyCode::Char('l') => {
+                InputAction::Command(ClientCommand::MoveCopyCursor {
+                    row_delta: 0,
+                    col_delta: 1,
+                })
+            }
+
+            // Beginning/end of line
+            KeyCode::Char('0') | KeyCode::Home => {
+                InputAction::Command(ClientCommand::MoveCopyCursor {
+                    row_delta: 0,
+                    col_delta: -1000, // Move to beginning (will be clamped)
+                })
+            }
+            KeyCode::Char('$') | KeyCode::End => {
+                InputAction::Command(ClientCommand::MoveCopyCursor {
+                    row_delta: 0,
+                    col_delta: 1000, // Move to end (will be clamped)
+                })
+            }
+
+            // Page navigation
             KeyCode::PageUp | KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.scroll_offset = self.scroll_offset.saturating_add(24);
                 InputAction::ScrollUp { lines: 24 }
@@ -450,15 +508,29 @@ impl InputHandler {
                 self.scroll_offset = self.scroll_offset.saturating_sub(24);
                 InputAction::ScrollDown { lines: 24 }
             }
-            KeyCode::Char('g') => {
-                // Go to top
+
+            // Go to top/bottom
+            KeyCode::Char('g') if !key.modifiers.contains(KeyModifiers::SHIFT) => {
                 self.scroll_offset = usize::MAX;
                 InputAction::ScrollUp { lines: usize::MAX }
             }
             KeyCode::Char('G') => {
-                // Go to bottom
                 self.scroll_offset = 0;
                 InputAction::ScrollDown { lines: usize::MAX }
+            }
+
+            // Word movement (simplified - move by 5 chars)
+            KeyCode::Char('w') => {
+                InputAction::Command(ClientCommand::MoveCopyCursor {
+                    row_delta: 0,
+                    col_delta: 5,
+                })
+            }
+            KeyCode::Char('b') if !key.modifiers.contains(KeyModifiers::CONTROL) => {
+                InputAction::Command(ClientCommand::MoveCopyCursor {
+                    row_delta: 0,
+                    col_delta: -5,
+                })
             }
 
             _ => InputAction::None,
@@ -629,12 +701,84 @@ mod tests {
         let mut handler = InputHandler::new();
         handler.mode = InputMode::Copy;
 
-        // Scroll up
+        // Move cursor up (changed from scroll to cursor movement)
         let up_key = KeyEvent::new(KeyCode::Up, KeyModifiers::empty());
         let result = handler.handle_key(up_key);
 
-        assert_eq!(result, InputAction::ScrollUp { lines: 1 });
-        assert_eq!(handler.scroll_offset(), 1);
+        assert_eq!(
+            result,
+            InputAction::Command(ClientCommand::MoveCopyCursor {
+                row_delta: -1,
+                col_delta: 0
+            })
+        );
+    }
+
+    #[test]
+    fn test_copy_mode_visual_mode() {
+        let mut handler = InputHandler::new();
+        handler.mode = InputMode::Copy;
+
+        // Press 'v' to enter visual mode
+        let v_key = KeyEvent::new(KeyCode::Char('v'), KeyModifiers::empty());
+        let result = handler.handle_key(v_key);
+
+        assert_eq!(result, InputAction::Command(ClientCommand::StartVisualMode));
+    }
+
+    #[test]
+    fn test_copy_mode_visual_line_mode() {
+        let mut handler = InputHandler::new();
+        handler.mode = InputMode::Copy;
+
+        // Press 'V' to enter visual line mode
+        let v_key = KeyEvent::new(KeyCode::Char('V'), KeyModifiers::empty());
+        let result = handler.handle_key(v_key);
+
+        assert_eq!(result, InputAction::Command(ClientCommand::StartVisualLineMode));
+    }
+
+    #[test]
+    fn test_copy_mode_yank() {
+        let mut handler = InputHandler::new();
+        handler.mode = InputMode::Copy;
+
+        // Press 'y' to yank
+        let y_key = KeyEvent::new(KeyCode::Char('y'), KeyModifiers::empty());
+        let result = handler.handle_key(y_key);
+
+        assert_eq!(result, InputAction::Command(ClientCommand::YankSelection));
+        assert_eq!(handler.mode(), InputMode::Normal); // Should exit copy mode
+    }
+
+    #[test]
+    fn test_copy_mode_horizontal_movement() {
+        let mut handler = InputHandler::new();
+        handler.mode = InputMode::Copy;
+
+        // Move left with 'h'
+        let h_key = KeyEvent::new(KeyCode::Char('h'), KeyModifiers::empty());
+        let result = handler.handle_key(h_key);
+
+        assert_eq!(
+            result,
+            InputAction::Command(ClientCommand::MoveCopyCursor {
+                row_delta: 0,
+                col_delta: -1
+            })
+        );
+
+        // Move right with 'l'
+        let l_key = KeyEvent::new(KeyCode::Char('l'), KeyModifiers::empty());
+        let result = handler.handle_key(l_key);
+
+        assert_eq!(
+            result,
+            InputAction::Command(ClientCommand::MoveCopyCursor {
+                row_delta: 0,
+                col_delta: 1
+            })
+        );
     }
 
     #[test]

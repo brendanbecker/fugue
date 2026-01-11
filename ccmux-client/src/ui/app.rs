@@ -689,16 +689,167 @@ impl App {
             }
 
             ClientCommand::EnterCopyMode => {
-                self.status_message = Some("Copy mode - use j/k to scroll, q to exit".to_string());
+                if let Some(pane_id) = self.active_pane_id {
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        pane.enter_copy_mode();
+                    }
+                }
+                self.status_message = Some("Copy mode - v: visual, V: line, hjkl: move, y: yank, q: exit".to_string());
             }
 
             ClientCommand::ExitCopyMode => {
                 if let Some(pane_id) = self.active_pane_id {
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        pane.exit_copy_mode();
+                    }
                     self.connection
                         .send(ClientMessage::JumpToBottom { pane_id })
                         .await?;
                 }
                 self.status_message = None;
+            }
+
+            ClientCommand::StartVisualMode => {
+                if let Some(pane_id) = self.active_pane_id {
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        pane.start_visual_selection();
+                    }
+                }
+                self.status_message = Some("-- VISUAL --".to_string());
+            }
+
+            ClientCommand::StartVisualLineMode => {
+                if let Some(pane_id) = self.active_pane_id {
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        pane.start_visual_line_selection();
+                    }
+                }
+                self.status_message = Some("-- VISUAL LINE --".to_string());
+            }
+
+            ClientCommand::YankSelection => {
+                if let Some(pane_id) = self.active_pane_id {
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        if let Some(text) = pane.yank_selection() {
+                            let len = text.len();
+                            pane.exit_copy_mode();
+                            self.status_message = Some(format!("Yanked {} bytes to clipboard", len));
+                        } else {
+                            self.status_message = Some("No selection to yank".to_string());
+                        }
+                    }
+                }
+            }
+
+            ClientCommand::MoveCopyCursor { row_delta, col_delta } => {
+                if let Some(pane_id) = self.active_pane_id {
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        pane.move_copy_cursor(row_delta, col_delta);
+                        // Update status with cursor position
+                        if let Some(cursor) = pane.copy_mode_cursor() {
+                            if let Some(indicator) = pane.visual_mode_indicator() {
+                                self.status_message = Some(format!("{} ({}, {})", indicator, cursor.row, cursor.col));
+                            } else {
+                                self.status_message = Some(format!("Copy mode ({}, {})", cursor.row, cursor.col));
+                            }
+                        }
+                    }
+                }
+            }
+
+            ClientCommand::CancelSelection => {
+                if let Some(pane_id) = self.active_pane_id {
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        pane.cancel_selection();
+                    }
+                }
+                self.status_message = Some("Selection cancelled".to_string());
+            }
+
+            ClientCommand::MouseSelectionStart { x, y } => {
+                // Translate terminal coordinates to pane-relative coordinates
+                if let Some(pane_id) = self.active_pane_id {
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        // Get pane rect from layout to translate coordinates
+                        if let Some(ref layout) = self.layout {
+                            let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
+                            let pane_area = ratatui::layout::Rect::new(0, 0, cols, rows.saturating_sub(1));
+                            if let Some(rect) = layout.get_pane_rect(pane_area, pane_id) {
+                                // Translate to pane-relative coordinates (accounting for border)
+                                let pane_x = x.saturating_sub(rect.x + 1) as usize;
+                                let pane_y = y.saturating_sub(rect.y + 1) as usize;
+                                pane.mouse_selection_start(pane_y, pane_x);
+                                self.status_message = Some("-- VISUAL --".to_string());
+                            }
+                        }
+                    }
+                }
+            }
+
+            ClientCommand::MouseSelectionUpdate { x, y } => {
+                if let Some(pane_id) = self.active_pane_id {
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        if let Some(ref layout) = self.layout {
+                            let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
+                            let pane_area = ratatui::layout::Rect::new(0, 0, cols, rows.saturating_sub(1));
+                            if let Some(rect) = layout.get_pane_rect(pane_area, pane_id) {
+                                let pane_x = x.saturating_sub(rect.x + 1) as usize;
+                                let pane_y = y.saturating_sub(rect.y + 1) as usize;
+                                pane.mouse_selection_update(pane_y, pane_x);
+                            }
+                        }
+                    }
+                }
+            }
+
+            ClientCommand::MouseSelectionEnd { x, y } => {
+                if let Some(pane_id) = self.active_pane_id {
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        if let Some(ref layout) = self.layout {
+                            let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
+                            let pane_area = ratatui::layout::Rect::new(0, 0, cols, rows.saturating_sub(1));
+                            if let Some(rect) = layout.get_pane_rect(pane_area, pane_id) {
+                                let pane_x = x.saturating_sub(rect.x + 1) as usize;
+                                let pane_y = y.saturating_sub(rect.y + 1) as usize;
+                                pane.mouse_selection_end(pane_y, pane_x);
+                                self.status_message = Some("Selection complete - press 'y' to yank".to_string());
+                            }
+                        }
+                    }
+                }
+            }
+
+            ClientCommand::SelectWord { x, y } => {
+                if let Some(pane_id) = self.active_pane_id {
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        if let Some(ref layout) = self.layout {
+                            let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
+                            let pane_area = ratatui::layout::Rect::new(0, 0, cols, rows.saturating_sub(1));
+                            if let Some(rect) = layout.get_pane_rect(pane_area, pane_id) {
+                                let pane_x = x.saturating_sub(rect.x + 1) as usize;
+                                let pane_y = y.saturating_sub(rect.y + 1) as usize;
+                                pane.select_word_at(pane_y, pane_x);
+                                self.status_message = Some("Word selected - press 'y' to yank".to_string());
+                            }
+                        }
+                    }
+                }
+            }
+
+            ClientCommand::SelectLine { x: _, y } => {
+                if let Some(pane_id) = self.active_pane_id {
+                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                        if let Some(ref layout) = self.layout {
+                            let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
+                            let pane_area = ratatui::layout::Rect::new(0, 0, cols, rows.saturating_sub(1));
+                            if let Some(rect) = layout.get_pane_rect(pane_area, pane_id) {
+                                let pane_y = y.saturating_sub(rect.y + 1) as usize;
+                                pane.select_line_at(pane_y);
+                                self.status_message = Some("Line selected - press 'y' to yank".to_string());
+                            }
+                        }
+                    }
+                }
             }
 
             ClientCommand::ToggleZoom => {

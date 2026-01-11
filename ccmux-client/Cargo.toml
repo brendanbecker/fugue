@@ -44,5 +44,8 @@ clap = { version = "4", features = ["derive"] }
 # Binary path discovery
 which = "7"
 
+# Base64 encoding for OSC 52 clipboard
+base64 = "0.22"
+
 [dev-dependencies]
 tempfile = "3"
