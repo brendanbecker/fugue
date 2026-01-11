@@ -1174,7 +1174,10 @@ impl App {
             | ServerMessage::PaneCreatedWithDetails { .. }
             | ServerMessage::SessionCreatedWithDetails { .. }
             | ServerMessage::WindowCreatedWithDetails { .. }
-            | ServerMessage::SessionRenamed { .. } => {
+            | ServerMessage::SessionRenamed { .. }
+            | ServerMessage::PaneSplit { .. }
+            | ServerMessage::PaneResized { .. }
+            | ServerMessage::LayoutCreated { .. } => {
                 // These messages are for the MCP bridge, not the TUI client
             }
         }

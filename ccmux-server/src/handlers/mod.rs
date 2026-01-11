@@ -210,6 +210,31 @@ impl HandlerContext {
                 session_filter,
                 new_name,
             } => self.handle_rename_session(session_filter, new_name).await,
+
+            ClientMessage::SplitPane {
+                pane_id,
+                direction,
+                ratio,
+                command,
+                cwd,
+                select,
+            } => {
+                self.handle_split_pane(pane_id, direction, ratio, command, cwd, select)
+                    .await
+            }
+
+            ClientMessage::ResizePaneDelta { pane_id, delta } => {
+                self.handle_resize_pane_delta(pane_id, delta).await
+            }
+
+            ClientMessage::CreateLayout {
+                session_filter,
+                window_filter,
+                layout,
+            } => {
+                self.handle_create_layout(session_filter, window_filter, layout)
+                    .await
+            }
         }
     }
 

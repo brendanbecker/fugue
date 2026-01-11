@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-053",
+  "title": "Auto-inject CCMUX context environment variables on pane spawn",
+  "component": "ccmux-server (PTY spawning)",
+  "priority": "P1",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-11",
+  "updated_date": "2026-01-11",
+  "assigned_to": null,
+  "tags": ["pty", "session-management", "claude-code", "enhancement"],
+  "estimated_effort": "medium",
+  "dependencies": [],
+  "description": "When spawning any pane, automatically inject environment variables that identify the ccmux context: CCMUX_PANE_ID (UUID of the pane), CCMUX_SESSION_ID (UUID of the session), CCMUX_WINDOW_ID (UUID of the window), and CCMUX_SESSION_NAME (human-readable session name). This enables Claude Code instances and other processes to be self-aware of their ccmux context without requiring explicit configuration.",
+  "business_value": "high",
+  "technical_complexity": "low",
+  "user_impact": "Enables Claude Code instances to identify which pane they're running in, use MCP tools on themselves, and coordinate with other Claude instances across panes"
+}

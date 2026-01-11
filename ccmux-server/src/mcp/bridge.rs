@@ -380,6 +380,30 @@ impl McpBridge {
                     .ok_or_else(|| McpError::InvalidParams("Missing 'name' parameter".into()))?;
                 self.tool_rename_session(session, name).await
             }
+            "ccmux_split_pane" => {
+                let pane_id = parse_uuid(arguments, "pane_id")?;
+                let direction = arguments["direction"].as_str().map(String::from);
+                let ratio = arguments["ratio"].as_f64().unwrap_or(0.5) as f32;
+                let command = arguments["command"].as_str().map(String::from);
+                let cwd = arguments["cwd"].as_str().map(String::from);
+                let select = arguments["select"].as_bool().unwrap_or(false);
+                self.tool_split_pane(pane_id, direction, ratio, command, cwd, select)
+                    .await
+            }
+            "ccmux_resize_pane" => {
+                let pane_id = parse_uuid(arguments, "pane_id")?;
+                let delta = arguments["delta"]
+                    .as_f64()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'delta' parameter".into()))?
+                    as f32;
+                self.tool_resize_pane(pane_id, delta).await
+            }
+            "ccmux_create_layout" => {
+                let session = arguments["session"].as_str().map(String::from);
+                let window = arguments["window"].as_str().map(String::from);
+                let layout = arguments["layout"].clone();
+                self.tool_create_layout(session, window, layout).await
+            }
             _ => Err(McpError::UnknownTool(name.into())),
         }
     }
@@ -791,6 +815,130 @@ impl McpBridge {
                     "session_id": session_id.to_string(),
                     "previous_name": previous_name,
                     "new_name": new_name
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
+    async fn tool_split_pane(
+        &mut self,
+        pane_id: Uuid,
+        direction: Option<String>,
+        ratio: f32,
+        command: Option<String>,
+        cwd: Option<String>,
+        select: bool,
+    ) -> Result<ToolResult, McpError> {
+        // Map terminal multiplexer convention to layout direction
+        let split_direction = match direction.as_deref() {
+            Some("horizontal") | Some("h") => SplitDirection::Vertical,
+            _ => SplitDirection::Horizontal, // "vertical" or default = side-by-side
+        };
+
+        self.send_to_daemon(ClientMessage::SplitPane {
+            pane_id,
+            direction: split_direction,
+            ratio,
+            command,
+            cwd,
+            select,
+        })
+        .await?;
+
+        match self.recv_from_daemon().await? {
+            ServerMessage::PaneSplit {
+                new_pane_id,
+                original_pane_id,
+                session_id,
+                session_name,
+                window_id,
+                direction,
+            } => {
+                let result = serde_json::json!({
+                    "new_pane_id": new_pane_id.to_string(),
+                    "original_pane_id": original_pane_id.to_string(),
+                    "session_id": session_id.to_string(),
+                    "session": session_name,
+                    "window_id": window_id.to_string(),
+                    "direction": direction,
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
+    async fn tool_resize_pane(
+        &mut self,
+        pane_id: Uuid,
+        delta: f32,
+    ) -> Result<ToolResult, McpError> {
+        self.send_to_daemon(ClientMessage::ResizePaneDelta { pane_id, delta })
+            .await?;
+
+        match self.recv_from_daemon().await? {
+            ServerMessage::PaneResized {
+                pane_id,
+                new_cols,
+                new_rows,
+            } => {
+                let result = serde_json::json!({
+                    "pane_id": pane_id.to_string(),
+                    "new_cols": new_cols,
+                    "new_rows": new_rows,
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
+    async fn tool_create_layout(
+        &mut self,
+        session: Option<String>,
+        window: Option<String>,
+        layout: serde_json::Value,
+    ) -> Result<ToolResult, McpError> {
+        self.send_to_daemon(ClientMessage::CreateLayout {
+            session_filter: session,
+            window_filter: window,
+            layout,
+        })
+        .await?;
+
+        match self.recv_from_daemon().await? {
+            ServerMessage::LayoutCreated {
+                session_id,
+                session_name,
+                window_id,
+                pane_ids,
+            } => {
+                let result = serde_json::json!({
+                    "session_id": session_id.to_string(),
+                    "session": session_name,
+                    "window_id": window_id.to_string(),
+                    "pane_ids": pane_ids.iter().map(|id| id.to_string()).collect::<Vec<_>>(),
+                    "pane_count": pane_ids.len(),
                 });
 
                 let json = serde_json::to_string_pretty(&result)

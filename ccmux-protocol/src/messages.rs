@@ -216,6 +216,40 @@ pub enum ClientMessage {
         /// New name for the session
         new_name: String,
     },
+
+    /// Split an existing pane (for MCP bridge)
+    SplitPane {
+        /// The pane to split
+        pane_id: Uuid,
+        /// Split direction
+        direction: SplitDirection,
+        /// Size ratio for the original pane (0.1 to 0.9, default 0.5)
+        ratio: f32,
+        /// Command to run in the new pane (default: shell)
+        command: Option<String>,
+        /// Working directory for the new pane
+        cwd: Option<String>,
+        /// If true, focus the new pane after creation (default: false)
+        select: bool,
+    },
+
+    /// Resize a pane by delta fraction (for MCP bridge)
+    ResizePaneDelta {
+        /// The pane to resize
+        pane_id: Uuid,
+        /// Size change as a fraction (-0.5 to 0.5)
+        delta: f32,
+    },
+
+    /// Create a complex layout declaratively (for MCP bridge)
+    CreateLayout {
+        /// Session filter (name or ID, uses first if omitted)
+        session_filter: Option<String>,
+        /// Window filter (name or ID, uses first if omitted)
+        window_filter: Option<String>,
+        /// Layout specification as JSON
+        layout: serde_json::Value,
+    },
 }
 
 /// Messages sent from server to client
@@ -363,6 +397,40 @@ pub enum ServerMessage {
         session_id: Uuid,
         previous_name: String,
         new_name: String,
+    },
+
+    /// Pane was split successfully (for MCP bridge)
+    PaneSplit {
+        /// The new pane that was created
+        new_pane_id: Uuid,
+        /// The original pane that was split
+        original_pane_id: Uuid,
+        /// Session info
+        session_id: Uuid,
+        session_name: String,
+        /// Window info
+        window_id: Uuid,
+        /// Split direction used
+        direction: String,
+    },
+
+    /// Pane was resized successfully (for MCP bridge)
+    PaneResized {
+        pane_id: Uuid,
+        /// New size after resize
+        new_cols: u16,
+        new_rows: u16,
+    },
+
+    /// Layout was created successfully (for MCP bridge)
+    LayoutCreated {
+        /// Session the layout was created in
+        session_id: Uuid,
+        session_name: String,
+        /// Window the layout was created in
+        window_id: Uuid,
+        /// All panes created as part of the layout
+        pane_ids: Vec<Uuid>,
     },
 }
 

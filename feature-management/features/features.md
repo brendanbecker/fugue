@@ -1,17 +1,17 @@
 # Feature Tracking
 
 **Project**: ccmux
-**Last Updated**: 2026-01-10
+**Last Updated**: 2026-01-11
 
 ## Summary Statistics
 
-- **Total Features**: 52
+- **Total Features**: 53
 - **Completed**: 44
-- **Backlog**: 8
+- **Backlog**: 9
 
 ## Current Status
 
-All planned features for MVP and post-MVP have been implemented. Eight features remain in backlog for future consideration.
+All planned features for MVP and post-MVP have been implemented. Nine features remain in backlog for future consideration.
 
 ### Backlog Features
 
@@ -19,6 +19,7 @@ All planned features for MVP and post-MVP have been implemented. Eight features 
 |----|-------|-----------|----------|-------|
 | FEAT-052 | Add ccmux_kill_session MCP tool | ccmux-server (MCP) | P1 | Blocking Gas Town integration |
 | FEAT-047 | Add ccmux_set_environment MCP tool | ccmux-server (MCP) | P1 | Blocking Gas Town integration |
+| FEAT-053 | Auto-inject CCMUX context environment variables | ccmux-server (PTY) | P1 | Enables Claude Code self-identification |
 | FEAT-028 | Orchestration Flexibility Refactor | ccmux-protocol | P2 | Generalize orchestrator/worker to tag-based roles |
 | FEAT-036 | Session-Aware MCP Commands | ccmux-server (MCP) | P2 | May overlap with FEAT-043 (session rename) |
 | FEAT-048 | Expose orchestration protocol via MCP tools | ccmux-server (MCP) | P2 | Agent-to-agent orchestration API surface |

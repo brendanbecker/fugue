@@ -11,6 +11,7 @@ use ccmux_protocol::{
 };
 
 use crate::pty::{PtyConfig, PtyOutputPoller};
+use crate::session::SessionManager;
 
 use super::{HandlerContext, HandlerResult};
 
@@ -695,6 +696,401 @@ impl HandlerContext {
             pane_id,
             session_name,
         })
+    }
+
+    /// Handle SplitPane - split an existing pane
+    pub async fn handle_split_pane(
+        &self,
+        pane_id: Uuid,
+        direction: SplitDirection,
+        ratio: f32,
+        command: Option<String>,
+        cwd: Option<String>,
+        select: bool,
+    ) -> HandlerResult {
+        info!(
+            "SplitPane request from {} (pane: {}, direction: {:?}, ratio: {})",
+            self.client_id, pane_id, direction, ratio
+        );
+
+        // Validate ratio
+        let ratio = ratio.clamp(0.1, 0.9);
+
+        let session_manager = self.session_manager.read().await;
+
+        // Find the pane to split
+        let (session, window, _pane) = match session_manager.find_pane(pane_id) {
+            Some(found) => found,
+            None => {
+                return HandlerContext::error(
+                    ErrorCode::PaneNotFound,
+                    format!("Pane {} not found", pane_id),
+                );
+            }
+        };
+
+        let session_id = session.id();
+        let session_name = session.name().to_string();
+        let window_id = window.id();
+
+        // Drop read lock before taking write lock
+        drop(session_manager);
+
+        // Create the new pane
+        let mut session_manager = self.session_manager.write().await;
+        let session = match session_manager.get_session_mut(session_id) {
+            Some(s) => s,
+            None => {
+                return HandlerContext::error(ErrorCode::SessionNotFound, "Session disappeared");
+            }
+        };
+
+        let window = match session.get_window_mut(window_id) {
+            Some(w) => w,
+            None => {
+                return HandlerContext::error(ErrorCode::WindowNotFound, "Window disappeared");
+            }
+        };
+
+        let new_pane = window.create_pane();
+        let new_pane_id = new_pane.id();
+
+        // Initialize the parser for the new pane
+        let pane = match window.get_pane_mut(new_pane_id) {
+            Some(p) => p,
+            None => {
+                return HandlerContext::error(ErrorCode::InternalError, "Pane disappeared");
+            }
+        };
+        pane.init_parser();
+
+        // If select is true, focus the new pane
+        if select {
+            window.set_active_pane(new_pane_id);
+        }
+
+        // Drop lock before spawning PTY
+        drop(session_manager);
+
+        // Spawn PTY for the new pane
+        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
+        let mut config = if let Some(ref cmd) = command {
+            PtyConfig::command("sh").with_arg("-c").with_arg(cmd)
+        } else {
+            PtyConfig::command(&shell)
+        };
+        if let Some(ref cwd) = cwd {
+            config = config.with_cwd(cwd);
+        }
+
+        {
+            let mut pty_manager = self.pty_manager.write().await;
+            match pty_manager.spawn(new_pane_id, config) {
+                Ok(handle) => {
+                    info!("PTY spawned for split pane {}", new_pane_id);
+
+                    let reader = handle.clone_reader();
+                    let _poller_handle = PtyOutputPoller::spawn_with_sideband(
+                        new_pane_id,
+                        session_id,
+                        reader,
+                        self.registry.clone(),
+                        Some(self.pane_closed_tx.clone()),
+                        self.command_executor.clone(),
+                    );
+                }
+                Err(e) => {
+                    warn!("Failed to spawn PTY for pane {}: {}", new_pane_id, e);
+                }
+            }
+        }
+
+        let direction_str = match direction {
+            SplitDirection::Horizontal => "horizontal",
+            SplitDirection::Vertical => "vertical",
+        };
+
+        info!(
+            "Pane {} split into new pane {} (direction: {}, ratio: {})",
+            pane_id, new_pane_id, direction_str, ratio
+        );
+
+        HandlerResult::Response(ServerMessage::PaneSplit {
+            new_pane_id,
+            original_pane_id: pane_id,
+            session_id,
+            session_name,
+            window_id,
+            direction: direction_str.to_string(),
+        })
+    }
+
+    /// Handle ResizePaneDelta - resize a pane by delta fraction
+    pub async fn handle_resize_pane_delta(
+        &self,
+        pane_id: Uuid,
+        delta: f32,
+    ) -> HandlerResult {
+        info!(
+            "ResizePaneDelta request from {} (pane: {}, delta: {})",
+            self.client_id, pane_id, delta
+        );
+
+        // Validate delta
+        let delta = delta.clamp(-0.5, 0.5);
+
+        let session_manager = self.session_manager.read().await;
+
+        // Find the pane
+        let (_, _, pane) = match session_manager.find_pane(pane_id) {
+            Some(found) => found,
+            None => {
+                return HandlerContext::error(
+                    ErrorCode::PaneNotFound,
+                    format!("Pane {} not found", pane_id),
+                );
+            }
+        };
+
+        let (current_cols, current_rows) = pane.dimensions();
+
+        // Drop read lock before taking write lock
+        drop(session_manager);
+
+        // Calculate new dimensions based on delta
+        // Delta is a fraction: positive grows, negative shrinks
+        // We'll apply delta to both dimensions proportionally
+        let scale = 1.0 + delta;
+        let new_cols = ((current_cols as f32) * scale).max(10.0).min(500.0) as u16;
+        let new_rows = ((current_rows as f32) * scale).max(5.0).min(200.0) as u16;
+
+        // Update pane dimensions
+        let mut session_manager = self.session_manager.write().await;
+        if let Some(pane) = session_manager.find_pane_mut(pane_id) {
+            pane.resize(new_cols, new_rows);
+        }
+        drop(session_manager);
+
+        // Resize PTY if exists
+        {
+            let pty_manager = self.pty_manager.read().await;
+            if let Some(handle) = pty_manager.get(pane_id) {
+                if let Err(e) = handle.resize(new_cols, new_rows) {
+                    warn!("Failed to resize PTY for pane {}: {}", pane_id, e);
+                }
+            }
+        }
+
+        info!(
+            "Pane {} resized from {}x{} to {}x{} (delta: {})",
+            pane_id, current_cols, current_rows, new_cols, new_rows, delta
+        );
+
+        HandlerResult::Response(ServerMessage::PaneResized {
+            pane_id,
+            new_cols,
+            new_rows,
+        })
+    }
+
+    /// Handle CreateLayout - create a complex layout declaratively
+    pub async fn handle_create_layout(
+        &self,
+        session_filter: Option<String>,
+        window_filter: Option<String>,
+        layout: serde_json::Value,
+    ) -> HandlerResult {
+        info!(
+            "CreateLayout request from {} (session: {:?}, window: {:?})",
+            self.client_id, session_filter, window_filter
+        );
+
+        let mut session_manager = self.session_manager.write().await;
+
+        // Find or use first session
+        let session_id = if let Some(ref filter) = session_filter {
+            if let Ok(id) = Uuid::parse_str(filter) {
+                if session_manager.get_session(id).is_some() {
+                    id
+                } else {
+                    return HandlerContext::error(
+                        ErrorCode::SessionNotFound,
+                        format!("Session '{}' not found", filter),
+                    );
+                }
+            } else {
+                match session_manager.get_session_by_name(filter) {
+                    Some(s) => s.id(),
+                    None => {
+                        return HandlerContext::error(
+                            ErrorCode::SessionNotFound,
+                            format!("Session '{}' not found", filter),
+                        );
+                    }
+                }
+            }
+        } else {
+            match session_manager.list_sessions().first() {
+                Some(s) => s.id(),
+                None => {
+                    return HandlerContext::error(ErrorCode::SessionNotFound, "No sessions exist");
+                }
+            }
+        };
+
+        let session_name = session_manager
+            .get_session(session_id)
+            .map(|s| s.name().to_string())
+            .unwrap_or_default();
+
+        // Find or use first window
+        let session = match session_manager.get_session_mut(session_id) {
+            Some(s) => s,
+            None => {
+                return HandlerContext::error(ErrorCode::SessionNotFound, "Session disappeared");
+            }
+        };
+
+        let window_id = if let Some(ref filter) = window_filter {
+            if let Ok(id) = Uuid::parse_str(filter) {
+                if session.get_window(id).is_some() {
+                    id
+                } else {
+                    return HandlerContext::error(
+                        ErrorCode::WindowNotFound,
+                        format!("Window '{}' not found", filter),
+                    );
+                }
+            } else {
+                match session.windows().find(|w| w.name() == filter) {
+                    Some(w) => w.id(),
+                    None => {
+                        return HandlerContext::error(
+                            ErrorCode::WindowNotFound,
+                            format!("Window '{}' not found", filter),
+                        );
+                    }
+                }
+            }
+        } else {
+            // Check for existing window first, then create if needed
+            let existing_id = session.windows().next().map(|w| w.id());
+            match existing_id {
+                Some(id) => id,
+                None => session.create_window(None).id(),
+            }
+        };
+
+        // Parse and create layout
+        let mut pane_ids = Vec::new();
+        let result = self.create_layout_recursive(
+            &mut session_manager,
+            session_id,
+            window_id,
+            &layout,
+            &mut pane_ids,
+        ).await;
+
+        if let Err(e) = result {
+            return HandlerContext::error(ErrorCode::InvalidOperation, e);
+        }
+
+        info!(
+            "Layout created in session {} window {} with {} panes",
+            session_name, window_id, pane_ids.len()
+        );
+
+        HandlerResult::Response(ServerMessage::LayoutCreated {
+            session_id,
+            session_name,
+            window_id,
+            pane_ids,
+        })
+    }
+
+    /// Recursively create layout from JSON specification
+    async fn create_layout_recursive(
+        &self,
+        session_manager: &mut SessionManager,
+        session_id: Uuid,
+        window_id: Uuid,
+        layout: &serde_json::Value,
+        pane_ids: &mut Vec<Uuid>,
+    ) -> Result<(), String> {
+        // Check if this is a simple pane definition
+        if layout.get("pane").is_some() {
+            let pane_spec = &layout["pane"];
+            let command = pane_spec["command"].as_str().map(String::from);
+            let cwd = pane_spec["cwd"].as_str().map(String::from);
+
+            // Create the pane
+            let session = session_manager
+                .get_session_mut(session_id)
+                .ok_or("Session not found")?;
+            let window = session
+                .get_window_mut(window_id)
+                .ok_or("Window not found")?;
+
+            let pane = window.create_pane();
+            let pane_id = pane.id();
+
+            // Initialize parser
+            let pane = window.get_pane_mut(pane_id).ok_or("Pane disappeared")?;
+            pane.init_parser();
+
+            pane_ids.push(pane_id);
+
+            // Spawn PTY (need to drop session_manager first)
+            let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
+            let mut config = if let Some(ref cmd) = command {
+                PtyConfig::command("sh").with_arg("-c").with_arg(cmd)
+            } else {
+                PtyConfig::command(&shell)
+            };
+            if let Some(ref cwd) = cwd {
+                config = config.with_cwd(cwd);
+            }
+
+            // We can't spawn PTY here because we hold session_manager lock
+            // Store config for later spawning
+            // For now, we'll spawn with default shell
+            {
+                let mut pty_manager = self.pty_manager.write().await;
+                if let Ok(handle) = pty_manager.spawn(pane_id, config) {
+                    let reader = handle.clone_reader();
+                    let _poller_handle = PtyOutputPoller::spawn_with_sideband(
+                        pane_id,
+                        session_id,
+                        reader,
+                        self.registry.clone(),
+                        Some(self.pane_closed_tx.clone()),
+                        self.command_executor.clone(),
+                    );
+                }
+            }
+
+            return Ok(());
+        }
+
+        // Check if this is a split definition
+        if let Some(splits) = layout.get("splits").and_then(|s| s.as_array()) {
+            for split in splits {
+                let nested_layout = &split["layout"];
+                // Recursively create nested layouts
+                // Box the future to avoid infinite type size
+                Box::pin(self.create_layout_recursive(
+                    session_manager,
+                    session_id,
+                    window_id,
+                    nested_layout,
+                    pane_ids,
+                ))
+                .await?;
+            }
+            return Ok(());
+        }
+
+        Err("Invalid layout specification: must contain 'pane' or 'splits'".to_string())
     }
 }
 
