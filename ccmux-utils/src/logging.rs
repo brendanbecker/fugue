@@ -47,10 +47,10 @@ impl Default for LogConfig {
 }
 
 impl LogConfig {
-    /// Create config for client (stderr only)
+    /// Create config for client (file logging, since TUI owns the terminal)
     pub fn client() -> Self {
         Self {
-            output: LogOutput::Stderr,
+            output: LogOutput::File,
             filter: std::env::var("CCMUX_LOG")
                 .unwrap_or_else(|_| "warn".into()),
             span_events: false,
@@ -259,7 +259,7 @@ mod tests {
     #[test]
     fn test_log_config_client() {
         let config = LogConfig::client();
-        assert_eq!(config.output, LogOutput::Stderr);
+        assert_eq!(config.output, LogOutput::File);
     }
 
     #[test]
@@ -447,8 +447,8 @@ mod tests {
         let client = LogConfig::client();
         let server = LogConfig::server();
 
-        // Client should use stderr, server should use file
-        assert_eq!(client.output, LogOutput::Stderr);
+        // Both use file logging (client can't use stderr since TUI owns terminal)
+        assert_eq!(client.output, LogOutput::File);
         assert_eq!(server.output, LogOutput::File);
 
         // Server should be more verbose with spans and file info

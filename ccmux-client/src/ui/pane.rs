@@ -335,6 +335,20 @@ pub fn render_pane(pane: &Pane, area: Rect, buf: &mut Buffer, tick_count: u64) {
 
     // Render the terminal content
     if inner.width > 0 && inner.height > 0 {
+        // Debug: Check for size mismatch between VT100 screen and render area
+        // Only log every ~1 second (tick_count is ~10/sec) to avoid spam
+        let (screen_rows, screen_cols) = pane.size();
+        if screen_rows != inner.height || screen_cols != inner.width {
+            if tick_count % 10 == 0 {
+                tracing::warn!(
+                    screen_rows, screen_cols,
+                    render_height = inner.height, render_width = inner.width,
+                    scroll_offset = pane.scroll_offset(),
+                    "VT100 screen size mismatch with render area"
+                );
+            }
+        }
+
         let pseudo_term = PseudoTerminal::new(pane.screen())
             .style(Style::default().fg(Color::White).bg(Color::Black));
 
