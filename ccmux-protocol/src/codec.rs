@@ -440,4 +440,244 @@ mod tests {
         // Buffer should be empty now
         assert!(server_codec.decode(&mut buf).unwrap().is_none());
     }
+
+    /// BUG-035: Stress test for response type consistency under heavy serialization load
+    ///
+    /// This test verifies that bincode serialization/deserialization preserves
+    /// the correct enum discriminant after many round-trips. The bug manifested
+    /// as wrong response types (e.g., list_windows returning SessionList).
+    #[test]
+    fn test_response_type_consistency_serialization_bug035() {
+        use crate::types::*;
+        use crate::messages::PaneListEntry;
+
+        let mut codec = ServerCodec::new();
+        let mut client_codec = ClientCodec::new();
+
+        let session_id = Uuid::new_v4();
+        let window_id = Uuid::new_v4();
+        let pane_id = Uuid::new_v4();
+
+        // Create the three message types that were affected by BUG-035
+        let session_list = ServerMessage::SessionList {
+            sessions: vec![SessionInfo {
+                id: session_id,
+                name: "test-session".to_string(),
+                created_at: 1234567890,
+                window_count: 3,
+                attached_clients: 1,
+                worktree: None,
+                tags: HashSet::new(),
+                metadata: HashMap::new(),
+            }],
+        };
+
+        let window_list = ServerMessage::WindowList {
+            session_name: "test-session".to_string(),
+            windows: vec![
+                WindowInfo {
+                    id: window_id,
+                    session_id,
+                    name: "main".to_string(),
+                    index: 0,
+                    pane_count: 1,
+                    active_pane_id: Some(pane_id),
+                },
+                WindowInfo {
+                    id: Uuid::new_v4(),
+                    session_id,
+                    name: "window-2".to_string(),
+                    index: 1,
+                    pane_count: 1,
+                    active_pane_id: None,
+                },
+            ],
+        };
+
+        let panes_list = ServerMessage::AllPanesList {
+            panes: vec![PaneListEntry {
+                id: pane_id,
+                session_name: "test-session".to_string(),
+                window_index: 0,
+                window_name: "main".to_string(),
+                pane_index: 0,
+                cols: 80,
+                rows: 24,
+                name: None,
+                title: Some("bash".to_string()),
+                cwd: Some("/home/user".to_string()),
+                state: PaneState::Normal,
+                is_claude: false,
+                claude_state: None,
+                is_focused: true,
+            }],
+        };
+
+        let mut errors: Vec<String> = Vec::new();
+
+        // Serialize and deserialize each message type 200 times
+        for i in 0..200 {
+            // Test SessionList
+            {
+                let mut buf = BytesMut::new();
+                codec.encode(session_list.clone(), &mut buf).unwrap();
+                let decoded = client_codec.decode(&mut buf).unwrap().unwrap();
+
+                match decoded {
+                    ServerMessage::SessionList { .. } => {}
+                    other => {
+                        errors.push(format!(
+                            "Iteration {}: SessionList decoded as {:?}",
+                            i,
+                            std::mem::discriminant(&other)
+                        ));
+                    }
+                }
+            }
+
+            // Test WindowList
+            {
+                let mut buf = BytesMut::new();
+                codec.encode(window_list.clone(), &mut buf).unwrap();
+                let decoded = client_codec.decode(&mut buf).unwrap().unwrap();
+
+                match decoded {
+                    ServerMessage::WindowList { .. } => {}
+                    other => {
+                        errors.push(format!(
+                            "Iteration {}: WindowList decoded as {:?}",
+                            i,
+                            std::mem::discriminant(&other)
+                        ));
+                    }
+                }
+            }
+
+            // Test AllPanesList
+            {
+                let mut buf = BytesMut::new();
+                codec.encode(panes_list.clone(), &mut buf).unwrap();
+                let decoded = client_codec.decode(&mut buf).unwrap().unwrap();
+
+                match decoded {
+                    ServerMessage::AllPanesList { .. } => {}
+                    other => {
+                        errors.push(format!(
+                            "Iteration {}: AllPanesList decoded as {:?}",
+                            i,
+                            std::mem::discriminant(&other)
+                        ));
+                    }
+                }
+            }
+        }
+
+        if !errors.is_empty() {
+            panic!(
+                "BUG-035: Serialization type corruption detected:\n{}",
+                errors.join("\n")
+            );
+        }
+    }
+
+    /// BUG-035: Test interleaved message types to catch queue ordering issues
+    #[test]
+    fn test_interleaved_response_types_bug035() {
+        use crate::types::*;
+        use crate::messages::PaneListEntry;
+
+        let mut codec = ServerCodec::new();
+        let mut client_codec = ClientCodec::new();
+
+        let session_id = Uuid::new_v4();
+        let window_id = Uuid::new_v4();
+        let pane_id = Uuid::new_v4();
+
+        let session_list = ServerMessage::SessionList {
+            sessions: vec![SessionInfo {
+                id: session_id,
+                name: "test".to_string(),
+                created_at: 0,
+                window_count: 1,
+                attached_clients: 0,
+                worktree: None,
+                tags: HashSet::new(),
+                metadata: HashMap::new(),
+            }],
+        };
+
+        let window_list = ServerMessage::WindowList {
+            session_name: "test".to_string(),
+            windows: vec![WindowInfo {
+                id: window_id,
+                session_id,
+                name: "main".to_string(),
+                index: 0,
+                pane_count: 1,
+                active_pane_id: Some(pane_id),
+            }],
+        };
+
+        let panes_list = ServerMessage::AllPanesList {
+            panes: vec![PaneListEntry {
+                id: pane_id,
+                session_name: "test".to_string(),
+                window_index: 0,
+                window_name: "main".to_string(),
+                pane_index: 0,
+                cols: 80,
+                rows: 24,
+                name: None,
+                title: None,
+                cwd: None,
+                state: PaneState::Normal,
+                is_claude: false,
+                claude_state: None,
+                is_focused: false,
+            }],
+        };
+
+        // Encode multiple messages into the same buffer (simulating buffered I/O)
+        let mut buf = BytesMut::new();
+
+        // Interleave the message types 100 times each
+        for _ in 0..100 {
+            codec.encode(session_list.clone(), &mut buf).unwrap();
+            codec.encode(window_list.clone(), &mut buf).unwrap();
+            codec.encode(panes_list.clone(), &mut buf).unwrap();
+        }
+
+        // Now decode and verify order
+        for i in 0..100 {
+            // Should get SessionList
+            let decoded = client_codec.decode(&mut buf).unwrap().unwrap();
+            assert!(
+                matches!(decoded, ServerMessage::SessionList { .. }),
+                "Iteration {}: expected SessionList, got {:?}",
+                i,
+                std::mem::discriminant(&decoded)
+            );
+
+            // Should get WindowList
+            let decoded = client_codec.decode(&mut buf).unwrap().unwrap();
+            assert!(
+                matches!(decoded, ServerMessage::WindowList { .. }),
+                "Iteration {}: expected WindowList, got {:?}",
+                i,
+                std::mem::discriminant(&decoded)
+            );
+
+            // Should get AllPanesList
+            let decoded = client_codec.decode(&mut buf).unwrap().unwrap();
+            assert!(
+                matches!(decoded, ServerMessage::AllPanesList { .. }),
+                "Iteration {}: expected AllPanesList, got {:?}",
+                i,
+                std::mem::discriminant(&decoded)
+            );
+        }
+
+        // Buffer should be empty
+        assert!(client_codec.decode(&mut buf).unwrap().is_none());
+    }
 }
