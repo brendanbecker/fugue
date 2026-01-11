@@ -125,13 +125,22 @@ impl Pane {
     pub fn process_output(&mut self, data: &[u8]) {
         self.parser.process(data);
         // Reset scroll to bottom when new output arrives
-        self.scroll_offset = 0;
         self.parser.set_scrollback(0);
+        // Read back to ensure consistency with parser state
+        self.scroll_offset = self.parser.screen().scrollback();
     }
 
     /// Resize the terminal
     pub fn resize(&mut self, rows: u16, cols: u16) {
-        self.parser.set_size(rows, cols);
+        let (current_rows, current_cols) = self.size();
+        if current_rows != rows || current_cols != cols {
+            self.parser.set_size(rows, cols);
+            // Reset scroll position to bottom after resize to prevent viewport offset issues
+            // when the terminal size changes and scrollback becomes invalid
+            self.parser.set_scrollback(0);
+            // Read back to ensure consistency with parser state
+            self.scroll_offset = self.parser.screen().scrollback();
+        }
     }
 
     /// Get current terminal size (rows, cols)
