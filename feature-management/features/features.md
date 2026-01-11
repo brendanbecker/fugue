@@ -5,25 +5,22 @@
 
 ## Summary Statistics
 
-- **Total Features**: 54
-- **Completed**: 45
-- **Backlog**: 9
+- **Total Features**: 55
+- **Completed**: 50
+- **Backlog**: 5
 
 ## Current Status
 
-All planned features for MVP and post-MVP have been implemented. Nine features remain in backlog for future consideration.
+All Gas Town integration features have been implemented. Five features remain in backlog for future consideration.
 
 ### Backlog Features
 
 | ID | Title | Component | Priority | Notes |
 |----|-------|-----------|----------|-------|
-| FEAT-052 | Add ccmux_kill_session MCP tool | ccmux-server (MCP) | P1 | Blocking Gas Town integration |
-| FEAT-047 | Add ccmux_set_environment MCP tool | ccmux-server (MCP) | P1 | Blocking Gas Town integration |
+| FEAT-055 | tmux Keybinding Parity in TUI | ccmux-client | P1 | Full tmux keybind compatibility in TUI |
 | FEAT-028 | Orchestration Flexibility Refactor | ccmux-protocol | P2 | Generalize orchestrator/worker to tag-based roles |
 | FEAT-036 | Session-Aware MCP Commands | ccmux-server (MCP) | P2 | May overlap with FEAT-043 (session rename) |
 | FEAT-048 | Expose orchestration protocol via MCP tools | ccmux-server (MCP) | P2 | Agent-to-agent orchestration API surface |
-| FEAT-049 | tmux-compatible CLI wrapper (ccmux-compat) | ccmux-compat | P2 | Drop-in tmux replacement for Gas Town integration |
-| FEAT-051 | Add ccmux_get_environment MCP tool | ccmux-server (MCP) | P2 | Pairs with set_environment for full parity |
 | FEAT-050 | Session Metadata Storage | ccmux-server (MCP) | P3 | Arbitrary key-value metadata on sessions for agent identity |
 
 ## Completed Features
@@ -77,7 +74,7 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | FEAT-026 | Input Handling Integration and Testing | Complete |
 | FEAT-027 | Client Connection Registry | Complete |
 
-### Post-MVP Features (18 features)
+### Post-MVP Features (23 features)
 | ID | Title | Status |
 |----|-------|--------|
 | FEAT-029 | MCP Natural Language Terminal Control | Complete |
@@ -97,6 +94,10 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | FEAT-044 | Claude Session Persistence & Auto-Resume | Complete |
 | FEAT-045 | MCP Declarative Layout Tools | Complete |
 | FEAT-046 | MCP Focus/Select Control | Complete |
+| FEAT-047 | ccmux_set_environment MCP tool | Complete |
+| FEAT-049 | tmux-compatible CLI wrapper (ccmux-compat) | Complete |
+| FEAT-051 | ccmux_get_environment MCP tool | Complete |
+| FEAT-052 | ccmux_kill_session MCP tool | Complete |
 | FEAT-053 | Auto-inject CCMUX Context Environment Variables | Complete |
 | FEAT-054 | Pane-bounded text selection in copy mode | Complete |
 
@@ -109,7 +110,8 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | Wave 2 | 3 | 224 |
 | Wave 3 | 2 | 49 |
 | Wave 4 | 7 | 126 |
-| **Total** | **27** | **1,219+** |
+| Post-MVP | 23 | 247 |
+| **Total** | **50** | **1,466+** |
 
 ## Architecture
 

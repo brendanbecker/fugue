@@ -4,14 +4,18 @@
 **Last Updated**: 2026-01-11
 
 ## Summary Statistics
-- Total Bugs: 24
-- Open: 0
+- Total Bugs: 27
+- Open: 3
 - Resolved: 23
 - Deprecated: 1
 
 ## Active Bugs
 
-None - all bugs resolved!
+| ID | Description | Priority | Status |
+|----|-------------|----------|--------|
+| **BUG-027** | MCP response routing swapped between handlers | P0 | Open |
+| **BUG-026** | Focus management broken (auto-focus, focus_pane, select_window) | P1 | Open |
+| **BUG-025** | create_pane direction response mismatch | P2 | Open |
 
 ## Bug Status
 
@@ -55,6 +59,9 @@ See `feature-management/completed/` for resolved work items.
 
 | Date | Bug ID | Action | Description |
 |------|--------|--------|-------------|
+| 2026-01-11 | BUG-027 | Created | MCP response routing swapped - responses going to wrong handlers |
+| 2026-01-11 | BUG-026 | Created | Focus management broken - auto-focus, focus_pane, select_window |
+| 2026-01-11 | BUG-025 | Created | create_pane direction response mismatch (cosmetic) |
 | 2026-01-11 | BUG-024 | Resolved | Fixed: OSC escape sequence format prevents grep triggering commands |
 | 2026-01-11 | BUG-022 | Resolved | Fixed: reset scroll position on resize to prevent viewport offset |
 | 2026-01-10 | BUG-023 | Resolved | Fixed: added command param + output poller to create_session handler |

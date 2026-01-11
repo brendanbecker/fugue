@@ -12,12 +12,12 @@
 
 ## Current State (2026-01-11)
 
-**ALL BUGS RESOLVED** - Project is in excellent health.
+**3 NEW BUGS** discovered during QA demo run. 6 features merged from parallel streams.
 
 **Key Metrics:**
-- 24 bugs tracked, 23 resolved, 1 deprecated (100% resolution rate)
-- 54 features tracked, 44 completed, 10 in backlog
-- 1,219+ tests passing
+- 27 bugs tracked, 23 resolved, 3 open, 1 deprecated
+- 55 features tracked, 50 completed, 5 in backlog
+- 1,466+ tests passing
 - Clean git working tree on main branch
 
 ### What Works
@@ -44,6 +44,10 @@
 - **Claude detection**: ClaudeDetector now receives PTY output (FEAT-015 unblocked)
 - **Session rename**: `ccmux_rename_session` MCP tool (FEAT-043)
 - **Large paste handling**: Graceful chunking prevents crashes (BUG-011 fix)
+- **Text selection**: Pane-bounded copy mode with vim-style selection (FEAT-054)
+- **Environment tools**: `ccmux_set_environment`, `ccmux_get_environment`, `ccmux_kill_session` (FEAT-047/051/052)
+- **Context env vars**: CCMUX_PANE_ID, CCMUX_SESSION_ID auto-injected (FEAT-053)
+- **tmux CLI wrapper**: `ccmux-compat` for tmux command compatibility (FEAT-049)
 
 ### Known Issues
 - `kill -9` corrupts terminal (SIGKILL can't be caught - run `reset` to fix)
@@ -63,9 +67,16 @@
 | FEAT-025 | Pane Output Rendering | P0 | ✅ Merged |
 | FEAT-026 | Input Testing | P1 | ✅ Working (verified manually) |
 
-## Bug Status: ALL CLEAR
+## Bug Status: 3 OPEN
 
-**Open Bugs: 0** - All 24 bugs resolved or deprecated.
+**Open Bugs: 3** - Discovered during QA demo run.
+
+### Open Bugs (from QA Demo)
+| Bug | Priority | Description | Notes |
+|-----|----------|-------------|-------|
+| **BUG-027** | P0 | MCP response routing swapped | Responses going to wrong handlers - actions work but wrong types returned |
+| **BUG-026** | P1 | Focus management broken | Auto-focus on create, focus_pane/select_window have no effect |
+| **BUG-025** | P2 | create_pane direction response mismatch | Response says "horizontal" when "vertical" was requested (cosmetic) |
 
 ### Recent Critical Fixes
 | Bug | Priority | Description | Resolution |
@@ -85,21 +96,23 @@
 
 **Last Updated**: 2026-01-11
 
-All parallel execution streams completed. Current focus is on Gas Town integration features.
+All Gas Town P1 features completed. 6 features merged from parallel streams.
 
-### P1 - High Priority (Gas Town Integration)
+### Just Merged (This Session)
+| ID | Title | Status |
+|----|-------|--------|
+| ✅ FEAT-054 | Pane-bounded text selection in copy mode | Merged |
+| ✅ FEAT-052 | ccmux_kill_session MCP tool | Merged |
+| ✅ FEAT-047 | ccmux_set_environment MCP tool | Merged |
+| ✅ FEAT-051 | ccmux_get_environment MCP tool | Merged |
+| ✅ FEAT-053 | Auto-inject CCMUX context env vars | Merged |
+| ✅ FEAT-049 | tmux-compatible CLI wrapper (ccmux-compat) | Merged |
+
+### P1 - High Priority (TUI Improvements)
 
 | ID | Title | Component | Effort | Notes |
 |----|-------|-----------|--------|-------|
-| **FEAT-052** | Add ccmux_kill_session MCP tool | MCP | Small | Exposes existing DestroySession; quick win |
-| **FEAT-047** | Add ccmux_set_environment MCP tool | MCP | Medium | Session-level env vars for spawned panes |
-| **FEAT-053** | Auto-inject CCMUX context env vars | PTY | Medium | CCMUX_PANE_ID, CCMUX_SESSION_ID on spawn |
-
-**Recommended Order:**
-1. FEAT-052 (~30 min) - Existing protocol message just needs MCP wrapper
-2. FEAT-047 (~2h) - Enables Gas Town environment variable workflow
-3. FEAT-051 (~30 min) - Pairs with FEAT-047 for completeness
-4. FEAT-053 (~2h) - Enables Claude Code self-identification
+| **FEAT-055** | tmux Keybinding Parity | Client TUI | Medium | Full tmux keybind compatibility in TUI |
 
 ### P2 - Medium Priority (Enhancements)
 
@@ -108,8 +121,6 @@ All parallel execution streams completed. Current focus is on Gas Town integrati
 | **FEAT-028** | Orchestration Flexibility Refactor | Protocol | Medium | Generalize to tag-based roles |
 | **FEAT-036** | Session-Aware MCP Commands | MCP | Medium | Auto-default to active session |
 | **FEAT-048** | MCP Orchestration Protocol Tools | MCP | Medium | Agent-to-agent communication API |
-| **FEAT-049** | tmux-compatible CLI wrapper | New crate | Medium | Drop-in tmux replacement |
-| **FEAT-051** | Add ccmux_get_environment MCP tool | MCP | Small | Pairs with set_environment |
 
 ### P3 - Low Priority (Nice to Have)
 
@@ -117,16 +128,14 @@ All parallel execution streams completed. Current focus is on Gas Town integrati
 |----|-------|-----------|--------|-------|
 | **FEAT-050** | Session Metadata Storage | MCP | Small | Key-value metadata on sessions |
 
-### Gas Town Integration Path
+### Gas Town Integration: COMPLETE ✅
 
-```
-FEAT-052 (kill_session)     -----> Gas Town worker cleanup
-FEAT-047 (set_environment)  -----> Gas Town env propagation
-FEAT-053 (context env vars) -----> Claude self-identification
-FEAT-049 (tmux-compat CLI)  -----> Drop-in replacement (optional)
-```
-
-**No hard blockers** - all P1 features can be implemented independently.
+All Gas Town integration features have been implemented:
+- ✅ FEAT-052: `ccmux_kill_session` - Worker cleanup
+- ✅ FEAT-047: `ccmux_set_environment` - Env propagation
+- ✅ FEAT-051: `ccmux_get_environment` - Env retrieval
+- ✅ FEAT-053: Context env vars - Claude self-identification
+- ✅ FEAT-049: `ccmux-compat` - tmux CLI compatibility
 
 ## Post-MVP Features
 
@@ -180,25 +189,22 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-Four parallel streams in progress for feature development:
+**All streams merged** - worktrees available for new work.
 
-| Stream | Path | Branch | Features | Status |
-|--------|------|--------|----------|--------|
-| **A** | `ccmux-stream-a/` | `stream-a-text-selection` | FEAT-054 (text selection) | Ready |
-| **B** | `ccmux-stream-b/` | `stream-b-mcp-tools` | FEAT-052 → 047 → 051 (MCP tools) | Ready |
-| **C** | `ccmux-stream-c/` | `stream-c-env-injection` | FEAT-053 (env injection) | Ready |
-| **D** | `ccmux-stream-d/` | `stream-d-tmux-wrapper` | FEAT-049 (tmux wrapper) | Ready |
+| Stream | Path | Branch | Status |
+|--------|------|--------|--------|
+| **A** | `ccmux-stream-a/` | `stream-a-text-selection` | ✅ Merged |
+| **B** | `ccmux-stream-b/` | `stream-b-mcp-tools` | ✅ Merged |
+| **C** | `ccmux-stream-c/` | `stream-c-env-injection` | ✅ Merged |
+| **D** | `ccmux-stream-d/` | `stream-d-tmux-wrapper` | ✅ Merged |
 
-Each worktree has a `SESSION.md` (gitignored) with detailed instructions for the worker.
-
-**To launch a worker:**
-```bash
-cd /home/becker/projects/tools/ccmux-stream-X
-cat SESSION.md  # Read instructions
-# Start implementing
-```
-
-### Recently Merged (2026-01-11)
+### Recently Merged (2026-01-11) - This Session
+- ✅ FEAT-054: Pane-bounded text selection in copy mode
+- ✅ FEAT-052: ccmux_kill_session MCP tool
+- ✅ FEAT-047: ccmux_set_environment MCP tool
+- ✅ FEAT-051: ccmux_get_environment MCP tool
+- ✅ FEAT-053: Auto-inject CCMUX context env vars
+- ✅ FEAT-049: tmux-compatible CLI wrapper (ccmux-compat)
 - ✅ Advanced MCP pane management tools (ccmux_split_pane, ccmux_resize_pane, ccmux_create_layout)
 - ✅ BUG-022, BUG-023, BUG-024 moved to completed
 
@@ -212,10 +218,33 @@ cat SESSION.md  # Read instructions
 - ✅ FEAT-046: MCP focus/select control
 
 ### Next Session Checklist
-- [ ] Push to origin
-- [ ] Comprehensive testing of all merged features
+- [ ] Fix BUG-027 (P0): MCP response routing - critical blocker
+- [ ] Fix BUG-026 (P1): Focus management broken
+- [ ] Fix BUG-025 (P2): Direction response mismatch (cosmetic)
 - [ ] Update README with new MCP tools
-- [x] Rebuild server with all fixes and test `read_pane` works (BUG-016 fix)
+- [ ] Cleanup merged worktree branches
+
+## Session Log (2026-01-11) - Feature Merge & QA Bugs
+
+### Work Completed This Session
+1. **6 features merged from parallel streams**:
+   - FEAT-054: Pane-bounded text selection in copy mode
+   - FEAT-052: ccmux_kill_session MCP tool
+   - FEAT-047: ccmux_set_environment MCP tool
+   - FEAT-051: ccmux_get_environment MCP tool
+   - FEAT-053: Auto-inject CCMUX context env vars
+   - FEAT-049: tmux-compatible CLI wrapper (ccmux-compat)
+2. **3 new bugs discovered during QA demo**:
+   - BUG-027 (P0): MCP response routing swapped
+   - BUG-026 (P1): Focus management broken
+   - BUG-025 (P2): Direction response mismatch
+3. **Conflict resolution**: Merged stream-c env injection with stream-b MCP tools
+4. **Test count increased**: 1219 → 1466 tests passing
+
+### Priority for Next Session
+**BUG-027 is P0 critical** - MCP responses going to wrong handlers. Actions work correctly but clients receive wrong response types. This breaks monitoring and orchestration workflows.
+
+---
 
 ## Session Log (2026-01-11) - Parallel Development Setup
 
