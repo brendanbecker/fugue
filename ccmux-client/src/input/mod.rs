@@ -129,6 +129,9 @@ pub enum InputAction {
     Detach,
     /// Quit the client
     Quit,
+    /// User entered command mode (prefix key pressed) - FEAT-056
+    /// The app should send UserCommandModeEntered to the server
+    EnterUserCommandMode { timeout_ms: u32 },
 }
 
 /// Main input handler with prefix key state machine
@@ -277,7 +280,10 @@ impl InputHandler {
         if self.is_prefix_key(&key) {
             self.mode = InputMode::PrefixPending;
             self.prefix_time = Some(Instant::now());
-            return InputAction::None;
+            // FEAT-056: Signal user command mode entered for user priority lock
+            return InputAction::EnterUserCommandMode {
+                timeout_ms: self.prefix_timeout.as_millis() as u32,
+            };
         }
 
         // Translate key to bytes and send to pane
@@ -588,7 +594,8 @@ mod tests {
         let prefix_key = KeyEvent::new(KeyCode::Char('b'), KeyModifiers::CONTROL);
         let result = handler.handle_key(prefix_key);
 
-        assert_eq!(result, InputAction::None);
+        // FEAT-056: Now returns EnterUserCommandMode instead of None
+        assert!(matches!(result, InputAction::EnterUserCommandMode { timeout_ms: 500 }));
         assert_eq!(handler.mode(), InputMode::PrefixPending);
     }
 
@@ -860,7 +867,8 @@ mod tests {
 
         // Custom prefix should activate prefix mode
         let result = handler.handle_key(custom_prefix);
-        assert_eq!(result, InputAction::None);
+        // FEAT-056: Now returns EnterUserCommandMode instead of None
+        assert!(matches!(result, InputAction::EnterUserCommandMode { .. }));
         assert_eq!(handler.mode(), InputMode::PrefixPending);
     }
 
@@ -1127,7 +1135,8 @@ mod tests {
         // Prefix key (Ctrl+B) should still work
         let prefix = KeyEvent::new(KeyCode::Char('b'), KeyModifiers::CONTROL);
         let result = handler.handle_key(prefix);
-        assert_eq!(result, InputAction::None);
+        // FEAT-056: Now returns EnterUserCommandMode instead of None
+        assert!(matches!(result, InputAction::EnterUserCommandMode { .. }));
         assert_eq!(handler.mode(), InputMode::PrefixPending);
     }
 }

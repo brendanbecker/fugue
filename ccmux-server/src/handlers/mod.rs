@@ -21,6 +21,7 @@ use crate::pty::{PaneClosedNotification, PtyManager};
 use crate::registry::{ClientId, ClientRegistry};
 use crate::session::SessionManager;
 use crate::sideband::AsyncCommandExecutor;
+use crate::user_priority::UserPriorityManager;
 
 /// Context for message handlers
 ///
@@ -40,6 +41,8 @@ pub struct HandlerContext {
     pub pane_closed_tx: mpsc::Sender<PaneClosedNotification>,
     /// Sideband command executor for processing Claude commands
     pub command_executor: Arc<AsyncCommandExecutor>,
+    /// User priority lock manager (FEAT-056)
+    pub user_priority: Arc<UserPriorityManager>,
 }
 
 /// Result of handling a message
@@ -74,6 +77,7 @@ impl HandlerContext {
         client_id: ClientId,
         pane_closed_tx: mpsc::Sender<PaneClosedNotification>,
         command_executor: Arc<AsyncCommandExecutor>,
+        user_priority: Arc<UserPriorityManager>,
     ) -> Self {
         Self {
             session_manager,
@@ -83,6 +87,7 @@ impl HandlerContext {
             client_id,
             pane_closed_tx,
             command_executor,
+            user_priority,
         }
     }
 
@@ -249,7 +254,28 @@ impl HandlerContext {
                 session_filter,
                 key,
             } => self.handle_get_environment(session_filter, key).await,
+
+            // User priority lock handlers (FEAT-056)
+            ClientMessage::UserCommandModeEntered { timeout_ms } => {
+                self.handle_user_command_mode_entered(timeout_ms)
+            }
+
+            ClientMessage::UserCommandModeExited => self.handle_user_command_mode_exited(),
         }
+    }
+
+    // ==================== User Priority Lock Handlers (FEAT-056) ====================
+
+    /// Handle user command mode entered (prefix key pressed)
+    fn handle_user_command_mode_entered(&self, timeout_ms: u32) -> HandlerResult {
+        self.user_priority.set_lock(self.client_id, timeout_ms);
+        HandlerResult::NoResponse
+    }
+
+    /// Handle user command mode exited (command completed/cancelled/timed out)
+    fn handle_user_command_mode_exited(&self) -> HandlerResult {
+        self.user_priority.release_lock(self.client_id);
+        HandlerResult::NoResponse
     }
 
     /// Create an error response
@@ -283,6 +309,7 @@ mod tests {
             Arc::clone(&pty_manager),
             Arc::clone(&registry),
         ));
+        let user_priority = Arc::new(UserPriorityManager::new());
 
         // Register a test client
         let (tx, _rx) = mpsc::channel(10);
@@ -291,7 +318,7 @@ mod tests {
         // Create cleanup channel (receiver is dropped in tests)
         let (pane_closed_tx, _pane_closed_rx) = mpsc::channel(10);
 
-        HandlerContext::new(session_manager, pty_manager, registry, config, client_id, pane_closed_tx, command_executor)
+        HandlerContext::new(session_manager, pty_manager, registry, config, client_id, pane_closed_tx, command_executor, user_priority)
     }
 
     #[tokio::test]

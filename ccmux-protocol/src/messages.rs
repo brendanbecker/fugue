@@ -268,6 +268,22 @@ pub enum ClientMessage {
         /// Specific key to get (None = get all)
         key: Option<String>,
     },
+
+    // ==================== User Priority Lock Messages (FEAT-056) ====================
+
+    /// User entered command mode (prefix key pressed)
+    ///
+    /// When the user presses the prefix key (e.g., Ctrl+B), the client sends this
+    /// message to prevent MCP agents from interfering with focus-changing operations.
+    UserCommandModeEntered {
+        /// How long the lock should be held (ms) before auto-expiring
+        timeout_ms: u32,
+    },
+
+    /// User exited command mode (command completed/cancelled/timed out)
+    ///
+    /// Sent when the user completes a command, presses Escape, or the prefix timeout expires.
+    UserCommandModeExited,
 }
 
 /// Messages sent from server to client
@@ -530,6 +546,8 @@ pub enum ErrorCode {
     NoRecipients,
     /// Session name already exists
     SessionNameExists,
+    /// User priority lock is active - MCP focus operations blocked (FEAT-056)
+    UserPriorityActive,
 }
 
 #[cfg(test)]
@@ -1040,9 +1058,10 @@ mod tests {
             ErrorCode::NoRepository,
             ErrorCode::NoRecipients,
             ErrorCode::SessionNameExists,
+            ErrorCode::UserPriorityActive,
         ];
 
-        assert_eq!(codes.len(), 10);
+        assert_eq!(codes.len(), 11);
         for (i, code) in codes.iter().enumerate() {
             // Each code should be unique
             for (j, other) in codes.iter().enumerate() {
@@ -1528,5 +1547,59 @@ mod tests {
 
         let debug = format!("{:?}", code);
         assert_eq!(debug, "NoRecipients");
+    }
+
+    // ==================== FEAT-056: User Priority Lock Tests ====================
+
+    #[test]
+    fn test_client_message_user_command_mode_entered() {
+        let msg = ClientMessage::UserCommandModeEntered { timeout_ms: 500 };
+
+        if let ClientMessage::UserCommandModeEntered { timeout_ms } = msg {
+            assert_eq!(timeout_ms, 500);
+        } else {
+            panic!("Wrong variant");
+        }
+    }
+
+    #[test]
+    fn test_client_message_user_command_mode_exited() {
+        let msg = ClientMessage::UserCommandModeExited;
+        assert_eq!(msg.clone(), ClientMessage::UserCommandModeExited);
+    }
+
+    #[test]
+    fn test_user_command_mode_messages_clone() {
+        let entered = ClientMessage::UserCommandModeEntered { timeout_ms: 1000 };
+        let cloned = entered.clone();
+        assert_eq!(entered, cloned);
+
+        let exited = ClientMessage::UserCommandModeExited;
+        let cloned = exited.clone();
+        assert_eq!(exited, cloned);
+    }
+
+    #[test]
+    fn test_error_code_user_priority_active() {
+        let code = ErrorCode::UserPriorityActive;
+        assert_eq!(code, ErrorCode::UserPriorityActive);
+        assert_ne!(code, ErrorCode::InvalidOperation);
+
+        let debug = format!("{:?}", code);
+        assert_eq!(debug, "UserPriorityActive");
+    }
+
+    #[test]
+    fn test_user_command_mode_serialization() {
+        // Test that the messages can be serialized and deserialized correctly
+        let entered = ClientMessage::UserCommandModeEntered { timeout_ms: 750 };
+        let json = serde_json::to_string(&entered).unwrap();
+        let deserialized: ClientMessage = serde_json::from_str(&json).unwrap();
+        assert_eq!(entered, deserialized);
+
+        let exited = ClientMessage::UserCommandModeExited;
+        let json = serde_json::to_string(&exited).unwrap();
+        let deserialized: ClientMessage = serde_json::from_str(&json).unwrap();
+        assert_eq!(exited, deserialized);
     }
 }

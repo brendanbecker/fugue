@@ -31,6 +31,7 @@ pub mod registry;
 mod reply;
 mod session;
 pub mod sideband;
+mod user_priority;
 
 pub use registry::{ClientId, ClientRegistry};
 pub use reply::{ReplyError, ReplyHandler};
@@ -43,6 +44,7 @@ use persistence::{
 use pty::{PaneClosedNotification, PtyManager, PtyOutputPoller};
 use session::SessionManager;
 use sideband::AsyncCommandExecutor;
+use user_priority::UserPriorityManager;
 
 /// Shared state for concurrent access by client handlers
 ///
@@ -64,6 +66,8 @@ pub struct SharedState {
     pub pane_closed_tx: mpsc::Sender<PaneClosedNotification>,
     /// Sideband command executor for processing Claude commands
     pub command_executor: Arc<AsyncCommandExecutor>,
+    /// User priority lock manager (FEAT-056)
+    pub user_priority: Arc<UserPriorityManager>,
 }
 
 impl SharedState {
@@ -559,6 +563,7 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
         client_id,
         shared_state.pane_closed_tx.clone(),
         Arc::clone(&shared_state.command_executor),
+        Arc::clone(&shared_state.user_priority),
     );
 
     // Message pump loop
@@ -685,6 +690,9 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
         }
     }
 
+    // Clean up: release any user priority lock (FEAT-056)
+    shared_state.user_priority.on_client_disconnect(client_id);
+
     // Unregister client from registry
     shared_state.registry.unregister_client(client_id);
     info!("Client {} disconnected", client_id);
@@ -776,6 +784,7 @@ async fn run_daemon() -> Result<()> {
         shutdown_tx: shutdown_tx.clone(),
         pane_closed_tx,
         command_executor,
+        user_priority: Arc::new(UserPriorityManager::new()),
     };
 
     // Store references back in server for persistence operations
@@ -1189,6 +1198,7 @@ mod tests {
             shutdown_tx,
             pane_closed_tx,
             command_executor,
+            user_priority: Arc::new(user_priority::UserPriorityManager::new()),
         }
     }
 
@@ -1574,6 +1584,7 @@ mod tests {
             client_id,
             shared_state.pane_closed_tx,
             shared_state.command_executor,
+            shared_state.user_priority,
         )
     }
 

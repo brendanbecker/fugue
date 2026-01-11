@@ -136,8 +136,21 @@ impl HandlerContext {
     /// Handle SelectPane message - update focused pane
     ///
     /// BUG-026 FIX: Now broadcasts PaneFocused to TUI clients so they update their UI.
+    /// FEAT-056: Checks user priority lock before changing focus.
     pub async fn handle_select_pane(&self, pane_id: Uuid) -> HandlerResult {
         debug!("SelectPane {} request from {}", pane_id, self.client_id);
+
+        // Check if user priority lock is active (FEAT-056)
+        if let Some((_client_id, remaining_ms)) = self.user_priority.is_any_lock_active() {
+            debug!(
+                "SelectPane blocked by user priority lock, retry after {}ms",
+                remaining_ms
+            );
+            return HandlerContext::error(
+                ErrorCode::UserPriorityActive,
+                format!("User priority lock active, retry after {}ms", remaining_ms),
+            );
+        }
 
         let mut session_manager = self.session_manager.write().await;
 
@@ -189,8 +202,21 @@ impl HandlerContext {
     /// Handle SelectWindow message - update active window in session
     ///
     /// BUG-026 FIX: Now broadcasts WindowFocused to TUI clients so they update their UI.
+    /// FEAT-056: Checks user priority lock before changing focus.
     pub async fn handle_select_window(&self, window_id: Uuid) -> HandlerResult {
         debug!("SelectWindow {} request from {}", window_id, self.client_id);
+
+        // Check if user priority lock is active (FEAT-056)
+        if let Some((_client_id, remaining_ms)) = self.user_priority.is_any_lock_active() {
+            debug!(
+                "SelectWindow blocked by user priority lock, retry after {}ms",
+                remaining_ms
+            );
+            return HandlerContext::error(
+                ErrorCode::UserPriorityActive,
+                format!("User priority lock active, retry after {}ms", remaining_ms),
+            );
+        }
 
         let mut session_manager = self.session_manager.write().await;
 
@@ -233,8 +259,21 @@ impl HandlerContext {
     /// Handle SelectSession message - update active session
     ///
     /// BUG-026 FIX: Now broadcasts SessionFocused to TUI clients so they update their UI.
+    /// FEAT-056: Checks user priority lock before changing focus.
     pub async fn handle_select_session(&self, session_id: Uuid) -> HandlerResult {
         debug!("SelectSession {} request from {}", session_id, self.client_id);
+
+        // Check if user priority lock is active (FEAT-056)
+        if let Some((_client_id, remaining_ms)) = self.user_priority.is_any_lock_active() {
+            debug!(
+                "SelectSession blocked by user priority lock, retry after {}ms",
+                remaining_ms
+            );
+            return HandlerContext::error(
+                ErrorCode::UserPriorityActive,
+                format!("User priority lock active, retry after {}ms", remaining_ms),
+            );
+        }
 
         let mut session_manager = self.session_manager.write().await;
 
@@ -366,6 +405,7 @@ mod tests {
     use crate::pty::PtyManager;
     use crate::registry::ClientRegistry;
     use crate::session::SessionManager;
+    use crate::user_priority::UserPriorityManager;
     use std::sync::Arc;
     use tokio::sync::{mpsc, RwLock};
 
@@ -374,6 +414,7 @@ mod tests {
         let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
         let registry = Arc::new(ClientRegistry::new());
         let config = Arc::new(crate::config::AppConfig::default());
+        let user_priority = Arc::new(UserPriorityManager::new());
         let command_executor = Arc::new(crate::sideband::AsyncCommandExecutor::new(
             Arc::clone(&session_manager),
             Arc::clone(&pty_manager),
@@ -384,7 +425,7 @@ mod tests {
         let client_id = registry.register_client(tx);
 
         let (pane_closed_tx, _) = mpsc::channel(10);
-        HandlerContext::new(session_manager, pty_manager, registry, config, client_id, pane_closed_tx, command_executor)
+        HandlerContext::new(session_manager, pty_manager, registry, config, client_id, pane_closed_tx, command_executor, user_priority)
     }
 
     async fn create_session_with_window(ctx: &HandlerContext) -> (Uuid, Uuid) {
@@ -612,5 +653,137 @@ mod tests {
         let session_manager = ctx.session_manager.read().await;
         let (_, window) = session_manager.find_window(window_id).unwrap();
         assert_eq!(window.pane_count(), 3);
+    }
+
+    // ==================== FEAT-056 User Priority Lockout Tests ====================
+
+    #[tokio::test]
+    async fn test_select_pane_blocked_by_user_priority() {
+        let ctx = create_test_context();
+        let (session_id, window_id) = create_session_with_window(&ctx).await;
+
+        // Create a pane
+        let pane_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session = session_manager.get_session_mut(session_id).unwrap();
+            let window = session.get_window_mut(window_id).unwrap();
+            window.create_pane().id()
+        };
+
+        // Activate user priority lock from a different client
+        let other_client_id = crate::registry::ClientId::new(999);
+        ctx.user_priority.set_lock(other_client_id, 5000);
+
+        // Try to select pane - should be blocked
+        let result = ctx.handle_select_pane(pane_id).await;
+
+        match result {
+            HandlerResult::Response(ServerMessage::Error { code, message }) => {
+                assert_eq!(code, ErrorCode::UserPriorityActive);
+                assert!(message.contains("retry after"));
+            }
+            _ => panic!("Expected UserPriorityActive error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_select_window_blocked_by_user_priority() {
+        let ctx = create_test_context();
+        let (_session_id, window_id) = create_session_with_window(&ctx).await;
+
+        // Activate user priority lock
+        let other_client_id = crate::registry::ClientId::new(999);
+        ctx.user_priority.set_lock(other_client_id, 5000);
+
+        // Try to select window - should be blocked
+        let result = ctx.handle_select_window(window_id).await;
+
+        match result {
+            HandlerResult::Response(ServerMessage::Error { code, message }) => {
+                assert_eq!(code, ErrorCode::UserPriorityActive);
+                assert!(message.contains("retry after"));
+            }
+            _ => panic!("Expected UserPriorityActive error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_select_session_blocked_by_user_priority() {
+        let ctx = create_test_context();
+        let (session_id, _window_id) = create_session_with_window(&ctx).await;
+
+        // Activate user priority lock
+        let other_client_id = crate::registry::ClientId::new(999);
+        ctx.user_priority.set_lock(other_client_id, 5000);
+
+        // Try to select session - should be blocked
+        let result = ctx.handle_select_session(session_id).await;
+
+        match result {
+            HandlerResult::Response(ServerMessage::Error { code, message }) => {
+                assert_eq!(code, ErrorCode::UserPriorityActive);
+                assert!(message.contains("retry after"));
+            }
+            _ => panic!("Expected UserPriorityActive error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_select_pane_allowed_when_no_lock() {
+        let ctx = create_test_context();
+        let (session_id, window_id) = create_session_with_window(&ctx).await;
+
+        // Create a pane
+        let pane_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session = session_manager.get_session_mut(session_id).unwrap();
+            let window = session.get_window_mut(window_id).unwrap();
+            window.create_pane().id()
+        };
+
+        // No lock active - should succeed
+        let result = ctx.handle_select_pane(pane_id).await;
+
+        match result {
+            HandlerResult::ResponseWithBroadcast {
+                response: ServerMessage::PaneFocused { pane_id: focused_id, .. },
+                ..
+            } => {
+                assert_eq!(focused_id, pane_id);
+            }
+            _ => panic!("Expected PaneFocused response"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_select_pane_allowed_after_lock_released() {
+        let ctx = create_test_context();
+        let (session_id, window_id) = create_session_with_window(&ctx).await;
+
+        // Create a pane
+        let pane_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session = session_manager.get_session_mut(session_id).unwrap();
+            let window = session.get_window_mut(window_id).unwrap();
+            window.create_pane().id()
+        };
+
+        // Activate then release lock
+        let other_client_id = crate::registry::ClientId::new(999);
+        ctx.user_priority.set_lock(other_client_id, 5000);
+        ctx.user_priority.release_lock(other_client_id);
+
+        // Should succeed after lock released
+        let result = ctx.handle_select_pane(pane_id).await;
+
+        match result {
+            HandlerResult::ResponseWithBroadcast {
+                response: ServerMessage::PaneFocused { pane_id: focused_id, .. },
+                ..
+            } => {
+                assert_eq!(focused_id, pane_id);
+            }
+            _ => panic!("Expected PaneFocused response"),
+        }
     }
 }

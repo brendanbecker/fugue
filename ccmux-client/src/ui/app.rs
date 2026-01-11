@@ -101,6 +101,9 @@ pub struct App {
     pending_split_direction: Option<SplitDirection>,
     /// Custom command to run in new sessions (from CLI args)
     session_command: Option<String>,
+    /// Previous input mode for tracking mode transitions (FEAT-056)
+    /// Used to detect when user exits command mode
+    previous_input_mode: InputMode,
 }
 
 impl App {
@@ -129,6 +132,7 @@ impl App {
             layout: None,
             pending_split_direction: None,
             session_command: None,
+            previous_input_mode: InputMode::Normal,
         })
     }
 
@@ -157,6 +161,7 @@ impl App {
             layout: None,
             pending_split_direction: None,
             session_command: None,
+            previous_input_mode: InputMode::Normal,
         })
     }
 
@@ -350,8 +355,24 @@ impl App {
 
         // Only use input handler when attached to a session
         if self.state == AppState::Attached {
+            // FEAT-056: Track mode before processing
+            let mode_before = self.input_handler.mode();
+
             let action = self.input_handler.handle_event(event);
             self.handle_input_action(action).await?;
+
+            // FEAT-056: Check if we exited PrefixPending mode
+            let mode_after = self.input_handler.mode();
+            if self.previous_input_mode == InputMode::PrefixPending
+                && mode_after != InputMode::PrefixPending
+            {
+                // User command mode exited (command completed, timed out, or cancelled)
+                self.connection
+                    .send(ClientMessage::UserCommandModeExited)
+                    .await?;
+                tracing::debug!("Sent UserCommandModeExited (mode: {:?} -> {:?})", mode_before, mode_after);
+            }
+            self.previous_input_mode = mode_after;
         }
 
         Ok(())
@@ -561,6 +582,14 @@ impl App {
 
             InputAction::Quit => {
                 self.state = AppState::Quitting;
+            }
+
+            InputAction::EnterUserCommandMode { timeout_ms } => {
+                // FEAT-056: Send user priority lock to server
+                self.connection
+                    .send(ClientMessage::UserCommandModeEntered { timeout_ms })
+                    .await?;
+                tracing::debug!("Sent UserCommandModeEntered with timeout {}ms", timeout_ms);
             }
         }
         Ok(())

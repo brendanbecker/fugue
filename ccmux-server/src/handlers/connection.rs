@@ -166,6 +166,7 @@ mod tests {
     use crate::pty::PtyManager;
     use crate::registry::ClientRegistry;
     use crate::session::SessionManager;
+    use crate::user_priority::UserPriorityManager;
     use std::sync::Arc;
     use tokio::sync::{mpsc, RwLock};
 
@@ -174,6 +175,7 @@ mod tests {
         let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
         let registry = Arc::new(ClientRegistry::new());
         let config = Arc::new(crate::config::AppConfig::default());
+        let user_priority = Arc::new(UserPriorityManager::new());
         let command_executor = Arc::new(crate::sideband::AsyncCommandExecutor::new(
             Arc::clone(&session_manager),
             Arc::clone(&pty_manager),
@@ -184,7 +186,7 @@ mod tests {
         let client_id = registry.register_client(tx);
 
         let (pane_closed_tx, _) = mpsc::channel(10);
-        HandlerContext::new(session_manager, pty_manager, registry, config, client_id, pane_closed_tx, command_executor)
+        HandlerContext::new(session_manager, pty_manager, registry, config, client_id, pane_closed_tx, command_executor, user_priority)
     }
 
     #[tokio::test]
