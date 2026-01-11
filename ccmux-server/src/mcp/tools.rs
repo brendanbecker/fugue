@@ -651,6 +651,70 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "required": ["msg_type", "payload"]
             }),
         },
+        // ==================== FEAT-059: Beads Workflow Integration Tools ====================
+        Tool {
+            name: "ccmux_beads_assign".into(),
+            description: "Assign a beads issue to the current pane. Tracks which pane is working on which issue.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "issue_id": {
+                        "type": "string",
+                        "description": "The beads issue ID to assign (e.g., 'bd-456', 'BUG-042')"
+                    },
+                    "pane_id": {
+                        "type": "string",
+                        "description": "UUID of the pane to assign the issue to. Uses first pane if omitted."
+                    }
+                },
+                "required": ["issue_id"]
+            }),
+        },
+        Tool {
+            name: "ccmux_beads_release".into(),
+            description: "Release/unassign the current beads issue from a pane. Records outcome in history.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "pane_id": {
+                        "type": "string",
+                        "description": "UUID of the pane to release the issue from. Uses first pane if omitted."
+                    },
+                    "outcome": {
+                        "type": "string",
+                        "enum": ["completed", "abandoned", "transferred"],
+                        "description": "Outcome of the issue work (default: completed)"
+                    }
+                }
+            }),
+        },
+        Tool {
+            name: "ccmux_beads_find_pane".into(),
+            description: "Find the pane currently working on a specific beads issue.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "issue_id": {
+                        "type": "string",
+                        "description": "The beads issue ID to search for"
+                    }
+                },
+                "required": ["issue_id"]
+            }),
+        },
+        Tool {
+            name: "ccmux_beads_pane_history".into(),
+            description: "Get the issue history for a pane, showing all issues worked on.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "pane_id": {
+                        "type": "string",
+                        "description": "UUID of the pane to get history for. Uses first pane if omitted."
+                    }
+                }
+            }),
+        },
         // ==================== FEAT-060: Connection Status Tool ====================
         Tool {
             name: "ccmux_connection_status".into(),
@@ -737,6 +801,11 @@ mod tests {
         assert!(names.contains(&"ccmux_report_status"));
         assert!(names.contains(&"ccmux_request_help"));
         assert!(names.contains(&"ccmux_broadcast"));
+        // FEAT-059: Beads workflow integration tools
+        assert!(names.contains(&"ccmux_beads_assign"));
+        assert!(names.contains(&"ccmux_beads_release"));
+        assert!(names.contains(&"ccmux_beads_find_pane"));
+        assert!(names.contains(&"ccmux_beads_pane_history"));
         // FEAT-060: Connection status tool
         assert!(names.contains(&"ccmux_connection_status"));
     }

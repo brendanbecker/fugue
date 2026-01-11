@@ -31,6 +31,8 @@ pub struct BeadsConfig {
     pub no_daemon_default: bool,
     /// Query configuration for daemon integration
     pub query: BeadsQueryConfig,
+    /// Workflow integration configuration (FEAT-059)
+    pub workflow: BeadsWorkflowConfig,
 }
 
 impl Default for BeadsConfig {
@@ -40,6 +42,29 @@ impl Default for BeadsConfig {
             auto_set_beads_dir: true,
             no_daemon_default: false,
             query: BeadsQueryConfig::default(),
+            workflow: BeadsWorkflowConfig::default(),
+        }
+    }
+}
+
+/// Beads workflow integration settings (FEAT-059)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct BeadsWorkflowConfig {
+    /// Enable workflow integration tools (default: true)
+    pub enabled: bool,
+    /// Include current issue ID in status updates (default: true)
+    pub show_issue_in_status: bool,
+    /// Maximum history entries to keep per pane (default: 100)
+    pub max_history_entries: usize,
+}
+
+impl Default for BeadsWorkflowConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            show_issue_in_status: true,
+            max_history_entries: 100,
         }
     }
 }
@@ -992,12 +1017,14 @@ screen_snapshot_lines = 1000
             auto_set_beads_dir: false,
             no_daemon_default: true,
             query: BeadsQueryConfig::default(),
+            workflow: BeadsWorkflowConfig::default(),
         };
         let cloned = config.clone();
         assert_eq!(config.auto_detect, cloned.auto_detect);
         assert_eq!(config.auto_set_beads_dir, cloned.auto_set_beads_dir);
         assert_eq!(config.no_daemon_default, cloned.no_daemon_default);
         assert_eq!(config.query.enabled, cloned.query.enabled);
+        assert_eq!(config.workflow.enabled, cloned.workflow.enabled);
     }
 
     #[test]

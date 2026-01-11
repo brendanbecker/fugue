@@ -84,6 +84,14 @@ pub mod metadata_keys {
     pub const BEADS_DAEMON_AVAILABLE: &str = "beads.daemon_available";
     /// Last refresh timestamp
     pub const BEADS_LAST_REFRESH: &str = "beads.last_refresh";
+
+    // ==================== Workflow Integration Keys (FEAT-059) ====================
+    /// Current assigned issue ID (e.g., "bd-456", "BUG-042")
+    pub const CURRENT_ISSUE: &str = "beads.current_issue";
+    /// ISO 8601 timestamp when current issue was assigned
+    pub const ASSIGNED_AT: &str = "beads.assigned_at";
+    /// JSON array of issue history entries
+    pub const ISSUE_HISTORY: &str = "beads.issue_history";
 }
 
 // ==================== Beads Daemon RPC Client (FEAT-058) ====================

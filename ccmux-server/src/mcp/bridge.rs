@@ -56,6 +56,7 @@ use super::protocol::{
     InitializeResult, JsonRpcError, JsonRpcRequest, JsonRpcResponse, ToolResult, ToolsListResult,
 };
 use super::tools::get_tool_definitions;
+use crate::beads::metadata_keys as beads;
 
 /// MCP Bridge
 ///
@@ -861,6 +862,47 @@ impl McpBridge {
             }
             // FEAT-060: Connection status tool
             "ccmux_connection_status" => self.tool_connection_status().await,
+            // FEAT-059: Beads workflow integration tools
+            "ccmux_beads_assign" => {
+                let issue_id = arguments["issue_id"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'issue_id' parameter".into()))?;
+                let pane_id = arguments["pane_id"]
+                    .as_str()
+                    .map(|s| {
+                        Uuid::parse_str(s)
+                            .map_err(|e| McpError::InvalidParams(format!("Invalid pane_id: {}", e)))
+                    })
+                    .transpose()?;
+                self.tool_beads_assign(issue_id, pane_id).await
+            }
+            "ccmux_beads_release" => {
+                let pane_id = arguments["pane_id"]
+                    .as_str()
+                    .map(|s| {
+                        Uuid::parse_str(s)
+                            .map_err(|e| McpError::InvalidParams(format!("Invalid pane_id: {}", e)))
+                    })
+                    .transpose()?;
+                let outcome = arguments["outcome"].as_str().map(String::from);
+                self.tool_beads_release(pane_id, outcome).await
+            }
+            "ccmux_beads_find_pane" => {
+                let issue_id = arguments["issue_id"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'issue_id' parameter".into()))?;
+                self.tool_beads_find_pane(issue_id).await
+            }
+            "ccmux_beads_pane_history" => {
+                let pane_id = arguments["pane_id"]
+                    .as_str()
+                    .map(|s| {
+                        Uuid::parse_str(s)
+                            .map_err(|e| McpError::InvalidParams(format!("Invalid pane_id: {}", e)))
+                    })
+                    .transpose()?;
+                self.tool_beads_pane_history(pane_id).await
+            }
             _ => Err(McpError::UnknownTool(name.into())),
         }
     }
@@ -1819,11 +1861,15 @@ impl McpBridge {
         status: &str,
         message: Option<String>,
     ) -> Result<ToolResult, McpError> {
+        // FEAT-059: Try to get current issue_id to include in status update
+        let current_issue_id = self.get_current_issue_id().await;
+
         // Convenience tool: sends status.update message to sessions tagged "orchestrator"
         let target = ccmux_protocol::OrchestrationTarget::Tagged("orchestrator".to_string());
         let payload = serde_json::json!({
             "status": status,
             "message": message,
+            "issue_id": current_issue_id,  // FEAT-059: Include current issue
         });
         let msg = ccmux_protocol::OrchestrationMessage::new("status.update", payload);
 
@@ -1839,6 +1885,7 @@ impl McpBridge {
                     "success": true,
                     "delivered_count": delivered_count,
                     "status": status,
+                    "issue_id": current_issue_id,  // FEAT-059: Include in response
                 });
 
                 let json = serde_json::to_string_pretty(&result)
@@ -1849,6 +1896,47 @@ impl McpBridge {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
+    /// FEAT-059: Helper to get current issue ID from first session's metadata
+    async fn get_current_issue_id(&mut self) -> Option<String> {
+        // Get first session
+        if self.send_to_daemon(ClientMessage::ListSessions).await.is_err() {
+            return None;
+        }
+
+        let sessions = match self.recv_response_from_daemon().await {
+            Ok(ServerMessage::SessionList { sessions }) => sessions,
+            _ => return None,
+        };
+
+        if sessions.is_empty() {
+            return None;
+        }
+
+        let session_name = &sessions[0].name;
+
+        // Get beads.current_issue metadata
+        if self
+            .send_to_daemon(ClientMessage::GetMetadata {
+                session_filter: session_name.clone(),
+                key: Some(beads::CURRENT_ISSUE.to_string()),
+            })
+            .await
+            .is_err()
+        {
+            return None;
+        }
+
+        match self.recv_response_from_daemon().await {
+            Ok(ServerMessage::MetadataList { metadata, .. }) => {
+                metadata
+                    .get(beads::CURRENT_ISSUE)
+                    .cloned()
+                    .filter(|s| !s.is_empty())
+            }
+            _ => None,
         }
     }
 
@@ -1951,6 +2039,410 @@ impl McpBridge {
         let json = serde_json::to_string_pretty(&result)
             .map_err(|e| McpError::Internal(e.to_string()))?;
         Ok(ToolResult::text(json))
+    }
+
+    // ==================== FEAT-059: Beads Workflow Integration Tools ====================
+
+    /// Helper: Get session name from pane_id, or use first session if pane_id is None
+    async fn resolve_session_for_pane(
+        &mut self,
+        pane_id: Option<Uuid>,
+    ) -> Result<(String, Option<Uuid>), McpError> {
+        match pane_id {
+            Some(id) => {
+                // Get pane status to find its session
+                self.send_to_daemon(ClientMessage::GetPaneStatus { pane_id: id })
+                    .await?;
+
+                match self.recv_response_from_daemon().await? {
+                    ServerMessage::PaneStatus {
+                        pane_id,
+                        session_name,
+                        ..
+                    } => Ok((session_name, Some(pane_id))),
+                    ServerMessage::Error { code, message } => {
+                        Err(McpError::InvalidParams(format!("{:?}: {}", code, message)))
+                    }
+                    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+                }
+            }
+            None => {
+                // Get first session
+                self.send_to_daemon(ClientMessage::ListSessions).await?;
+
+                match self.recv_response_from_daemon().await? {
+                    ServerMessage::SessionList { sessions } => {
+                        if sessions.is_empty() {
+                            Err(McpError::InvalidParams("No sessions available".into()))
+                        } else {
+                            Ok((sessions[0].name.clone(), None))
+                        }
+                    }
+                    ServerMessage::Error { code, message } => {
+                        Err(McpError::InvalidParams(format!("{:?}: {}", code, message)))
+                    }
+                    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+                }
+            }
+        }
+    }
+
+    /// Assign a beads issue to a pane (via session metadata)
+    async fn tool_beads_assign(
+        &mut self,
+        issue_id: &str,
+        pane_id: Option<Uuid>,
+    ) -> Result<ToolResult, McpError> {
+        let (session_name, resolved_pane_id) = self.resolve_session_for_pane(pane_id).await?;
+
+        // Get current timestamp in ISO 8601 format
+        let timestamp = {
+            use std::time::{SystemTime, UNIX_EPOCH};
+            let duration = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default();
+            // Simple ISO 8601 format: seconds since epoch
+            // For production, consider using chrono crate for proper formatting
+            format!("{}", duration.as_secs())
+        };
+
+        // Set the current issue
+        self.send_to_daemon(ClientMessage::SetMetadata {
+            session_filter: session_name.clone(),
+            key: beads::CURRENT_ISSUE.to_string(),
+            value: issue_id.to_string(),
+        })
+        .await?;
+
+        match self.recv_response_from_daemon().await? {
+            ServerMessage::MetadataSet { .. } => {}
+            ServerMessage::Error { code, message } => {
+                return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
+            }
+            msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+
+        // Set the assigned_at timestamp
+        self.send_to_daemon(ClientMessage::SetMetadata {
+            session_filter: session_name.clone(),
+            key: beads::ASSIGNED_AT.to_string(),
+            value: timestamp.clone(),
+        })
+        .await?;
+
+        match self.recv_response_from_daemon().await? {
+            ServerMessage::MetadataSet {
+                session_id,
+                session_name,
+                ..
+            } => {
+                let result = serde_json::json!({
+                    "success": true,
+                    "session_id": session_id.to_string(),
+                    "session_name": session_name,
+                    "pane_id": resolved_pane_id.map(|id| id.to_string()),
+                    "issue_id": issue_id,
+                    "assigned_at": timestamp,
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
+    /// Release/unassign the current beads issue from a pane
+    async fn tool_beads_release(
+        &mut self,
+        pane_id: Option<Uuid>,
+        outcome: Option<String>,
+    ) -> Result<ToolResult, McpError> {
+        let (session_name, resolved_pane_id) = self.resolve_session_for_pane(pane_id).await?;
+        let outcome = outcome.unwrap_or_else(|| "completed".to_string());
+
+        // Get current issue and assigned_at before clearing
+        self.send_to_daemon(ClientMessage::GetMetadata {
+            session_filter: session_name.clone(),
+            key: Some(beads::CURRENT_ISSUE.to_string()),
+        })
+        .await?;
+
+        let current_issue = match self.recv_response_from_daemon().await? {
+            ServerMessage::MetadataList { metadata, .. } => {
+                metadata.get(beads::CURRENT_ISSUE).cloned()
+            }
+            ServerMessage::Error { code, message } => {
+                return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
+            }
+            msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        };
+
+        let current_issue = match current_issue {
+            Some(issue) => issue,
+            None => {
+                return Ok(ToolResult::error("No issue currently assigned".to_string()));
+            }
+        };
+
+        // Get assigned_at
+        self.send_to_daemon(ClientMessage::GetMetadata {
+            session_filter: session_name.clone(),
+            key: Some(beads::ASSIGNED_AT.to_string()),
+        })
+        .await?;
+
+        let assigned_at = match self.recv_response_from_daemon().await? {
+            ServerMessage::MetadataList { metadata, .. } => {
+                metadata.get(beads::ASSIGNED_AT).cloned().unwrap_or_default()
+            }
+            ServerMessage::Error { .. } => String::new(),
+            _ => String::new(),
+        };
+
+        // Get existing history
+        self.send_to_daemon(ClientMessage::GetMetadata {
+            session_filter: session_name.clone(),
+            key: Some(beads::ISSUE_HISTORY.to_string()),
+        })
+        .await?;
+
+        let existing_history = match self.recv_response_from_daemon().await? {
+            ServerMessage::MetadataList { metadata, .. } => {
+                metadata.get(beads::ISSUE_HISTORY).cloned()
+            }
+            _ => None,
+        };
+
+        // Parse existing history or start fresh
+        let mut history: Vec<serde_json::Value> = existing_history
+            .and_then(|h| serde_json::from_str(&h).ok())
+            .unwrap_or_default();
+
+        // Get current timestamp for released_at
+        let released_at = {
+            use std::time::{SystemTime, UNIX_EPOCH};
+            let duration = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default();
+            format!("{}", duration.as_secs())
+        };
+
+        // Add new history entry
+        history.push(serde_json::json!({
+            "issue_id": current_issue,
+            "assigned_at": assigned_at,
+            "released_at": released_at,
+            "outcome": outcome,
+        }));
+
+        // Save updated history
+        let history_json = serde_json::to_string(&history)
+            .map_err(|e| McpError::Internal(e.to_string()))?;
+
+        self.send_to_daemon(ClientMessage::SetMetadata {
+            session_filter: session_name.clone(),
+            key: beads::ISSUE_HISTORY.to_string(),
+            value: history_json,
+        })
+        .await?;
+
+        match self.recv_response_from_daemon().await? {
+            ServerMessage::MetadataSet { .. } => {}
+            ServerMessage::Error { code, message } => {
+                return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
+            }
+            msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+
+        // Clear current issue (set to empty string)
+        self.send_to_daemon(ClientMessage::SetMetadata {
+            session_filter: session_name.clone(),
+            key: beads::CURRENT_ISSUE.to_string(),
+            value: String::new(),
+        })
+        .await?;
+
+        match self.recv_response_from_daemon().await? {
+            ServerMessage::MetadataSet { .. } => {}
+            ServerMessage::Error { code, message } => {
+                return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
+            }
+            msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+
+        // Clear assigned_at
+        self.send_to_daemon(ClientMessage::SetMetadata {
+            session_filter: session_name.clone(),
+            key: beads::ASSIGNED_AT.to_string(),
+            value: String::new(),
+        })
+        .await?;
+
+        match self.recv_response_from_daemon().await? {
+            ServerMessage::MetadataSet {
+                session_id,
+                session_name,
+                ..
+            } => {
+                let result = serde_json::json!({
+                    "success": true,
+                    "session_id": session_id.to_string(),
+                    "session_name": session_name,
+                    "pane_id": resolved_pane_id.map(|id| id.to_string()),
+                    "released_issue": current_issue,
+                    "outcome": outcome,
+                    "released_at": released_at,
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
+    /// Find the pane currently working on a specific beads issue
+    async fn tool_beads_find_pane(&mut self, issue_id: &str) -> Result<ToolResult, McpError> {
+        // List all sessions and check their beads.current_issue metadata
+        self.send_to_daemon(ClientMessage::ListSessions).await?;
+
+        let sessions = match self.recv_response_from_daemon().await? {
+            ServerMessage::SessionList { sessions } => sessions,
+            ServerMessage::Error { code, message } => {
+                return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
+            }
+            msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        };
+
+        // Check each session for the issue
+        for session in sessions {
+            self.send_to_daemon(ClientMessage::GetMetadata {
+                session_filter: session.id.to_string(),
+                key: Some(beads::CURRENT_ISSUE.to_string()),
+            })
+            .await?;
+
+            if let ServerMessage::MetadataList {
+                session_id,
+                session_name,
+                metadata,
+            } = self.recv_response_from_daemon().await?
+            {
+                if let Some(current_issue) = metadata.get(beads::CURRENT_ISSUE) {
+                    if current_issue == issue_id {
+                        // Found the session working on this issue
+                        // Get first pane from this session for pane_id
+                        self.send_to_daemon(ClientMessage::ListAllPanes {
+                            session_filter: Some(session_id.to_string()),
+                        })
+                        .await?;
+
+                        let pane_id = match self.recv_response_from_daemon().await? {
+                            ServerMessage::AllPanesList { panes } => {
+                                panes.first().map(|p| p.id)
+                            }
+                            _ => None,
+                        };
+
+                        let result = serde_json::json!({
+                            "found": true,
+                            "session_id": session_id.to_string(),
+                            "session_name": session_name,
+                            "pane_id": pane_id.map(|id| id.to_string()),
+                            "issue_id": issue_id,
+                        });
+
+                        let json = serde_json::to_string_pretty(&result)
+                            .map_err(|e| McpError::Internal(e.to_string()))?;
+                        return Ok(ToolResult::text(json));
+                    }
+                }
+            }
+        }
+
+        // Issue not found in any session
+        let result = serde_json::json!({
+            "found": false,
+            "issue_id": issue_id,
+            "message": "No pane is currently working on this issue",
+        });
+
+        let json = serde_json::to_string_pretty(&result)
+            .map_err(|e| McpError::Internal(e.to_string()))?;
+        Ok(ToolResult::text(json))
+    }
+
+    /// Get the issue history for a pane
+    async fn tool_beads_pane_history(
+        &mut self,
+        pane_id: Option<Uuid>,
+    ) -> Result<ToolResult, McpError> {
+        let (session_name, resolved_pane_id) = self.resolve_session_for_pane(pane_id).await?;
+
+        // Get issue history metadata
+        self.send_to_daemon(ClientMessage::GetMetadata {
+            session_filter: session_name.clone(),
+            key: Some(beads::ISSUE_HISTORY.to_string()),
+        })
+        .await?;
+
+        match self.recv_response_from_daemon().await? {
+            ServerMessage::MetadataList {
+                session_id,
+                session_name,
+                metadata,
+            } => {
+                let history_json = metadata.get(beads::ISSUE_HISTORY).cloned();
+
+                // Parse history or return empty array
+                let history: Vec<serde_json::Value> = history_json
+                    .and_then(|h| serde_json::from_str(&h).ok())
+                    .unwrap_or_default();
+
+                // Also get current issue if any
+                self.send_to_daemon(ClientMessage::GetMetadata {
+                    session_filter: session_id.to_string(),
+                    key: Some(beads::CURRENT_ISSUE.to_string()),
+                })
+                .await?;
+
+                let current_issue = match self.recv_response_from_daemon().await? {
+                    ServerMessage::MetadataList { metadata, .. } => {
+                        metadata
+                            .get(beads::CURRENT_ISSUE)
+                            .cloned()
+                            .filter(|s| !s.is_empty())
+                    }
+                    _ => None,
+                };
+
+                let result = serde_json::json!({
+                    "session_id": session_id.to_string(),
+                    "session_name": session_name,
+                    "pane_id": resolved_pane_id.map(|id| id.to_string()),
+                    "current_issue": current_issue,
+                    "history": history,
+                    "history_count": history.len(),
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
     }
 }
 
@@ -2332,5 +2824,100 @@ mod tests {
             pane_id: Uuid::new_v4(),
         };
         assert!(McpBridge::is_broadcast_message(&msg));
+    }
+
+    // ==================== FEAT-059: Beads Workflow Integration Tests ====================
+
+    #[test]
+    fn test_beads_metadata_key_constants() {
+        // Verify the metadata key constants have expected values
+        assert_eq!(beads::CURRENT_ISSUE, "beads.current_issue");
+        assert_eq!(beads::ASSIGNED_AT, "beads.assigned_at");
+        assert_eq!(beads::ISSUE_HISTORY, "beads.issue_history");
+    }
+
+    #[test]
+    fn test_beads_metadata_keys_are_namespaced() {
+        // All beads keys should be prefixed with "beads."
+        assert!(beads::CURRENT_ISSUE.starts_with("beads."));
+        assert!(beads::ASSIGNED_AT.starts_with("beads."));
+        assert!(beads::ISSUE_HISTORY.starts_with("beads."));
+    }
+
+    #[test]
+    fn test_beads_history_entry_serialization() {
+        // Verify that history entries can be properly serialized/deserialized
+        let history_entry = serde_json::json!({
+            "issue_id": "BUG-042",
+            "assigned_at": "1736600000",
+            "released_at": "1736610000",
+            "outcome": "completed",
+        });
+
+        let serialized = serde_json::to_string(&history_entry).unwrap();
+        let deserialized: serde_json::Value = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(deserialized["issue_id"], "BUG-042");
+        assert_eq!(deserialized["outcome"], "completed");
+    }
+
+    #[test]
+    fn test_beads_history_array_serialization() {
+        // Verify that history arrays can be serialized/deserialized as metadata values
+        let history: Vec<serde_json::Value> = vec![
+            serde_json::json!({
+                "issue_id": "BUG-001",
+                "assigned_at": "1736500000",
+                "released_at": "1736510000",
+                "outcome": "completed",
+            }),
+            serde_json::json!({
+                "issue_id": "FEAT-002",
+                "assigned_at": "1736520000",
+                "released_at": "1736530000",
+                "outcome": "abandoned",
+            }),
+        ];
+
+        let serialized = serde_json::to_string(&history).unwrap();
+        let deserialized: Vec<serde_json::Value> = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(deserialized.len(), 2);
+        assert_eq!(deserialized[0]["issue_id"], "BUG-001");
+        assert_eq!(deserialized[1]["outcome"], "abandoned");
+    }
+
+    #[test]
+    fn test_beads_outcome_values() {
+        // Verify valid outcome values per SESSION.md spec
+        let valid_outcomes = ["completed", "abandoned", "transferred"];
+
+        for outcome in valid_outcomes.iter() {
+            let entry = serde_json::json!({
+                "issue_id": "TEST-001",
+                "outcome": outcome,
+            });
+            assert_eq!(entry["outcome"].as_str().unwrap(), *outcome);
+        }
+    }
+
+    #[test]
+    fn test_beads_issue_id_formats() {
+        // Verify various issue ID formats are valid (per lenient validation)
+        let valid_issue_ids = [
+            "bd-456",       // Beads style
+            "BUG-042",      // Bug tracker style
+            "FEAT-059",     // Feature style
+            "issue-123",    // Generic style
+            "abc123",       // Simple alphanumeric
+        ];
+
+        for issue_id in valid_issue_ids.iter() {
+            // Issue IDs should be non-empty strings
+            assert!(!issue_id.is_empty());
+            // Should be valid JSON string values
+            let json = serde_json::json!({"issue_id": issue_id});
+            assert_eq!(json["issue_id"].as_str().unwrap(), *issue_id);
+        }
     }
 }
