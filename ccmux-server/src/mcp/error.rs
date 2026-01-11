@@ -72,6 +72,16 @@ pub enum McpError {
     /// Unexpected response from daemon
     #[error("Unexpected response from daemon: {0}")]
     UnexpectedResponse(String),
+
+    // ==================== FEAT-060: Recovery Errors ====================
+
+    /// Connection is being recovered
+    #[error("Daemon connection lost, recovery in progress (attempt {attempt}/{max})")]
+    RecoveringConnection { attempt: u8, max: u8 },
+
+    /// Recovery failed permanently
+    #[error("Daemon connection lost and recovery failed after {attempts} attempts")]
+    RecoveryFailed { attempts: u8 },
 }
 
 impl From<McpError> for JsonRpcError {
@@ -124,6 +134,32 @@ impl From<McpError> for JsonRpcError {
             }
             McpError::UnexpectedResponse(msg) => {
                 JsonRpcError::new(JsonRpcError::INTERNAL_ERROR, format!("Unexpected response: {}", msg))
+            }
+            // FEAT-060: Recovery error conversions with structured data
+            McpError::RecoveringConnection { attempt, max } => {
+                JsonRpcError::with_data(
+                    JsonRpcError::INTERNAL_ERROR,
+                    format!("Daemon connection lost, recovery in progress ({}/{})", attempt, max),
+                    serde_json::json!({
+                        "error": "daemon_connection_lost",
+                        "recoverable": true,
+                        "reconnect_status": "attempting",
+                        "reconnect_attempt": attempt,
+                        "max_attempts": max
+                    })
+                )
+            }
+            McpError::RecoveryFailed { attempts } => {
+                JsonRpcError::with_data(
+                    JsonRpcError::INTERNAL_ERROR,
+                    format!("Recovery failed after {} attempts", attempts),
+                    serde_json::json!({
+                        "error": "daemon_connection_lost",
+                        "recoverable": false,
+                        "reconnect_attempts": attempts,
+                        "action_required": "Please restart the ccmux daemon"
+                    })
+                )
             }
         }
     }

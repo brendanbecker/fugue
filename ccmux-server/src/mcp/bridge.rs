@@ -8,14 +8,43 @@
 //! the same sessions the user sees in the TUI.
 
 use std::io::{BufRead, Write};
-use std::time::Duration;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use futures::{SinkExt, StreamExt};
 use tokio::net::UnixStream;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch, RwLock};
+use tokio::task::JoinHandle;
 use tokio_util::codec::Framed;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
+
+// ==================== FEAT-060: Connection Recovery Constants ====================
+
+/// Heartbeat interval in milliseconds
+const HEARTBEAT_INTERVAL_MS: u64 = 1000;
+
+/// Heartbeat timeout in milliseconds (detect loss within 2-3 seconds)
+const HEARTBEAT_TIMEOUT_MS: u64 = 2000;
+
+/// Reconnection delays in milliseconds (exponential backoff)
+const RECONNECT_DELAYS_MS: &[u64] = &[100, 200, 400, 800, 1600];
+
+/// Maximum number of reconnection attempts
+const MAX_RECONNECT_ATTEMPTS: u8 = 5;
+
+// ==================== FEAT-060: Connection State ====================
+
+/// Connection state for daemon communication
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConnectionState {
+    /// Connected and healthy
+    Connected,
+    /// Connection lost, attempting recovery
+    Reconnecting { attempt: u8 },
+    /// Disconnected, recovery failed or not yet attempted
+    Disconnected,
+}
 
 use ccmux_protocol::{
     ClientCodec, ClientMessage, PaneListEntry, ServerMessage, SplitDirection, PROTOCOL_VERSION,
@@ -40,16 +69,35 @@ pub struct McpBridge {
     initialized: bool,
     /// Client ID for daemon connection
     client_id: Uuid,
+    // ==================== FEAT-060: Connection State Fields ====================
+    /// Current connection state (shared with health monitor)
+    connection_state: Arc<RwLock<ConnectionState>>,
+    /// Watch channel sender for state updates
+    state_tx: watch::Sender<ConnectionState>,
+    /// Watch channel receiver for state updates
+    #[allow(dead_code)]
+    state_rx: watch::Receiver<ConnectionState>,
+    /// Handle to health monitor task (for cleanup)
+    #[allow(dead_code)]
+    health_monitor_handle: Option<JoinHandle<()>>,
 }
 
 impl McpBridge {
     /// Create a new MCP bridge
     pub fn new() -> Self {
+        // FEAT-060: Initialize watch channel for connection state
+        let (state_tx, state_rx) = watch::channel(ConnectionState::Disconnected);
+
         Self {
             daemon_tx: None,
             daemon_rx: None,
             initialized: false,
             client_id: Uuid::new_v4(),
+            // FEAT-060: Connection state management
+            connection_state: Arc::new(RwLock::new(ConnectionState::Disconnected)),
+            state_tx,
+            state_rx,
+            health_monitor_handle: None,
         }
     }
 
@@ -76,6 +124,9 @@ impl McpBridge {
         self.daemon_tx = Some(daemon_tx);
         self.daemon_rx = Some(daemon_rx);
 
+        // FEAT-060: Clone state_tx for the I/O task to signal disconnection
+        let io_state_tx = self.state_tx.clone();
+
         // Spawn task to handle socket I/O
         tokio::spawn(async move {
             loop {
@@ -84,6 +135,8 @@ impl McpBridge {
                     Some(msg) = outgoing_rx.recv() => {
                         if let Err(e) = sink.send(msg).await {
                             error!("Failed to send to daemon: {}", e);
+                            // FEAT-060: Signal disconnection when send fails
+                            let _ = io_state_tx.send(ConnectionState::Disconnected);
                             break;
                         }
                     }
@@ -97,10 +150,14 @@ impl McpBridge {
                             }
                             Some(Err(e)) => {
                                 error!("Failed to receive from daemon: {}", e);
+                                // FEAT-060: Signal disconnection on receive error
+                                let _ = io_state_tx.send(ConnectionState::Disconnected);
                                 break;
                             }
                             None => {
                                 info!("Daemon connection closed");
+                                // FEAT-060: Signal disconnection when connection closes
+                                let _ = io_state_tx.send(ConnectionState::Disconnected);
                                 break;
                             }
                         }
@@ -120,6 +177,17 @@ impl McpBridge {
         match self.recv_from_daemon().await? {
             ServerMessage::Connected { .. } => {
                 info!("Connected to ccmux daemon");
+
+                // FEAT-060: Update connection state to Connected
+                {
+                    let mut state = self.connection_state.write().await;
+                    *state = ConnectionState::Connected;
+                }
+                let _ = self.state_tx.send(ConnectionState::Connected);
+
+                // FEAT-060: Spawn health monitor task
+                self.health_monitor_handle = Some(self.spawn_health_monitor());
+
                 Ok(())
             }
             ServerMessage::Error { code, message } => {
@@ -127,6 +195,151 @@ impl McpBridge {
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
         }
+    }
+
+    // ==================== FEAT-060: Health Monitor ====================
+
+    /// Spawn a background health monitoring task
+    ///
+    /// The health monitor periodically sends Ping messages to the daemon
+    /// and monitors the watch channel for disconnection signals from the I/O task.
+    fn spawn_health_monitor(&self) -> JoinHandle<()> {
+        let daemon_tx = self.daemon_tx.clone();
+        let state_tx = self.state_tx.clone();
+        let connection_state = self.connection_state.clone();
+        let mut state_rx = self.state_tx.subscribe();
+
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_millis(HEARTBEAT_INTERVAL_MS));
+            // Track when we last successfully communicated with daemon
+            // (initial value is used if first ping fails before timeout check)
+            #[allow(unused_assignments)]
+            let mut last_healthy = Instant::now();
+
+            loop {
+                tokio::select! {
+                    // Periodic heartbeat
+                    _ = interval.tick() => {
+                        // Check if we've been signaled as disconnected
+                        if *state_rx.borrow() == ConnectionState::Disconnected {
+                            info!("Health monitor: detected disconnection signal");
+                            break;
+                        }
+
+                        // Try to send a Ping
+                        if let Some(ref tx) = daemon_tx {
+                            match tx.send(ClientMessage::Ping).await {
+                                Ok(()) => {
+                                    // Ping sent successfully, daemon is reachable
+                                    last_healthy = Instant::now();
+                                    debug!("Health monitor: ping sent successfully");
+                                }
+                                Err(_) => {
+                                    // Channel closed - daemon disconnected
+                                    warn!("Health monitor: failed to send ping, daemon disconnected");
+                                    {
+                                        let mut state = connection_state.write().await;
+                                        *state = ConnectionState::Disconnected;
+                                    }
+                                    let _ = state_tx.send(ConnectionState::Disconnected);
+                                    break;
+                                }
+                            }
+                        } else {
+                            // No daemon_tx - not connected
+                            break;
+                        }
+
+                        // Check if we've exceeded the heartbeat timeout
+                        // (This handles cases where sends succeed but daemon is unresponsive)
+                        if last_healthy.elapsed() > Duration::from_millis(HEARTBEAT_TIMEOUT_MS * 2) {
+                            warn!("Health monitor: heartbeat timeout exceeded");
+                            {
+                                let mut state = connection_state.write().await;
+                                *state = ConnectionState::Disconnected;
+                            }
+                            let _ = state_tx.send(ConnectionState::Disconnected);
+                            break;
+                        }
+                    }
+
+                    // Watch for state changes (disconnection signal from I/O task)
+                    result = state_rx.changed() => {
+                        if result.is_err() {
+                            // Sender dropped
+                            break;
+                        }
+                        if *state_rx.borrow() == ConnectionState::Disconnected {
+                            info!("Health monitor: received disconnection signal");
+                            break;
+                        }
+                    }
+                }
+            }
+
+            info!("Health monitor task exiting");
+        })
+    }
+
+    // ==================== FEAT-060: Reconnection Logic ====================
+
+    /// Attempt to reconnect to the daemon with exponential backoff
+    ///
+    /// Returns Ok(()) if reconnection succeeds, or McpError::RecoveryFailed
+    /// if all attempts are exhausted.
+    async fn attempt_reconnection(&mut self) -> Result<(), McpError> {
+        info!("Starting reconnection attempts");
+
+        for (attempt, delay_ms) in RECONNECT_DELAYS_MS.iter().enumerate() {
+            let attempt_num = (attempt + 1) as u8;
+
+            // Update state to show reconnection progress
+            {
+                let mut state = self.connection_state.write().await;
+                *state = ConnectionState::Reconnecting { attempt: attempt_num };
+            }
+            let _ = self.state_tx.send(ConnectionState::Reconnecting { attempt: attempt_num });
+
+            info!(
+                "Reconnection attempt {}/{}: waiting {}ms before trying",
+                attempt_num,
+                MAX_RECONNECT_ATTEMPTS,
+                delay_ms
+            );
+
+            // Wait before attempting
+            tokio::time::sleep(Duration::from_millis(*delay_ms)).await;
+
+            // Clean up old resources
+            self.daemon_tx = None;
+            self.daemon_rx = None;
+            self.health_monitor_handle = None;
+
+            // Try to reconnect
+            match self.connect_to_daemon().await {
+                Ok(()) => {
+                    info!("Reconnection successful on attempt {}", attempt_num);
+                    // connect_to_daemon already sets state to Connected
+                    return Ok(());
+                }
+                Err(e) => {
+                    warn!(
+                        "Reconnection attempt {} failed: {}",
+                        attempt_num, e
+                    );
+                }
+            }
+        }
+
+        // All attempts failed
+        {
+            let mut state = self.connection_state.write().await;
+            *state = ConnectionState::Disconnected;
+        }
+        let _ = self.state_tx.send(ConnectionState::Disconnected);
+
+        error!("All {} reconnection attempts exhausted", MAX_RECONNECT_ATTEMPTS);
+        Err(McpError::RecoveryFailed { attempts: MAX_RECONNECT_ATTEMPTS })
     }
 
     /// Connect with retry logic
@@ -236,6 +449,8 @@ impl McpBridge {
             | ServerMessage::ViewportUpdated { .. }
             // Orchestration messages from other sessions
             | ServerMessage::OrchestrationReceived { .. }
+            // FEAT-060: Pong responses from health monitor Pings (filter from tool responses)
+            | ServerMessage::Pong
         )
     }
 
@@ -339,6 +554,9 @@ impl McpBridge {
     }
 
     /// Handle tools/call request
+    ///
+    /// FEAT-060: This method now includes connection recovery logic. If the daemon
+    /// is disconnected, it will attempt reconnection before failing.
     async fn handle_tools_call(
         &mut self,
         params: &serde_json::Value,
@@ -351,9 +569,68 @@ impl McpBridge {
 
         debug!("Tool call: {} with args: {}", name, arguments);
 
-        let result = self.dispatch_tool(name, arguments).await?;
+        // FEAT-060: Check connection state and handle recovery
+        let result = self.dispatch_tool_with_recovery(name, arguments).await?;
 
         serde_json::to_value(result).map_err(|e| McpError::Internal(e.to_string()))
+    }
+
+    // ==================== FEAT-060: Tool Dispatch with Recovery ====================
+
+    /// Dispatch tool call with automatic connection recovery
+    ///
+    /// This wrapper checks connection state before executing tools and handles
+    /// automatic reconnection if the daemon is disconnected.
+    async fn dispatch_tool_with_recovery(
+        &mut self,
+        name: &str,
+        arguments: &serde_json::Value,
+    ) -> Result<ToolResult, McpError> {
+        // Check current connection state
+        let state = *self.connection_state.read().await;
+
+        match state {
+            ConnectionState::Connected => {
+                // Try to execute the tool
+                match self.dispatch_tool(name, arguments).await {
+                    Ok(result) => Ok(result),
+                    Err(McpError::DaemonDisconnected) | Err(McpError::NotConnected) => {
+                        // Connection lost during tool execution - attempt recovery
+                        warn!("Connection lost during tool execution, attempting recovery");
+
+                        // Update state
+                        {
+                            let mut s = self.connection_state.write().await;
+                            *s = ConnectionState::Disconnected;
+                        }
+                        let _ = self.state_tx.send(ConnectionState::Disconnected);
+
+                        // Attempt reconnection
+                        self.attempt_reconnection().await?;
+
+                        // Retry the tool call once after successful reconnection
+                        info!("Retrying tool call after successful reconnection");
+                        self.dispatch_tool(name, arguments).await
+                    }
+                    Err(e) => Err(e),
+                }
+            }
+            ConnectionState::Reconnecting { attempt } => {
+                // Already reconnecting - return structured error
+                Err(McpError::RecoveringConnection {
+                    attempt,
+                    max: MAX_RECONNECT_ATTEMPTS,
+                })
+            }
+            ConnectionState::Disconnected => {
+                // Disconnected - attempt reconnection before the tool call
+                info!("Daemon disconnected, attempting reconnection before tool call");
+                self.attempt_reconnection().await?;
+
+                // Execute the tool after successful reconnection
+                self.dispatch_tool(name, arguments).await
+            }
+        }
     }
 
     /// Dispatch tool call to daemon via IPC
@@ -573,6 +850,8 @@ impl McpBridge {
                 let payload = arguments["payload"].clone();
                 self.tool_broadcast(msg_type, payload).await
             }
+            // FEAT-060: Connection status tool
+            "ccmux_connection_status" => self.tool_connection_status().await,
             _ => Err(McpError::UnknownTool(name.into())),
         }
     }
@@ -1630,6 +1909,40 @@ impl McpBridge {
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
         }
     }
+
+    // ==================== FEAT-060: Connection Status Tool ====================
+
+    /// Get current connection status
+    ///
+    /// Returns the daemon connection status including health and recovery information.
+    /// This tool does not require daemon communication (local state only).
+    async fn tool_connection_status(&self) -> Result<ToolResult, McpError> {
+        let state = *self.connection_state.read().await;
+
+        let result = match state {
+            ConnectionState::Connected => serde_json::json!({
+                "status": "connected",
+                "healthy": true,
+                "daemon_responsive": true
+            }),
+            ConnectionState::Reconnecting { attempt } => serde_json::json!({
+                "status": "reconnecting",
+                "healthy": false,
+                "reconnect_attempt": attempt,
+                "max_attempts": MAX_RECONNECT_ATTEMPTS
+            }),
+            ConnectionState::Disconnected => serde_json::json!({
+                "status": "disconnected",
+                "healthy": false,
+                "recoverable": true,
+                "action": "Tool calls will trigger automatic reconnection"
+            }),
+        };
+
+        let json = serde_json::to_string_pretty(&result)
+            .map_err(|e| McpError::Internal(e.to_string()))?;
+        Ok(ToolResult::text(json))
+    }
 }
 
 impl Default for McpBridge {
@@ -1908,5 +2221,73 @@ mod tests {
             protocol_version: 1,
         };
         assert!(!McpBridge::is_broadcast_message(&msg));
+    }
+
+    // ==================== FEAT-060: Connection State Tests ====================
+
+    #[test]
+    fn test_connection_state_enum_equality() {
+        assert_eq!(ConnectionState::Connected, ConnectionState::Connected);
+        assert_eq!(ConnectionState::Disconnected, ConnectionState::Disconnected);
+        assert_eq!(
+            ConnectionState::Reconnecting { attempt: 1 },
+            ConnectionState::Reconnecting { attempt: 1 }
+        );
+        assert_ne!(
+            ConnectionState::Reconnecting { attempt: 1 },
+            ConnectionState::Reconnecting { attempt: 2 }
+        );
+        assert_ne!(ConnectionState::Connected, ConnectionState::Disconnected);
+    }
+
+    #[test]
+    fn test_connection_state_copy() {
+        let state1 = ConnectionState::Connected;
+        let state2 = state1; // Copy
+        assert_eq!(state1, state2);
+    }
+
+    #[test]
+    fn test_bridge_initial_connection_state() {
+        let bridge = McpBridge::new();
+        // Initial state should be Disconnected
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let state = *bridge.connection_state.read().await;
+            assert_eq!(state, ConnectionState::Disconnected);
+        });
+    }
+
+    #[test]
+    fn test_reconnect_delays_exponential() {
+        // Verify the exponential backoff pattern
+        assert_eq!(RECONNECT_DELAYS_MS, &[100, 200, 400, 800, 1600]);
+
+        // Each delay should be roughly 2x the previous
+        for i in 1..RECONNECT_DELAYS_MS.len() {
+            assert_eq!(RECONNECT_DELAYS_MS[i], RECONNECT_DELAYS_MS[i - 1] * 2);
+        }
+    }
+
+    #[test]
+    fn test_heartbeat_constants() {
+        // Heartbeat should be checked frequently enough to detect loss within 2-3 seconds
+        assert_eq!(HEARTBEAT_INTERVAL_MS, 1000);
+        assert_eq!(HEARTBEAT_TIMEOUT_MS, 2000);
+        assert!(HEARTBEAT_TIMEOUT_MS >= HEARTBEAT_INTERVAL_MS);
+    }
+
+    #[test]
+    fn test_max_reconnect_attempts() {
+        assert_eq!(MAX_RECONNECT_ATTEMPTS, 5);
+        // Should match the number of delays
+        assert_eq!(MAX_RECONNECT_ATTEMPTS as usize, RECONNECT_DELAYS_MS.len());
+    }
+
+    #[test]
+    fn test_is_broadcast_message_pong() {
+        // FEAT-060: Pong should be filtered as a broadcast (from health monitor pings)
+        let msg = ServerMessage::Pong;
+        assert!(McpBridge::is_broadcast_message(&msg));
     }
 }

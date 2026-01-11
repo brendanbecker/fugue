@@ -651,6 +651,15 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "required": ["msg_type", "payload"]
             }),
         },
+        // ==================== FEAT-060: Connection Status Tool ====================
+        Tool {
+            name: "ccmux_connection_status".into(),
+            description: "Get the current daemon connection status including health and recovery info".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {}
+            }),
+        },
     ]
 }
 
@@ -728,5 +737,7 @@ mod tests {
         assert!(names.contains(&"ccmux_report_status"));
         assert!(names.contains(&"ccmux_request_help"));
         assert!(names.contains(&"ccmux_broadcast"));
+        // FEAT-060: Connection status tool
+        assert!(names.contains(&"ccmux_connection_status"));
     }
 }
