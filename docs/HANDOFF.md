@@ -12,12 +12,12 @@
 
 ## Current State (2026-01-11)
 
-**MAJOR MILESTONE** - 6 features merged from parallel worktrees. Core multiplexer feature-complete.
+**MAJOR MILESTONE** - All bugs resolved, core multiplexer feature-complete.
 
 **Key Metrics:**
-- 28 bugs tracked, 26 resolved, 1 open (BUG-028 P0), 1 deprecated
-- 60 features tracked, 57 completed, 3 in backlog
-- 1,556 tests passing
+- 28 bugs tracked, 27 resolved, 0 open, 1 deprecated
+- 60 features tracked, 58 completed, 2 in backlog
+- 1,566 tests passing
 - Clean git working tree on main branch
 
 ### What Works
@@ -53,7 +53,6 @@
 ### Known Issues
 - `kill -9` corrupts terminal (SIGKILL can't be caught - run `reset` to fix)
 - Legacy zombie sessions from before BUG-004 fix need manual cleanup (clear `~/.local/share/.ccmux/state/`)
-- **BUG-028 (P0)**: Daemon crashes on `ccmux_create_layout` with nested layout spec
 
 ## Wave 4: Integration Features
 
@@ -69,13 +68,14 @@
 | FEAT-025 | Pane Output Rendering | P0 | ✅ Merged |
 | FEAT-026 | Input Testing | P1 | ✅ Working (verified manually) |
 
-## Bug Status
+## Bug Status: ALL RESOLVED ✅
 
-**Open Bugs: 1** (BUG-028 P0 - daemon crash on nested layout)
+**Open Bugs: 0** - All bugs fixed!
 
 ### Recent Critical Fixes
 | Bug | Priority | Description | Resolution |
 |-----|----------|-------------|------------|
+| BUG-028 | P0 | Daemon crash on nested create_layout | Fixed - two-phase pane creation to avoid lock contention |
 | BUG-027 | P0 | MCP response routing swapped | Fixed - filter broadcast messages in recv_response_from_daemon |
 | BUG-026 | P1 | Focus management broken | Fixed - broadcast focus changes to TUI clients |
 | BUG-025 | P2 | Direction response mismatch | Fixed - return user's requested direction |
@@ -94,11 +94,13 @@
 
 **Last Updated**: 2026-01-11
 
-All parallel worktree features merged. 3 features remain in backlog.
+All parallel worktree features merged. 2 features remain in backlog (beads integration).
 
 ### Just Merged (This Session)
 | ID | Title | Status |
 |----|-------|--------|
+| ✅ BUG-028 | Daemon crash on nested create_layout | Fixed |
+| ✅ FEAT-060 | MCP Daemon Auto-Recovery | Merged |
 | ✅ FEAT-048 | MCP Orchestration Protocol Tools | Merged |
 | ✅ FEAT-057 | Beads Passive Awareness | Merged |
 | ✅ FEAT-056 | User Priority Lockout for MCP Focus Control | Merged |
@@ -106,17 +108,11 @@ All parallel worktree features merged. 3 features remain in backlog.
 | ✅ FEAT-036 | Session-Aware MCP Commands | Merged |
 | ✅ FEAT-050 | Session Metadata Storage | Merged |
 
-### P1 - High Priority
-
-| ID | Title | Component | Effort | Notes |
-|----|-------|-----------|--------|-------|
-| **FEAT-060** | MCP Daemon Auto-Recovery | MCP | Medium | Triggered by BUG-028. Reconnection + state recovery. |
-
 ### P3 - Low Priority (Nice to Have)
 
 | ID | Title | Component | Effort | Notes |
 |----|-------|-----------|--------|-------|
-| **FEAT-058** | Beads Query Integration | Server/Client | Medium | TUI visibility into beads work queue (UNBLOCKED) |
+| **FEAT-058** | Beads Query Integration | Server/Client | Medium | TUI visibility into beads work queue (READY) |
 | **FEAT-059** | Beads Workflow Integration | Server/Protocol | Medium | Pane-issue correlation (blocked by FEAT-058) |
 
 ### Gas Town Integration: COMPLETE ✅
@@ -182,26 +178,25 @@ All prefix keybinds now match tmux defaults for muscle-memory compatibility.
 
 ## Active Worktrees
 
-Six worktrees configured:
-
 | Stream | Path | Branch | Feature | Status |
 |--------|------|--------|---------|--------|
 | **A** | `ccmux-stream-a/` | `feat/feat-048-mcp-orchestration-tools` | FEAT-048: MCP Orchestration Tools | ✅ **MERGED** |
 | **B** | `ccmux-stream-b/` | `feat/feat-057-beads-passive-awareness` | FEAT-057: Beads Passive Awareness | ✅ **MERGED** |
-| **C** | `ccmux-stream-c/` | `feat/feat-058-beads-query-integration` | FEAT-058: Beads Query Integration | **READY** (rebased) |
-| **D** | `ccmux-stream-d/` | `feat/feat-059-beads-workflow-integration` | FEAT-059: Beads Workflow Integration | BLOCKED (058) |
-| **E** | `ccmux-stream-e/` | `fix/bug-028-create-layout-crash` | BUG-028: Daemon crash fix | **READY** (P0) |
-| **F** | `ccmux-stream-f/` | `feat/feat-060-mcp-daemon-recovery` | FEAT-060: MCP Auto-Recovery | **READY** (P1) |
+| **C** | `ccmux-stream-c/` | `feat/feat-058-beads-query-integration` | FEAT-058: Beads Query Integration | **READY** |
+| **E** | `ccmux-stream-e/` | `fix/bug-028-create-layout-crash` | BUG-028: Daemon crash fix | ✅ **MERGED** |
+| **F** | `ccmux-stream-f/` | `feat/feat-060-mcp-daemon-recovery` | FEAT-060: MCP Auto-Recovery | ✅ **MERGED** |
 
-**Parallel work available:** Streams C, E, F can all be worked simultaneously.
+**Stream D removed** - will recreate when FEAT-058 completes.
 
 **To start a worker:**
 ```bash
-cd /home/becker/projects/tools/ccmux-stream-e  # or stream-c, stream-f
+cd /home/becker/projects/tools/ccmux-stream-c
 cat SESSION.md  # Read instructions
 ```
 
 ### Recently Merged (2026-01-11) - This Session
+- ✅ **BUG-028**: Daemon crash on nested create_layout (stream-e)
+- ✅ **FEAT-060**: MCP Daemon Auto-Recovery (stream-f)
 - ✅ **FEAT-048**: MCP Orchestration Protocol Tools (stream-a)
 - ✅ **FEAT-057**: Beads Passive Awareness (stream-b)
 - ✅ **FEAT-056**: User Priority Lockout for MCP Focus Control
@@ -231,11 +226,12 @@ cat SESSION.md  # Read instructions
 ### Next Session Checklist
 - [x] ~~Implement FEAT-048: MCP Orchestration Protocol Tools~~ - MERGED
 - [x] ~~Implement FEAT-057: Beads Passive Awareness~~ - MERGED
-- [ ] **Fix BUG-028 (P0)**: Daemon crashes on `ccmux_create_layout` with nested layout
-- [ ] Implement FEAT-060: MCP Daemon Auto-Recovery (triggered by BUG-028)
+- [x] ~~Fix BUG-028 (P0): Daemon crash on nested create_layout~~ - MERGED
+- [x] ~~Implement FEAT-060: MCP Daemon Auto-Recovery~~ - MERGED
+- [ ] Cleanup merged worktree branches (stream-a, stream-b, stream-e, stream-f)
+- [ ] Implement FEAT-058: Beads Query Integration (stream-c ready)
 - [ ] Update README with new MCP tools
 - [ ] Create release build and test full workflow
-- [ ] Cleanup merged worktree branches (stream-a, stream-b)
 
 ## Session Log (2026-01-11) - Feature Merge & QA Bugs
 

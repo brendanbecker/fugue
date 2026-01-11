@@ -5,15 +5,13 @@
 
 ## Summary Statistics
 - Total Bugs: 28
-- Open: 1
-- Resolved: 26
+- Open: 0
+- Resolved: 27
 - Deprecated: 1
 
 ## Active Bugs
 
-| ID | Description | Priority | Status |
-|----|-------------|----------|--------|
-| BUG-028 | Daemon crashes on `ccmux_create_layout` with nested layout | P0 | Open |
+None - all bugs resolved!
 
 ## Bug Status
 
@@ -23,6 +21,7 @@ See `feature-management/completed/` for resolved work items.
 
 | ID | Description | Priority | Resolution |
 |----|-------------|----------|------------|
+| BUG-028 | Daemon crashes on `ccmux_create_layout` with nested layout | P0 | Fixed - two-phase pane creation to avoid lock contention |
 | BUG-027 | MCP response routing swapped between handlers | P0 | Fixed - filter broadcast messages in recv_response_from_daemon |
 | BUG-026 | Focus management broken (auto-focus, focus_pane, select_window) | P1 | Fixed - broadcast focus changes to TUI |
 | BUG-025 | create_pane direction response mismatch | P2 | Fixed - return user's requested direction |
