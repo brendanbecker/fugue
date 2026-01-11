@@ -1429,9 +1429,9 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(10));
 
         {
-            let session2 = session_manager.create_session("session2").unwrap();
+            let session2_id = session_manager.create_session("session2").unwrap().id();
             // Add a window to session2
-            let session2_mut = session_manager.get_session_mut(session2.id()).unwrap();
+            let session2_mut = session_manager.get_session_mut(session2_id).unwrap();
             session2_mut.create_window(None);
         }
 

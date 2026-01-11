@@ -411,7 +411,6 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
     use ccmux_protocol::PaneState;
-    use std::collections::HashMap;
     use tempfile::TempDir;
     use uuid::Uuid;
 
