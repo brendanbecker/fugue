@@ -744,4 +744,48 @@ mod tests {
         assert_eq!(state.sessions[0].active_window_id, Some(window_id));
         assert_eq!(state.sessions[0].windows[0].active_pane_id, Some(pane_id));
     }
+
+    #[test]
+    fn test_recovery_session_metadata() {
+        let temp_dir = create_test_dir();
+        let state_dir = temp_dir.path().join("state");
+
+        let session_id = Uuid::new_v4();
+
+        {
+            let manager = create_manager_at(&state_dir);
+
+            manager.wal().append(&WalEntry::SessionCreated {
+                id: session_id,
+                name: "test-session".to_string(),
+                created_at: 12345,
+            }).unwrap();
+
+            // Set metadata via WAL entries
+            manager.wal().append(&WalEntry::SessionMetadataSet {
+                session_id,
+                key: "qa.tester".to_string(),
+                value: "claude".to_string(),
+            }).unwrap();
+
+            manager.wal().append(&WalEntry::SessionMetadataSet {
+                session_id,
+                key: "beads.root".to_string(),
+                value: "/path/to/beads".to_string(),
+            }).unwrap();
+
+            manager.shutdown().unwrap();
+        }
+
+        // Re-open and recover
+        let manager = create_manager_at(&state_dir);
+        let state = manager.recover().unwrap();
+
+        assert!(state.has_sessions());
+        assert_eq!(state.session_count(), 1);
+
+        let session = &state.sessions[0];
+        assert_eq!(session.metadata.get("qa.tester"), Some(&"claude".to_string()));
+        assert_eq!(session.metadata.get("beads.root"), Some(&"/path/to/beads".to_string()));
+    }
 }
