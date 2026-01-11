@@ -418,6 +418,7 @@ impl SessionRestorer {
 mod tests {
     use super::*;
     use ccmux_protocol::ClaudeState;
+    use std::collections::HashMap;
 
     fn create_test_session_snapshot() -> SessionSnapshot {
         let session_id = Uuid::new_v4();

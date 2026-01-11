@@ -33,6 +33,13 @@ const RECONNECT_DELAYS_MS: &[u64] = &[100, 200, 400, 800, 1600];
 /// Maximum number of reconnection attempts
 const MAX_RECONNECT_ATTEMPTS: u8 = 5;
 
+/// BUG-037 FIX: Timeout for waiting for a daemon response (in seconds)
+/// This prevents tool calls from hanging indefinitely if the daemon
+/// doesn't send the expected response. Claude Code has its own timeout
+/// that triggers AbortError, so we set this slightly lower to provide
+/// a more informative error message.
+const DAEMON_RESPONSE_TIMEOUT_SECS: u64 = 25;
+
 // ==================== FEAT-060: Connection State ====================
 
 /// Connection state for daemon communication
@@ -406,18 +413,55 @@ impl McpBridge {
     /// BUG-027 FIX: Without this filtering, tools like `read_pane` could receive
     /// a broadcast message (like `PaneCreated` from another client) instead of
     /// the expected `PaneContent` response, causing response type mismatches.
+    ///
+    /// BUG-037 FIX: Added timeout to prevent infinite waiting if the daemon
+    /// never sends the expected response. This provides a proper error instead
+    /// of letting Claude Code timeout with an unhelpful AbortError.
     async fn recv_response_from_daemon(&mut self) -> Result<ServerMessage, McpError> {
-        loop {
-            let msg = self.recv_from_daemon().await?;
+        let timeout_duration = Duration::from_secs(DAEMON_RESPONSE_TIMEOUT_SECS);
+        let deadline = Instant::now() + timeout_duration;
 
-            // Check if this is a broadcast message that should be skipped
-            if Self::is_broadcast_message(&msg) {
-                debug!("Skipping broadcast message: {:?}", std::mem::discriminant(&msg));
-                continue;
+        loop {
+            // BUG-037 FIX: Check if we've exceeded the timeout
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                warn!(
+                    "Timeout waiting for daemon response after {}s",
+                    DAEMON_RESPONSE_TIMEOUT_SECS
+                );
+                return Err(McpError::ResponseTimeout {
+                    seconds: DAEMON_RESPONSE_TIMEOUT_SECS,
+                });
             }
 
-            // This is a response message, return it
-            return Ok(msg);
+            // Use tokio::time::timeout to bound the recv call
+            let recv_result = tokio::time::timeout(remaining, self.recv_from_daemon()).await;
+
+            match recv_result {
+                Ok(Ok(msg)) => {
+                    // Check if this is a broadcast message that should be skipped
+                    if Self::is_broadcast_message(&msg) {
+                        debug!("Skipping broadcast message: {:?}", std::mem::discriminant(&msg));
+                        continue;
+                    }
+                    // This is a response message, return it
+                    return Ok(msg);
+                }
+                Ok(Err(e)) => {
+                    // recv_from_daemon returned an error
+                    return Err(e);
+                }
+                Err(_) => {
+                    // Timeout elapsed while waiting for recv
+                    warn!(
+                        "Timeout waiting for daemon response after {}s",
+                        DAEMON_RESPONSE_TIMEOUT_SECS
+                    );
+                    return Err(McpError::ResponseTimeout {
+                        seconds: DAEMON_RESPONSE_TIMEOUT_SECS,
+                    });
+                }
+            }
         }
     }
 
@@ -2783,6 +2827,18 @@ mod tests {
         assert_eq!(MAX_RECONNECT_ATTEMPTS, 5);
         // Should match the number of delays
         assert_eq!(MAX_RECONNECT_ATTEMPTS as usize, RECONNECT_DELAYS_MS.len());
+    }
+
+    // ==================== BUG-037 Fix Tests ====================
+
+    #[test]
+    fn test_daemon_response_timeout_constant() {
+        // BUG-037 FIX: Timeout should be less than Claude Code's typical timeout (~30s)
+        // to provide a more informative error message
+        assert_eq!(DAEMON_RESPONSE_TIMEOUT_SECS, 25);
+        // Should be reasonable for most operations
+        assert!(DAEMON_RESPONSE_TIMEOUT_SECS >= 10);
+        assert!(DAEMON_RESPONSE_TIMEOUT_SECS <= 30);
     }
 
     #[test]

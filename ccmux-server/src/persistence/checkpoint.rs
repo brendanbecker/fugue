@@ -410,6 +410,7 @@ impl CheckpointManager {
 mod tests {
     use super::*;
     use ccmux_protocol::PaneState;
+    use std::collections::HashMap;
     use tempfile::TempDir;
     use uuid::Uuid;
 

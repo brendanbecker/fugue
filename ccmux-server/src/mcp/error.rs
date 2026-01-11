@@ -82,6 +82,12 @@ pub enum McpError {
     /// Recovery failed permanently
     #[error("Daemon connection lost and recovery failed after {attempts} attempts")]
     RecoveryFailed { attempts: u8 },
+
+    // ==================== BUG-037: Response Timeout ====================
+
+    /// Timeout waiting for daemon response
+    #[error("Timeout waiting for daemon response after {seconds}s")]
+    ResponseTimeout { seconds: u64 },
 }
 
 impl From<McpError> for JsonRpcError {
@@ -161,6 +167,47 @@ impl From<McpError> for JsonRpcError {
                     })
                 )
             }
+            // BUG-037 FIX: Timeout error conversion
+            McpError::ResponseTimeout { seconds } => {
+                JsonRpcError::with_data(
+                    JsonRpcError::INTERNAL_ERROR,
+                    format!("Timeout waiting for daemon response after {}s", seconds),
+                    serde_json::json!({
+                        "error": "response_timeout",
+                        "timeout_seconds": seconds,
+                        "hint": "The daemon may be overloaded or the operation is taking too long"
+                    })
+                )
+            }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_response_timeout_error_display() {
+        let err = McpError::ResponseTimeout { seconds: 25 };
+        assert_eq!(
+            format!("{}", err),
+            "Timeout waiting for daemon response after 25s"
+        );
+    }
+
+    #[test]
+    fn test_response_timeout_to_json_rpc_error() {
+        let err = McpError::ResponseTimeout { seconds: 25 };
+        let json_err: JsonRpcError = err.into();
+
+        assert_eq!(json_err.code, JsonRpcError::INTERNAL_ERROR);
+        assert!(json_err.message.contains("Timeout"));
+        assert!(json_err.message.contains("25s"));
+
+        // Check structured data is present
+        let data = json_err.data.expect("data should be present");
+        assert_eq!(data["error"], "response_timeout");
+        assert_eq!(data["timeout_seconds"], 25);
     }
 }
