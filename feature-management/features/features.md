@@ -5,13 +5,13 @@
 
 ## Summary Statistics
 
-- **Total Features**: 60
+- **Total Features**: 61
 - **Completed**: 58
-- **Backlog**: 2
+- **Backlog**: 3
 
 ## Current Status
 
-Core terminal multiplexer features complete. Two features remain in backlog (beads integration).
+Core terminal multiplexer features complete. Three features remain in backlog.
 
 **Recent Completions (2026-01-11)**:
 - FEAT-060: MCP daemon auto-recovery (connection monitoring, reconnection, structured errors)
@@ -22,16 +22,23 @@ Core terminal multiplexer features complete. Two features remain in backlog (bea
 - FEAT-050: Session metadata storage (arbitrary key-value metadata)
 - FEAT-056: User priority lockout for MCP focus control
 
+**Recent Additions (2026-01-11)**:
+- FEAT-061: Screen redraw command to fix display corruption
+
 ### Backlog Features
 
 | ID | Title | Component | Priority | Status | Notes |
 |----|-------|-----------|----------|--------|-------|
+| FEAT-061 | Screen Redraw Command | ccmux-client | P2 | **Ready** | Keybind to force full screen redraw for display corruption recovery. |
 | FEAT-058 | Beads Query Integration | ccmux-server, ccmux-client | P3 | **Ready** | TUI visibility into work queue. |
 | FEAT-059 | Beads Workflow Integration | ccmux-server, ccmux-protocol | P3 | Blocked | Depends on FEAT-058. Scope reduced by FEAT-050. |
 
 ### Backlog Dependencies
 
 ```
+FEAT-061 (Ready)
+  |-- No dependencies
+
 FEAT-058 (Ready)
   |-- FEAT-057 (complete) - Beads detection
   |-- FEAT-050 (complete) - Metadata caching
@@ -45,8 +52,9 @@ FEAT-059 (Blocked)
 
 ### Implementation Priority
 
-1. **FEAT-058** - P3, ready now (all dependencies complete)
-2. **FEAT-059** - P3, after FEAT-058
+1. **FEAT-061** - P2, ready now (no dependencies, improves UX)
+2. **FEAT-058** - P3, ready now (all dependencies complete)
+3. **FEAT-059** - P3, after FEAT-058
 
 ## Completed Features
 

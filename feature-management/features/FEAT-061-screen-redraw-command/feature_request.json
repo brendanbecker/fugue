@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-061",
+  "title": "Add screen redraw command to fix display corruption",
+  "component": "ccmux-client",
+  "priority": "P2",
+  "status": "new",
+  "type": "enhancement",
+  "created_date": "2026-01-11",
+  "updated_date": "2026-01-11",
+  "assigned_to": null,
+  "tags": ["tui", "ratatui", "rendering", "terminal"],
+  "estimated_effort": "small",
+  "dependencies": [],
+  "description": "The ccmux TUI can become corrupted with overlapping/garbled content, especially during rapid status line updates, terminal resize events, session/window switching, and pane output containing escape sequences that are not fully processed. Add a keybinding to force a complete screen redraw that clears the terminal, re-renders all pane borders and status bars, re-renders pane contents from the terminal buffer, and resets any corrupted terminal state.",
+  "business_value": "medium",
+  "technical_complexity": "low",
+  "user_impact": "Provides users a quick recovery mechanism when display corruption occurs, instead of having to resize the terminal window as a workaround"
+}
