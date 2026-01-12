@@ -490,6 +490,10 @@ impl McpBridge {
             | ServerMessage::WindowClosed { .. }
             // Session ended notifications
             | ServerMessage::SessionEnded { .. }
+            // BUG-038 FIX: Session list change broadcasts (from session destroy)
+            // Unlike SessionList which is a direct response to ListSessions, SessionsChanged
+            // is broadcast when sessions are created/destroyed and must be filtered out.
+            | ServerMessage::SessionsChanged { .. }
             // Viewport updates
             | ServerMessage::ViewportUpdated { .. }
             // Orchestration messages from other sessions

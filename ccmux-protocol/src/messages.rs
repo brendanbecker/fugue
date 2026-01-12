@@ -402,6 +402,14 @@ pub enum ServerMessage {
     /// Session ended
     SessionEnded { session_id: Uuid },
 
+    /// Session list changed (broadcast notification)
+    ///
+    /// BUG-038 FIX: This is a broadcast-only message sent when sessions are created/destroyed.
+    /// Unlike SessionList which is a direct response to ListSessions, this message is
+    /// filtered out by the MCP bridge to prevent it from being picked up as a response
+    /// to unrelated pending requests.
+    SessionsChanged { sessions: Vec<SessionInfo> },
+
     /// Error response
     Error { code: ErrorCode, message: String },
 
@@ -903,6 +911,38 @@ tags: HashSet::new(),
             assert_eq!(s[0].name, "session1");
             assert_eq!(s[1].name, "session2");
         }
+    }
+
+    // BUG-038: Test for SessionsChanged broadcast message
+    #[test]
+    fn test_server_message_sessions_changed() {
+        let sessions = vec![
+            SessionInfo {
+                id: Uuid::new_v4(),
+                name: "session1".to_string(),
+                created_at: 1000,
+                window_count: 2,
+                attached_clients: 1,
+                worktree: None,
+                tags: HashSet::new(),
+                metadata: HashMap::new(),
+            },
+        ];
+
+        let msg = ServerMessage::SessionsChanged {
+            sessions: sessions.clone(),
+        };
+
+        if let ServerMessage::SessionsChanged { sessions: s } = msg.clone() {
+            assert_eq!(s.len(), 1);
+            assert_eq!(s[0].name, "session1");
+        } else {
+            panic!("Expected SessionsChanged variant");
+        }
+
+        // SessionsChanged should be distinct from SessionList
+        let list_msg = ServerMessage::SessionList { sessions };
+        assert_ne!(std::mem::discriminant(&msg), std::mem::discriminant(&list_msg));
     }
 
     #[test]

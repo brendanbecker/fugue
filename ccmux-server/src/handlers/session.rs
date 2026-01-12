@@ -297,7 +297,9 @@ impl HandlerContext {
         // Detach any clients attached to this session
         self.registry.detach_session_clients(session_id);
 
-        // Broadcast updated session list to all clients
+        // Broadcast session list change notification to all clients
+        // BUG-038 FIX: Use SessionsChanged instead of SessionList to prevent
+        // this broadcast from being picked up as a response to unrelated MCP requests.
         let sessions: Vec<_> = {
             let session_manager = self.session_manager.read().await;
             session_manager
@@ -308,7 +310,7 @@ impl HandlerContext {
         };
 
         self.registry
-            .broadcast_to_all(ServerMessage::SessionList { sessions });
+            .broadcast_to_all(ServerMessage::SessionsChanged { sessions });
 
         // Return confirmation to the requesting client (for MCP bridge)
         HandlerResult::Response(ServerMessage::SessionDestroyed {

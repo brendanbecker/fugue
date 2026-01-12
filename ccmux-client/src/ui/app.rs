@@ -1236,6 +1236,12 @@ impl App {
                 self.available_sessions = sessions;
                 self.session_list_index = 0;
             }
+            // BUG-038 FIX: Handle session list change broadcasts
+            // This updates the session list when sessions are created/destroyed by others
+            ServerMessage::SessionsChanged { sessions } => {
+                self.available_sessions = sessions;
+                // Don't reset session_list_index to preserve user's scroll position
+            }
             ServerMessage::SessionCreated { session } => {
                 // Automatically attach to new session
                 self.connection
