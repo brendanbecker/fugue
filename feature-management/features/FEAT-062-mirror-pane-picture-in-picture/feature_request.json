@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-062",
+  "title": "Mirror Pane (Picture-in-Picture View)",
+  "component": "ccmux-server, ccmux-client",
+  "priority": "P3",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-11",
+  "updated_date": "2026-01-11",
+  "assigned_to": null,
+  "tags": ["tui", "session-management", "orchestration", "rendering"],
+  "estimated_effort": "medium",
+  "dependencies": [],
+  "description": "A pane that renders another pane's output in real-time, allowing visibility into other sessions without switching context. Enables 'plate spinning' visibility - monitor multiple agents simultaneously without losing your place. Mirror pane is read-only, updates in real-time as source produces output, and maintains independent scrollback from the source pane.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Enables orchestrator sessions to monitor worker output in real-time without context switching, dramatically improving multi-agent workflow visibility and reducing the need to constantly flip between panes/sessions"
+}
