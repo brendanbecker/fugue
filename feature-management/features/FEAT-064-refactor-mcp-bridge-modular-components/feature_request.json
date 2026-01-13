@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-064",
+  "title": "Refactor MCP bridge.rs into modular components",
+  "component": "ccmux-server",
+  "priority": "P2",
+  "status": "new",
+  "type": "improvement",
+  "created_date": "2026-01-13",
+  "updated_date": "2026-01-13",
+  "assigned_to": null,
+  "tags": ["performance", "enhancement"],
+  "estimated_effort": "large",
+  "dependencies": [],
+  "description": "The MCP bridge implementation (ccmux-server/src/mcp/bridge.rs) has grown to over 33,000 tokens and needs to be refactored into smaller, more maintainable modules. The file contains mixed concerns including connection management, protocol handling, tool dispatching, health monitoring, and reconnection logic. This makes it difficult to navigate, test, and maintain, and exceeds the context window limits for AI assistants.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Improved code maintainability and testability. Easier onboarding for new contributors. Better AI assistant support for code modifications."
+}

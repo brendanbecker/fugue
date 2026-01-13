@@ -6,7 +6,7 @@
   "priority": "P1",
   "status": "new",
   "reported_date": "2026-01-11",
-  "updated_date": "2026-01-11",
+  "updated_date": "2026-01-13",
   "assigned_to": null,
   "tags": ["mcp", "claude-code", "connection-management", "hang", "orphan-processes"],
   "affected_versions": [],
@@ -21,9 +21,10 @@
     "Check for orphaned mcp-bridge processes with 'ps aux | grep mcp-bridge'"
   ],
   "expected_behavior": "MCP tool calls through Claude Code should complete reliably within a reasonable timeout, matching the behavior of direct bash invocation",
-  "actual_behavior": "MCP tool calls frequently hang indefinitely. Multiple stale mcp-bridge processes (10+) accumulate. Direct bash invocation works every time.",
+  "actual_behavior": "MCP tool calls frequently hang indefinitely with no automatic timeout. Tested waiting several minutes with no change - hang appears permanent until manually aborted. Multiple stale mcp-bridge processes (10+) accumulate. Direct bash invocation works every time.",
   "evidence": {
     "observation": "Multiple stale mcp-bridge processes accumulate (seen 10+ orphaned processes)",
+    "timeout_behavior": "No automatic timeout observed. Hangs persist for several minutes (not tested to completion). Manual abort (ctrl+c) required - produces 'AbortError: The operation was aborted'",
     "daemon_status": "Running and responsive via direct invocation",
     "socket_location": "/run/user/1000/ccmux/ccmux.sock",
     "working_command": "echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"ccmux_list_sessions\",\"arguments\":{}}}' | timeout 3 ccmux-server mcp-bridge"

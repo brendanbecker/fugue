@@ -1,17 +1,17 @@
 # Feature Tracking
 
 **Project**: ccmux
-**Last Updated**: 2026-01-11
+**Last Updated**: 2026-01-13
 
 ## Summary Statistics
 
-- **Total Features**: 62
+- **Total Features**: 64
 - **Completed**: 58
-- **Backlog**: 4
+- **Backlog**: 6
 
 ## Current Status
 
-Core terminal multiplexer features complete. Four features remain in backlog.
+Core terminal multiplexer features complete. Six features remain in backlog.
 
 **Recent Completions (2026-01-11)**:
 - FEAT-060: MCP daemon auto-recovery (connection monitoring, reconnection, structured errors)
@@ -22,6 +22,10 @@ Core terminal multiplexer features complete. Four features remain in backlog.
 - FEAT-050: Session metadata storage (arbitrary key-value metadata)
 - FEAT-056: User priority lockout for MCP focus control
 
+**Recent Additions (2026-01-13)**:
+- FEAT-064: Refactor MCP bridge.rs into modular components (maintainability)
+- FEAT-063: Add file-based logging to MCP bridge mode (unblocks BUG-039)
+
 **Recent Additions (2026-01-11)**:
 - FEAT-062: Mirror pane (picture-in-picture view) for multi-agent monitoring
 - FEAT-061: Screen redraw command to fix display corruption
@@ -30,7 +34,9 @@ Core terminal multiplexer features complete. Four features remain in backlog.
 
 | ID | Title | Component | Priority | Status | Notes |
 |----|-------|-----------|----------|--------|-------|
+| FEAT-063 | Add file-based logging to MCP bridge mode | ccmux-server | P1 | **Ready** | Enable file logging for mcp-bridge to debug BUG-039. Small change. |
 | FEAT-061 | Screen Redraw Command | ccmux-client | P2 | **Ready** | Keybind to force full screen redraw for display corruption recovery. |
+| FEAT-064 | Refactor MCP bridge.rs into modular components | ccmux-server | P2 | **Ready** | Extract connection, health, and tool modules from 33k+ token bridge.rs. |
 | FEAT-062 | Mirror Pane (Picture-in-Picture View) | ccmux-server, ccmux-client | P3 | **Ready** | Read-only pane that mirrors another pane's output for multi-agent monitoring. |
 | FEAT-058 | Beads Query Integration | ccmux-server, ccmux-client | P3 | **Ready** | TUI visibility into work queue. |
 | FEAT-059 | Beads Workflow Integration | ccmux-server, ccmux-protocol | P3 | Blocked | Depends on FEAT-058. Scope reduced by FEAT-050. |
@@ -38,7 +44,14 @@ Core terminal multiplexer features complete. Four features remain in backlog.
 ### Backlog Dependencies
 
 ```
+FEAT-063 (Ready)
+  |-- No dependencies
+  |-- Blocks: BUG-039 investigation
+
 FEAT-061 (Ready)
+  |-- No dependencies
+
+FEAT-064 (Ready)
   |-- No dependencies
 
 FEAT-062 (Ready)
@@ -57,10 +70,12 @@ FEAT-059 (Blocked)
 
 ### Implementation Priority
 
-1. **FEAT-061** - P2, ready now (no dependencies, improves UX)
-2. **FEAT-062** - P3, ready now (no dependencies, improves multi-agent workflows)
-3. **FEAT-058** - P3, ready now (all dependencies complete)
-4. **FEAT-059** - P3, after FEAT-058
+1. **FEAT-063** - P1, ready now (no dependencies, unblocks BUG-039 debugging)
+2. **FEAT-061** - P2, ready now (no dependencies, improves UX)
+3. **FEAT-064** - P2, ready now (no dependencies, improves maintainability)
+4. **FEAT-062** - P3, ready now (no dependencies, improves multi-agent workflows)
+5. **FEAT-058** - P3, ready now (all dependencies complete)
+6. **FEAT-059** - P3, after FEAT-058
 
 ## Completed Features
 

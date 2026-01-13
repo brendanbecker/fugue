@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-065",
+  "title": "Refactor handlers/mcp_bridge.rs into smaller modules",
+  "component": "ccmux-server",
+  "priority": "P2",
+  "status": "new",
+  "type": "improvement",
+  "created_date": "2026-01-13",
+  "updated_date": "2026-01-13",
+  "assigned_to": null,
+  "tags": ["performance", "enhancement"],
+  "estimated_effort": "medium",
+  "dependencies": [],
+  "description": "The MCP bridge handler implementation (ccmux-server/src/handlers/mcp_bridge.rs) has grown to 2591 lines (~27k tokens) and exceeds the practical context window limit for AI-assisted development. This is the handler layer that dispatches MCP tool calls to session/pane operations. It needs to be refactored into smaller, more maintainable modules with clear separation of tool categories.",
+  "business_value": "high",
+  "technical_complexity": "medium",
+  "user_impact": "Improved code maintainability and testability. Easier navigation and modification of MCP tool handlers. Better AI assistant support for targeted code changes."
+}

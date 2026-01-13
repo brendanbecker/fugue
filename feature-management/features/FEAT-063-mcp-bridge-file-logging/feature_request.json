@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-063",
+  "title": "Add file-based logging to MCP bridge mode",
+  "component": "ccmux-server",
+  "priority": "P1",
+  "status": "new",
+  "type": "enhancement",
+  "created_date": "2026-01-13",
+  "updated_date": "2026-01-13",
+  "assigned_to": null,
+  "tags": ["mcp", "logging", "debugging"],
+  "estimated_effort": "small",
+  "dependencies": [],
+  "description": "The MCP bridge (ccmux-server mcp-bridge) currently skips logging initialization entirely because it uses stdio for JSON-RPC. This means all tracing calls (debug!, info!, error!) in bridge.rs go nowhere, making it impossible to debug issues like BUG-039 (MCP tools hanging). File-based logging does NOT interfere with stdio JSON-RPC protocol and should be enabled for the mcp-bridge mode.",
+  "business_value": "high",
+  "technical_complexity": "low",
+  "user_impact": "Critical for debugging MCP bridge issues like BUG-039. Currently zero visibility into bridge behavior."
+}
