@@ -5,9 +5,9 @@
 
 ## Summary Statistics
 
-- **Total Features**: 73
+- **Total Features**: 74
 - **Completed**: 58
-- **Backlog**: 15
+- **Backlog**: 16
 
 ## Current Status
 
@@ -23,6 +23,7 @@ Core terminal multiplexer features complete. Thirteen features remain in backlog
 - FEAT-056: User priority lockout for MCP focus control
 
 **Recent Additions (2026-01-13)**:
+- FEAT-076: Capability signaling protocol (sideband metadata)
 - FEAT-075: Snapshot + replay resync API (event retention)
 - FEAT-074: Observability instrumentation (metrics, tracing, status)
 - FEAT-071: Per-pane Claude configuration on spawn (model selection, context limits, presets)
@@ -55,6 +56,7 @@ Core terminal multiplexer features complete. Thirteen features remain in backlog
 | FEAT-064 | Refactor MCP bridge.rs into modular components | ccmux-server | P2 | **Ready** | Extract connection, health, and tool modules from 33k+ token bridge.rs. |
 | FEAT-065 | Refactor handlers in MCP bridge modules | ccmux-server | P2 | **Ready** | Continue modularization of MCP bridge after FEAT-064. |
 | FEAT-062 | Mirror Pane (Picture-in-Picture View) | ccmux-server, ccmux-client | P3 | **Ready** | Read-only pane that mirrors another pane's output for multi-agent monitoring. |
+| FEAT-076 | Capability signaling protocol (sideband metadata) | ccmux-server, ccmux-protocol | P3 | **Ready** | Explicit sideband capability signals stored as pane metadata. |
 | FEAT-069 | TLS/auth for direct TCP connections | ccmux-server, ccmux-client | P3 | **Ready** | Native TLS and authentication for direct TCP. Phase 4 of remote peering (future enhancement). |
 | FEAT-058 | Beads Query Integration | ccmux-server, ccmux-client | P3 | **Ready** | TUI visibility into work queue. |
 | FEAT-059 | Beads Workflow Integration | ccmux-server, ccmux-protocol | P3 | Blocked | Depends on FEAT-058. Scope reduced by FEAT-050. |

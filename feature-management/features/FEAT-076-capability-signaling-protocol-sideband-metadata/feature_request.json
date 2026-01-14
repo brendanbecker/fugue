@@ -1,0 +1,11 @@
+{
+  "id": "FEAT-076",
+  "title": "Capability signaling protocol (sideband metadata)",
+  "component": "ccmux-server, ccmux-protocol",
+  "priority": "P3",
+  "status": "new",
+  "created_date": "2026-01-13",
+  "created_by": "create-work-item skill",
+  "description": "Add capability signaling via sideband/control channel so panes can advertise state/control/identity/resume capabilities, stored as pane metadata with explicit signals preferred over heuristics.",
+  "labels": ["feature", "enhancement"]
+}
