@@ -1,0 +1,11 @@
+{
+  "id": "FEAT-078",
+  "title": "Per-client focus state support",
+  "component": "ccmux-server, ccmux-client, ccmux-protocol",
+  "priority": "P2",
+  "status": "new",
+  "created_date": "2026-01-13",
+  "created_by": "ccmux-agent",
+  "description": "Ensure focus/selection is per-client (avoid focus fights) with snapshot initialization only, per ADR-005. Add protocol/state handling to keep UI focus independent across TUI and MCP clients.",
+  "labels": ["feature", "enhancement", "protocol"]
+}

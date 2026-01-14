@@ -5,13 +5,13 @@
 
 ## Summary Statistics
 
-- **Total Features**: 75
+- **Total Features**: 76
 - **Completed**: 58
-- **Backlog**: 17
+- **Backlog**: 18
 
 ## Current Status
 
-Core terminal multiplexer features complete. Seventeen features remain in backlog.
+Core terminal multiplexer features complete. Eighteen features remain in backlog.
 
 **Recent Completions (2026-01-11)**:
 - FEAT-060: MCP daemon auto-recovery (connection monitoring, reconnection, structured errors)
@@ -23,10 +23,12 @@ Core terminal multiplexer features complete. Seventeen features remain in backlo
 - FEAT-056: User priority lockout for MCP focus control
 
 **Recent Additions (2026-01-13)**:
+- FEAT-078: Per-client focus state support
 - FEAT-077: Human-control mode UX indicator and MCP error details
 - FEAT-076: Capability signaling protocol (sideband metadata)
 - FEAT-075: Snapshot + replay resync API (event retention)
 - FEAT-074: Observability instrumentation (metrics, tracing, status)
+- FEAT-073: Visibility dashboard (stuck detection, mailbox, graph pane)
 - FEAT-071: Per-pane Claude configuration on spawn (model selection, context limits, presets)
 - FEAT-070: gastown remote pane support via CCMUX_ADDR (enables hybrid Mayor/polecat orchestration)
 - FEAT-069: TLS/auth for direct TCP connections (Phase 4 of remote peering - future enhancement)
@@ -44,6 +46,7 @@ Core terminal multiplexer features complete. Seventeen features remain in backlo
 
 | ID | Title | Component | Priority | Status | Notes |
 |----|-------|-----------|----------|--------|-------|
+| FEAT-078 | Per-client focus state support | ccmux-server, ccmux-client, ccmux-protocol | P2 | **Ready** | Ensure focus/selection is per-client (avoid focus fights) with snapshot initialization only. |
 | FEAT-077 | Human-control mode UX indicator and MCP error details | ccmux-client, ccmux-server | P2 | **Ready** | TUI indicator + timer for human-control mode; structured MCP errors include remaining block duration. |
 | FEAT-075 | Snapshot + replay resync API (event retention) | ccmux-server, ccmux-protocol, ccmux-client | P2 | **Ready** | Resync after gaps via snapshot fallback + event replay. |
 | FEAT-063 | Add file-based logging to MCP bridge mode | ccmux-server | P1 | **Ready** | Enable file logging for mcp-bridge to debug BUG-039. Small change. |
