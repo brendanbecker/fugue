@@ -1,0 +1,11 @@
+{
+  "id": "FEAT-077",
+  "title": "Human-control mode UX indicator and MCP error details",
+  "component": "ccmux-client, ccmux-server",
+  "priority": "P2",
+  "status": "new",
+  "created_date": "2026-01-13",
+  "created_by": "create-work-item skill",
+  "description": "Surface human-control mode in the TUI with a clear indicator and countdown, and return structured MCP errors with remaining block duration aligned to ADR-004/ADR-005.",
+  "labels": ["feature", "enhancement"]
+}

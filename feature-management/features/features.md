@@ -5,13 +5,13 @@
 
 ## Summary Statistics
 
-- **Total Features**: 74
+- **Total Features**: 75
 - **Completed**: 58
-- **Backlog**: 16
+- **Backlog**: 17
 
 ## Current Status
 
-Core terminal multiplexer features complete. Thirteen features remain in backlog.
+Core terminal multiplexer features complete. Seventeen features remain in backlog.
 
 **Recent Completions (2026-01-11)**:
 - FEAT-060: MCP daemon auto-recovery (connection monitoring, reconnection, structured errors)
@@ -23,6 +23,7 @@ Core terminal multiplexer features complete. Thirteen features remain in backlog
 - FEAT-056: User priority lockout for MCP focus control
 
 **Recent Additions (2026-01-13)**:
+- FEAT-077: Human-control mode UX indicator and MCP error details
 - FEAT-076: Capability signaling protocol (sideband metadata)
 - FEAT-075: Snapshot + replay resync API (event retention)
 - FEAT-074: Observability instrumentation (metrics, tracing, status)
@@ -43,6 +44,7 @@ Core terminal multiplexer features complete. Thirteen features remain in backlog
 
 | ID | Title | Component | Priority | Status | Notes |
 |----|-------|-----------|----------|--------|-------|
+| FEAT-077 | Human-control mode UX indicator and MCP error details | ccmux-client, ccmux-server | P2 | **Ready** | TUI indicator + timer for human-control mode; structured MCP errors include remaining block duration. |
 | FEAT-075 | Snapshot + replay resync API (event retention) | ccmux-server, ccmux-protocol, ccmux-client | P2 | **Ready** | Resync after gaps via snapshot fallback + event replay. |
 | FEAT-063 | Add file-based logging to MCP bridge mode | ccmux-server | P1 | **Ready** | Enable file logging for mcp-bridge to debug BUG-039. Small change. |
 | FEAT-061 | Screen Redraw Command | ccmux-client | P2 | **Ready** | Keybind to force full screen redraw for display corruption recovery. |
