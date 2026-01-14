@@ -28,7 +28,7 @@ Claude Code loads all active MCP servers + tools into context at session start, 
 
 ## Evidence
 
-From `/home/becker/projects/tools/ccmux/docs/scratch/grok/ccmux-mcp-worker-mode.md`:
+From `docs/architecture/MCP_WORKER_MODE.md`:
 
 - Huge token savings (5k–50k+ per worker)
 - Faster startup speed for subagents
@@ -130,7 +130,7 @@ Add `mcp_mode` parameter to pane spawn with three modes:
 - `ccmux-server/src/session/pane.rs` - config creation logic
 - `ccmux-protocol/src/messages.rs` - `mcp_mode` field definition
 - `ccmux-server/config.toml` - presets with `mcp_mode`
-- `docs/scratch/grok/ccmux-mcp-worker-mode.md` - design document
+- `docs/architecture/MCP_WORKER_MODE.md` - design document
 
 ## Notes
 

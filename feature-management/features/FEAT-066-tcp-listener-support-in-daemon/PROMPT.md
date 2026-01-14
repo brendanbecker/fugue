@@ -84,7 +84,7 @@ None (standalone feature)
 
 ## Notes
 
-This is Phase 1 from `ccmux-tcp-implementation-plan.md`. The SSH tunnel use case (Phase 2) requires both this and FEAT-067.
+This is Phase 1 from `docs/architecture/REMOTE_PEERING.md`. The SSH tunnel use case (Phase 2) requires both this and FEAT-067.
 
 **Security is critical** - default to 127.0.0.1 to prevent accidental exposure. Users who need to bind to 0.0.0.0 (e.g., for SSH tunnels) must explicitly configure it.
 

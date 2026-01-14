@@ -130,7 +130,7 @@ gt mayor attach
 - `gastown/internal/crew/` (agent spawn logic)
 - `gastown/presets/` (remote preset configuration)
 - `gastown/docs/` (documentation)
-- Reference: `docs/gastown-ccmux-remote-support.md`
+- Reference: `docs/architecture/GASTOWN_REMOTE_SUPPORT.md`
 
 ## Notes
 

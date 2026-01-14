@@ -16,7 +16,7 @@ Operators need at-a-glance visibility into multi-agent progress, blocked/stuck w
 - Dashboard stays terminal-native and performant for frequent updates.
 
 ## Design
-Based on `docs/scratch/grok/ccmux-visibility-dashboard.md`.
+Based on `docs/architecture/VISIBILITY_DASHBOARD.md`.
 - Mailbox widget uses a sideband message format like `<ccmux:mail priority="info|warn|error" summary="...">`.
 - **Activity Feed listens to server broadcasts/events and renders a scrolling log of "Intents" (e.g., "Agent X focused Pane Y", "User Z created Window W").**
 - Graph pane renders nodes (panes/tasks) colored by status and edges for relationships.
