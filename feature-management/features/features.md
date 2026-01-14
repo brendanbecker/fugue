@@ -5,9 +5,9 @@
 
 ## Summary Statistics
 
-- **Total Features**: 72
+- **Total Features**: 73
 - **Completed**: 58
-- **Backlog**: 14
+- **Backlog**: 15
 
 ## Current Status
 
@@ -23,6 +23,7 @@ Core terminal multiplexer features complete. Thirteen features remain in backlog
 - FEAT-056: User priority lockout for MCP focus control
 
 **Recent Additions (2026-01-13)**:
+- FEAT-075: Snapshot + replay resync API (event retention)
 - FEAT-074: Observability instrumentation (metrics, tracing, status)
 - FEAT-071: Per-pane Claude configuration on spawn (model selection, context limits, presets)
 - FEAT-070: gastown remote pane support via CCMUX_ADDR (enables hybrid Mayor/polecat orchestration)
@@ -41,6 +42,7 @@ Core terminal multiplexer features complete. Thirteen features remain in backlog
 
 | ID | Title | Component | Priority | Status | Notes |
 |----|-------|-----------|----------|--------|-------|
+| FEAT-075 | Snapshot + replay resync API (event retention) | ccmux-server, ccmux-protocol, ccmux-client | P2 | **Ready** | Resync after gaps via snapshot fallback + event replay. |
 | FEAT-063 | Add file-based logging to MCP bridge mode | ccmux-server | P1 | **Ready** | Enable file logging for mcp-bridge to debug BUG-039. Small change. |
 | FEAT-061 | Screen Redraw Command | ccmux-client | P2 | **Ready** | Keybind to force full screen redraw for display corruption recovery. |
 | FEAT-074 | Observability instrumentation (metrics, tracing, status) | ccmux-server | P2 | **Ready** | Structured logging, tracing, metrics, and status fields per OBSERVABILITY.md. |

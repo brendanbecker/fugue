@@ -1,0 +1,11 @@
+{
+  "id": "FEAT-075",
+  "title": "Snapshot + replay resync API (event retention)",
+  "component": "ccmux-server, ccmux-protocol, ccmux-client",
+  "priority": "P2",
+  "status": "new",
+  "created_date": "2026-01-13",
+  "created_by": "create-work-item skill",
+  "description": "Implement snapshot + events convergence with GetEventsSince/replay buffer and snapshot fallback per ADR-004/ADR-005. Add commit_seq handling, event retention, and client resync flow to ensure convergence after gaps or reconnects.",
+  "labels": ["feature", "enhancement"]
+}
