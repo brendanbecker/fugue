@@ -1,11 +1,11 @@
 # Bug Reports
 
 **Project**: ccmux
-**Last Updated**: 2026-01-11
+**Last Updated**: 2026-01-13
 
 ## Summary Statistics
-- Total Bugs: 39
-- Open: 11
+- Total Bugs: 41
+- Open: 12
 - Resolved: 27
 - Deprecated: 1
 
@@ -28,6 +28,7 @@
 | **Operation Reliability** | BUG-035, BUG-037 | MEDIUM | State accumulates/corrupts over long sessions |
 | **Connection Management** | BUG-039 | HIGH | MCP bridge process lifecycle with Claude Code |
 | **Window Persistence** | BUG-040 | HIGH | Windows created but not persisted (suspected BUG-034 regression) |
+| **PTY Input Handling** | BUG-041 | HIGH | PTY layer incompatibility with Claude Code paste handling |
 
 ## Paths Ruled Out
 
@@ -39,6 +40,7 @@
 
 | ID | Description | Priority | Status | Component | Link |
 |----|-------------|----------|--------|-----------|------|
+| BUG-041 | Claude Code crashes on paste inside ccmux | P1 | new | pty/client | [Link](BUG-041-claude-code-crashes-on-paste-inside-ccmux/) |
 | BUG-040 | create_window returns success but doesn't create windows | P1 | new | mcp | [Link](BUG-040-create-window-returns-success-but-no-window/) |
 | BUG-039 | MCP tools hang intermittently through Claude Code | P1 | new | mcp-bridge | [Link](BUG-039-mcp-tools-hang-through-claude-code/) |
 | BUG-036 | Selection tools don't switch TUI view | P0 | new | daemon/TUI | [Link](BUG-036-selection-tools-dont-switch-tui-view/) |
@@ -58,6 +60,7 @@
 |----------|-----|------|--------|----------|
 | **P0** | BUG-036 | HIGH | Low | **ULTRATHINK**: Check `is_broadcast_message()` filter - may fix BUG-034 too |
 | **P0** | BUG-033 | HIGH | Medium | **ULTRATHINK**: Verify JsonValue wrapper `.get()` compatibility |
+| **P1** | BUG-041 | HIGH | Medium | Investigate PTY bracketed paste mode and termios settings |
 | **P1** | BUG-040 | HIGH | Medium | Trace create_window path - suspected BUG-034 fix regression |
 | **P1** | BUG-039 | HIGH | Medium | Investigate mcp-bridge process lifecycle and stdin/stdout handling |
 | **P1** | BUG-034 | HIGH | Medium | Session state propagation audit |
@@ -68,10 +71,12 @@
 
 | File | Issues | Notes |
 |------|--------|-------|
+| `ccmux-server/src/pty/mod.rs` | BUG-041 | PTY initialization, bracketed paste mode, termios settings |
+| `ccmux-client/src/input/mod.rs` | BUG-041 | Input event handling, paste forwarding |
+| `ccmux-client/src/ui/app.rs` | BUG-036, BUG-041 | Selection broadcast handling (line 1541), paste chunking |
 | `ccmux-server/src/mcp/bridge.rs` | BUG-034, BUG-036, BUG-039 | **ULTRATHINK**: Session state + broadcast filtering (line 458-461), connection lifecycle |
 | `ccmux-server/src/handlers/mcp_bridge.rs` | BUG-033, BUG-035 | Layout validation + response types |
 | `ccmux-protocol/src/types.rs` | BUG-033 | JsonValue wrapper - verify Deref impl |
-| `ccmux-client/src/ui/app.rs` | BUG-036 | Selection broadcast handling (line 1541) |
 | `ccmux-server/src/mcp/handlers.rs` | BUG-034, BUG-040 | Session state usage, window creation |
 | `ccmux-server/src/session/manager.rs` | BUG-040 | Window creation and persistence |
 
@@ -90,6 +95,27 @@
 **RELATED**: BUG-034 (create_window ignores selected session)
 
 **Location**: `ccmux-server/src/mcp/handlers.rs`, `ccmux-server/src/session/manager.rs`
+
+### BUG-041: Claude Code Crashes on Paste Inside ccmux (P1) - NEW
+**Status**: Investigation needed
+
+- Pasting moderate-sized content (~3.5KB) crashes Claude Code inside ccmux
+- Same content pastes successfully into Claude Code outside ccmux
+- Same content pastes successfully into vi inside ccmux
+- File pasted: `docs/scratch/grok/ccmux-peering-design.md` (3,501 bytes)
+- After crash, content attempts to output to underlying shell
+
+**KEY INSIGHT**: Size is well below 64KB chunking threshold from BUG-011 fix, so this is NOT a chunking issue.
+
+**SUSPECTED CAUSES**:
+1. Bracketed paste mode not properly forwarded through PTY
+2. PTY termios settings differ from standard terminal
+3. Character encoding or escape sequence corruption
+4. Input delivery timing different than native terminal
+
+**EVIDENCE**: Application-specific behavior (Claude Code fails, vi works) suggests PTY implementation detail that breaks Claude Code's specific input handling expectations.
+
+**Location**: `ccmux-server/src/pty/mod.rs`, `ccmux-client/src/input/mod.rs`
 
 ### BUG-039: MCP Tools Hang Intermittently Through Claude Code (P1) - NEW
 **Status**: Investigation needed
@@ -204,6 +230,7 @@ See `feature-management/completed/` for resolved work items.
 
 | Date | Bug ID | Action | Description |
 |------|--------|--------|-------------|
+| 2026-01-13 | BUG-041 | Created | Claude Code crashes on paste inside ccmux (PTY input handling issue) |
 | 2026-01-11 | BUG-040 | Created | create_window returns success but doesn't create windows (suspected BUG-034 regression) |
 | 2026-01-11 | BUG-039 | Created | MCP tools hang intermittently through Claude Code |
 | 2026-01-11 | BUG-037 | Created | close_pane returns AbortError |
