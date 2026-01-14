@@ -5,13 +5,13 @@
 
 ## Summary Statistics
 
-- **Total Features**: 76
+- **Total Features**: 77
 - **Completed**: 58
-- **Backlog**: 18
+- **Backlog**: 19
 
 ## Current Status
 
-Core terminal multiplexer features complete. Eighteen features remain in backlog.
+Core terminal multiplexer features complete. Nineteen features remain in backlog.
 
 **Recent Completions (2026-01-11)**:
 - FEAT-060: MCP daemon auto-recovery (connection monitoring, reconnection, structured errors)
@@ -23,6 +23,7 @@ Core terminal multiplexer features complete. Eighteen features remain in backlog
 - FEAT-056: User priority lockout for MCP focus control
 
 **Recent Additions (2026-01-13)**:
+- FEAT-079: Comprehensive Human-Control Arbitration
 - FEAT-078: Per-client focus state support
 - FEAT-077: Human-control mode UX indicator and MCP error details
 - FEAT-076: Capability signaling protocol (sideband metadata)
@@ -46,13 +47,14 @@ Core terminal multiplexer features complete. Eighteen features remain in backlog
 
 | ID | Title | Component | Priority | Status | Notes |
 |----|-------|-----------|----------|--------|-------|
+| FEAT-079 | Comprehensive Human-Control Arbitration | ccmux-server, ccmux-protocol | P2 | **Ready** | Expand user priority lockout to block all mutations (input, resize, kill) per ADR-004/005. |
 | FEAT-078 | Per-client focus state support | ccmux-server, ccmux-client, ccmux-protocol | P2 | **Ready** | Ensure focus/selection is per-client (avoid focus fights) with snapshot initialization only. |
 | FEAT-077 | Human-control mode UX indicator and MCP error details | ccmux-client, ccmux-server | P2 | **Ready** | TUI indicator + timer for human-control mode; structured MCP errors include remaining block duration. |
 | FEAT-075 | Snapshot + replay resync API (event retention) | ccmux-server, ccmux-protocol, ccmux-client | P2 | **Ready** | Resync after gaps via snapshot fallback + event replay. |
 | FEAT-063 | Add file-based logging to MCP bridge mode | ccmux-server | P1 | **Ready** | Enable file logging for mcp-bridge to debug BUG-039. Small change. |
 | FEAT-061 | Screen Redraw Command | ccmux-client | P2 | **Ready** | Keybind to force full screen redraw for display corruption recovery. |
 | FEAT-074 | Observability instrumentation (metrics, tracing, status) | ccmux-server | P2 | **Ready** | Structured logging, tracing, metrics, and status fields per OBSERVABILITY.md. |
-| FEAT-073 | Visibility dashboard (stuck detection, mailbox, graph pane) | ccmux-client | P2 | **Ready** | Terminal-native visibility dashboard for multi-agent oversight. |
+| FEAT-073 | Visibility dashboard (stuck detection, mailbox, graph pane) | ccmux-client | P2 | **Ready** | Terminal-native visibility dashboard with activity feed/intent log and mailbox. |
 | FEAT-071 | Per-pane Claude configuration on spawn | ccmux-server, ccmux-protocol | P2 | **Ready** | Configure model, context limits per pane. Blocks FEAT-072. |
 | FEAT-066 | TCP listener support in daemon | ccmux-server | P2 | **Ready** | Optional TCP listener for remote workflows. Phase 1 of remote peering. Blocks FEAT-067. |
 | FEAT-067 | Client TCP connection support | ccmux-client | P2 | **Ready** | TCP client connection capability. Phase 2 of remote peering. Blocks FEAT-068. |

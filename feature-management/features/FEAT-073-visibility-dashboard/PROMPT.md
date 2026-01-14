@@ -11,12 +11,14 @@ Operators need at-a-glance visibility into multi-agent progress, blocked/stuck w
 - Badges surface stuck/slow status in the pane list or status bar.
 - Mailbox widget aggregates worker summaries sent via sideband messages with priority and timestamps.
 - Selecting mailbox entries can jump to the source pane and expand details.
+- **Activity Feed pane to view the stream of intent/events (decoded from WAL/Broadcasts).**
 - Optional graph/info pane renders a simple relationship/status map via Ratatui Canvas.
 - Dashboard stays terminal-native and performant for frequent updates.
 
 ## Design
 Based on `docs/scratch/grok/ccmux-visibility-dashboard.md`.
 - Mailbox widget uses a sideband message format like `<ccmux:mail priority="info|warn|error" summary="...">`.
+- **Activity Feed listens to server broadcasts/events and renders a scrolling log of "Intents" (e.g., "Agent X focused Pane Y", "User Z created Window W").**
 - Graph pane renders nodes (panes/tasks) colored by status and edges for relationships.
 - Start with mailbox + stuck detection, then add a static graph and evolve to dynamic updates.
 
@@ -31,7 +33,12 @@ Based on `docs/scratch/grok/ccmux-visibility-dashboard.md`.
 - [ ] Render mailbox widget with priority color-coding and timestamps.
 - [ ] Add interaction: select entry to jump/expand.
 
-### Section 3: Graph/info pane
+### Section 3: Activity Feed
+- [ ] Create a new pane type or widget for the Activity Feed.
+- [ ] Subscribe to `SessionState` or `Event` broadcasts.
+- [ ] Render decoded events as a human-readable log stream.
+
+### Section 4: Graph/info pane
 - [ ] Add spawnable info/graph pane using Ratatui Canvas.
 - [ ] Render nodes/edges with simple grid layout.
 - [ ] Redraw on relevant state changes.
