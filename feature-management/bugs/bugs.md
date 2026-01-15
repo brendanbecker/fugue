@@ -23,7 +23,7 @@
 | ID | Description | Priority | Status | Component | Link |
 |----|-------------|----------|--------|-----------|------|
 | BUG-041 | Claude Code crashes on paste inside ccmux | P1 | new | pty/client | [Link](BUG-041-claude-code-crashes-on-paste-inside-ccmux/) |
-| BUG-038 | create_pane returns wrong response type | P1 | new | mcp | [Link](BUG-038-create-pane-returns-wrong-response-type/) |
+| BUG-038 | create_pane returns wrong response type | P1 | fixed | mcp | [Link](BUG-038-create-pane-returns-wrong-response-type/) |
 | BUG-037 | close_pane returns AbortError | P2 | new | daemon | [Link](BUG-037-close-pane-aborts/) |
 | BUG-032 | MCP handlers missing TUI broadcasts for pane/window/layout ops | P0 | fixed | ccmux-server | [Link](BUG-032-mcp-handlers-missing-tui-broadcasts/) |
 | BUG-031 | Metadata not persisting across restarts | P1 | open | daemon | [Link](BUG-031-metadata-not-persisting-across-restarts/) |
