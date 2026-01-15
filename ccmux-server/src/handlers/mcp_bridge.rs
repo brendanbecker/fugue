@@ -375,6 +375,8 @@ impl HandlerContext {
         // If select is true, focus the new pane (set as active pane in window and window as active)
         if select {
             window.set_active_pane(pane_id);
+            // Also update client focus (FEAT-078)
+            self.registry.update_client_focus(self.client_id, Some(session_id), Some(window_id), Some(pane_id));
             debug!(pane_id = %pane_id, "Pane focused after creation (select=true)");
         }
 
@@ -830,6 +832,8 @@ impl HandlerContext {
         // If select is true, focus the new pane
         if select {
             window.set_active_pane(new_pane_id);
+            // Also update client focus (FEAT-078)
+            self.registry.update_client_focus(self.client_id, Some(session_id), Some(window_id), Some(new_pane_id));
         }
 
         // Capture session environment before dropping lock

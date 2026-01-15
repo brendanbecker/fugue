@@ -6,6 +6,7 @@
 
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, RwLock};
 
 use dashmap::DashMap;
 use tokio::sync::mpsc;
@@ -40,6 +41,21 @@ impl std::fmt::Display for ClientId {
     }
 }
 
+/// Per-client focus state (FEAT-078)
+///
+/// Tracks which session/window/pane this specific client is viewing.
+/// This allows multiple clients to be attached to the same session but
+/// view different parts of it independently.
+#[derive(Debug, Clone, Default)]
+pub struct ClientFocusState {
+    /// Currently focused session ID
+    pub active_session_id: Option<SessionId>,
+    /// Currently focused window ID (within the active session)
+    pub active_window_id: Option<Uuid>,
+    /// Currently focused pane ID (within the active window)
+    pub active_pane_id: Option<Uuid>,
+}
+
 /// Entry for a connected client
 pub struct ClientEntry {
     /// Channel for sending messages to this client
@@ -48,6 +64,8 @@ pub struct ClientEntry {
     pub attached_session: Option<SessionId>,
     /// Type of client (TUI, MCP, etc.)
     pub client_type: ClientType,
+    /// Per-client focus state
+    pub focus: Arc<RwLock<ClientFocusState>>,
 }
 
 impl std::fmt::Debug for ClientEntry {
@@ -56,6 +74,7 @@ impl std::fmt::Debug for ClientEntry {
             .field("attached_session", &self.attached_session)
             .field("sender_closed", &self.sender.is_closed())
             .field("client_type", &self.client_type)
+            .field("focus", &self.focus)
             .finish()
     }
 }
@@ -100,6 +119,7 @@ impl ClientRegistry {
             sender,
             attached_session: None,
             client_type: ClientType::Unknown,
+            focus: Arc::new(RwLock::new(ClientFocusState::default())),
         };
 
         self.clients.insert(id, entry);
@@ -147,6 +167,34 @@ impl ClientRegistry {
             .get(&client_id)
             .map(|entry| entry.client_type)
             .unwrap_or(ClientType::Unknown)
+    }
+
+    // ==================== Client Focus Management ====================
+
+    /// Update a client's focus state
+    ///
+    /// This uses internal locking, so it's safe to call from any thread.
+    pub fn update_client_focus(
+        &self,
+        client_id: ClientId,
+        session_id: Option<SessionId>,
+        window_id: Option<Uuid>,
+        pane_id: Option<Uuid>,
+    ) {
+        if let Some(entry) = self.clients.get(&client_id) {
+            if let Ok(mut focus) = entry.focus.write() {
+                focus.active_session_id = session_id;
+                focus.active_window_id = window_id;
+                focus.active_pane_id = pane_id;
+            }
+        }
+    }
+
+    /// Get a snapshot of a client's focus state
+    pub fn get_client_focus(&self, client_id: ClientId) -> Option<ClientFocusState> {
+        self.clients.get(&client_id).map(|entry| {
+            entry.focus.read().ok().map(|f| f.clone()).unwrap_or_default()
+        })
     }
 
     // ==================== Session Association ====================
@@ -1104,12 +1152,14 @@ mod tests {
             sender: tx,
             attached_session: Some(Uuid::new_v4()),
             client_type: ClientType::Unknown,
+            focus: Arc::new(RwLock::new(ClientFocusState::default())),
         };
 
         let debug = format!("{:?}", entry);
         assert!(debug.contains("ClientEntry"));
         assert!(debug.contains("attached_session"));
         assert!(debug.contains("client_type"));
+        assert!(debug.contains("focus"));
     }
 
     // ==================== Disconnected Client Cleanup Tests ====================
@@ -1299,5 +1349,37 @@ mod tests {
         // No clients should receive (session A has no clients)
         assert_eq!(count, 0, "No clients attached to session A");
         assert!(tui_rx.try_recv().is_err(), "TUI (in session B) should NOT receive");
+    }
+
+    // ==================== Client Focus Tests ====================
+
+    #[tokio::test]
+    async fn test_client_focus_state() {
+        let (registry, client_id, _rx) = setup_client();
+        let session_id = Uuid::new_v4();
+        let window_id = Uuid::new_v4();
+        let pane_id = Uuid::new_v4();
+
+        // Initial state should be empty
+        let focus = registry.get_client_focus(client_id).unwrap();
+        assert!(focus.active_session_id.is_none());
+        assert!(focus.active_window_id.is_none());
+        assert!(focus.active_pane_id.is_none());
+
+        // Update focus
+        registry.update_client_focus(client_id, Some(session_id), Some(window_id), Some(pane_id));
+
+        // Verify update
+        let focus = registry.get_client_focus(client_id).unwrap();
+        assert_eq!(focus.active_session_id, Some(session_id));
+        assert_eq!(focus.active_window_id, Some(window_id));
+        assert_eq!(focus.active_pane_id, Some(pane_id));
+
+        // Update partial
+        let new_pane_id = Uuid::new_v4();
+        registry.update_client_focus(client_id, Some(session_id), Some(window_id), Some(new_pane_id));
+        
+        let focus = registry.get_client_focus(client_id).unwrap();
+        assert_eq!(focus.active_pane_id, Some(new_pane_id));
     }
 }

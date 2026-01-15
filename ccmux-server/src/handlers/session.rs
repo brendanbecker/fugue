@@ -168,57 +168,63 @@ impl HandlerContext {
             let session_info = session.to_info();
 
             // Collect window and pane info, along with scrollback content for each pane
-            let session = session_manager.get_session(session_id).unwrap();
-            let windows: Vec<_> = session.windows().map(|w| w.to_info()).collect();
+            // Scope the immutable borrow of session
+            let (windows, panes, initial_output, active_window, active_pane) = {
+                let session = session_manager.get_session(session_id).unwrap();
+                let windows: Vec<_> = session.windows().map(|w| w.to_info()).collect();
 
-            // Collect pane info and scrollback content
-            let mut panes = Vec::new();
-            let mut initial_output: Vec<ServerMessage> = Vec::new();
+                // Collect pane info and scrollback content
+                let mut panes = Vec::new();
+                let mut initial_output: Vec<ServerMessage> = Vec::new();
 
-            for window in session.windows() {
-                for pane in window.panes() {
-                    panes.push(pane.to_info());
+                for window in session.windows() {
+                    for pane in window.panes() {
+                        panes.push(pane.to_info());
 
-                    // Get the current scrollback content for this pane
-                    // This allows the client to see existing terminal content on attach
-                    let scrollback = pane.scrollback();
-                    let lines: Vec<&str> = scrollback.get_lines().collect();
-                    if !lines.is_empty() {
-                        // Join lines with newlines and send as output
-                        let content = lines.join("\n");
-                        let content_len = content.len();
-                        let line_count = lines.len();
-                        if !content.is_empty() {
-                            initial_output.push(ServerMessage::Output {
-                                pane_id: pane.id(),
-                                data: content.into_bytes(),
-                            });
-                            debug!(
-                                "Prepared initial scrollback for pane {} ({} lines, {} bytes)",
-                                pane.id(),
-                                line_count,
-                                content_len
-                            );
+                        // Get the current scrollback content for this pane
+                        // This allows the client to see existing terminal content on attach
+                        let scrollback = pane.scrollback();
+                        let lines: Vec<&str> = scrollback.get_lines().collect();
+                        if !lines.is_empty() {
+                            // Join lines with newlines and send as output
+                            let content = lines.join("\n");
+                            if !content.is_empty() {
+                                initial_output.push(ServerMessage::Output {
+                                    pane_id: pane.id(),
+                                    data: content.into_bytes(),
+                                });
+                            }
                         }
                     }
                 }
-            }
+                
+                // Initialize client focus state
+                let active_window = session.active_window_id();
+                let active_pane = if let Some(wid) = active_window {
+                    session.get_window(wid).and_then(|w| w.active_pane_id())
+                } else {
+                    None
+                };
+
+                (windows, panes, initial_output, active_window, active_pane)
+            };
 
             // Set this as the active session for MCP commands that don't specify a session
+            // Legacy behavior: Update global session state as fallback/default
             session_manager.set_active_session(session_id);
-
+            
             drop(session_manager);
 
-            // Register in client registry
+            // Register in client registry and set initial focus
             self.registry.attach_to_session(self.client_id, session_id);
+            self.registry.update_client_focus(self.client_id, Some(session_id), active_window, active_pane);
 
             info!(
-                "Client {} attached to session {} ({} windows, {} panes, {} panes with scrollback)",
+                "Client {} attached to session {} (focus: w={:?}, p={:?})",
                 self.client_id,
                 session_id,
-                windows.len(),
-                panes.len(),
-                initial_output.len()
+                active_window,
+                active_pane
             );
 
             // Return response with follow-up output messages for initial scrollback
@@ -567,6 +573,111 @@ impl HandlerContext {
             format!("Window '{}' not found", window_id),
         )
     }
+
+    /// Handle SelectSession message - update active session
+    ///
+    /// FEAT-078: Updates per-client focus state instead of global session state.
+    /// FEAT-056: Checks user priority lock before changing focus.
+    pub async fn handle_select_session(&self, session_id: Uuid) -> HandlerResult {
+        debug!("SelectSession {} request from {}", session_id, self.client_id);
+
+        // Check if user priority lock is active (FEAT-056)
+        if let Some((_client_id, remaining_ms)) = self.user_priority.check_focus_lock() {
+            debug!(
+                "SelectSession blocked by user priority lock, retry after {}ms",
+                remaining_ms
+            );
+            return HandlerContext::error_with_details(
+                ErrorCode::UserPriorityActive,
+                format!("User priority lock active, retry after {}ms", remaining_ms),
+                ErrorDetails::HumanControl { remaining_ms },
+            );
+        }
+
+        let session_manager = self.session_manager.read().await;
+
+        // Verify session exists
+        if let Some(session) = session_manager.get_session(session_id) {
+            // Get default focus for this session
+            let active_window = session.active_window_id();
+            let active_pane = if let Some(wid) = active_window {
+                session.get_window(wid).and_then(|w| w.active_pane_id())
+            } else {
+                None
+            };
+            
+            // Update client focus
+            self.registry.update_client_focus(self.client_id, Some(session_id), active_window, active_pane);
+            
+            debug!("Client {} selected session {}", self.client_id, session_id);
+            
+            // Send confirmation ONLY to the requesting client
+            HandlerResult::Response(ServerMessage::SessionFocused { session_id })
+        } else {
+            debug!("Session {} not found for SelectSession", session_id);
+            HandlerContext::error(
+                ErrorCode::SessionNotFound,
+                format!("Session {} not found", session_id),
+            )
+        }
+    }
+
+    /// Handle SelectWindow message - update active window
+    ///
+    /// FEAT-078: Updates per-client focus state instead of global session state.
+    /// FEAT-056: Checks user priority lock before changing focus.
+    pub async fn handle_select_window(&self, window_id: Uuid) -> HandlerResult {
+        debug!("SelectWindow {} request from {}", window_id, self.client_id);
+
+        // Check if user priority lock is active (FEAT-056)
+        if let Some((_client_id, remaining_ms)) = self.user_priority.check_focus_lock() {
+            debug!(
+                "SelectWindow blocked by user priority lock, retry after {}ms",
+                remaining_ms
+            );
+            return HandlerContext::error_with_details(
+                ErrorCode::UserPriorityActive,
+                format!("User priority lock active, retry after {}ms", remaining_ms),
+                ErrorDetails::HumanControl { remaining_ms },
+            );
+        }
+
+        let session_manager = self.session_manager.read().await;
+
+        // Find the session containing this window
+        let result = session_manager
+            .list_sessions()
+            .iter()
+            .find_map(|s| {
+                if let Some(w) = s.windows().find(|w| w.id() == window_id) {
+                    Some((s.id(), w.active_pane_id()))
+                } else {
+                    None
+                }
+            });
+
+        match result {
+            Some((session_id, active_pane_id)) => {
+                // Update client focus
+                self.registry.update_client_focus(self.client_id, Some(session_id), Some(window_id), active_pane_id);
+                
+                debug!("Client {} selected window {}", self.client_id, window_id);
+                
+                // Send confirmation ONLY to the requesting client
+                HandlerResult::Response(ServerMessage::WindowFocused {
+                    session_id,
+                    window_id,
+                })
+            }
+            None => {
+                debug!("Window {} not found for SelectWindow", window_id);
+                HandlerContext::error(
+                    ErrorCode::WindowNotFound,
+                    format!("Window {} not found", window_id),
+                )
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -851,7 +962,7 @@ mod tests {
             HandlerResult::ResponseWithBroadcast {
                 response: ServerMessage::WindowCreated { window },
                 session_id: broadcast_session,
-                ..
+                .. 
             } => {
                 assert_eq!(window.name, "main");
                 assert_eq!(window.session_id, session_id);
