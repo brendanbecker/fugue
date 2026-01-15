@@ -5,7 +5,7 @@
 use tracing::{debug, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::{ErrorCode, ReplyMessage, ServerMessage};
+use ccmux_protocol::{ErrorCode, ReplyMessage, ServerMessage, messages::ClientType};
 
 use super::{HandlerContext, HandlerResult};
 use crate::reply::ReplyHandler;
@@ -13,6 +13,27 @@ use crate::reply::ReplyHandler;
 impl HandlerContext {
     /// Handle Input message - write data to PTY
     pub async fn handle_input(&self, pane_id: Uuid, data: Vec<u8>) -> HandlerResult {
+        // Arbitrate access based on client type (FEAT-079)
+        let client_type = self.registry.get_client_type(self.client_id);
+        match client_type {
+            ClientType::Tui => {
+                self.user_priority.record_human_input(pane_id);
+            }
+            ClientType::Mcp => {
+                if let Err(remaining) = self.user_priority.check_input_access(pane_id) {
+                    debug!(
+                        "Input blocked for pane {} due to human activity (retry in {}ms)",
+                        pane_id, remaining
+                    );
+                    return HandlerContext::error(
+                        ErrorCode::UserPriorityActive,
+                        format!("Input blocked by human activity, retry after {}ms", remaining),
+                    );
+                }
+            }
+            _ => {}
+        }
+
         // Don't log data contents for privacy
         debug!(
             "Input for pane {} ({} bytes) from {}",
@@ -152,7 +173,7 @@ mod tests {
     use crate::pty::PtyManager;
     use crate::registry::ClientRegistry;
     use crate::session::SessionManager;
-    use crate::user_priority::UserPriorityManager;
+    use crate::user_priority::Arbitrator;
     use std::sync::Arc;
     use tokio::sync::{mpsc, RwLock};
 
@@ -161,7 +182,7 @@ mod tests {
         let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
         let registry = Arc::new(ClientRegistry::new());
         let config = Arc::new(crate::config::AppConfig::default());
-        let user_priority = Arc::new(UserPriorityManager::new());
+        let user_priority = Arc::new(Arbitrator::new());
         let command_executor = Arc::new(crate::sideband::AsyncCommandExecutor::new(
             Arc::clone(&session_manager),
             Arc::clone(&pty_manager),

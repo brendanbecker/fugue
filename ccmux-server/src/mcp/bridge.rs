@@ -55,6 +55,7 @@ pub enum ConnectionState {
 
 use ccmux_protocol::{
     ClientCodec, ClientMessage, PaneListEntry, ServerMessage, SplitDirection, PROTOCOL_VERSION,
+    messages::ClientType,
 };
 use ccmux_utils::socket_path;
 
@@ -178,6 +179,7 @@ impl McpBridge {
         self.send_to_daemon(ClientMessage::Connect {
             client_id: self.client_id,
             protocol_version: PROTOCOL_VERSION,
+            client_type: Some(ClientType::Mcp),
         })
         .await?;
 

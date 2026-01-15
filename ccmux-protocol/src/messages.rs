@@ -66,6 +66,23 @@ pub enum OrchestrationTarget {
     Worktree(String),
 }
 
+/// Type of client connecting to the server
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ClientType {
+    /// Terminal UI client (Human)
+    Tui,
+    /// MCP Bridge client (Agent)
+    Mcp,
+    /// Unknown or legacy client
+    Unknown,
+}
+
+impl Default for ClientType {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
 /// Messages sent from client to server
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ClientMessage {
@@ -73,6 +90,10 @@ pub enum ClientMessage {
     Connect {
         client_id: Uuid,
         protocol_version: u32,
+        /// Type of client (TUI, MCP, etc.)
+        /// Optional for backward compatibility with v1 clients
+        #[serde(default)]
+        client_type: Option<ClientType>,
     },
 
     /// Request list of sessions
@@ -697,6 +718,7 @@ mod tests {
         let msg = ClientMessage::Connect {
             client_id,
             protocol_version: 1,
+            client_type: Some(ClientType::Tui),
         };
 
         // Test clone
@@ -707,6 +729,7 @@ mod tests {
         let debug = format!("{:?}", msg);
         assert!(debug.contains("Connect"));
         assert!(debug.contains(&client_id.to_string()));
+        assert!(debug.contains("Tui"));
     }
 
     #[test]

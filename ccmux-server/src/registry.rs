@@ -12,7 +12,7 @@ use tokio::sync::mpsc;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::ServerMessage;
+use ccmux_protocol::{ServerMessage, messages::ClientType};
 
 /// Type alias for session IDs (matches the Uuid type used in session module)
 pub type SessionId = Uuid;
@@ -46,6 +46,8 @@ pub struct ClientEntry {
     pub sender: mpsc::Sender<ServerMessage>,
     /// Session this client is attached to (if any)
     pub attached_session: Option<SessionId>,
+    /// Type of client (TUI, MCP, etc.)
+    pub client_type: ClientType,
 }
 
 impl std::fmt::Debug for ClientEntry {
@@ -53,6 +55,7 @@ impl std::fmt::Debug for ClientEntry {
         f.debug_struct("ClientEntry")
             .field("attached_session", &self.attached_session)
             .field("sender_closed", &self.sender.is_closed())
+            .field("client_type", &self.client_type)
             .finish()
     }
 }
@@ -96,6 +99,7 @@ impl ClientRegistry {
         let entry = ClientEntry {
             sender,
             attached_session: None,
+            client_type: ClientType::Unknown,
         };
 
         self.clients.insert(id, entry);
@@ -127,6 +131,22 @@ impl ClientRegistry {
     /// Get the number of connected clients
     pub fn client_count(&self) -> usize {
         self.clients.len()
+    }
+
+    /// Set the client type for a client
+    pub fn set_client_type(&self, client_id: ClientId, client_type: ClientType) {
+        if let Some(mut entry) = self.clients.get_mut(&client_id) {
+            entry.client_type = client_type;
+            debug!("Set client type for {} to {:?}", client_id, client_type);
+        }
+    }
+
+    /// Get the client type for a client
+    pub fn get_client_type(&self, client_id: ClientId) -> ClientType {
+        self.clients
+            .get(&client_id)
+            .map(|entry| entry.client_type)
+            .unwrap_or(ClientType::Unknown)
     }
 
     // ==================== Session Association ====================
@@ -1083,11 +1103,13 @@ mod tests {
         let entry = ClientEntry {
             sender: tx,
             attached_session: Some(Uuid::new_v4()),
+            client_type: ClientType::Unknown,
         };
 
         let debug = format!("{:?}", entry);
         assert!(debug.contains("ClientEntry"));
         assert!(debug.contains("attached_session"));
+        assert!(debug.contains("client_type"));
     }
 
     // ==================== Disconnected Client Cleanup Tests ====================

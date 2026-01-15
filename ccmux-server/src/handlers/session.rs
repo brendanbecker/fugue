@@ -8,7 +8,7 @@ use ccmux_utils::CcmuxError;
 
 use crate::pty::{PtyConfig, PtyOutputPoller};
 
-use ccmux_protocol::{ErrorCode, ServerMessage};
+use ccmux_protocol::{ErrorCode, ServerMessage, messages::ClientType};
 
 use super::{HandlerContext, HandlerResult};
 
@@ -250,14 +250,15 @@ impl HandlerContext {
         );
 
         // Collect pane IDs and session name for PTY cleanup before removing session
-        let (pane_ids, session_name): (Vec<Uuid>, String) = {
+        let (pane_ids, window_ids, session_name): (Vec<Uuid>, Vec<Uuid>, String) = {
             let session_manager = self.session_manager.read().await;
             if let Some(session) = session_manager.get_session(session_id) {
                 let panes = session
                     .windows()
                     .flat_map(|w| w.panes().map(|p| p.id()))
                     .collect();
-                (panes, session.name().to_string())
+                let windows = session.windows().map(|w| w.id()).collect();
+                (panes, windows, session.name().to_string())
             } else {
                 debug!("Session {} not found for DestroySession", session_id);
                 return HandlerContext::error(
@@ -266,6 +267,19 @@ impl HandlerContext {
                 );
             }
         };
+
+        // FEAT-079: Arbitrate session destruction
+        let client_type = self.registry.get_client_type(self.client_id);
+        if client_type == ClientType::Mcp {
+            for window_id in window_ids {
+                if let Err(remaining) = self.user_priority.check_layout_access(window_id) {
+                    return HandlerContext::error(
+                        ErrorCode::UserPriorityActive,
+                        format!("Session destruction blocked by human activity in window {}, retry after {}ms", window_id, remaining),
+                    );
+                }
+            }
+        }
 
         // Kill all PTY processes for panes in this session
         {
@@ -560,7 +574,7 @@ mod tests {
     use crate::pty::PtyManager;
     use crate::registry::ClientRegistry;
     use crate::session::SessionManager;
-    use crate::user_priority::UserPriorityManager;
+    use crate::user_priority::Arbitrator;
     use std::sync::Arc;
     use tokio::sync::{mpsc, RwLock};
 
@@ -569,7 +583,7 @@ mod tests {
         let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
         let registry = Arc::new(ClientRegistry::new());
         let config = Arc::new(crate::config::AppConfig::default());
-        let user_priority = Arc::new(UserPriorityManager::new());
+        let user_priority = Arc::new(Arbitrator::new());
         let command_executor = Arc::new(crate::sideband::AsyncCommandExecutor::new(
             Arc::clone(&session_manager),
             Arc::clone(&pty_manager),

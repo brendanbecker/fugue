@@ -3,7 +3,7 @@
 use bytes::{Buf, BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
-use crate::messages::{ClientMessage, ServerMessage};
+use crate::messages::{ClientMessage, ServerMessage, ClientType};
 
 /// Maximum message size (16 MB)
 const MAX_MESSAGE_SIZE: usize = 16 * 1024 * 1024;
@@ -156,6 +156,7 @@ mod tests {
         let msg = ClientMessage::Connect {
             client_id: Uuid::new_v4(),
             protocol_version: 1,
+            client_type: Some(ClientType::Tui),
         };
 
         let mut buf = BytesMut::new();
@@ -226,6 +227,7 @@ mod tests {
             ClientMessage::Connect {
                 client_id: Uuid::new_v4(),
                 protocol_version: 1,
+                client_type: None,
             },
             ClientMessage::ListSessions,
             ClientMessage::CreateSession {

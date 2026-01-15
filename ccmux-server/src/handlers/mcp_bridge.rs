@@ -7,7 +7,7 @@ use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use ccmux_protocol::{
-    ErrorCode, PaneListEntry, PaneState, ServerMessage, SplitDirection, WindowInfo,
+    ErrorCode, PaneListEntry, PaneState, ServerMessage, SplitDirection, WindowInfo, messages::ClientType,
 };
 
 use crate::pty::{PtyConfig, PtyOutputPoller};
@@ -327,6 +327,19 @@ impl HandlerContext {
                 None => session.create_window(None).id(),
             }
         };
+
+        // FEAT-079: Arbitrate layout access
+        let client_type = self.registry.get_client_type(self.client_id);
+        if client_type == ClientType::Mcp {
+            if let Err(remaining) = self.user_priority.check_layout_access(window_id) {
+                return HandlerContext::error(
+                    ErrorCode::UserPriorityActive,
+                    format!("CreatePane blocked by human activity, retry after {}ms", remaining),
+                );
+            }
+        } else if client_type == ClientType::Tui {
+            self.user_priority.record_human_layout(window_id);
+        }
 
         // Create the pane
         let window = match session.get_window_mut(window_id) {
@@ -767,6 +780,19 @@ impl HandlerContext {
         let session_name = session.name().to_string();
         let window_id = window.id();
 
+        // FEAT-079: Arbitrate layout access
+        let client_type = self.registry.get_client_type(self.client_id);
+        if client_type == ClientType::Mcp {
+            if let Err(remaining) = self.user_priority.check_layout_access(window_id) {
+                return HandlerContext::error(
+                    ErrorCode::UserPriorityActive,
+                    format!("SplitPane blocked by human activity, retry after {}ms", remaining),
+                );
+            }
+        } else if client_type == ClientType::Tui {
+            self.user_priority.record_human_layout(window_id);
+        }
+
         // Drop read lock before taking write lock
         drop(session_manager);
 
@@ -906,6 +932,20 @@ impl HandlerContext {
 
         let session_id = session.id();
         let (current_cols, current_rows) = pane.dimensions();
+        let window_id = pane.window_id();
+
+        // FEAT-079: Arbitrate layout access
+        let client_type = self.registry.get_client_type(self.client_id);
+        if client_type == ClientType::Mcp {
+            if let Err(remaining) = self.user_priority.check_layout_access(window_id) {
+                return HandlerContext::error(
+                    ErrorCode::UserPriorityActive,
+                    format!("ResizePane blocked by human activity, retry after {}ms", remaining),
+                );
+            }
+        } else if client_type == ClientType::Tui {
+            self.user_priority.record_human_layout(window_id);
+        }
 
         // Drop read lock before taking write lock
         drop(session_manager);
@@ -1054,6 +1094,19 @@ impl HandlerContext {
                     None => session.create_window(None).id(),
                 }
             };
+
+            // FEAT-079: Arbitrate layout access
+            let client_type = self.registry.get_client_type(self.client_id);
+            if client_type == ClientType::Mcp {
+                if let Err(remaining) = self.user_priority.check_layout_access(window_id) {
+                    return HandlerContext::error(
+                        ErrorCode::UserPriorityActive,
+                        format!("CreateLayout blocked by human activity, retry after {}ms", remaining),
+                    );
+                }
+            } else if client_type == ClientType::Tui {
+                self.user_priority.record_human_layout(window_id);
+            }
 
             // Parse and create layout, collecting PTY configs for later spawning
             // BUG-032: Also collect PaneInfo for TUI broadcast
@@ -1567,7 +1620,7 @@ mod tests {
     use crate::pty::PtyManager;
     use crate::registry::ClientRegistry;
     use crate::session::SessionManager;
-    use crate::user_priority::UserPriorityManager;
+    use crate::user_priority::Arbitrator;
     use std::sync::Arc;
     use tokio::sync::{mpsc, RwLock};
 
@@ -1576,7 +1629,7 @@ mod tests {
         let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
         let registry = Arc::new(ClientRegistry::new());
         let config = Arc::new(crate::config::AppConfig::default());
-        let user_priority = Arc::new(UserPriorityManager::new());
+        let user_priority = Arc::new(Arbitrator::new());
         let command_executor = Arc::new(crate::sideband::AsyncCommandExecutor::new(
             Arc::clone(&session_manager),
             Arc::clone(&pty_manager),
@@ -1870,7 +1923,7 @@ mod tests {
         let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
         let registry = Arc::new(ClientRegistry::new());
         let config = Arc::new(crate::config::AppConfig::default());
-        let user_priority = Arc::new(UserPriorityManager::new());
+        let user_priority = Arc::new(Arbitrator::new());
         let command_executor = Arc::new(crate::sideband::AsyncCommandExecutor::new(
             Arc::clone(&session_manager),
             Arc::clone(&pty_manager),
@@ -1971,7 +2024,7 @@ mod tests {
         let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
         let registry = Arc::new(ClientRegistry::new());
         let config = Arc::new(crate::config::AppConfig::default());
-        let user_priority = Arc::new(UserPriorityManager::new());
+        let user_priority = Arc::new(Arbitrator::new());
         let command_executor = Arc::new(crate::sideband::AsyncCommandExecutor::new(
             Arc::clone(&session_manager),
             Arc::clone(&pty_manager),
@@ -2078,7 +2131,7 @@ mod tests {
         let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
         let registry = Arc::new(ClientRegistry::new());
         let config = Arc::new(crate::config::AppConfig::default());
-        let user_priority = Arc::new(UserPriorityManager::new());
+        let user_priority = Arc::new(Arbitrator::new());
         let command_executor = Arc::new(crate::sideband::AsyncCommandExecutor::new(
             Arc::clone(&session_manager),
             Arc::clone(&pty_manager),
@@ -2168,7 +2221,7 @@ mod tests {
         let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
         let registry = Arc::new(ClientRegistry::new());
         let config = Arc::new(crate::config::AppConfig::default());
-        let user_priority = Arc::new(UserPriorityManager::new());
+        let user_priority = Arc::new(Arbitrator::new());
         let command_executor = Arc::new(crate::sideband::AsyncCommandExecutor::new(
             Arc::clone(&session_manager),
             Arc::clone(&pty_manager),

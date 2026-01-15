@@ -5,7 +5,7 @@
 use tracing::{debug, info};
 use uuid::Uuid;
 
-use ccmux_protocol::{ErrorCode, ServerMessage, PROTOCOL_VERSION};
+use ccmux_protocol::{ErrorCode, ServerMessage, PROTOCOL_VERSION, messages::ClientType};
 
 use super::{HandlerContext, HandlerResult};
 
@@ -15,10 +15,13 @@ impl HandlerContext {
         &self,
         client_uuid: Uuid,
         protocol_version: u32,
+        client_type: Option<ClientType>,
     ) -> HandlerResult {
+        let client_type = client_type.unwrap_or(ClientType::Unknown);
+        
         info!(
-            "Client {} (UUID: {}) connecting with protocol version {}",
-            self.client_id, client_uuid, protocol_version
+            "Client {} (UUID: {}, Type: {:?}) connecting with protocol version {}",
+            self.client_id, client_uuid, client_type, protocol_version
         );
 
         if protocol_version != PROTOCOL_VERSION {
@@ -30,6 +33,9 @@ impl HandlerContext {
                 ),
             );
         }
+
+        // Store client type in registry
+        self.registry.set_client_type(self.client_id, client_type);
 
         HandlerResult::Response(ServerMessage::Connected {
             server_version: env!("CARGO_PKG_VERSION").to_string(),
@@ -166,7 +172,7 @@ mod tests {
     use crate::pty::PtyManager;
     use crate::registry::ClientRegistry;
     use crate::session::SessionManager;
-    use crate::user_priority::UserPriorityManager;
+    use crate::user_priority::Arbitrator;
     use std::sync::Arc;
     use tokio::sync::{mpsc, RwLock};
 
@@ -175,7 +181,7 @@ mod tests {
         let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
         let registry = Arc::new(ClientRegistry::new());
         let config = Arc::new(crate::config::AppConfig::default());
-        let user_priority = Arc::new(UserPriorityManager::new());
+        let user_priority = Arc::new(Arbitrator::new());
         let command_executor = Arc::new(crate::sideband::AsyncCommandExecutor::new(
             Arc::clone(&session_manager),
             Arc::clone(&pty_manager),
@@ -193,7 +199,7 @@ mod tests {
     async fn test_handle_connect_success() {
         let ctx = create_test_context();
         let result = ctx
-            .handle_connect(Uuid::new_v4(), PROTOCOL_VERSION)
+            .handle_connect(Uuid::new_v4(), PROTOCOL_VERSION, Some(ClientType::Tui))
             .await;
 
         match result {
@@ -204,12 +210,15 @@ mod tests {
             }
             _ => panic!("Expected Connected response"),
         }
+        
+        // Verify client type stored
+        assert_eq!(ctx.registry.get_client_type(ctx.client_id), ClientType::Tui);
     }
 
     #[tokio::test]
     async fn test_handle_connect_version_mismatch() {
         let ctx = create_test_context();
-        let result = ctx.handle_connect(Uuid::new_v4(), 9999).await;
+        let result = ctx.handle_connect(Uuid::new_v4(), 9999, None).await;
 
         match result {
             HandlerResult::Response(ServerMessage::Error { code, message }) => {

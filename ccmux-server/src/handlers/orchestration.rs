@@ -148,7 +148,7 @@ mod tests {
     use crate::pty::PtyManager;
     use crate::registry::ClientRegistry;
     use crate::session::SessionManager;
-    use crate::user_priority::UserPriorityManager;
+    use crate::user_priority::Arbitrator;
     use serde_json::json;
     use std::sync::Arc;
     use tokio::sync::{mpsc, RwLock};
@@ -159,7 +159,7 @@ mod tests {
         let pty_manager = Arc::new(RwLock::new(PtyManager::new()));
         let registry = Arc::new(ClientRegistry::new());
         let config = Arc::new(crate::config::AppConfig::default());
-        let user_priority = Arc::new(UserPriorityManager::new());
+        let user_priority = Arc::new(Arbitrator::new());
         let command_executor = Arc::new(crate::sideband::AsyncCommandExecutor::new(
             Arc::clone(&session_manager),
             Arc::clone(&pty_manager),

@@ -45,7 +45,7 @@ use persistence::{
 use pty::{PaneClosedNotification, PtyManager, PtyOutputPoller};
 use session::SessionManager;
 use sideband::AsyncCommandExecutor;
-use user_priority::UserPriorityManager;
+use user_priority::Arbitrator;
 
 /// Shared state for concurrent access by client handlers
 ///
@@ -68,7 +68,7 @@ pub struct SharedState {
     /// Sideband command executor for processing Claude commands
     pub command_executor: Arc<AsyncCommandExecutor>,
     /// User priority lock manager (FEAT-056)
-    pub user_priority: Arc<UserPriorityManager>,
+    pub user_priority: Arc<Arbitrator>,
 }
 
 impl SharedState {
@@ -789,7 +789,7 @@ async fn run_daemon() -> Result<()> {
         shutdown_tx: shutdown_tx.clone(),
         pane_closed_tx,
         command_executor,
-        user_priority: Arc::new(UserPriorityManager::new()),
+        user_priority: Arc::new(Arbitrator::new()),
     };
 
     // Store references back in server for persistence operations
@@ -1173,7 +1173,7 @@ EXAMPLES:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ccmux_protocol::{ClientMessage, PROTOCOL_VERSION};
+    use ccmux_protocol::{ClientMessage, PROTOCOL_VERSION, messages::ClientType};
     use tempfile::TempDir;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -1203,7 +1203,7 @@ mod tests {
             shutdown_tx,
             pane_closed_tx,
             command_executor,
-            user_priority: Arc::new(user_priority::UserPriorityManager::new()),
+            user_priority: Arc::new(user_priority::Arbitrator::new()),
         }
     }
 
@@ -1383,6 +1383,7 @@ mod tests {
         let connect_msg = ClientMessage::Connect {
             client_id: uuid::Uuid::new_v4(),
             protocol_version: PROTOCOL_VERSION,
+            client_type: None,
         };
         tokio_util::codec::Encoder::encode(&mut client_codec, connect_msg, &mut buf).unwrap();
         client_stream.write_all(&buf).await.unwrap();
@@ -1438,6 +1439,7 @@ mod tests {
         let connect_msg = ClientMessage::Connect {
             client_id: uuid::Uuid::new_v4(),
             protocol_version: 9999, // Invalid version
+            client_type: None,
         };
         tokio_util::codec::Encoder::encode(&mut client_codec, connect_msg, &mut buf).unwrap();
         client_stream.write_all(&buf).await.unwrap();
@@ -1690,6 +1692,7 @@ mod tests {
         let connect_msg = ClientMessage::Connect {
             client_id: uuid::Uuid::new_v4(),
             protocol_version: PROTOCOL_VERSION,
+            client_type: Some(ClientType::Tui),
         };
         Encoder::encode(&mut tui_codec, connect_msg, &mut buf).unwrap();
         tui_client_stream.write_all(&buf).await.unwrap();
@@ -1763,6 +1766,7 @@ mod tests {
         let connect_msg = ClientMessage::Connect {
             client_id: uuid::Uuid::new_v4(),
             protocol_version: PROTOCOL_VERSION,
+            client_type: Some(ClientType::Mcp),
         };
         Encoder::encode(&mut mcp_codec, connect_msg, &mut buf).unwrap();
         mcp_client_stream.write_all(&buf).await.unwrap();

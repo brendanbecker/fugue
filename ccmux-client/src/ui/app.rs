@@ -36,7 +36,7 @@ use uuid::Uuid;
 
 use ccmux_protocol::{
     ClientMessage, ClaudeActivity, PaneInfo, PaneState, ServerMessage, SessionInfo,
-    SplitDirection, WindowInfo,
+    SplitDirection, WindowInfo, ClientType,
 };
 use ccmux_utils::Result;
 
@@ -242,6 +242,7 @@ impl App {
                     .send(ClientMessage::Connect {
                         client_id: self.client_id,
                         protocol_version: ccmux_protocol::PROTOCOL_VERSION,
+                        client_type: Some(ClientType::Tui),
                     })
                     .await?;
                 Ok(())
