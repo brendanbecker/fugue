@@ -100,8 +100,8 @@ impl HandlerContext {
                 session_manager.get_session_by_name(filter)
             }
         } else {
-            // Use first session if not specified
-            session_manager.list_sessions().first().copied()
+            // Use active session if not specified (BUG-034 fix)
+            session_manager.active_session()
         };
 
         match session {
@@ -611,9 +611,9 @@ impl HandlerContext {
                 }
             }
         } else {
-            // Use first session
-            match session_manager.list_sessions().first() {
-                Some(s) => s.id(),
+            // Use active session (BUG-034 fix)
+            match session_manager.active_session_id() {
+                Some(id) => id,
                 None => {
                     return HandlerContext::error(
                         ErrorCode::SessionNotFound,
@@ -1004,8 +1004,8 @@ impl HandlerContext {
                     }
                 }
             } else {
-                match session_manager.list_sessions().first() {
-                    Some(s) => s.id(),
+                match session_manager.active_session_id() {
+                    Some(id) => id,
                     None => {
                         return HandlerContext::error(ErrorCode::SessionNotFound, "No sessions exist");
                     }
@@ -1476,9 +1476,9 @@ impl HandlerContext {
                 }
             }
         } else {
-            // Use first session if not specified
-            match session_manager.list_sessions().first() {
-                Some(s) => s.id(),
+            // Use active session if not specified (BUG-034 fix)
+            match session_manager.active_session_id() {
+                Some(id) => id,
                 None => {
                     return HandlerContext::error(
                         ErrorCode::SessionNotFound,
@@ -1533,8 +1533,8 @@ impl HandlerContext {
                 session_manager.get_session_by_name(filter)
             }
         } else {
-            // Use first session if not specified
-            session_manager.list_sessions().first().copied()
+            // Use active session if not specified (BUG-034 fix)
+            session_manager.active_session()
         };
 
         let session = match session {

@@ -170,9 +170,13 @@ impl McpBridge {
                 // Try to execute the tool
                 match self.dispatch_tool(name, arguments).await {
                     Ok(result) => Ok(result),
-                    Err(McpError::DaemonDisconnected) | Err(McpError::NotConnected) => {
-                        // Connection lost during tool execution - attempt recovery
-                        warn!("Connection lost during tool execution, attempting recovery");
+                    Err(McpError::DaemonDisconnected) 
+                    | Err(McpError::NotConnected)
+                    | Err(McpError::ResponseTimeout { .. }) => {
+                        // Connection lost or timed out during tool execution - attempt recovery
+                        // For ResponseTimeout, reconnecting is essential to clear the stale response 
+                        // from the head of the queue (BUG-035).
+                        warn!("Connection lost or timed out during tool execution, attempting recovery");
 
                         // Update state
                         {

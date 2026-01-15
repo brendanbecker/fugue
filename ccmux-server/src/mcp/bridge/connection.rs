@@ -395,11 +395,12 @@ impl ConnectionManager {
             | ServerMessage::PaneStateChanged { .. }
             // Claude activity updates
             | ServerMessage::ClaudeStateChanged { .. }
+            // Simple session created (broadcast)
+            | ServerMessage::SessionCreated { .. }
             // Simple pane created (broadcast from other clients, not the WithDetails response)
             | ServerMessage::PaneCreated { .. }
-            // Pane closed notifications (broadcast, but we handle it specially for close_pane)
-            // Note: We DON'T filter PaneClosed here because tool_close_pane expects it as a response
-            // | ServerMessage::PaneClosed { .. }
+            // Pane closed notifications (broadcast)
+            | ServerMessage::PaneClosed { .. }
             // Simple window created (broadcast from other clients)
             | ServerMessage::WindowCreated { .. }
             // Window closed notifications
@@ -418,6 +419,9 @@ impl ConnectionManager {
             | ServerMessage::SessionFocused { .. }
             | ServerMessage::WindowFocused { .. }
             | ServerMessage::PaneFocused { .. }
+            // FEAT-058: Beads query integration broadcasts
+            | ServerMessage::BeadsStatusUpdate { .. }
+            | ServerMessage::BeadsReadyList { .. }
         )
     }
 }
