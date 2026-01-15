@@ -16,7 +16,7 @@
 
 | Stream | Focus | Worktree | Objective | Status |
 |--------|-------|----------|-----------|--------|
-| **Stream A** | Core Stability | `../ccmux-stream-a` | Modularize MCP bridge, fix state drift bugs. | Active (Refactor done) |
+| **Stream A** | Core Stability | `../ccmux-stream-a` | Modularize MCP bridge, fix state drift bugs. | Complete |
 | **Stream B** | UX / Safety | `../ccmux-stream-b` | Fix client crashes, implement Human Arbitration. | Ready |
 | **Stream C** | Features | `../ccmux-stream-c` | Sideband Config, Sandboxing, Remote Peering. | Ready |
 
@@ -35,6 +35,7 @@ We use a "CI-in-worktree" pattern to keep branches short-lived and history clean
 ## Recent Activity (2026-01-15)
 
 ### Completed
+- **BUG-032**: MCP handlers missing TUI broadcasts (Stream A).
 - **FEAT-064**: Refactor MCP bridge.rs into modular components (Stream A).
 - **BUG-033, BUG-034, BUG-035, BUG-039, BUG-040**: Core stability and validation fixes (Stream A).
 - **BUG-036**: Fix Selection tools not switching TUI view (Stream A).
@@ -49,20 +50,19 @@ We use a "CI-in-worktree" pattern to keep branches short-lived and history clean
 - **FEAT-070**: Gastown remote pane support (Stream C).
 - **FEAT-075**: Snapshot + replay resync API (Stream B).
 - **FEAT-082 (aka 073)**: Multi-tier routing logic via target aliases (Stream C).
+- **FEAT-063**: File-based logging for MCP bridge (Stream B).
 - **BUG-042**: Flatten Result nesting code smell (Stream A).
 - **Retro**: Conducted comprehensive retrospective, categorized backlog into streams.
 
 ### In Progress
-- **BUG-032 (P0)**: MCP handlers missing TUI broadcasts (Stream A).
 - **FEAT-082 (P2)**: Adaptive layout engine (Stream B).
 - **FEAT-074 (P2)**: Telemetry and observability dashboard (Stream C).
 
 ## Backlog Highlights
 
 ### High Priority (P0/P1)
-- **BUG-032**: MCP handlers missing TUI broadcasts.
 - **BUG-041**: Client crash on paste (Verified Fix, monitor).
-- **BUG-039**: MCP tools hang intermittently.
+- **BUG-039**: MCP tools hang intermittently (Logging added, monitor).
 - **BUG-033**: Layout validation too strict.
 
 ### Strategic Features
@@ -78,31 +78,26 @@ We use a "CI-in-worktree" pattern to keep branches short-lived and history clean
 
 ---
 
-## Session Log (2026-01-15) - Advanced Features & User Experience
+## Session Log (2026-01-15) - Core Stability & Conflict Resolution
 
 ### Work Completed This Session
-1. **FEAT-070: Gastown remote pane support (Stream C)**
-   - Updated `ccmux-compat` CLI wrapper with `--addr` and `CCMUX_ADDR`.
-   - Implemented environment management in compat layer.
-   - Refactored client for generic `StreamTrait`.
+1. **BUG-032 Resolved (Stream A)**
+   - Merged `stream-a-core-stability` which implemented global TUI broadcasts for MCP operations (CreateSession, CreateWindow, CreatePane, etc.).
+   - Updated handlers to return `ResponseWithGlobalBroadcast` or `ResponseWithBroadcast` variants.
 
-2. **FEAT-075: Snapshot + replay resync API (Stream B)**
-   - Implemented server-side event sequence tracking (commit_seq).
-   - Created `ReplayBuffer` for recent event retention.
-   - Implemented `GetEventsSince` handler and `StateSnapshot` fallback.
-   - Added client-side gap detection and automatic resync flow.
+2. **Merge Conflict Resolution**
+   - Resolved complex conflicts in `ccmux-server/src/handlers/mcp_bridge.rs` and `session.rs` arising from parallel changes in Stream A (broadcasts), Stream B (persistence/sequencing), and Stream C (per-pane config).
+   - Harmonized logic to ensure:
+     - New sessions/panes get custom Claude config (FEAT-071).
+     - Events are logged to persistence (FEAT-075).
+     - Events are sequenced for replay (FEAT-075).
+     - Events are broadcast to all TUI clients (BUG-032).
 
-3. **FEAT-082 (aka 073): Multi-tier routing logic via target aliases (Stream C)**
-   - Add `[remotes]` section to `ccmux-client` configuration.
-   - Add `--target <NAME>` CLI flag to `ccmux-client`.
-   - Implement address resolution and conditional auto-start logic.
-
-4. **Stream Merges**
-   - Merged Stream C (FEAT-070, FEAT-082) into main.
-   - Merged Stream B (FEAT-075) into main.
-   - Updated `SESSION.md` in all worktrees for next objectives.
+3. **Compilation & Testing**
+   - Fixed compilation errors in `mcp_bridge.rs`, `tcp.rs`, `compat/client.rs`.
+   - Updated `test_handle_resize_success` to match new broadcast behavior.
+   - Verified 1626+ tests passing across the workspace.
 
 ### Next Steps
-- **Stream A**: Resolve BUG-032.
 - **Stream B**: FEAT-082 (Adaptive Layout).
 - **Stream C**: FEAT-074 (Telemetry/Dashboard).
