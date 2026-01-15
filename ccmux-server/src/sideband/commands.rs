@@ -31,6 +31,7 @@ pub enum SidebandCommand {
         direction: SplitDirection,
         command: Option<String>,
         cwd: Option<String>,
+        config: Option<String>,
     },
     /// Focus a specific pane
     Focus { pane: PaneRef },
@@ -110,17 +111,20 @@ mod tests {
             direction: SplitDirection::Horizontal,
             command: Some("cargo test".to_string()),
             cwd: Some("/home/user/project".to_string()),
+            config: Some("{\"timeout\": 30}".to_string()),
         };
 
         if let SidebandCommand::Spawn {
             direction,
             command,
             cwd,
+            config,
         } = cmd
         {
             assert_eq!(direction, SplitDirection::Horizontal);
             assert_eq!(command, Some("cargo test".to_string()));
             assert_eq!(cwd, Some("/home/user/project".to_string()));
+            assert_eq!(config, Some("{\"timeout\": 30}".to_string()));
         } else {
             panic!("Expected Spawn command");
         }

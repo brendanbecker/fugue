@@ -221,6 +221,9 @@ impl HandlerContext {
         cwd: Option<String>,
         select: bool,
         name: Option<String>,
+        claude_model: Option<String>,
+        claude_config: Option<serde_json::Value>,
+        preset: Option<String>,
     ) -> HandlerResult {
         debug!(
             client_id = %self.client_id,
@@ -231,6 +234,8 @@ impl HandlerContext {
             cwd = ?cwd,
             select = select,
             name = ?name,
+            model = ?claude_model,
+            preset = ?preset,
             "handle_create_pane_with_options called"
         );
         info!(
@@ -358,6 +363,63 @@ impl HandlerContext {
             pane.set_name(Some(pane_name.clone()));
         }
 
+        // FEAT-071: Per-pane Claude configuration
+        if claude_model.is_some() || claude_config.is_some() || preset.is_some() {
+            let config = &self.config;
+            
+            let mut final_config = serde_json::Map::new();
+            
+            // 1. Apply preset
+            if let Some(preset_name) = &preset {
+                if let Some(preset_cfg) = config.presets.get(preset_name) {
+                    if let Some(m) = &preset_cfg.model {
+                        final_config.insert("model".to_string(), serde_json::json!(m));
+                    }
+                    if let Some(c) = preset_cfg.context_limit {
+                        final_config.insert("context_limit".to_string(), serde_json::json!(c));
+                    }
+                    for (k, v) in &preset_cfg.extra {
+                        final_config.insert(k.clone(), v.clone());
+                    }
+                    debug!("Applied Claude preset '{}' to pane {}", preset_name, pane_id);
+                } else {
+                    warn!("Claude preset '{}' not found for pane {}", preset_name, pane_id);
+                }
+            }
+            
+            // 2. Apply explicit config
+            if let Some(serde_json::Value::Object(map)) = &claude_config {
+                for (k, v) in map {
+                    final_config.insert(k.clone(), v.clone());
+                }
+            }
+            
+            // 3. Apply model override
+            if let Some(m) = &claude_model {
+                final_config.insert("model".to_string(), serde_json::json!(m));
+            }
+            
+            // Write to isolation directory
+            match crate::isolation::ensure_config_dir(pane_id) {
+                Ok(path) => {
+                    let config_file = path.join(".claude.json");
+                    let json_content = serde_json::Value::Object(final_config);
+                    
+                    match std::fs::File::create(&config_file) {
+                        Ok(mut file) => {
+                            if let Err(e) = serde_json::to_writer_pretty(&mut file, &json_content) {
+                                warn!("Failed to write Claude config for pane {}: {}", pane_id, e);
+                            } else {
+                                info!("Wrote custom Claude config for pane {} to {:?}", pane_id, config_file);
+                            }
+                        },
+                        Err(e) => warn!("Failed to create Claude config file for pane {}: {}", pane_id, e),
+                    }
+                },
+                Err(e) => warn!("Failed to ensure isolation dir for pane {}: {}", pane_id, e),
+            }
+        }
+
         // If select is true, focus the new pane (set as active pane in window and window as active)
         if select {
             window.set_active_pane(pane_id);
@@ -463,8 +525,14 @@ impl HandlerContext {
         name: Option<String>,
         command: Option<String>,
         cwd: Option<String>,
+        claude_model: Option<String>,
+        claude_config: Option<serde_json::Value>,
+        preset: Option<String>,
     ) -> HandlerResult {
-        info!("CreateSessionWithOptions request from {} (name: {:?}, command: {:?}, cwd: {:?})", self.client_id, name, command, cwd);
+        info!(
+            "CreateSessionWithOptions request from {} (name: {:?}, command: {:?}, cwd: {:?}, model: {:?}, preset: {:?})", 
+            self.client_id, name, command, cwd, claude_model, preset
+        );
 
         let mut session_manager = self.session_manager.write().await;
 
@@ -523,6 +591,63 @@ impl HandlerContext {
             }
         };
         pane.init_parser();
+
+        // FEAT-071: Per-pane Claude configuration
+        if claude_model.is_some() || claude_config.is_some() || preset.is_some() {
+            let config = &self.config;
+            
+            let mut final_config = serde_json::Map::new();
+            
+            // 1. Apply preset
+            if let Some(preset_name) = &preset {
+                if let Some(preset_cfg) = config.presets.get(preset_name) {
+                    if let Some(m) = &preset_cfg.model {
+                        final_config.insert("model".to_string(), serde_json::json!(m));
+                    }
+                    if let Some(c) = preset_cfg.context_limit {
+                        final_config.insert("context_limit".to_string(), serde_json::json!(c));
+                    }
+                    for (k, v) in &preset_cfg.extra {
+                        final_config.insert(k.clone(), v.clone());
+                    }
+                    debug!("Applied Claude preset '{}' to pane {}", preset_name, pane_id);
+                } else {
+                    warn!("Claude preset '{}' not found for pane {}", preset_name, pane_id);
+                }
+            }
+            
+            // 2. Apply explicit config
+            if let Some(serde_json::Value::Object(map)) = &claude_config {
+                for (k, v) in map {
+                    final_config.insert(k.clone(), v.clone());
+                }
+            }
+            
+            // 3. Apply model override
+            if let Some(m) = &claude_model {
+                final_config.insert("model".to_string(), serde_json::json!(m));
+            }
+            
+            // Write to isolation directory
+            match crate::isolation::ensure_config_dir(pane_id) {
+                Ok(path) => {
+                    let config_file = path.join(".claude.json");
+                    let json_content = serde_json::Value::Object(final_config);
+                    
+                    match std::fs::File::create(&config_file) {
+                        Ok(mut file) => {
+                            if let Err(e) = serde_json::to_writer_pretty(&mut file, &json_content) {
+                                warn!("Failed to write Claude config for pane {}: {}", pane_id, e);
+                            } else {
+                                info!("Wrote custom Claude config for pane {} to {:?}", pane_id, config_file);
+                            }
+                        },
+                        Err(e) => warn!("Failed to create Claude config file for pane {}: {}", pane_id, e),
+                    }
+                },
+                Err(e) => warn!("Failed to ensure isolation dir for pane {}: {}", pane_id, e),
+            }
+        }
 
         // Drop session_manager lock before spawning PTY
         drop(session_manager);
@@ -1760,7 +1885,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_session_with_options() {
         let ctx = create_test_context();
-        let result = ctx.handle_create_session_with_options(Some("my-session".to_string()), None, None).await;
+        let result = ctx.handle_create_session_with_options(Some("my-session".to_string()), None, None, None, None, None).await;
 
         match result {
             HandlerResult::Response(ServerMessage::SessionCreatedWithDetails {
@@ -1776,7 +1901,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_session_with_auto_name() {
         let ctx = create_test_context();
-        let result = ctx.handle_create_session_with_options(None, None, None).await;
+        let result = ctx.handle_create_session_with_options(None, None, None, None, None, None).await;
 
         match result {
             HandlerResult::Response(ServerMessage::SessionCreatedWithDetails {
@@ -1834,7 +1959,7 @@ mod tests {
 
         // No sessions exist, should create default
         let result = ctx
-            .handle_create_pane_with_options(None, None, SplitDirection::Vertical, None, None, false, None)
+            .handle_create_pane_with_options(None, None, SplitDirection::Vertical, None, None, false, None, None, None, None)
             .await;
 
         match result {
@@ -1922,7 +2047,7 @@ mod tests {
 
         // MCP creates a pane (uses first session since no filter provided)
         let result = mcp_ctx
-            .handle_create_pane_with_options(None, None, SplitDirection::Vertical, None, None, false, None)
+            .handle_create_pane_with_options(None, None, SplitDirection::Vertical, None, None, false, None, None, None, None)
             .await;
 
         // Extract the broadcast info from the result
@@ -2034,6 +2159,9 @@ mod tests {
                 None,
                 None,
                 false,
+                None,
+                None,
+                None,
                 None,
             )
             .await;
@@ -2403,7 +2531,7 @@ mod tests {
         let ctx = create_test_context();
 
         // Create a session first
-        let _ = ctx.handle_create_session_with_options(Some("test".to_string()), None, None).await;
+        let _ = ctx.handle_create_session_with_options(Some("test".to_string()), None, None, None, None, None).await;
 
         let layout = serde_json::json!({
             "pane": {"name": "test-pane"}
@@ -2433,7 +2561,7 @@ mod tests {
         let ctx = create_test_context();
 
         // Create a session first
-        let _ = ctx.handle_create_session_with_options(Some("test".to_string()), None, None).await;
+        let _ = ctx.handle_create_session_with_options(Some("test".to_string()), None, None, None, None, None).await;
 
         let layout = serde_json::json!({
             "direction": "horizontal",
@@ -2468,7 +2596,7 @@ mod tests {
         let ctx = create_test_context();
 
         // Create a session first
-        let _ = ctx.handle_create_session_with_options(Some("test".to_string()), None, None).await;
+        let _ = ctx.handle_create_session_with_options(Some("test".to_string()), None, None, None, None, None).await;
 
         let layout = serde_json::json!({
             "direction": "horizontal",
@@ -2519,7 +2647,7 @@ mod tests {
         let ctx = create_test_context();
 
         // Create a session with multiple windows and panes to have actual data
-        let _ = ctx.handle_create_session_with_options(Some("stress-test".to_string()), None, None).await;
+        let _ = ctx.handle_create_session_with_options(Some("stress-test".to_string()), None, None, None, None, None).await;
         let _ = ctx.handle_create_window_with_options(Some("stress-test".to_string()), Some("window-2".to_string()), None).await;
         let _ = ctx.handle_create_window_with_options(Some("stress-test".to_string()), Some("window-3".to_string()), None).await;
 

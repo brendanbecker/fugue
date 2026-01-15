@@ -22,9 +22,12 @@ pub async fn new_session(
     };
 
     let msg = ClientMessage::CreateSessionWithOptions {
-        name: name.clone(),
+        name,
         command: cmd,
         cwd,
+        claude_model: None,
+        claude_config: None,
+        preset: None,
     };
 
     match client.request(msg).await? {

@@ -3,9 +3,11 @@
 //! This is an async-compatible version of CommandExecutor that works with
 //! tokio::sync::RwLock for integration with SharedState.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use serde::Deserialize;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
@@ -36,6 +38,17 @@ impl Default for SpawnLimits {
             max_panes_per_session: 50,
         }
     }
+}
+
+/// Sideband spawn configuration payload
+#[derive(Debug, Deserialize)]
+struct SpawnConfig {
+    #[serde(default)]
+    env: HashMap<String, String>,
+    #[serde(default)]
+    timeout_secs: Option<u64>,
+    #[serde(default)]
+    sandbox: bool,
 }
 
 /// Async executor for sideband commands
@@ -121,10 +134,11 @@ impl AsyncCommandExecutor {
                 direction,
                 command,
                 cwd,
+                config,
             } => {
                 // Execute spawn and broadcast notification, but discard SpawnResult
                 // The caller should use execute_spawn_command if they need the result
-                let _ = self.execute_spawn_internal(source_pane, direction, command, cwd).await?;
+                let _ = self.execute_spawn_internal(source_pane, direction, command, cwd, config).await?;
                 Ok(())
             }
 
@@ -158,8 +172,9 @@ impl AsyncCommandExecutor {
         direction: SplitDirection,
         command: Option<String>,
         cwd: Option<String>,
+        config: Option<String>,
     ) -> ExecuteResult<SpawnResult> {
-        self.execute_spawn_internal(source_pane, direction, command, cwd).await
+        self.execute_spawn_internal(source_pane, direction, command, cwd, config).await
     }
 
     /// Resolve a pane reference to a concrete UUID
@@ -205,10 +220,11 @@ impl AsyncCommandExecutor {
         direction: SplitDirection,
         command: Option<String>,
         cwd: Option<String>,
+        config: Option<String>,
     ) -> ExecuteResult<SpawnResult> {
         info!(
-            "Spawn requested: direction={:?}, command={:?}, cwd={:?}",
-            direction, command, cwd
+            "Spawn requested: direction={:?}, command={:?}, cwd={:?}, config_len={:?}",
+            direction, command, cwd, config.as_ref().map(|s| s.len())
         );
 
         // Check spawn limits before proceeding
@@ -223,6 +239,21 @@ impl AsyncCommandExecutor {
                 self.spawn_limits.max_panes_per_session
             )));
         }
+
+        // Parse configuration if present
+        let spawn_config: Option<SpawnConfig> = if let Some(config_json) = &config {
+            match serde_json::from_str(config_json) {
+                Ok(c) => Some(c),
+                Err(e) => {
+                    warn!("Failed to parse spawn config: {}", e);
+                    return Err(ExecuteError::ExecutionFailed(format!(
+                        "Invalid spawn config: {}", e
+                    )));
+                }
+            }
+        } else {
+            None
+        };
 
         // Step 1: Create the new pane in SessionManager
         let (session_id, window_id, pane_id, pane_info, pane_cwd, pane_size, session_name) = {
@@ -272,11 +303,100 @@ impl AsyncCommandExecutor {
         };
 
         // Apply cwd and size
-        let pty_config = if let Some(cwd_path) = &pane_cwd {
+        let mut pty_config = if let Some(cwd_path) = &pane_cwd {
             pty_config.with_cwd(cwd_path)
         } else {
             pty_config
         };
+
+        // Apply environment variables from config
+        if let Some(cfg) = &spawn_config {
+            if !cfg.env.is_empty() {
+                debug!("Applying {} environment variables from config", cfg.env.len());
+                pty_config = pty_config.with_env_map(&cfg.env);
+            }
+            
+            // Note: timeout_secs handling is pending (FEAT-080 task 4)
+            if let Some(timeout) = cfg.timeout_secs {
+                info!("Scheduling auto-kill for pane {} after {} seconds", pane_id, timeout);
+                let session_manager = self.session_manager.clone();
+                let pty_manager = self.pty_manager.clone();
+                let registry = self.registry.clone();
+                
+                tokio::spawn(async move {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
+                    info!("Timeout reached for pane {}, closing...", pane_id);
+                    
+                    // 1. Find session info
+                    let location = {
+                        let manager = session_manager.read().await;
+                        manager.find_pane(pane_id).map(|(s, w, _)| (s.id(), w.id()))
+                    };
+                    
+                    if let Some((session_id, window_id)) = location {
+                        // 2. Remove PTY
+                        {
+                            let mut pty_mgr = pty_manager.write().await;
+                            if let Some(handle) = pty_mgr.remove(pane_id) {
+                                if let Err(e) = handle.kill() {
+                                    warn!("Failed to kill PTY for pane {}: {}", pane_id, e);
+                                }
+                            }
+                        }
+                        
+                        // 3. Remove pane from session
+                        {
+                            let mut session_mgr = session_manager.write().await;
+                            if let Some(session) = session_mgr.get_session_mut(session_id) {
+                                if let Some(window) = session.get_window_mut(window_id) {
+                                    if let Some(pane) = window.remove_pane(pane_id) {
+                                        // 4. Cleanup isolation
+                                        pane.cleanup_isolation();
+                                        info!("Pane {} closed successfully due to timeout", pane_id);
+                                        
+                                        // 5. Broadcast PaneClosed
+                                        let msg = ServerMessage::PaneClosed {
+                                            pane_id,
+                                            exit_code: None,
+                                        };
+                                        registry.broadcast_to_session(session_id, msg).await;
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        warn!("Pane {} not found for timeout closure (may have been closed already)", pane_id);
+                    }
+                });
+            }
+
+            // Apply sandbox if requested (FEAT-081)
+            if cfg.sandbox {
+                match std::env::current_exe() {
+                    Ok(exe_path) => {
+                        let sandbox_path = exe_path.parent().unwrap().join("ccmux-sandbox");
+                        if sandbox_path.exists() {
+                            info!("Applying sandbox wrapper: {:?}", sandbox_path);
+                            
+                            // Reconstruct command: sandbox <cmd> <args...>
+                            let original_cmd = pty_config.command.clone();
+                            let mut new_args = vec![original_cmd];
+                            new_args.extend(pty_config.args.clone());
+                            
+                            pty_config.command = sandbox_path.to_string_lossy().to_string();
+                            pty_config.args = new_args;
+                        } else {
+                            warn!("Sandbox requested but ccmux-sandbox binary not found at {:?}", sandbox_path);
+                            return Err(ExecuteError::ExecutionFailed("Sandbox requested but ccmux-sandbox binary not found".to_string()));
+                        }
+                    }
+                    Err(e) => {
+                        return Err(ExecuteError::ExecutionFailed(format!("Failed to locate ccmux-sandbox: {}", e)));
+                    }
+                }
+            }
+        }
+
         let pty_config = pty_config
             .with_size(pane_size.0, pane_size.1)
             .with_ccmux_context(session_id, &session_name, window_id, pane_id);
@@ -645,5 +765,25 @@ mod tests {
             pane_id,
         ).await;
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_spawn_config_deserialization() {
+        let json = r#"{"env": {"FOO": "bar"}, "timeout_secs": 60, "sandbox": true}"#;
+        let config: SpawnConfig = serde_json::from_str(json).unwrap();
+        
+        assert_eq!(config.env.get("FOO").map(|s| s.as_str()), Some("bar"));
+        assert_eq!(config.timeout_secs, Some(60));
+        assert_eq!(config.sandbox, true);
+    }
+
+    #[test]
+    fn test_spawn_config_default() {
+        let json = r#"{}"#;
+        let config: SpawnConfig = serde_json::from_str(json).unwrap();
+        
+        assert!(config.env.is_empty());
+        assert_eq!(config.timeout_secs, None);
+        assert_eq!(config.sandbox, false);
     }
 }

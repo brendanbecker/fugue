@@ -242,8 +242,18 @@ impl<'a> ToolHandlers<'a> {
         name: Option<String>,
         command: Option<String>,
         cwd: Option<String>,
+        claude_model: Option<String>,
+        claude_config: Option<serde_json::Value>,
+        preset: Option<String>,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::CreateSessionWithOptions { name, command, cwd })
+        self.connection.send_to_daemon(ClientMessage::CreateSessionWithOptions {
+            name,
+            command,
+            cwd,
+            claude_model,
+            claude_config: claude_config.map(Into::into),
+            preset,
+        })
             .await?;
 
         match self.connection.recv_response_from_daemon().await? {
@@ -318,6 +328,9 @@ impl<'a> ToolHandlers<'a> {
         command: Option<String>,
         cwd: Option<String>,
         select: bool,
+        claude_model: Option<String>,
+        claude_config: Option<serde_json::Value>,
+        preset: Option<String>,
     ) -> Result<ToolResult, McpError> {
         let split_direction = match direction.as_deref() {
             Some("horizontal") | Some("h") => SplitDirection::Vertical,
@@ -337,6 +350,9 @@ impl<'a> ToolHandlers<'a> {
             cwd,
             select,
             name,
+            claude_model,
+            claude_config: claude_config.map(Into::into),
+            preset,
         })
         .await?;
 

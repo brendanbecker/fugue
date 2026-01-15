@@ -1,0 +1,11 @@
+{
+  "id": "FEAT-080",
+  "title": "Per-Pane/Session Configuration via Sideband Commands",
+  "component": "ccmux-server, ccmux-protocol, ccmux-client",
+  "priority": "P2",
+  "status": "new",
+  "created_date": "2026-01-14",
+  "created_by": "ccmux-agent",
+  "description": "Enable dynamic, agent-driven configuration of individual panes or sessions via sideband commands/MCP tools, allowing fine-grained control over isolation and environment.",
+  "labels": ["feature", "configuration", "isolation", "sideband"]
+}

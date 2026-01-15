@@ -132,6 +132,7 @@ impl CommandExecutor {
                 direction,
                 command,
                 cwd,
+                config: _,
             } => {
                 // Execute spawn and broadcast notification, but discard SpawnResult
                 // The caller should use execute_spawn_command if they need the result
@@ -559,6 +560,7 @@ mod tests {
             direction: SplitDirection::Vertical,
             command: Some("echo hello".to_string()),
             cwd: None,
+            config: None,
         };
 
         // Should not error (just logs warning for now)
@@ -965,6 +967,7 @@ mod tests {
             direction: SplitDirection::Vertical,
             command: Some("echo test".to_string()),
             cwd: None,
+            config: None,
         };
 
         let result = executor.execute(cmd, source_pane_id);

@@ -240,7 +240,10 @@ impl McpBridge {
                 let name = arguments["name"].as_str().map(String::from);
                 let command = arguments["command"].as_str().map(String::from);
                 let cwd = arguments["cwd"].as_str().map(String::from);
-                handlers.tool_create_session(name, command, cwd).await
+                let model = arguments["model"].as_str().map(String::from);
+                let config = arguments["config"].as_object().map(|o| serde_json::Value::Object(o.clone()));
+                let preset = arguments["preset"].as_str().map(String::from);
+                handlers.tool_create_session(name, command, cwd, model, config, preset).await
             }
             "ccmux_create_window" => {
                 let session = arguments["session"].as_str().map(String::from);
@@ -256,8 +259,14 @@ impl McpBridge {
                 let command = arguments["command"].as_str().map(String::from);
                 let cwd = arguments["cwd"].as_str().map(String::from);
                 let select = arguments["select"].as_bool().unwrap_or(false);
-                handlers.tool_create_pane(session, window, name, direction, command, cwd, select)
-                    .await
+                let model = arguments["model"].as_str().map(String::from);
+                let config = arguments["config"].as_object().map(|o| serde_json::Value::Object(o.clone()));
+                let preset = arguments["preset"].as_str().map(String::from);
+
+                handlers.tool_create_pane(
+                    session, window, name, direction, command, cwd, select, model, config, preset,
+                )
+                .await
             }
             "ccmux_send_input" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;

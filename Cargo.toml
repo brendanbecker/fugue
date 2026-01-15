@@ -6,6 +6,7 @@ members = [
     "ccmux-server",
     "ccmux-protocol",
     "ccmux-utils",
+    "ccmux-sandbox",
 ]
 
 [workspace.package]

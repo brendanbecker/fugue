@@ -5,13 +5,13 @@
 
 ## Summary Statistics
 
-- **Total Features**: 77
+- **Total Features**: 79
 - **Completed**: 58
-- **Backlog**: 19
+- **Backlog**: 21
 
 ## Current Status
 
-Core terminal multiplexer features complete. Nineteen features remain in backlog.
+Core terminal multiplexer features complete. Twenty-one features remain in backlog.
 
 **Recent Completions (2026-01-11)**:
 - FEAT-060: MCP daemon auto-recovery (connection monitoring, reconnection, structured errors)
@@ -21,6 +21,10 @@ Core terminal multiplexer features complete. Nineteen features remain in backlog
 - FEAT-036: Session-aware MCP commands (auto-defaults, pane/window naming)
 - FEAT-050: Session metadata storage (arbitrary key-value metadata)
 - FEAT-056: User priority lockout for MCP focus control
+
+**Recent Additions (2026-01-14)**:
+- FEAT-081: Optional Landlock Integration for Per-Pane Sandboxing
+- FEAT-080: Per-Pane/Session Configuration via Sideband Commands
 
 **Recent Additions (2026-01-13)**:
 - FEAT-079: Comprehensive Human-Control Arbitration
@@ -47,6 +51,8 @@ Core terminal multiplexer features complete. Nineteen features remain in backlog
 
 | ID | Title | Component | Priority | Status | Notes |
 |----|-------|-----------|----------|--------|-------|
+| FEAT-080 | Per-Pane/Session Configuration via Sideband Commands | ccmux-server, ccmux-protocol | P2 | **New** | Enable dynamic, agent-driven configuration of individual panes/sessions. |
+| FEAT-081 | Optional Landlock Integration for Per-Pane Sandboxing | ccmux-server | P3 | **New** | Unprivileged filesystem/network sandboxing using Linux Landlock. |
 | FEAT-079 | Comprehensive Human-Control Arbitration | ccmux-server, ccmux-protocol | P2 | **Ready** | Expand user priority lockout to block all mutations (input, resize, kill) per ADR-004/005. |
 | FEAT-078 | Per-client focus state support | ccmux-server, ccmux-client, ccmux-protocol | P2 | **Ready** | Ensure focus/selection is per-client (avoid focus fights) with snapshot initialization only. |
 | FEAT-077 | Human-control mode UX indicator and MCP error details | ccmux-client, ccmux-server | P2 | **Ready** | TUI indicator + timer for human-control mode; structured MCP errors include remaining block duration. |

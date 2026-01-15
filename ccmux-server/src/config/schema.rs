@@ -17,6 +17,18 @@ pub struct AppConfig {
     pub persistence: PersistenceConfig,
     pub session_logging: SessionLoggingConfig,
     pub beads: BeadsConfig,
+    /// Claude configuration presets (FEAT-071)
+    pub presets: HashMap<String, ClaudePreset>,
+}
+
+/// Claude configuration preset (FEAT-071)
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ClaudePreset {
+    pub model: Option<String>,
+    pub context_limit: Option<usize>,
+    pub description: Option<String>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, serde_json::Value>,
 }
 
 /// Beads integration settings

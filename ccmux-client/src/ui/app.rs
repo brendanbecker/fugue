@@ -753,6 +753,9 @@ impl App {
                         name,
                         command: self.session_command.take(),
                         cwd,
+                        claude_model: None,
+                        claude_config: None,
+                        preset: None,
                     })
                     .await?;
             }
@@ -1188,6 +1191,9 @@ impl App {
                         name: None,
                         command: self.session_command.take(),
                         cwd,
+                        claude_model: None,
+                        claude_config: None,
+                        preset: None,
                     })
                     .await?;
             }

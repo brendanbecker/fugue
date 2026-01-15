@@ -189,6 +189,12 @@ pub enum ClientMessage {
         select: bool,
         /// Optional name for the pane (FEAT-036)
         name: Option<String>,
+        /// Claude model override (FEAT-071)
+        claude_model: Option<String>,
+        /// Claude configuration override (FEAT-071)
+        claude_config: Option<crate::types::JsonValue>,
+        /// Configuration preset (FEAT-071)
+        preset: Option<String>,
     },
 
     /// Create a new session with options (for MCP bridge)
@@ -199,6 +205,12 @@ pub enum ClientMessage {
         command: Option<String>,
         /// Working directory for the session
         cwd: Option<String>,
+        /// Claude model override (FEAT-071)
+        claude_model: Option<String>,
+        /// Claude configuration override (FEAT-071)
+        claude_config: Option<crate::types::JsonValue>,
+        /// Configuration preset (FEAT-071)
+        preset: Option<String>,
     },
 
     /// Create a new window with options (for MCP bridge)

@@ -1788,6 +1788,9 @@ mod tests {
             cwd: None,
             select: false,
             name: None,
+            claude_model: None,
+            claude_config: None,
+            preset: None,
         };
         Encoder::encode(&mut mcp_codec, create_pane_msg, &mut buf).unwrap();
         mcp_client_stream.write_all(&buf).await.unwrap();

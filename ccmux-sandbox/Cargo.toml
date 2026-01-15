@@ -1,0 +1,15 @@
+[package]
+name = "ccmux-sandbox"
+description = "Sandbox launcher for ccmux"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+landlock = "0.4"
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+libc = "0.2" # For execvp

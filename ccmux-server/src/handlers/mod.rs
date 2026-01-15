@@ -187,6 +187,9 @@ impl HandlerContext {
                 cwd,
                 select,
                 name,
+                claude_model,
+                claude_config,
+                preset,
             } => {
                 self.handle_create_pane_with_options(
                     session_filter,
@@ -196,12 +199,30 @@ impl HandlerContext {
                     cwd,
                     select,
                     name,
+                    claude_model,
+                    claude_config.map(|j| j.into_inner()),
+                    preset,
                 )
                 .await
             }
 
-            ClientMessage::CreateSessionWithOptions { name, command, cwd } => {
-                self.handle_create_session_with_options(name, command, cwd).await
+            ClientMessage::CreateSessionWithOptions {
+                name,
+                command,
+                cwd,
+                claude_model,
+                claude_config,
+                preset,
+            } => {
+                self.handle_create_session_with_options(
+                    name,
+                    command,
+                    cwd,
+                    claude_model,
+                    claude_config.map(|j| j.into_inner()),
+                    preset,
+                )
+                .await
             }
 
             ClientMessage::CreateWindowWithOptions {

@@ -73,6 +73,18 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                         "type": "boolean",
                         "default": false,
                         "description": "If true, focus the new pane after creation (default: false, keeps current focus)"
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "Claude model to use (e.g. claude-3-5-sonnet-20241022). Overrides default/preset."
+                    },
+                    "config": {
+                        "type": "object",
+                        "description": "Full Claude configuration object (merged with presets)"
+                    },
+                    "preset": {
+                        "type": "string",
+                        "description": "Configuration preset name (e.g. 'haiku-worker')"
                     }
                 }
             }),
