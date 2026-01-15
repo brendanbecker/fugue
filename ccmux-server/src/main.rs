@@ -6,7 +6,8 @@ use std::sync::Arc;
 
 use futures::stream::StreamExt;
 use futures::sink::SinkExt;
-use tokio::net::{UnixListener, UnixStream};
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::net::UnixListener;
 use tokio::sync::{broadcast, mpsc, Mutex, RwLock};
 use tokio_util::codec::{FramedRead, FramedWrite};
 use tracing::{debug, error, info, warn};
@@ -32,6 +33,7 @@ pub mod registry;
 mod reply;
 mod session;
 pub mod sideband;
+mod tcp;
 mod user_priority;
 
 pub use registry::{ClientId, ClientRegistry};
@@ -521,7 +523,8 @@ async fn run_accept_loop(listener: UnixListener, shared_state: SharedState) {
                         debug!("New client connection accepted");
                         let state_clone = shared_state.clone();
                         tokio::spawn(async move {
-                            handle_client(stream, state_clone).await;
+                            let (reader, writer) = stream.into_split();
+                            handle_client(reader, writer, state_clone).await;
                         });
                     }
                     Err(e) => {
@@ -543,7 +546,11 @@ async fn run_accept_loop(listener: UnixListener, shared_state: SharedState) {
 // ==================== Client Handler ====================
 
 /// Handle a single client connection
-async fn handle_client(stream: UnixStream, shared_state: SharedState) {
+pub async fn handle_client<R, W>(reader: R, writer: W, shared_state: SharedState)
+where
+    R: AsyncRead + Unpin + Send + 'static,
+    W: AsyncWrite + Unpin + Send + 'static,
+{
     // Create a channel for receiving messages (broadcasts from registry)
     let (tx, mut rx) = mpsc::channel::<ServerMessage>(32);
 
@@ -551,8 +558,7 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
     let client_id = shared_state.registry.register_client(tx);
     info!("Client {} connected", client_id);
 
-    // Split stream for reading and writing
-    let (reader, writer) = stream.into_split();
+    // Create framed transport
     let mut framed_reader = FramedRead::new(reader, ServerCodec::new());
     let mut framed_writer = FramedWrite::new(writer, ServerCodec::new());
 
@@ -735,14 +741,20 @@ async fn run_mcp_bridge() -> Result<()> {
 }
 
 /// Run the main server daemon
-async fn run_daemon() -> Result<()> {
+async fn run_daemon(tcp_override: Option<String>) -> Result<()> {
     info!("ccmux server starting");
 
     // Load configuration from file or use defaults
-    let app_config = config::ConfigLoader::load().unwrap_or_else(|e| {
+    let mut app_config = config::ConfigLoader::load().unwrap_or_else(|e| {
         warn!("Failed to load config, using defaults: {}", e);
         AppConfig::default()
     });
+
+    // Apply CLI overrides
+    if let Some(addr) = tcp_override {
+        info!("Overriding TCP listener address from CLI: {}", addr);
+        app_config.general.listen_tcp = Some(addr);
+    }
 
     if let Some(ref cmd) = app_config.general.default_command {
         info!("Default command for new sessions: {}", cmd);
@@ -800,7 +812,7 @@ async fn run_daemon() -> Result<()> {
         session_manager,
         pty_manager,
         registry,
-        config: Arc::new(app_config),
+        config: Arc::new(app_config.clone()),
         shutdown_tx: shutdown_tx.clone(),
         pane_closed_tx,
         command_executor,
@@ -850,6 +862,17 @@ async fn run_daemon() -> Result<()> {
         run_accept_loop(listener, shared_state_for_accept).await;
     });
 
+    // Spawn TCP accept loop (FEAT-066)
+    let tcp_accept_handle = if let Some(ref addr) = app_config.general.listen_tcp {
+        let addr = addr.clone();
+        let state = shared_state.clone();
+        Some(tokio::spawn(async move {
+            tcp::run_tcp_accept_loop(addr, state).await;
+        }))
+    } else {
+        None
+    };
+
     // Spawn checkpoint task
     let server_for_checkpoint = Arc::clone(&server);
     let shared_state_for_checkpoint = shared_state.clone();
@@ -875,6 +898,12 @@ async fn run_daemon() -> Result<()> {
     let shutdown_timeout = tokio::time::Duration::from_secs(5);
     if tokio::time::timeout(shutdown_timeout, accept_handle).await.is_err() {
         warn!("Accept loop did not shut down in time");
+    }
+
+    if let Some(handle) = tcp_accept_handle {
+        if tokio::time::timeout(shutdown_timeout, handle).await.is_err() {
+            warn!("TCP accept loop did not shut down in time");
+        }
     }
 
     // Cancel background tasks
@@ -1108,15 +1137,15 @@ async fn run_checkpoint_loop(server: Arc<Mutex<Server>>, shared_state: SharedSta
 async fn main() -> Result<()> {
     // Check for subcommands (don't init logging for MCP modes - they use stdio)
     let args: Vec<String> = std::env::args().collect();
+    let mut tcp_override = None;
 
     if args.len() > 1 {
+        // Handle subcommands first (exact match on first arg)
         match args[1].as_str() {
             "mcp-server" => {
-                // Legacy standalone MCP server (has its own session state)
                 return run_mcp_server();
             }
             "mcp-bridge" => {
-                // MCP bridge mode - connects to daemon (recommended)
                 return run_mcp_bridge().await;
             }
             "--help" | "-h" => {
@@ -1127,13 +1156,30 @@ async fn main() -> Result<()> {
                 println!("ccmux-server {}", env!("CARGO_PKG_VERSION"));
                 return Ok(());
             }
-            arg => {
-                eprintln!("Unknown subcommand: {}", arg);
-                eprintln!("Run with --help for usage information");
-                return Err(ccmux_utils::CcmuxError::Internal(format!(
-                    "Unknown subcommand: {}",
-                    arg
-                )));
+            _ => {
+                // Parse flags for daemon mode
+                let mut i = 1;
+                while i < args.len() {
+                    match args[i].as_str() {
+                        "--listen-tcp" => {
+                            if i + 1 < args.len() {
+                                tcp_override = Some(args[i + 1].clone());
+                                i += 2;
+                            } else {
+                                eprintln!("Error: --listen-tcp requires an argument");
+                                return Ok(());
+                            }
+                        }
+                        arg => {
+                            eprintln!("Unknown argument: {}", arg);
+                            eprintln!("Run with --help for usage information");
+                            return Err(ccmux_utils::CcmuxError::Internal(format!(
+                                "Unknown argument: {}",
+                                arg
+                            )));
+                        }
+                    }
+                }
             }
         }
     }
@@ -1141,7 +1187,7 @@ async fn main() -> Result<()> {
     // For daemon mode, initialize logging
     ccmux_utils::init_logging()?;
 
-    run_daemon().await
+    run_daemon(tcp_override).await
 }
 
 /// Print help information
@@ -1342,7 +1388,8 @@ mod tests {
         // Start server-side handler
         let state_clone = shared_state.clone();
         let server_handle = tokio::spawn(async move {
-            handle_client(server_stream, state_clone).await;
+            let (reader, writer) = server_stream.into_split();
+            handle_client(reader, writer, state_clone).await;
         });
 
         // Send Ping from client
@@ -1389,7 +1436,8 @@ mod tests {
 
         let state_clone = shared_state.clone();
         let server_handle = tokio::spawn(async move {
-            handle_client(server_stream, state_clone).await;
+            let (reader, writer) = server_stream.into_split();
+            handle_client(reader, writer, state_clone).await;
         });
 
         // Send Connect message
@@ -1445,7 +1493,8 @@ mod tests {
 
         let state_clone = shared_state.clone();
         let server_handle = tokio::spawn(async move {
-            handle_client(server_stream, state_clone).await;
+            let (reader, writer) = server_stream.into_split();
+            handle_client(reader, writer, state_clone).await;
         });
 
         // Send Connect with wrong protocol version
@@ -1572,7 +1621,8 @@ mod tests {
         // Start handler
         let state_clone = shared_state.clone();
         let handler_handle = tokio::spawn(async move {
-            handle_client(server_stream, state_clone).await;
+            let (reader, writer) = server_stream.into_split();
+            handle_client(reader, writer, state_clone).await;
         });
 
         // Give it time to start
@@ -1698,7 +1748,8 @@ mod tests {
 
         let state_clone = shared_state.clone();
         let tui_server_handle = tokio::spawn(async move {
-            handle_client(tui_server_stream, state_clone).await;
+            let (reader, writer) = tui_server_stream.into_split();
+            handle_client(reader, writer, state_clone).await;
         });
 
         // --- TUI: Send Connect ---
@@ -1772,7 +1823,8 @@ mod tests {
 
         let state_clone = shared_state.clone();
         let _mcp_server_handle = tokio::spawn(async move {
-            handle_client(mcp_server_stream, state_clone).await;
+            let (reader, writer) = mcp_server_stream.into_split();
+            handle_client(reader, writer, state_clone).await;
         });
 
         // --- MCP: Send Connect ---

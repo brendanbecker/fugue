@@ -159,6 +159,8 @@ pub struct GeneralConfig {
     /// Default command to run in new sessions (overrides default_shell if set)
     /// Example: "claude" to start Claude Code in every new session
     pub default_command: Option<String>,
+    /// TCP address to listen on (e.g., "127.0.0.1:3000")
+    pub listen_tcp: Option<String>,
     /// Maximum Claude session depth
     pub max_depth: u32,
     /// Prefix key for commands
@@ -170,6 +172,7 @@ impl Default for GeneralConfig {
         Self {
             default_shell: std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into()),
             default_command: None,
+            listen_tcp: None,
             max_depth: 5,
             prefix_key: "Ctrl-a".into(),
         }
