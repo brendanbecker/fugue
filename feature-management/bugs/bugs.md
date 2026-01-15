@@ -40,7 +40,6 @@
 
 | ID | Description | Priority | Status | Component | Link |
 |----|-------------|----------|--------|-----------|------|
-| BUG-041 | Claude Code crashes on paste inside ccmux | P1 | new | pty/client | [Link](BUG-041-claude-code-crashes-on-paste-inside-ccmux/) |
 | BUG-040 | create_window returns success but doesn't create windows | P1 | new | mcp | [Link](BUG-040-create-window-returns-success-but-no-window/) |
 | BUG-039 | MCP tools hang intermittently through Claude Code | P1 | new | mcp-bridge | [Link](BUG-039-mcp-tools-hang-through-claude-code/) |
 | BUG-036 | Selection tools don't switch TUI view | P0 | new | daemon/TUI | [Link](BUG-036-selection-tools-dont-switch-tui-view/) |
@@ -190,6 +189,7 @@ See `feature-management/completed/` for resolved work items.
 
 | ID | Description | Priority | Resolution |
 |----|-------------|----------|------------|
+| BUG-041 | Claude Code crashes on paste inside ccmux | P1 | Fixed - bracketed paste support |
 | BUG-030 | Daemon unresponsive after create_window | P0 | Fixed - wrap serde_json::Value for bincode compatibility |
 | BUG-029 | MCP response synchronization bug | P0 | Fixed - filter broadcast messages in recv_response_from_daemon |
 | BUG-028 | Daemon crashes on `ccmux_create_layout` with nested layout | P0 | Fixed - two-phase pane creation to avoid lock contention |
