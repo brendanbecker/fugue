@@ -336,13 +336,28 @@ impl ConnectionManager {
             .ok_or(McpError::DaemonDisconnected)
     }
 
-    /// Receive a response from the daemon, filtering out broadcast messages
-    pub async fn recv_response_from_daemon(&mut self) -> Result<ServerMessage, McpError> {
+    /// Receive a message from the daemon with a timeout
+    pub async fn recv_from_daemon_with_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<ServerMessage, McpError> {
+        match tokio::time::timeout(timeout, self.recv_from_daemon()).await {
+            Ok(result) => result,
+            Err(_) => Err(McpError::ResponseTimeout {
+                seconds: timeout.as_secs(),
+            }),
+        }
+    }
+
+    /// Receive a response from the daemon, filtering based on a predicate
+    pub async fn recv_filtered<F>(&mut self, mut predicate: F) -> Result<ServerMessage, McpError>
+    where
+        F: FnMut(&ServerMessage) -> bool,
+    {
         let timeout_duration = Duration::from_secs(DAEMON_RESPONSE_TIMEOUT_SECS);
         let deadline = Instant::now() + timeout_duration;
 
         loop {
-            // BUG-037 FIX: Check if we've exceeded the timeout
             let remaining = deadline.saturating_duration_since(Instant::now());
             if remaining.is_zero() {
                 warn!(
@@ -354,35 +369,20 @@ impl ConnectionManager {
                 });
             }
 
-            // Use tokio::time::timeout to bound the recv call
-            let recv_result = tokio::time::timeout(remaining, self.recv_from_daemon()).await;
-
-            match recv_result {
-                Ok(Ok(msg)) => {
-                    // Check if this is a broadcast message that should be skipped
-                    if Self::is_broadcast_message(&msg) {
-                        debug!("Skipping broadcast message: {:?}", std::mem::discriminant(&msg));
-                        continue;
-                    }
-                    // This is a response message, return it
-                    return Ok(msg);
+            match self.recv_from_daemon_with_timeout(remaining).await? {
+                msg if predicate(&msg) => return Ok(msg),
+                ServerMessage::Error { code, message } => {
+                    // Always return errors immediately unless the predicate specifically wanted them
+                    return Err(McpError::DaemonError(format!("{:?}: {}", code, message)));
                 }
-                Ok(Err(e)) => {
-                    // recv_from_daemon returned an error
-                    return Err(e);
-                }
-                Err(_) => {
-                    // Timeout elapsed while waiting for recv
-                    warn!(
-                        "Timeout waiting for daemon response after {}s",
-                        DAEMON_RESPONSE_TIMEOUT_SECS
-                    );
-                    return Err(McpError::ResponseTimeout {
-                        seconds: DAEMON_RESPONSE_TIMEOUT_SECS,
-                    });
-                }
+                _ => continue,
             }
         }
+    }
+
+    /// Receive a response from the daemon, filtering out broadcast messages
+    pub async fn recv_response_from_daemon(&mut self) -> Result<ServerMessage, McpError> {
+        self.recv_filtered(|msg| !Self::is_broadcast_message(msg)).await
     }
 
     /// Check if a message is a broadcast

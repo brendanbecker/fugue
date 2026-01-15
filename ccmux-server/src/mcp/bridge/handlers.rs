@@ -1,4 +1,3 @@
-use std::time::{Duration, Instant};
 use uuid::Uuid;
 use ccmux_protocol::{
     ClientMessage,
@@ -389,44 +388,24 @@ impl<'a> ToolHandlers<'a> {
         self.connection.send_to_daemon(ClientMessage::ClosePane { pane_id })
             .await?;
 
-        let timeout_duration = Duration::from_secs(super::types::DAEMON_RESPONSE_TIMEOUT_SECS);
-        let deadline = Instant::now() + timeout_duration;
-
-        loop {
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
-                return Err(McpError::ResponseTimeout {
-                    seconds: super::types::DAEMON_RESPONSE_TIMEOUT_SECS,
+        match self.connection
+            .recv_filtered(|msg| matches!(msg, ServerMessage::PaneClosed { pane_id: id, .. } if *id == pane_id))
+            .await?
+        {
+            ServerMessage::PaneClosed { pane_id: closed_id, .. } if closed_id == pane_id => {
+                let result = serde_json::json!({
+                    "pane_id": pane_id.to_string(),
+                    "status": "closed"
                 });
-            }
 
-            match tokio::time::timeout(remaining, self.connection.recv_from_daemon()).await {
-                Ok(Ok(ServerMessage::PaneClosed { pane_id: closed_id, .. })) if closed_id == pane_id => {
-                    let result = serde_json::json!({
-                        "pane_id": pane_id.to_string(),
-                        "status": "closed"
-                    });
-
-                    let json = serde_json::to_string_pretty(&result)
-                        .map_err(|e| McpError::Internal(e.to_string()))?;
-                    return Ok(ToolResult::text(json));
-                }
-                Ok(Ok(ServerMessage::Error { code, message })) => {
-                    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
-                }
-                Ok(Ok(msg)) => {
-                    if ConnectionManager::is_broadcast_message(&msg) {
-                        continue;
-                    }
-                    return Err(McpError::UnexpectedResponse(format!("{:?}", msg)));
-                }
-                Ok(Err(e)) => return Err(e),
-                Err(_) => {
-                    return Err(McpError::ResponseTimeout {
-                        seconds: super::types::DAEMON_RESPONSE_TIMEOUT_SECS,
-                    });
-                }
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
             }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
         }
     }
 
@@ -434,46 +413,26 @@ impl<'a> ToolHandlers<'a> {
         self.connection.send_to_daemon(ClientMessage::SelectPane { pane_id })
             .await?;
 
-        let timeout_duration = Duration::from_secs(super::types::DAEMON_RESPONSE_TIMEOUT_SECS);
-        let deadline = Instant::now() + timeout_duration;
-
-        loop {
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
-                return Err(McpError::ResponseTimeout {
-                    seconds: super::types::DAEMON_RESPONSE_TIMEOUT_SECS,
+        match self.connection
+            .recv_filtered(|msg| matches!(msg, ServerMessage::PaneFocused { pane_id: id, .. } if *id == pane_id))
+            .await?
+        {
+            ServerMessage::PaneFocused { pane_id: focused_id, session_id, window_id } if focused_id == pane_id => {
+                let result = serde_json::json!({
+                    "pane_id": pane_id.to_string(),
+                    "session_id": session_id.to_string(),
+                    "window_id": window_id.to_string(),
+                    "status": "focused"
                 });
-            }
 
-            match tokio::time::timeout(remaining, self.connection.recv_from_daemon()).await {
-                Ok(Ok(ServerMessage::PaneFocused { pane_id: focused_id, session_id, window_id })) if focused_id == pane_id => {
-                    let result = serde_json::json!({
-                        "pane_id": pane_id.to_string(),
-                        "session_id": session_id.to_string(),
-                        "window_id": window_id.to_string(),
-                        "status": "focused"
-                    });
-
-                    let json = serde_json::to_string_pretty(&result)
-                        .map_err(|e| McpError::Internal(e.to_string()))?;
-                    return Ok(ToolResult::text(json));
-                }
-                Ok(Ok(ServerMessage::Error { code, message })) => {
-                    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
-                }
-                Ok(Ok(msg)) => {
-                    if ConnectionManager::is_broadcast_message(&msg) {
-                        continue;
-                    }
-                    return Err(McpError::UnexpectedResponse(format!("{:?}", msg)));
-                }
-                Ok(Err(e)) => return Err(e),
-                Err(_) => {
-                    return Err(McpError::ResponseTimeout {
-                        seconds: super::types::DAEMON_RESPONSE_TIMEOUT_SECS,
-                    });
-                }
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
             }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
         }
     }
 
@@ -481,45 +440,25 @@ impl<'a> ToolHandlers<'a> {
         self.connection.send_to_daemon(ClientMessage::SelectWindow { window_id })
             .await?;
 
-        let timeout_duration = Duration::from_secs(super::types::DAEMON_RESPONSE_TIMEOUT_SECS);
-        let deadline = Instant::now() + timeout_duration;
-
-        loop {
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
-                return Err(McpError::ResponseTimeout {
-                    seconds: super::types::DAEMON_RESPONSE_TIMEOUT_SECS,
+        match self.connection
+            .recv_filtered(|msg| matches!(msg, ServerMessage::WindowFocused { window_id: id, .. } if *id == window_id))
+            .await?
+        {
+            ServerMessage::WindowFocused { window_id: focused_id, session_id } if focused_id == window_id => {
+                let result = serde_json::json!({
+                    "window_id": window_id.to_string(),
+                    "session_id": session_id.to_string(),
+                    "status": "selected"
                 });
-            }
 
-            match tokio::time::timeout(remaining, self.connection.recv_from_daemon()).await {
-                Ok(Ok(ServerMessage::WindowFocused { window_id: focused_id, session_id })) if focused_id == window_id => {
-                    let result = serde_json::json!({
-                        "window_id": window_id.to_string(),
-                        "session_id": session_id.to_string(),
-                        "status": "selected"
-                    });
-
-                    let json = serde_json::to_string_pretty(&result)
-                        .map_err(|e| McpError::Internal(e.to_string()))?;
-                    return Ok(ToolResult::text(json));
-                }
-                Ok(Ok(ServerMessage::Error { code, message })) => {
-                    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
-                }
-                Ok(Ok(msg)) => {
-                    if ConnectionManager::is_broadcast_message(&msg) {
-                        continue;
-                    }
-                    return Err(McpError::UnexpectedResponse(format!("{:?}", msg)));
-                }
-                Ok(Err(e)) => return Err(e),
-                Err(_) => {
-                    return Err(McpError::ResponseTimeout {
-                        seconds: super::types::DAEMON_RESPONSE_TIMEOUT_SECS,
-                    });
-                }
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
             }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
         }
     }
 
@@ -527,44 +466,24 @@ impl<'a> ToolHandlers<'a> {
         self.connection.send_to_daemon(ClientMessage::SelectSession { session_id })
             .await?;
 
-        let timeout_duration = Duration::from_secs(super::types::DAEMON_RESPONSE_TIMEOUT_SECS);
-        let deadline = Instant::now() + timeout_duration;
-
-        loop {
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if remaining.is_zero() {
-                return Err(McpError::ResponseTimeout {
-                    seconds: super::types::DAEMON_RESPONSE_TIMEOUT_SECS,
+        match self.connection
+            .recv_filtered(|msg| matches!(msg, ServerMessage::SessionFocused { session_id: id } if *id == session_id))
+            .await?
+        {
+            ServerMessage::SessionFocused { session_id: focused_id } if focused_id == session_id => {
+                let result = serde_json::json!({
+                    "session_id": session_id.to_string(),
+                    "status": "selected"
                 });
-            }
 
-            match tokio::time::timeout(remaining, self.connection.recv_from_daemon()).await {
-                Ok(Ok(ServerMessage::SessionFocused { session_id: focused_id })) if focused_id == session_id => {
-                    let result = serde_json::json!({
-                        "session_id": session_id.to_string(),
-                        "status": "selected"
-                    });
-
-                    let json = serde_json::to_string_pretty(&result)
-                        .map_err(|e| McpError::Internal(e.to_string()))?;
-                    return Ok(ToolResult::text(json));
-                }
-                Ok(Ok(ServerMessage::Error { code, message })) => {
-                    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
-                }
-                Ok(Ok(msg)) => {
-                    if ConnectionManager::is_broadcast_message(&msg) {
-                        continue;
-                    }
-                    return Err(McpError::UnexpectedResponse(format!("{:?}", msg)));
-                }
-                Ok(Err(e)) => return Err(e),
-                Err(_) => {
-                    return Err(McpError::ResponseTimeout {
-                        seconds: super::types::DAEMON_RESPONSE_TIMEOUT_SECS,
-                    });
-                }
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
             }
+            ServerMessage::Error { code, message } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
         }
     }
 

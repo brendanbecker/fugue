@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use uuid::Uuid;
-    use ccmux_protocol::{ServerMessage, PaneListEntry, PaneState, ViewportState, SplitDirection, WindowInfo, PaneInfo, ClaudeState, ErrorCode, OrchestrationMessage};
+    use ccmux_protocol::{ServerMessage, PaneState, ViewportState, SplitDirection, WindowInfo, PaneInfo, ClaudeState, ErrorCode, OrchestrationMessage};
     use crate::mcp::bridge::connection::ConnectionManager;
     use crate::mcp::bridge::handlers::{parse_uuid, format_pane_list};
     use crate::mcp::bridge::types::{
