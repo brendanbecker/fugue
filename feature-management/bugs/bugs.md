@@ -42,7 +42,6 @@
 |----|-------------|----------|--------|-----------|------|
 | BUG-040 | create_window returns success but doesn't create windows | P1 | new | mcp | [Link](BUG-040-create-window-returns-success-but-no-window/) |
 | BUG-039 | MCP tools hang intermittently through Claude Code | P1 | new | mcp-bridge | [Link](BUG-039-mcp-tools-hang-through-claude-code/) |
-| BUG-036 | Selection tools don't switch TUI view | P0 | new | daemon/TUI | [Link](BUG-036-selection-tools-dont-switch-tui-view/) |
 | BUG-035 | MCP handlers return wrong response types | P1 | new | daemon | [Link](BUG-035-mcp-handlers-return-wrong-response-types/) |
 | BUG-033 | create_layout rejects all layout formats | P1 | new | daemon | [Link](BUG-033-create-layout-validation-rejects-all-formats/) |
 | BUG-034 | create_window ignores selected session | P2 | new | daemon | [Link](BUG-034-create-window-ignores-selected-session/) |
@@ -189,6 +188,7 @@ See `feature-management/completed/` for resolved work items.
 
 | ID | Description | Priority | Resolution |
 |----|-------------|----------|------------|
+| BUG-036 | Selection tools don't switch TUI view | P0 | Fixed - broadcasts trigger AttachSession |
 | BUG-041 | Claude Code crashes on paste inside ccmux | P1 | Fixed - bracketed paste support |
 | BUG-030 | Daemon unresponsive after create_window | P0 | Fixed - wrap serde_json::Value for bincode compatibility |
 | BUG-029 | MCP response synchronization bug | P0 | Fixed - filter broadcast messages in recv_response_from_daemon |
