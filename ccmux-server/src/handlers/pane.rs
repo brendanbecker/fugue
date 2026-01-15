@@ -186,6 +186,7 @@ impl HandlerContext {
                 persistence.push_replay(seq, ServerMessage::PaneCreated {
                     pane: pane_info.clone(),
                     direction,
+                    should_focus: false, // Default for replay
                 });
             }
         }
@@ -193,10 +194,12 @@ impl HandlerContext {
         let response_msg = ServerMessage::PaneCreated {
             pane: pane_info.clone(),
             direction,
+            should_focus: true, // Requester focuses new pane
         };
         let broadcast_msg = ServerMessage::PaneCreated {
             pane: pane_info,
             direction,
+            should_focus: false, // Others don't focus
         };
 
         let (response, broadcast) = if commit_seq > 0 {
@@ -517,7 +520,7 @@ mod tests {
 
         match result {
             HandlerResult::ResponseWithBroadcast {
-                response: ServerMessage::PaneCreated { pane, direction },
+                response: ServerMessage::PaneCreated { pane, direction, .. },
                 ..
             } => {
                 assert_eq!(pane.window_id, window_id);

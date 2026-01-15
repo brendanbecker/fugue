@@ -411,7 +411,12 @@ pub enum ServerMessage {
     SessionList { sessions: Vec<SessionInfo> },
 
     /// Session created
-    SessionCreated { session: SessionInfo },
+    SessionCreated {
+        session: SessionInfo,
+        /// Whether the receiving client should focus this session
+        #[serde(default)]
+        should_focus: bool,
+    },
 
     /// Attached to session - full state
     Attached {
@@ -424,13 +429,21 @@ pub enum ServerMessage {
     },
 
     /// Window created
-    WindowCreated { window: WindowInfo },
+    WindowCreated {
+        window: WindowInfo,
+        /// Whether the receiving client should focus this window
+        #[serde(default)]
+        should_focus: bool,
+    },
 
     /// Pane created
     PaneCreated {
         pane: PaneInfo,
         /// Split direction for layout (how to arrange this pane relative to others)
         direction: SplitDirection,
+        /// Whether the receiving client should focus this pane
+        #[serde(default)]
+        should_focus: bool,
     },
 
     /// Pane output data
@@ -537,6 +550,9 @@ pub enum ServerMessage {
         session_name: String,
         window_id: Uuid,
         direction: String,
+        /// Whether the receiving client should focus this pane
+        #[serde(default)]
+        should_focus: bool,
     },
 
     /// Session created with full details (for MCP bridge)
@@ -545,6 +561,9 @@ pub enum ServerMessage {
         session_name: String,
         window_id: Uuid,
         pane_id: Uuid,
+        /// Whether the receiving client should focus this session
+        #[serde(default)]
+        should_focus: bool,
     },
 
     /// Window created with full details (for MCP bridge)
@@ -552,6 +571,9 @@ pub enum ServerMessage {
         window_id: Uuid,
         pane_id: Uuid,
         session_name: String,
+        /// Whether the receiving client should focus this window
+        #[serde(default)]
+        should_focus: bool,
     },
 
     /// Session was renamed (for MCP bridge)
@@ -575,19 +597,16 @@ pub enum ServerMessage {
         new_name: String,
     },
 
-    /// Pane was split successfully (for MCP bridge)
     PaneSplit {
-        /// The new pane that was created
         new_pane_id: Uuid,
-        /// The original pane that was split
         original_pane_id: Uuid,
-        /// Session info
         session_id: Uuid,
         session_name: String,
-        /// Window info
         window_id: Uuid,
-        /// Split direction used
         direction: String,
+        /// Whether the receiving client should focus the new pane
+        #[serde(default)]
+        should_focus: bool,
     },
 
     /// Pane was resized successfully (for MCP bridge)
@@ -1029,11 +1048,13 @@ tags: HashSet::new(),
 
         let msg = ServerMessage::SessionCreated {
             session: session.clone(),
+            should_focus: true,
         };
 
-        if let ServerMessage::SessionCreated { session: s } = msg {
+        if let ServerMessage::SessionCreated { session: s, should_focus } = msg {
             assert_eq!(s.name, "new-session");
             assert_eq!(s.window_count, 0);
+            assert!(should_focus);
         }
     }
 
@@ -1103,17 +1124,19 @@ tags: HashSet::new(),
 
         let msg = ServerMessage::WindowCreated {
             window: window.clone(),
+            should_focus: true,
         };
 
-        if let ServerMessage::WindowCreated { window: w } = msg {
+        if let ServerMessage::WindowCreated { window: w, should_focus } = msg {
             assert_eq!(w.name, "new-window");
             assert_eq!(w.index, 1);
+            assert!(should_focus);
         }
     }
 
     #[test]
     fn test_server_message_pane_created() {
-        let pane = PaneInfo {
+        let pane_info = PaneInfo {
             id: Uuid::new_v4(),
             window_id: Uuid::new_v4(),
             index: 0,
@@ -1121,19 +1144,27 @@ tags: HashSet::new(),
             rows: 24,
             state: PaneState::Normal,
             name: None,
-            title: Some("bash".to_string()),
-            cwd: Some("/home/user".to_string()),
+            title: None,
+            cwd: None,
         };
 
         let msg = ServerMessage::PaneCreated {
-            pane: pane.clone(),
+            pane: pane_info.clone(),
             direction: SplitDirection::Horizontal,
+            should_focus: false,
         };
 
-        if let ServerMessage::PaneCreated { pane: p, direction } = msg {
-            assert_eq!(p.title, Some("bash".to_string()));
-            assert_eq!(p.cwd, Some("/home/user".to_string()));
+        if let ServerMessage::PaneCreated {
+            pane: p,
+            direction,
+            should_focus,
+        } = msg
+        {
+            assert_eq!(p.id, pane_info.id);
             assert_eq!(direction, SplitDirection::Horizontal);
+            assert!(!should_focus);
+        } else {
+            panic!("Expected PaneCreated");
         }
     }
 

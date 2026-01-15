@@ -308,6 +308,7 @@ impl CommandExecutor {
         let msg = ServerMessage::PaneCreated {
             pane: pane_info.clone(),
             direction: direction.into(),
+            should_focus: false,
         };
         let delivered = self.registry.try_broadcast_to_session(session_id, msg);
         debug!(

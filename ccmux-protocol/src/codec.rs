@@ -319,6 +319,7 @@ mod tests {
                     tags: HashSet::new(),
                     metadata: HashMap::new(),
                 },
+                should_focus: true,
             },
             ServerMessage::Attached {
                 session: SessionInfo {
@@ -361,6 +362,7 @@ mod tests {
                     pane_count: 0,
                     active_pane_id: None,
                 },
+                should_focus: true,
             },
             ServerMessage::PaneCreated {
                 pane: PaneInfo {
@@ -375,6 +377,7 @@ mod tests {
                     cwd: None,
                 },
                 direction: crate::types::SplitDirection::Horizontal,
+                should_focus: false,
             },
             ServerMessage::Output {
                 pane_id,

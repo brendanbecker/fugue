@@ -467,9 +467,14 @@ impl HandlerContext {
                 session_name,
                 window_id,
                 direction: direction_str.to_string(),
+                should_focus: select,
             },
             session_id,
-            broadcast: ServerMessage::PaneCreated { pane: pane_info, direction },
+            broadcast: ServerMessage::PaneCreated { 
+                pane: pane_info, 
+                direction,
+                should_focus: false, // Don't steal focus from TUI users
+            },
         }
     }
 
@@ -587,6 +592,7 @@ impl HandlerContext {
             session_name,
             window_id,
             pane_id,
+            should_focus: true,
         })
     }
 
@@ -739,11 +745,13 @@ impl HandlerContext {
                 window_id,
                 pane_id,
                 session_name,
+                should_focus: true,
             },
             session_id,
             broadcast: ServerMessage::PaneCreated {
                 pane: pane_info,
                 direction: SplitDirection::Vertical, // Default direction for new window pane
+                should_focus: false,
             },
         }
     }
@@ -900,11 +908,13 @@ impl HandlerContext {
                 session_name,
                 window_id,
                 direction: direction_str.to_string(),
+                should_focus: select,
             },
             session_id,
             broadcast: ServerMessage::PaneCreated {
                 pane: new_pane_info,
                 direction,
+                should_focus: false,
             },
         }
     }
@@ -1177,6 +1187,7 @@ impl HandlerContext {
                 broadcast: ServerMessage::PaneCreated {
                     pane: first_pane_info,
                     direction: SplitDirection::Vertical, // Default direction for layout panes
+                    should_focus: false,
                 },
             }
         } else {
@@ -1915,7 +1926,7 @@ mod tests {
                     direction,
                     ..
                 },
-                broadcast: ServerMessage::PaneCreated { pane, direction: broadcast_dir },
+                broadcast: ServerMessage::PaneCreated { pane, direction: broadcast_dir, .. },
                 ..
             } => {
                 assert_eq!(session_name, "default");
@@ -2026,7 +2037,7 @@ mod tests {
         assert!(received.is_ok(), "TUI should have received the broadcast");
 
         match received.unwrap() {
-            ServerMessage::PaneCreated { pane, direction: _ } => {
+            ServerMessage::PaneCreated { pane, direction: _, .. } => {
                 // The new pane should have a valid ID
                 assert_ne!(pane.id, Uuid::nil());
             }
@@ -2227,7 +2238,7 @@ mod tests {
 
         // Verify TUI received PaneCreated
         match tui_rx.try_recv() {
-            Ok(ServerMessage::PaneCreated { pane, direction }) => {
+            Ok(ServerMessage::PaneCreated { pane, direction, .. }) => {
                 assert!(pane.id != Uuid::nil());
                 assert_eq!(direction, SplitDirection::Horizontal);
             }

@@ -1338,13 +1338,15 @@ impl App {
                 self.available_sessions = sessions;
                 // Don't reset session_list_index to preserve user's scroll position
             }
-            ServerMessage::SessionCreated { session } => {
-                // Automatically attach to new session
-                self.connection
-                    .send(ClientMessage::AttachSession {
-                        session_id: session.id,
-                    })
-                    .await?;
+            ServerMessage::SessionCreated { session, should_focus } => {
+                if should_focus {
+                    // Automatically attach to new session if we requested it
+                    self.connection
+                        .send(ClientMessage::AttachSession {
+                            session_id: session.id,
+                        })
+                        .await?;
+                }
             }
             ServerMessage::Attached {
                 session,
@@ -1500,15 +1502,16 @@ impl App {
                 self.last_beads_request_tick = 0;
                 self.beads_ready_count = None;
             }
-            ServerMessage::WindowCreated { window } => {
+            ServerMessage::WindowCreated { window, should_focus: _ } => {
                 self.windows.insert(window.id, window);
             }
-            ServerMessage::PaneCreated { pane, direction } => {
+            ServerMessage::PaneCreated { pane, direction, should_focus } => {
                 tracing::info!(
                     pane_id = %pane.id,
                     window_id = %pane.window_id,
                     pane_index = pane.index,
                     ?direction,
+                    should_focus,
                     "Handling PaneCreated broadcast from server"
                 );
 
@@ -1540,11 +1543,13 @@ impl App {
                 }
                 self.panes.insert(pane.id, pane.clone());
 
-                // Switch focus to the new pane
-                self.active_pane_id = Some(pane.id);
-                self.pane_manager.set_active(pane.id);
-                if let Some(ref mut layout) = self.layout {
-                    layout.set_active_pane(pane.id);
+                // Switch focus to the new pane if requested
+                if should_focus {
+                    self.active_pane_id = Some(pane.id);
+                    self.pane_manager.set_active(pane.id);
+                    if let Some(ref mut layout) = self.layout {
+                        layout.set_active_pane(pane.id);
+                    }
                 }
 
                 // Resize all panes after layout change

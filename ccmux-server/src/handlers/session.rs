@@ -79,7 +79,10 @@ impl HandlerContext {
                     let persistence = persistence_lock.read().await;
                     if let Ok(seq) = persistence.log_session_created(session_id, &name) {
                         commit_seq = seq;
-                        persistence.push_replay(seq, ServerMessage::SessionCreated { session: session_info.clone() });
+                        persistence.push_replay(seq, ServerMessage::SessionCreated { 
+                            session: session_info.clone(),
+                            should_focus: false, // Default for replay
+                        });
                     }
                 }
 
@@ -131,6 +134,7 @@ impl HandlerContext {
 
                 let response = ServerMessage::SessionCreated {
                     session: session_info,
+                    should_focus: true, // Requester focuses new session
                 };
 
                 let response = if commit_seq > 0 {
@@ -502,15 +506,18 @@ impl HandlerContext {
                 commit_seq = seq;
                 persistence.push_replay(seq, ServerMessage::WindowCreated {
                     window: window_info.clone(),
+                    should_focus: false, // Default for replay
                 });
             }
         }
 
         let response_msg = ServerMessage::WindowCreated {
             window: window_info.clone(),
+            should_focus: true, // Requester focuses new window
         };
         let broadcast_msg = ServerMessage::WindowCreated {
             window: window_info,
+            should_focus: false, // Others don't focus
         };
 
         let (response, broadcast) = if commit_seq > 0 {
@@ -858,7 +865,7 @@ mod tests {
         let result = ctx.handle_create_session("new-session".to_string(), None).await;
 
         match result {
-            HandlerResult::Response(ServerMessage::SessionCreated { session }) => {
+            HandlerResult::Response(ServerMessage::SessionCreated { session, .. }) => {
                 assert_eq!(session.name, "new-session");
                 // Session should now have 1 window with 1 pane
                 assert_eq!(session.window_count, 1);
@@ -1069,7 +1076,7 @@ mod tests {
 
         match result {
             HandlerResult::ResponseWithBroadcast {
-                response: ServerMessage::WindowCreated { window },
+                response: ServerMessage::WindowCreated { window, .. },
                 session_id: broadcast_session,
                 .. 
             } => {
@@ -1111,7 +1118,7 @@ mod tests {
 
         match result {
             HandlerResult::ResponseWithBroadcast {
-                response: ServerMessage::WindowCreated { window },
+                response: ServerMessage::WindowCreated { window, .. },
                 ..
             } => {
                 // Auto-generated name should be the index
