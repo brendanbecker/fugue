@@ -1,12 +1,12 @@
 # Bug Reports
 
 **Project**: ccmux
-**Last Updated**: 2026-01-13
+**Last Updated**: 2026-01-14
 
 ## Summary Statistics
 - Total Bugs: 41
-- Open: 12
-- Resolved: 27
+- Open: 6
+- Resolved: 33
 - Deprecated: 1
 
 ## CRITICAL: Approach for Complex Bugs
@@ -18,183 +18,40 @@
 3. **ULTRATHINK** about the dual MCP implementations (standalone vs bridge) and state propagation
 4. **ULTRATHINK** before assuming a simple fix - these bugs reveal systemic architectural issues
 
-## Root Cause Clusters (from Retrospective Analysis)
-
-| Cluster | Bugs | Risk | Key Insight |
-|---------|------|------|-------------|
-| **Protocol/Serialization** | BUG-033, BUG-035 | HIGH | JsonValue wrapper may break JSON access patterns |
-| **Session State Management** | BUG-034, BUG-036, BUG-040 | HIGH | State doesn't propagate across MCP bridge boundary |
-| **Broadcast Filtering** | BUG-036 | HIGH | BUG-029 fix may have over-filtered broadcasts |
-| **Operation Reliability** | BUG-035, BUG-037 | MEDIUM | State accumulates/corrupts over long sessions |
-| **Connection Management** | BUG-039 | HIGH | MCP bridge process lifecycle with Claude Code |
-| **Window Persistence** | BUG-040 | HIGH | Windows created but not persisted (suspected BUG-034 regression) |
-| **PTY Input Handling** | BUG-041 | HIGH | PTY layer incompatibility with Claude Code paste handling |
-
-## Paths Ruled Out
-
-- **"Just add broadcasts"** - Doesn't work; broadcasts aren't reaching TUI
-- **Fire-and-forget selection** - Selection tools need state confirmation
-- **Simple JSON key checks** - JsonValue wrapper changes `.get()` behavior
-
 ## Active Bugs
 
 | ID | Description | Priority | Status | Component | Link |
 |----|-------------|----------|--------|-----------|------|
 | BUG-041 | Claude Code crashes on paste inside ccmux | P1 | new | pty/client | [Link](BUG-041-claude-code-crashes-on-paste-inside-ccmux/) |
-| BUG-040 | create_window returns success but doesn't create windows | P1 | new | mcp | [Link](BUG-040-create-window-returns-success-but-no-window/) |
-| BUG-039 | MCP tools hang intermittently through Claude Code | P1 | new | mcp-bridge | [Link](BUG-039-mcp-tools-hang-through-claude-code/) |
-| BUG-036 | Selection tools don't switch TUI view | P0 | new | daemon/TUI | [Link](BUG-036-selection-tools-dont-switch-tui-view/) |
-| BUG-035 | MCP handlers return wrong response types | P1 | new | daemon | [Link](BUG-035-mcp-handlers-return-wrong-response-types/) |
-| BUG-033 | create_layout rejects all layout formats | P1 | new | daemon | [Link](BUG-033-create-layout-validation-rejects-all-formats/) |
-| BUG-034 | create_window ignores selected session | P2 | new | daemon | [Link](BUG-034-create-window-ignores-selected-session/) |
-| BUG-037 | close_pane returns AbortError | P2 | new | daemon | [Link](BUG-037-close-pane-aborts/) |
 | BUG-038 | create_pane returns wrong response type | P1 | new | mcp | [Link](BUG-038-create-pane-returns-wrong-response-type/) |
+| BUG-037 | close_pane returns AbortError | P2 | new | daemon | [Link](BUG-037-close-pane-aborts/) |
 | BUG-032 | MCP handlers missing TUI broadcasts for pane/window/layout ops | P0 | new | ccmux-server | [Link](BUG-032-mcp-handlers-missing-tui-broadcasts/) |
 | BUG-031 | Metadata not persisting across restarts | P1 | open | daemon | [Link](BUG-031-metadata-not-persisting-across-restarts/) |
-| BUG-030 | Daemon unresponsive after create_window | P0 | fixed | daemon | [Link](BUG-030-daemon-unresponsive-after-create-window/) |
-| BUG-029 | MCP response synchronization bug - responses lag by one call | P0 | fixed | daemon | [Link](BUG-029-create-window-unexpected-response/) |
 
 ## Priority Queue (Post-Retrospective)
 
 | Priority | Bug | Risk | Effort | Approach |
 |----------|-----|------|--------|----------|
-| **P0** | BUG-036 | HIGH | Low | **ULTRATHINK**: Check `is_broadcast_message()` filter - may fix BUG-034 too |
-| **P0** | BUG-033 | HIGH | Medium | **ULTRATHINK**: Verify JsonValue wrapper `.get()` compatibility |
 | **P1** | BUG-041 | HIGH | Medium | Investigate PTY bracketed paste mode and termios settings |
-| **P1** | BUG-040 | HIGH | Medium | Trace create_window path - suspected BUG-034 fix regression |
-| **P1** | BUG-039 | HIGH | Medium | Investigate mcp-bridge process lifecycle and stdin/stdout handling |
-| **P1** | BUG-034 | HIGH | Medium | Session state propagation audit |
-| **P1** | BUG-035 | VERY HIGH | High | **ULTRATHINK**: State drift - needs stress testing to reproduce |
 | **P2** | BUG-037 | Medium | Low | Timeout/abort handling |
 
-## Files Needing Heavy Focus
-
-| File | Issues | Notes |
-|------|--------|-------|
-| `ccmux-server/src/pty/mod.rs` | BUG-041 | PTY initialization, bracketed paste mode, termios settings |
-| `ccmux-client/src/input/mod.rs` | BUG-041 | Input event handling, paste forwarding |
-| `ccmux-client/src/ui/app.rs` | BUG-036, BUG-041 | Selection broadcast handling (line 1541), paste chunking |
-| `ccmux-server/src/mcp/bridge.rs` | BUG-034, BUG-036, BUG-039 | **ULTRATHINK**: Session state + broadcast filtering (line 458-461), connection lifecycle |
-| `ccmux-server/src/handlers/mcp_bridge.rs` | BUG-033, BUG-035 | Layout validation + response types |
-| `ccmux-protocol/src/types.rs` | BUG-033 | JsonValue wrapper - verify Deref impl |
-| `ccmux-server/src/mcp/handlers.rs` | BUG-034, BUG-040 | Session state usage, window creation |
-| `ccmux-server/src/session/manager.rs` | BUG-040 | Window creation and persistence |
-
-## Bug Details
-
-### BUG-040: create_window Returns Success But Doesn't Create Windows (P1) - NEW
-**Status**: New - suspected regression from BUG-034 fix
-
-- `create_window` returns success with `window_id` and `pane_id`
-- But window is not actually persisted to session state
-- `list_sessions` shows unchanged `window_count`
-- `list_windows` does not include the new window
-
-**SUSPECTED ROOT CAUSE**: BUG-034 fix (commit 3e14861) modified create_window session handling. Windows may be created transiently but not added to the session's window collection.
-
-**RELATED**: BUG-034 (create_window ignores selected session)
-
-**Location**: `ccmux-server/src/mcp/handlers.rs`, `ccmux-server/src/session/manager.rs`
-
-### BUG-041: Claude Code Crashes on Paste Inside ccmux (P1) - NEW
-**Status**: Investigation needed
-
-- Pasting moderate-sized content (~3.5KB) crashes Claude Code inside ccmux
-- Same content pastes successfully into Claude Code outside ccmux
-- Same content pastes successfully into vi inside ccmux
-- File pasted: `docs/scratch/grok/ccmux-peering-design.md` (3,501 bytes)
-- After crash, content attempts to output to underlying shell
-
-**KEY INSIGHT**: Size is well below 64KB chunking threshold from BUG-011 fix, so this is NOT a chunking issue.
-
-**SUSPECTED CAUSES**:
-1. Bracketed paste mode not properly forwarded through PTY
-2. PTY termios settings differ from standard terminal
-3. Character encoding or escape sequence corruption
-4. Input delivery timing different than native terminal
-
-**EVIDENCE**: Application-specific behavior (Claude Code fails, vi works) suggests PTY implementation detail that breaks Claude Code's specific input handling expectations.
-
-**Location**: `ccmux-server/src/pty/mod.rs`, `ccmux-client/src/input/mod.rs`
-
-### BUG-039: MCP Tools Hang Intermittently Through Claude Code (P1) - NEW
-**Status**: Investigation needed
-
-- MCP tool calls hang when invoked through Claude Code's MCP integration
-- Direct bash invocation works reliably every time
-- Multiple stale mcp-bridge processes accumulate (10+)
-- Daemon itself is running and responsive
-
-**SUSPECTED CAUSE**: Something about persistent MCP connections or connection pooling in Claude Code's MCP client may be causing issues. Possibly stale connections not being cleaned up properly.
-
-**INVESTIGATION**: Check mcp-bridge stdin/stdout handling, EOF detection, and process lifecycle.
-
-**Location**: `ccmux-server/src/mcp/bridge.rs`
-
-### BUG-036: Selection Tools Don't Switch TUI View (P0) - ROOT CAUSE FOUND
-**Status**: Ready to implement fix
-
-- `select_session`, `select_window`, `focus_pane` return success but TUI never switches
-- User stayed on session-0 the whole QA run despite multiple selection calls
-- Only auto-focus on pane creation works
-
-**ROOT CAUSE CONFIRMED**: TUI handlers at `app.rs:1521-1548` only update local state for items in current session. They do NOT switch sessions.
-
-**FIX**: When `SessionFocused` arrives with different `session_id`, send `AttachSession` to switch.
-
-**Location**: `ccmux-client/src/ui/app.rs` lines 1521-1548
-
-### BUG-035: MCP Handlers Return Wrong Response Types (P1) - VERY TRICKY
-**ULTRATHINK MULTIPLE TIMES** - State drift only appears after many operations.
-
-- `list_windows` returned `SessionList` instead of `WindowList`
-- `list_panes` returned `WindowList` instead of `PaneList`
-- Data inside is correct, wrong wrapper type
-- Only appeared later in session after many operations
-- **Hypothesis**: Response queue gets out of sync, type tag corruption
-- **Approach**: Stress test with 100+ operations, trace response types
-
-### BUG-033: create_layout Rejects All Layout Formats (P1) - INVESTIGATION COMPLETE
-**Status**: Debug logging needed to confirm hypothesis
-
-- All layout JSON specs rejected with "must contain 'pane' or 'splits'"
-- Even simplest `{"pane": {}}` fails
-- Daemon doesn't crash (BUG-028 fix worked), but validation too strict
-
-**INVESTIGATION FINDINGS**:
-- Tests that bypass MCP bridge pass (call `handle_create_layout` directly)
-- The MCP bridge at `bridge.rs:763` does `arguments["layout"].clone()`
-- If layout passed as string (not object), `layout.get("pane")` returns None
-
-**NEXT STEP**: Add debug logging at `bridge.rs:763` to see actual value type
-
-**Location**: `ccmux-server/src/mcp/bridge.rs` lines 760-764
-
-### BUG-034: create_window Ignores Selected Session (P2)
-- After `select_session` to dev-qa, `create_window` still created in session-0
-- Tool docs say "Uses active session if omitted" but it doesn't
-- Created stray "logs" window in orchestrator's session
-- **Workaround**: Always pass explicit `session` parameter
-- **Related**: May share root cause with BUG-036
-
-### BUG-037: close_pane Returns AbortError (P2)
-- `MCP error -32001: AbortError: The operation was aborted`
-- Pane doesn't close, user had to do it manually
-- **Workaround**: User manually closes via keyboard
-
 ## Bug Status
-
-See `feature-management/completed/` for resolved work items.
 
 ### Resolved Bugs
 
 | ID | Description | Priority | Resolution |
 |----|-------------|----------|------------|
+| BUG-040 | create_window returns success but doesn't create windows | P1 | Fixed - use active_session_id() instead of first session |
+| BUG-039 | MCP tools hang intermittently through Claude Code | P1 | Fixed - connection recovery on timeout and infinite loop fixes |
+| BUG-036 | Selection tools don't switch TUI view | P0 | Fixed - use global broadcasts for focus changes |
+| BUG-035 | MCP handlers return wrong response types | P1 | Fixed - strict broadcast filtering and connection recovery |
+| BUG-034 | create_window ignores selected session | P2 | Fixed - use active_session_id() instead of first session |
+| BUG-033 | create_layout rejects all layout formats | P1 | Fixed - parse layout strings in bridge handler |
 | BUG-030 | Daemon unresponsive after create_window | P0 | Fixed - wrap serde_json::Value for bincode compatibility |
 | BUG-029 | MCP response synchronization bug | P0 | Fixed - filter broadcast messages in recv_response_from_daemon |
 | BUG-028 | Daemon crashes on `ccmux_create_layout` with nested layout | P0 | Fixed - two-phase pane creation to avoid lock contention |
 | BUG-027 | MCP response routing swapped between handlers | P0 | Fixed - filter broadcast messages in recv_response_from_daemon |
-| BUG-026 | Focus management broken (auto-focus, focus_pane, select_window) | P1 | Fixed - broadcast focus changes to TUI |
+| BUG-026 | Focus management broken (auto-focus, focus_pane, select_window) | P1 | Fixed - broadcast focus changes to TUI clients |
 | BUG-025 | create_pane direction response mismatch | P2 | Fixed - return user's requested direction |
 | BUG-001 | Client input not captured | P0 | Fixed |
 | BUG-002 | Flaky test (shared temp dir) | P2 | Fixed - used tempfile::TempDir |
@@ -225,27 +82,3 @@ See `feature-management/completed/` for resolved work items.
 | ID | Description | Reason |
 |----|-------------|--------|
 | BUG-012 | Text selection not working in TUI | Shift+click works (by design) |
-
-## Recent Activity
-
-| Date | Bug ID | Action | Description |
-|------|--------|--------|-------------|
-| 2026-01-13 | BUG-041 | Created | Claude Code crashes on paste inside ccmux (PTY input handling issue) |
-| 2026-01-11 | BUG-040 | Created | create_window returns success but doesn't create windows (suspected BUG-034 regression) |
-| 2026-01-11 | BUG-039 | Created | MCP tools hang intermittently through Claude Code |
-| 2026-01-11 | BUG-037 | Created | close_pane returns AbortError |
-| 2026-01-11 | BUG-036 | Created | Selection tools don't switch TUI view (P0) |
-| 2026-01-11 | BUG-035 | Created | MCP handlers return wrong response types |
-| 2026-01-11 | BUG-034 | Created | create_window ignores selected session |
-| 2026-01-11 | BUG-033 | Created | create_layout rejects all layout formats |
-| 2026-01-11 | BUG-030 | Resolved | Fixed: wrap serde_json::Value for bincode compatibility |
-| 2026-01-11 | BUG-032 | Created | MCP handlers missing TUI broadcasts for split_pane, create_window, create_layout, resize_pane |
-| 2026-01-11 | BUG-031 | Created | Metadata not persisting across daemon restarts |
-| 2026-01-11 | BUG-030 | Created | Daemon unresponsive after create_window operations |
-| 2026-01-11 | BUG-029 | Resolved | Fixed: filter broadcast messages in recv_response_from_daemon |
-| 2026-01-11 | BUG-029 | Created | MCP response synchronization - responses lag by one call |
-| 2026-01-11 | BUG-028 | Resolved | Fixed: two-phase pane creation avoids lock contention |
-| 2026-01-11 | BUG-028 | Created | Daemon crashes on ccmux_create_layout with nested layout spec |
-| 2026-01-11 | BUG-027 | Resolved | Fixed: filter broadcast messages in recv_response_from_daemon |
-| 2026-01-11 | BUG-026 | Resolved | Fixed: broadcast focus changes to TUI clients |
-| 2026-01-11 | BUG-025 | Resolved | Fixed: return user's requested direction in response |

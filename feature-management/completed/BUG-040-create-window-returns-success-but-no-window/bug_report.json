@@ -1,0 +1,40 @@
+{
+  "bug_id": "BUG-040",
+  "title": "ccmux_create_window returns success but doesn't actually create windows",
+  "component": "mcp",
+  "severity": "high",
+  "priority": "P1",
+  "status": "new",
+  "reported_date": "2026-01-11",
+  "updated_date": "2026-01-11",
+  "assigned_to": null,
+  "tags": ["mcp", "create-window", "regression", "session-management"],
+  "affected_versions": [],
+  "environment": "development",
+  "reproducibility": "always",
+  "description": "The ccmux_create_window MCP tool returns a successful response with window_id and pane_id, but the window is not actually created. Subsequent calls to list_windows or list_sessions show the window_count unchanged. This may be a regression introduced by the BUG-034 fix which modified create_window session handling.",
+  "steps_to_reproduce": [
+    "Check session-0 has 1 window: list_sessions shows window_count: 1",
+    "Call create_window with session=\"session-0\"",
+    "Observe response shows success with new window_id",
+    "Check again: list_sessions still shows window_count: 1",
+    "list_windows for session-0 shows only the original window"
+  ],
+  "expected_behavior": "After calling create_window, the new window should appear in list_windows and list_sessions should show an incremented window_count",
+  "actual_behavior": "create_window returns success with window_id and pane_id, but the window is not persisted. list_sessions shows unchanged window_count and list_windows does not include the new window",
+  "evidence": {
+    "create_window_response": {
+      "window_id": "724332b6-fa99-4168-acf7-aa692674b36f",
+      "pane_id": "b4ffb2d2-5151-4205-bf06-ebb161746cc4",
+      "session": "session-0",
+      "status": "created"
+    },
+    "list_sessions_after": {
+      "session": "session-0",
+      "window_count": 1
+    },
+    "related_fix": "BUG-034 fix commit 3e14861 - modified create_window session handling"
+  },
+  "root_cause": "Suspected regression from BUG-034 fix - windows may be created transiently but not persisted to session state",
+  "impact": "Core MCP functionality broken - agents cannot create new windows, breaking multi-window workflows"
+}
