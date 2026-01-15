@@ -187,6 +187,7 @@ impl SidebandParser {
                 },
                 command: attrs.get("command").cloned(),
                 cwd: attrs.get("cwd").cloned(),
+                config: attrs.get("config").cloned(),
             }),
 
             "focus" => Ok(SidebandCommand::Focus {
@@ -252,11 +253,17 @@ impl SidebandParser {
     /// Parse XML-style attributes from a string
     fn parse_attributes(attrs_str: &str) -> HashMap<String, String> {
         // Match: key="value" or key='value'
-        let attr_regex = Regex::new(r#"(\w+)=["']([^"']*)["']"#).expect("Invalid attr regex");
+        // Supports nested quotes if different from delimiter (e.g. key='{"a":1}')
+        let attr_regex = Regex::new(r#"(\w+)=(?:"([^"]*)"|'([^']*)')"#).expect("Invalid attr regex");
 
         attr_regex
             .captures_iter(attrs_str)
-            .map(|c| (c[1].to_string(), c[2].to_string()))
+            .map(|c| {
+                let key = c.get(1).unwrap().as_str().to_string();
+                // Value is in group 2 (double quotes) or group 3 (single quotes)
+                let value = c.get(2).or_else(|| c.get(3)).map(|m| m.as_str()).unwrap_or("").to_string();
+                (key, value)
+            })
             .collect()
     }
 
@@ -337,6 +344,20 @@ mod tests {
         assert_eq!(commands.len(), 1);
         if let SidebandCommand::Spawn { direction, .. } = &commands[0] {
             assert_eq!(*direction, SplitDirection::Horizontal);
+        } else {
+            panic!("Expected Spawn command");
+        }
+    }
+
+    #[test]
+    fn test_parse_spawn_with_config() {
+        let mut parser = SidebandParser::new();
+        let input = osc(r#"spawn config='{"timeout":30,"env":{"FOO":"bar"}}'"#);
+
+        let (_, commands) = parser.parse(&input);
+
+        if let SidebandCommand::Spawn { config, .. } = &commands[0] {
+            assert_eq!(config.as_deref(), Some(r#"{"timeout":30,"env":{"FOO":"bar"}}"#));
         } else {
             panic!("Expected Spawn command");
         }

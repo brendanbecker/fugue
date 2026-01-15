@@ -449,7 +449,7 @@ impl PtyOutputPoller {
         executor: Arc<AsyncCommandExecutor>,
     ) {
         match &cmd {
-            SidebandCommand::Spawn { direction, command, cwd } => {
+            SidebandCommand::Spawn { direction, command, cwd, config } => {
                 // Handle spawn specially - we need to start a poller for the new pane
                 info!(
                     pane_id = %self.pane_id,
@@ -464,6 +464,7 @@ impl PtyOutputPoller {
                     direction.clone(),
                     command.clone(),
                     cwd.clone(),
+                    config.clone(),
                 ).await {
                     Ok(result) => {
                         info!(
