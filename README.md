@@ -12,6 +12,7 @@ A terminal multiplexer built in Rust that understands Claude Code. Unlike tmux, 
 | [Architecture](docs/architecture/ARCHITECTURE.md) | System design and crate structure |
 | [Claude Integration](docs/architecture/CLAUDE_INTEGRATION.md) | MCP tools, sideband protocol, state detection |
 | [Configuration](docs/architecture/CONFIGURATION.md) | Config file options and hot-reload |
+| [Remote Access](docs/REMOTE_ACCESS.md) | Secure remote peering via SSH tunneling |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Common issues and solutions |
 
 ## Why ccmux?
