@@ -13,7 +13,8 @@
 
 Core terminal multiplexer features complete. Nineteen features remain in backlog.
 
-**Recent Completions (2026-01-11)**:
+**Recent Completions (2026-01-13)**:
+- FEAT-079: Comprehensive Human-Control Arbitration
 - FEAT-060: MCP daemon auto-recovery (connection monitoring, reconnection, structured errors)
 - FEAT-048: MCP orchestration protocol tools (tag-based agent communication)
 - FEAT-057: Beads passive awareness (auto-detect .beads/, env var injection)
@@ -23,7 +24,6 @@ Core terminal multiplexer features complete. Nineteen features remain in backlog
 - FEAT-056: User priority lockout for MCP focus control
 
 **Recent Additions (2026-01-13)**:
-- FEAT-079: Comprehensive Human-Control Arbitration
 - FEAT-078: Per-client focus state support
 - FEAT-077: Human-control mode UX indicator and MCP error details
 - FEAT-076: Capability signaling protocol (sideband metadata)
@@ -47,7 +47,6 @@ Core terminal multiplexer features complete. Nineteen features remain in backlog
 
 | ID | Title | Component | Priority | Status | Notes |
 |----|-------|-----------|----------|--------|-------|
-| FEAT-079 | Comprehensive Human-Control Arbitration | ccmux-server, ccmux-protocol | P2 | **Ready** | Expand user priority lockout to block all mutations (input, resize, kill) per ADR-004/005. |
 | FEAT-078 | Per-client focus state support | ccmux-server, ccmux-client, ccmux-protocol | P2 | **Ready** | Ensure focus/selection is per-client (avoid focus fights) with snapshot initialization only. |
 | FEAT-077 | Human-control mode UX indicator and MCP error details | ccmux-client, ccmux-server | P2 | **Ready** | TUI indicator + timer for human-control mode; structured MCP errors include remaining block duration. |
 | FEAT-075 | Snapshot + replay resync API (event retention) | ccmux-server, ccmux-protocol, ccmux-client | P2 | **Ready** | Resync after gaps via snapshot fallback + event replay. |
@@ -228,6 +227,7 @@ All completed features are in `feature-management/completed/`. Here's a summary 
 | FEAT-028 | Orchestration Flexibility Refactor (Tag-based Routing) | Complete |
 | FEAT-036 | Session-Aware MCP Commands | Complete |
 | FEAT-050 | Session Metadata Storage | Complete |
+| FEAT-079 | Comprehensive Human-Control Arbitration | Complete |
 
 ## Test Coverage
 
