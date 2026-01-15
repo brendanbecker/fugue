@@ -63,6 +63,11 @@ pub enum HandlerResult {
         response: ServerMessage,
         follow_up: Vec<ServerMessage>,
     },
+    /// Response to client plus broadcast to all connected clients
+    ResponseWithGlobalBroadcast {
+        response: ServerMessage,
+        broadcast: ServerMessage,
+    },
     /// No response needed (for fire-and-forget messages like Input)
     NoResponse,
 }

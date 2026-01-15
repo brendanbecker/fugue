@@ -471,6 +471,28 @@ impl ClientRegistry {
 
         success_count
     }
+    /// Broadcast a message to all connected clients except one (non-blocking)
+    ///
+    /// Returns the number of clients that successfully received the message.
+    pub fn broadcast_to_all_except(&self, except_client: ClientId, message: ServerMessage) -> usize {
+        let client_ids = self.get_all_clients();
+
+        if client_ids.is_empty() {
+            return 0;
+        }
+
+        let mut success_count = 0;
+
+        for client_id in client_ids {
+            if client_id != except_client {
+                if self.try_send_to_client(client_id, message.clone()) {
+                    success_count += 1;
+                }
+            }
+        }
+
+        success_count
+    }
 }
 
 impl std::fmt::Debug for ClientRegistry {

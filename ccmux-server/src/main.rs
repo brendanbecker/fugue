@@ -644,6 +644,21 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
                                     }
                                 }
                             }
+                            HandlerResult::ResponseWithGlobalBroadcast {
+                                response,
+                                broadcast,
+                            } => {
+                                // Send response to this client
+                                if let Err(e) = framed_writer.send(response).await {
+                                    error!("Failed to send response to {}: {}", client_id, e);
+                                    break;
+                                }
+
+                                // Broadcast to ALL other clients
+                                shared_state
+                                    .registry
+                                    .broadcast_to_all_except(client_id, broadcast);
+                            }
                             HandlerResult::NoResponse => {
                                 // No response needed (e.g., Input message)
                             }

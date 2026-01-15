@@ -211,20 +211,20 @@ impl HandlerContext {
                     if let Some(window) = session.get_window_mut(window_id) {
                         if window.set_active_pane(pane_id) {
                             debug!("Pane {} selected as active", pane_id);
-                            // BUG-026: Broadcast focus change to TUI clients
-                            return HandlerResult::ResponseWithBroadcast {
-                                response: ServerMessage::PaneFocused {
-                                    session_id,
-                                    window_id,
-                                    pane_id,
-                                },
+                        // BUG-026: Broadcast pane focus change to TUI clients
+                        // BUG-036: Use global broadcast so TUIs in other sessions can switch
+                        return HandlerResult::ResponseWithGlobalBroadcast {
+                            response: ServerMessage::PaneFocused {
                                 session_id,
-                                broadcast: ServerMessage::PaneFocused {
-                                    session_id,
-                                    window_id,
-                                    pane_id,
-                                },
-                            };
+                                window_id,
+                                pane_id,
+                            },
+                            broadcast: ServerMessage::PaneFocused {
+                                session_id,
+                                window_id,
+                                pane_id,
+                            },
+                        };
                         }
                     }
                 }
@@ -275,12 +275,12 @@ impl HandlerContext {
                     session.set_active_window(window_id);
                     debug!("Window {} selected as active", window_id);
                     // BUG-026: Broadcast window focus change to TUI clients
-                    return HandlerResult::ResponseWithBroadcast {
+                    // BUG-036: Use global broadcast so TUIs in other sessions can switch
+                    return HandlerResult::ResponseWithGlobalBroadcast {
                         response: ServerMessage::WindowFocused {
                             session_id,
                             window_id,
                         },
-                        session_id,
                         broadcast: ServerMessage::WindowFocused {
                             session_id,
                             window_id,
@@ -333,9 +333,9 @@ impl HandlerContext {
         session_manager.set_active_session(session_id);
         debug!("Session {} selected as active", session_id);
         // BUG-026: Broadcast session focus change to TUI clients
-        HandlerResult::ResponseWithBroadcast {
+        // BUG-036: Use global broadcast so TUIs in other sessions can switch
+        HandlerResult::ResponseWithGlobalBroadcast {
             response: ServerMessage::SessionFocused { session_id },
-            session_id,
             broadcast: ServerMessage::SessionFocused { session_id },
         }
     }
@@ -559,14 +559,15 @@ mod tests {
         let result = ctx.handle_select_pane(pane2_id).await;
 
         // BUG-026: Now returns ResponseWithBroadcast with PaneFocused
+        // BUG-036: Use ResponseWithGlobalBroadcast for global focus notification
         match result {
-            HandlerResult::ResponseWithBroadcast {
+            HandlerResult::ResponseWithGlobalBroadcast {
                 response: ServerMessage::PaneFocused { pane_id, .. },
                 ..
             } => {
                 assert_eq!(pane_id, pane2_id);
             }
-            _ => panic!("Expected ResponseWithBroadcast with PaneFocused"),
+            _ => panic!("Expected ResponseWithGlobalBroadcast with PaneFocused"),
         }
 
         // Verify pane2 is now active
@@ -788,13 +789,13 @@ mod tests {
         let result = ctx.handle_select_pane(pane_id).await;
 
         match result {
-            HandlerResult::ResponseWithBroadcast {
+            HandlerResult::ResponseWithGlobalBroadcast {
                 response: ServerMessage::PaneFocused { pane_id: focused_id, .. },
                 ..
             } => {
                 assert_eq!(focused_id, pane_id);
             }
-            _ => panic!("Expected PaneFocused response"),
+            _ => panic!("Expected ResponseWithGlobalBroadcast with PaneFocused"),
         }
     }
 
@@ -820,13 +821,13 @@ mod tests {
         let result = ctx.handle_select_pane(pane_id).await;
 
         match result {
-            HandlerResult::ResponseWithBroadcast {
+            HandlerResult::ResponseWithGlobalBroadcast {
                 response: ServerMessage::PaneFocused { pane_id: focused_id, .. },
                 ..
             } => {
                 assert_eq!(focused_id, pane_id);
             }
-            _ => panic!("Expected PaneFocused response"),
+            _ => panic!("Expected ResponseWithGlobalBroadcast with PaneFocused"),
         }
     }
 }
