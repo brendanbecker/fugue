@@ -68,6 +68,13 @@ pub enum HandlerResult {
         response: ServerMessage,
         broadcast: ServerMessage,
     },
+    /// Broadcast to session without response to sender
+    BroadcastToSession {
+        session_id: Uuid,
+        broadcast: ServerMessage,
+    },
+    /// Broadcast to all clients without response to sender
+    GlobalBroadcast(ServerMessage),
     /// No response needed (for fire-and-forget messages like Input)
     NoResponse,
 }

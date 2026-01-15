@@ -429,7 +429,23 @@ impl HandlerContext {
             Some(pane) => {
                 pane.resize(cols, rows);
                 debug!("Pane {} resized to {}x{}", pane_id, cols, rows);
-                HandlerResult::NoResponse
+
+                // Find session ID for broadcast
+                let session_id = session_manager.find_pane(pane_id)
+                    .map(|(s, _, _)| s.id());
+
+                if let Some(session_id) = session_id {
+                    HandlerResult::BroadcastToSession {
+                        session_id,
+                        broadcast: ServerMessage::PaneResized {
+                            pane_id,
+                            new_cols: cols,
+                            new_rows: rows,
+                        },
+                    }
+                } else {
+                    HandlerResult::NoResponse
+                }
             }
             None => {
                 debug!("Pane {} not found for Resize", pane_id);

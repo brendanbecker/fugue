@@ -230,9 +230,9 @@ See [Troubleshooting](docs/TROUBLESHOOTING.md) for more help.
 
 ## Project Status
 
-- **Stage**: MVP Functional
-- **Tests**: 1,400+ passing
-- **Bugs**: 21 tracked, all resolved or deprecated
+- **Stage**: MVP Functional (Stability Release 0.1.1)
+- **Tests**: 1,600+ passing
+- **Bugs**: 41 tracked, 34 resolved or deprecated
 - **Features**: 44 complete, 2 in backlog
 
 ## License

@@ -659,6 +659,20 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
                                     .registry
                                     .broadcast_to_all_except(client_id, broadcast);
                             }
+                            HandlerResult::BroadcastToSession {
+                                session_id,
+                                broadcast,
+                            } => {
+                                shared_state
+                                    .registry
+                                    .broadcast_to_session_except(session_id, client_id, broadcast)
+                                    .await;
+                            }
+                            HandlerResult::GlobalBroadcast(broadcast) => {
+                                shared_state
+                                    .registry
+                                    .broadcast_to_all_except(client_id, broadcast);
+                            }
                             HandlerResult::NoResponse => {
                                 // No response needed (e.g., Input message)
                             }

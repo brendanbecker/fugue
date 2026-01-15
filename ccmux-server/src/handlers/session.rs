@@ -8,7 +8,7 @@ use ccmux_utils::CcmuxError;
 
 use crate::pty::{PtyConfig, PtyOutputPoller};
 
-use ccmux_protocol::{ErrorCode, ServerMessage};
+use ccmux_protocol::{ErrorCode, ServerMessage, SplitDirection};
 
 use super::{HandlerContext, HandlerResult};
 
@@ -71,6 +71,10 @@ impl HandlerContext {
 
                 // Get session info before releasing lock
                 let session_info = session_manager.get_session(session_id).unwrap().to_info();
+                
+                // Collect updated session list for broadcast (BUG-032)
+                let sessions: Vec<_> = session_manager.list_sessions().iter().map(|s| s.to_info()).collect();
+                
                 drop(session_manager);
 
                 // Spawn PTY for the default pane
@@ -119,9 +123,12 @@ impl HandlerContext {
                     }
                 }
 
-                HandlerResult::Response(ServerMessage::SessionCreated {
-                    session: session_info,
-                })
+                HandlerResult::ResponseWithGlobalBroadcast {
+                    response: ServerMessage::SessionCreated {
+                        session: session_info,
+                    },
+                    broadcast: ServerMessage::SessionsChanged { sessions },
+                }
             }
             Err(e) => {
                 debug!("Failed to create session '{}': {}", name, e);
@@ -335,7 +342,7 @@ impl HandlerContext {
         // Default terminal size for new panes
         let (cols, rows) = (80, 24);
 
-        let (window_info, pane_id, session_name) = {
+        let (window_info, pane_id, session_name, pane_info, session_env) = {
             let mut session_manager = self.session_manager.write().await;
 
             if let Some(session) = session_manager.get_session_mut(session_id) {
@@ -349,13 +356,17 @@ impl HandlerContext {
                 let window = session.get_window_mut(window_id).unwrap();
                 let pane = window.create_pane();
                 let pane_id = pane.id();
+                let pane_info = pane.to_info();
 
                 info!(
                     "Window '{}' created in session {} with ID {} (default pane {})",
                     window_info.name, session_id, window_id, pane_id
                 );
 
-                (window_info, pane_id, session_name)
+                // Capture session environment
+                let env = session.environment().clone();
+
+                (window_info, pane_id, session_name, pane_info, env)
             } else {
                 debug!("Session {} not found for CreateWindow", session_id);
                 return HandlerContext::error(
@@ -383,6 +394,8 @@ impl HandlerContext {
                 pty_config = pty_config.with_cwd(cwd);
             }
             pty_config = pty_config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
+            // Apply session environment variables
+            pty_config = pty_config.with_env_map(&session_env);
 
             match pty_manager.spawn(pane_id, pty_config) {
                 Ok(handle) => {
@@ -406,14 +419,26 @@ impl HandlerContext {
             }
         }
 
-        // Broadcast to all clients attached to this session
-        HandlerResult::ResponseWithBroadcast {
-            response: ServerMessage::WindowCreated {
+        info!("Window {} created in session {} with pane {}", window_id, session_name, pane_id);
+
+        // Broadcast WindowCreated to all clients in session (BUG-032)
+        self.registry.broadcast_to_session_except(
+            session_id,
+            self.client_id,
+            ServerMessage::WindowCreated {
                 window: window_info.clone(),
             },
-            session_id,
-            broadcast: ServerMessage::WindowCreated {
+        ).await;
+
+        // Return response and broadcast PaneCreated for default pane
+        HandlerResult::ResponseWithBroadcast {
+            response: ServerMessage::WindowCreated {
                 window: window_info,
+            },
+            session_id,
+            broadcast: ServerMessage::PaneCreated {
+                pane: pane_info,
+                direction: SplitDirection::Vertical,
             },
         }
     }
@@ -466,11 +491,17 @@ impl HandlerContext {
                     session_id, previous_name, new_name
                 );
 
-                HandlerResult::Response(ServerMessage::SessionRenamed {
-                    session_id,
-                    previous_name,
-                    new_name,
-                })
+                // Broadcast updated session list to all clients (BUG-032)
+                let sessions: Vec<_> = session_manager.list_sessions().iter().map(|s| s.to_info()).collect();
+
+                HandlerResult::ResponseWithGlobalBroadcast {
+                    response: ServerMessage::SessionRenamed {
+                        session_id,
+                        previous_name,
+                        new_name,
+                    },
+                    broadcast: ServerMessage::SessionsChanged { sessions },
+                }
             }
             Err(CcmuxError::SessionExists(name)) => {
                 debug!("Session name '{}' is already in use", name);
@@ -496,20 +527,32 @@ impl HandlerContext {
         let mut session_manager = self.session_manager.write().await;
 
         // Use find_pane_mut which searches across all sessions
-        if let Some(pane) = session_manager.find_pane_mut(pane_id) {
-            let previous_name = pane.name().map(String::from);
-            pane.set_name(Some(new_name.clone()));
+        let location = session_manager.find_pane(pane_id).map(|(s, _, _)| s.id());
 
-            info!(
-                "Pane {} renamed from {:?} to '{}'",
-                pane_id, previous_name, new_name
-            );
+        if let Some(session_id) = location {
+            if let Some(pane) = session_manager.find_pane_mut(pane_id) {
+                let previous_name = pane.name().map(String::from);
+                pane.set_name(Some(new_name.clone()));
 
-            return HandlerResult::Response(ServerMessage::PaneRenamed {
-                pane_id,
-                previous_name,
-                new_name,
-            });
+                info!(
+                    "Pane {} renamed from {:?} to '{}'",
+                    pane_id, previous_name, new_name
+                );
+
+                return HandlerResult::ResponseWithBroadcast {
+                    response: ServerMessage::PaneRenamed {
+                        pane_id,
+                        previous_name: previous_name.clone(),
+                        new_name: new_name.clone(),
+                    },
+                    session_id,
+                    broadcast: ServerMessage::PaneRenamed {
+                        pane_id,
+                        previous_name,
+                        new_name,
+                    },
+                };
+            }
         }
 
         HandlerContext::error(ErrorCode::PaneNotFound, format!("Pane '{}' not found", pane_id))
@@ -538,11 +581,19 @@ impl HandlerContext {
                         window_id, previous_name, new_name
                     );
 
-                    return HandlerResult::Response(ServerMessage::WindowRenamed {
-                        window_id,
-                        previous_name,
-                        new_name,
-                    });
+                    return HandlerResult::ResponseWithBroadcast {
+                        response: ServerMessage::WindowRenamed {
+                            window_id,
+                            previous_name: previous_name.clone(),
+                            new_name: new_name.clone(),
+                        },
+                        session_id,
+                        broadcast: ServerMessage::WindowRenamed {
+                            window_id,
+                            previous_name,
+                            new_name,
+                        },
+                    };
                 }
             }
         }
@@ -623,12 +674,16 @@ mod tests {
         let result = ctx.handle_create_session("new-session".to_string(), None).await;
 
         match result {
-            HandlerResult::Response(ServerMessage::SessionCreated { session }) => {
+            HandlerResult::ResponseWithGlobalBroadcast {
+                response: ServerMessage::SessionCreated { session },
+                broadcast: ServerMessage::SessionsChanged { sessions },
+            } => {
                 assert_eq!(session.name, "new-session");
                 // Session should now have 1 window with 1 pane
                 assert_eq!(session.window_count, 1);
+                assert_eq!(sessions.len(), 1);
             }
-            _ => panic!("Expected SessionCreated response"),
+            _ => panic!("Expected SessionCreated response with global broadcast"),
         }
 
         // Verify window and pane were created
@@ -903,15 +958,19 @@ mod tests {
             .await;
 
         match result {
-            HandlerResult::Response(ServerMessage::SessionRenamed {
-                previous_name,
-                new_name,
-                ..
-            }) => {
+            HandlerResult::ResponseWithGlobalBroadcast {
+                response: ServerMessage::SessionRenamed {
+                    previous_name,
+                    new_name,
+                    ..
+                },
+                broadcast: ServerMessage::SessionsChanged { sessions },
+            } => {
                 assert_eq!(previous_name, "original");
                 assert_eq!(new_name, "renamed");
+                assert_eq!(sessions.len(), 1);
             }
-            _ => panic!("Expected SessionRenamed response"),
+            _ => panic!("Expected SessionRenamed response with global broadcast"),
         }
 
         // Verify the session was actually renamed
@@ -935,16 +994,20 @@ mod tests {
             .await;
 
         match result {
-            HandlerResult::Response(ServerMessage::SessionRenamed {
-                session_id: resp_id,
-                previous_name,
-                new_name,
-            }) => {
+            HandlerResult::ResponseWithGlobalBroadcast {
+                response: ServerMessage::SessionRenamed {
+                    session_id: resp_id,
+                    previous_name,
+                    new_name,
+                },
+                broadcast: ServerMessage::SessionsChanged { sessions },
+            } => {
                 assert_eq!(resp_id, session_id);
                 assert_eq!(previous_name, "test");
                 assert_eq!(new_name, "new-name");
+                assert_eq!(sessions.len(), 1);
             }
-            _ => panic!("Expected SessionRenamed response"),
+            _ => panic!("Expected SessionRenamed response with global broadcast"),
         }
     }
 
@@ -1022,15 +1085,18 @@ mod tests {
             .await;
 
         match result {
-            HandlerResult::Response(ServerMessage::SessionRenamed {
-                previous_name,
-                new_name,
+            HandlerResult::ResponseWithGlobalBroadcast {
+                response: ServerMessage::SessionRenamed {
+                    previous_name,
+                    new_name,
+                    ..
+                },
                 ..
-            }) => {
+            } => {
                 assert_eq!(previous_name, "same");
                 assert_eq!(new_name, "same");
             }
-            _ => panic!("Expected SessionRenamed response"),
+            _ => panic!("Expected SessionRenamed response with global broadcast"),
         }
     }
 }

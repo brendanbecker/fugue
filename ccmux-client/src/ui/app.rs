@@ -1598,6 +1598,47 @@ impl App {
                     .await?;
             }
 
+            ServerMessage::SessionRenamed { session_id, new_name, .. } => {
+                if let Some(session) = &mut self.session {
+                    if session.id == session_id {
+                        session.name = new_name;
+                    }
+                }
+            }
+
+            ServerMessage::WindowRenamed { window_id, new_name, .. } => {
+                if let Some(window) = self.windows.get_mut(&window_id) {
+                    window.name = new_name;
+                }
+            }
+
+            ServerMessage::PaneRenamed { pane_id, new_name, .. } => {
+                if let Some(pane) = self.panes.get_mut(&pane_id) {
+                    pane.name = Some(new_name.clone());
+                }
+                if let Some(ui_pane) = self.pane_manager.get_mut(pane_id) {
+                    ui_pane.set_title(Some(new_name));
+                }
+            }
+
+            ServerMessage::PaneResized { pane_id, new_cols, new_rows } => {
+                // Update local pane dimensions
+                if let Some(pane) = self.panes.get_mut(&pane_id) {
+                    pane.cols = new_cols;
+                    pane.rows = new_rows;
+                }
+                // Resize the UI pane
+                self.pane_manager.resize_pane(pane_id, new_rows, new_cols);
+                
+                // Trigger a full layout recalculation on next draw
+            }
+
+            ServerMessage::PaneSplit { new_pane_id, .. } => {
+                // Usually followed by PaneCreated, but we could handle it here if needed.
+                // For now, let PaneCreated handle the UI update.
+                let _ = new_pane_id;
+            }
+
             // MCP bridge messages - not used by TUI client
             ServerMessage::AllPanesList { .. }
             | ServerMessage::WindowList { .. }
@@ -1605,11 +1646,6 @@ impl App {
             | ServerMessage::PaneStatus { .. }
             | ServerMessage::PaneCreatedWithDetails { .. }
             | ServerMessage::WindowCreatedWithDetails { .. }
-            | ServerMessage::SessionRenamed { .. }
-            | ServerMessage::PaneRenamed { .. }
-            | ServerMessage::WindowRenamed { .. }
-            | ServerMessage::PaneSplit { .. }
-            | ServerMessage::PaneResized { .. }
             | ServerMessage::LayoutCreated { .. }
             | ServerMessage::SessionDestroyed { .. }
             | ServerMessage::EnvironmentSet { .. }

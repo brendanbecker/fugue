@@ -524,6 +524,9 @@ impl HandlerContext {
         };
         pane.init_parser();
 
+        // Broadcast updated session list to all clients (BUG-032)
+        let sessions: Vec<_> = session_manager.list_sessions().iter().map(|s| s.to_info()).collect();
+
         // Drop session_manager lock before spawning PTY
         drop(session_manager);
 
@@ -566,12 +569,15 @@ impl HandlerContext {
 
         info!("Session {} created with window {} and pane {}", session_name, window_id, pane_id);
 
-        HandlerResult::Response(ServerMessage::SessionCreatedWithDetails {
-            session_id,
-            session_name,
-            window_id,
-            pane_id,
-        })
+        HandlerResult::ResponseWithGlobalBroadcast {
+            response: ServerMessage::SessionCreatedWithDetails {
+                session_id,
+                session_name,
+                window_id,
+                pane_id,
+            },
+            broadcast: ServerMessage::SessionsChanged { sessions },
+        }
     }
 
     /// Handle CreateWindowWithOptions - create a window with full control
@@ -670,11 +676,11 @@ impl HandlerContext {
         };
         pane.init_parser();
 
+        // Broadcast WindowCreated to all clients in session (BUG-032)
+        let window_info = window.to_info();
+
         // Capture session environment before dropping lock
-        let session_env = session_manager
-            .get_session(session_id)
-            .map(|s| s.environment().clone())
-            .unwrap_or_default();
+        let session_env = session.environment().clone();
 
         // Drop session_manager lock before spawning PTY
         drop(session_manager);
@@ -716,6 +722,14 @@ impl HandlerContext {
         }
 
         info!("Window {} created in session {} with pane {}", window_id, session_name, pane_id);
+
+        self.registry.broadcast_to_session_except(
+            session_id,
+            self.client_id,
+            ServerMessage::WindowCreated {
+                window: window_info,
+            },
+        ).await;
 
         // Return response to MCP client and broadcast to TUI clients (BUG-032)
         HandlerResult::ResponseWithBroadcast {
@@ -1102,31 +1116,25 @@ impl HandlerContext {
             session_name, window_id, pane_ids.len()
         );
 
-        // Return response to MCP client and broadcast to TUI clients (BUG-032)
-        // Broadcast PaneCreated for the first pane to notify TUI of layout changes
-        if let Some(first_pane_info) = pane_infos.into_iter().next() {
-            HandlerResult::ResponseWithBroadcast {
-                response: ServerMessage::LayoutCreated {
-                    session_id,
-                    session_name,
-                    window_id,
-                    pane_ids,
-                },
+        // Broadcast PaneCreated for all new panes to notify TUI of layout changes (BUG-032)
+        for pane_info in pane_infos {
+            self.registry.broadcast_to_session_except(
                 session_id,
-                broadcast: ServerMessage::PaneCreated {
-                    pane: first_pane_info,
-                    direction: SplitDirection::Vertical, // Default direction for layout panes
-                },
-            }
-        } else {
-            // No panes created - shouldn't happen but handle gracefully
-            HandlerResult::Response(ServerMessage::LayoutCreated {
-                session_id,
-                session_name,
-                window_id,
-                pane_ids,
-            })
+                self.client_id,
+                ServerMessage::PaneCreated {
+                    pane: pane_info,
+                    direction: SplitDirection::Vertical,
+                }
+            ).await;
         }
+
+        // Return response to MCP client
+        HandlerResult::Response(ServerMessage::LayoutCreated {
+            session_id,
+            session_name,
+            window_id,
+            pane_ids,
+        })
     }
 
     /// Recursively create panes from layout specification (Phase 1 of create_layout)
@@ -1506,11 +1514,17 @@ impl HandlerContext {
             );
         };
 
-        HandlerResult::Response(ServerMessage::TagsSet {
-            session_id,
-            session_name,
-            tags,
-        })
+        // Broadcast updated session list to all clients (BUG-032)
+        let sessions: Vec<_> = session_manager.list_sessions().iter().map(|s| s.to_info()).collect();
+
+        HandlerResult::ResponseWithGlobalBroadcast {
+            response: ServerMessage::TagsSet {
+                session_id,
+                session_name,
+                tags,
+            },
+            broadcast: ServerMessage::SessionsChanged { sessions },
+        }
     }
 
     /// Handle GetTags - get tags from a session
@@ -1763,13 +1777,17 @@ mod tests {
         let result = ctx.handle_create_session_with_options(Some("my-session".to_string()), None, None).await;
 
         match result {
-            HandlerResult::Response(ServerMessage::SessionCreatedWithDetails {
-                session_name,
-                ..
-            }) => {
+            HandlerResult::ResponseWithGlobalBroadcast {
+                response: ServerMessage::SessionCreatedWithDetails {
+                    session_name,
+                    ..
+                },
+                broadcast: ServerMessage::SessionsChanged { sessions },
+            } => {
                 assert_eq!(session_name, "my-session");
+                assert_eq!(sessions.len(), 1);
             }
-            _ => panic!("Expected SessionCreatedWithDetails response"),
+            _ => panic!("Expected SessionCreatedWithDetails response with global broadcast"),
         }
     }
 
@@ -1779,13 +1797,17 @@ mod tests {
         let result = ctx.handle_create_session_with_options(None, None, None).await;
 
         match result {
-            HandlerResult::Response(ServerMessage::SessionCreatedWithDetails {
-                session_name,
-                ..
-            }) => {
+            HandlerResult::ResponseWithGlobalBroadcast {
+                response: ServerMessage::SessionCreatedWithDetails {
+                    session_name,
+                    ..
+                },
+                broadcast: ServerMessage::SessionsChanged { sessions },
+            } => {
                 assert!(session_name.starts_with("session-"));
+                assert_eq!(sessions.len(), 1);
             }
-            _ => panic!("Expected SessionCreatedWithDetails response"),
+            _ => panic!("Expected SessionCreatedWithDetails response with global broadcast"),
         }
     }
 
@@ -2278,17 +2300,15 @@ mod tests {
             .await;
 
         match result {
-            HandlerResult::Response(ServerMessage::TagsSet {
-                session_name,
-                tags,
-                ..
-            }) => {
-                assert_eq!(session_name, "test");
+            HandlerResult::ResponseWithGlobalBroadcast {
+                response: ServerMessage::TagsSet { tags, .. },
+                broadcast: ServerMessage::SessionsChanged { sessions },
+            } => {
                 assert!(tags.contains("orchestrator"));
                 assert!(tags.contains("primary"));
-                assert_eq!(tags.len(), 2);
+                assert_eq!(sessions.len(), 1);
             }
-            _ => panic!("Expected TagsSet response"),
+            _ => panic!("Expected TagsSet response with global broadcast"),
         }
     }
 
@@ -2307,14 +2327,17 @@ mod tests {
             .await;
 
         match result {
-            HandlerResult::Response(ServerMessage::TagsSet { tags, .. }) => {
+            HandlerResult::ResponseWithGlobalBroadcast {
+                response: ServerMessage::TagsSet { tags, .. },
+                broadcast: ServerMessage::SessionsChanged { sessions },
+            } => {
                 assert!(tags.contains("a"));
-                assert!(!tags.contains("b"));
                 assert!(tags.contains("c"));
                 assert!(tags.contains("d"));
-                assert_eq!(tags.len(), 3);
+                assert!(!tags.contains("b"));
+                assert_eq!(sessions.len(), 1);
             }
-            _ => panic!("Expected TagsSet response"),
+            _ => panic!("Expected TagsSet response with global broadcast"),
         }
     }
 
@@ -2412,19 +2435,13 @@ mod tests {
         let result = ctx.handle_create_layout(Some("test".to_string()), None, layout).await;
 
         match result {
-            HandlerResult::ResponseWithBroadcast {
-                response: ServerMessage::LayoutCreated { pane_ids, .. },
-                broadcast: ServerMessage::PaneCreated { pane, .. },
-                ..
-            } => {
+            HandlerResult::Response(ServerMessage::LayoutCreated { pane_ids, .. }) => {
                 assert_eq!(pane_ids.len(), 1, "Should create exactly 1 pane");
-                // Verify broadcast contains pane info (BUG-032)
-                assert!(pane.id != Uuid::nil());
             }
             HandlerResult::Response(ServerMessage::Error { code, message }) => {
                 panic!("Layout creation failed: {:?} - {}", code, message);
             }
-            _ => panic!("Expected LayoutCreated response with broadcast"),
+            _ => panic!("Expected LayoutCreated response"),
         }
     }
 
@@ -2446,19 +2463,13 @@ mod tests {
         let result = ctx.handle_create_layout(Some("test".to_string()), None, layout).await;
 
         match result {
-            HandlerResult::ResponseWithBroadcast {
-                response: ServerMessage::LayoutCreated { pane_ids, .. },
-                broadcast: ServerMessage::PaneCreated { pane, .. },
-                ..
-            } => {
+            HandlerResult::Response(ServerMessage::LayoutCreated { pane_ids, .. }) => {
                 assert_eq!(pane_ids.len(), 2, "Should create exactly 2 panes");
-                // Verify broadcast contains pane info (BUG-032)
-                assert!(pane.id != Uuid::nil());
             }
             HandlerResult::Response(ServerMessage::Error { code, message }) => {
                 panic!("Layout creation failed: {:?} - {}", code, message);
             }
-            _ => panic!("Expected LayoutCreated response with broadcast"),
+            _ => panic!("Expected LayoutCreated response"),
         }
     }
 
@@ -2493,19 +2504,13 @@ mod tests {
         let result = ctx.handle_create_layout(Some("test".to_string()), None, layout).await;
 
         match result {
-            HandlerResult::ResponseWithBroadcast {
-                response: ServerMessage::LayoutCreated { pane_ids, .. },
-                broadcast: ServerMessage::PaneCreated { pane, .. },
-                ..
-            } => {
+            HandlerResult::Response(ServerMessage::LayoutCreated { pane_ids, .. }) => {
                 assert_eq!(pane_ids.len(), 3, "Should create exactly 3 panes");
-                // Verify broadcast contains pane info (BUG-032)
-                assert!(pane.id != Uuid::nil());
             }
             HandlerResult::Response(ServerMessage::Error { code, message }) => {
                 panic!("Layout creation failed: {:?} - {}", code, message);
             }
-            _ => panic!("Expected LayoutCreated response with broadcast"),
+            _ => panic!("Expected LayoutCreated response"),
         }
     }
 
