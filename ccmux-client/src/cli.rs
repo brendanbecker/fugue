@@ -30,6 +30,14 @@ pub struct Args {
     #[arg(long, short = 'S')]
     pub socket: Option<PathBuf>,
 
+    /// Connection address (tcp://host:port or unix://path)
+    ///
+    /// Specifies the server address to connect to. Supports both TCP and Unix
+    /// sockets via URL format. Overrides --socket if provided.
+    /// Example: tcp://127.0.0.1:3000 or unix:///tmp/ccmux.sock
+    #[arg(long, env = "CCMUX_ADDR")]
+    pub addr: Option<String>,
+
     /// Command to run in new sessions (overrides default_command from config)
     ///
     /// Example: ccmux claude --resume
@@ -94,6 +102,12 @@ mod tests {
 
         let args = Args::parse_from(["ccmux", "--socket", "/tmp/other.sock"]);
         assert_eq!(args.socket, Some(PathBuf::from("/tmp/other.sock")));
+    }
+
+    #[test]
+    fn test_addr_flag() {
+        let args = Args::parse_from(["ccmux", "--addr", "tcp://localhost:3000"]);
+        assert_eq!(args.addr, Some("tcp://localhost:3000".to_string()));
     }
 
     #[test]

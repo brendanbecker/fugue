@@ -77,8 +77,10 @@ async fn run_app(args: Args) -> Result<()> {
     // Load keybindings from config
     let quick_bindings = load_quick_bindings();
 
-    // Create and run the app with optional custom socket path
-    let mut app = if let Some(ref socket) = args.socket {
+    // Create and run the app with optional custom connection
+    let mut app = if let Some(ref addr) = args.addr {
+        App::with_addr(addr.clone())?
+    } else if let Some(ref socket) = args.socket {
         App::with_socket_path(socket.clone())?
     } else {
         App::new()?

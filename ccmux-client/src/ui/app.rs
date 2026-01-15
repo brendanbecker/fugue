@@ -152,6 +152,38 @@ impl App {
         })
     }
 
+    /// Create a new application instance with a custom connection address
+    pub fn with_addr(addr: String) -> Result<Self> {
+        let events = EventHandler::new(Duration::from_millis(100));
+
+        Ok(Self {
+            state: AppState::Disconnected,
+            client_id: Uuid::new_v4(),
+            connection: Connection::with_addr(addr),
+            events,
+            input_handler: InputHandler::new(),
+            session: None,
+            windows: HashMap::new(),
+            panes: HashMap::new(),
+            active_pane_id: None,
+            last_pane_id: None,
+            last_window_id: None,
+            available_sessions: Vec::new(),
+            session_list_index: 0,
+            terminal_size: (80, 24),
+            tick_count: 0,
+            status_message: None,
+            pane_manager: PaneManager::new(),
+            layout: None,
+            pending_split_direction: None,
+            session_command: None,
+            previous_input_mode: InputMode::Normal,
+            last_beads_request_tick: 0,
+            is_beads_tracked: false,
+            beads_ready_count: None,
+        })
+    }
+
     /// Create a new application instance with a custom socket path
     pub fn with_socket_path(socket_path: std::path::PathBuf) -> Result<Self> {
         let events = EventHandler::new(Duration::from_millis(100));
