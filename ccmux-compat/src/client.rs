@@ -7,9 +7,11 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use futures::{SinkExt, StreamExt};
-use tokio::net::UnixStream;
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::net::{TcpStream, UnixStream};
 use tokio::time::timeout;
 use tokio_util::codec::Framed;
+use url::Url;
 use uuid::Uuid;
 
 use ccmux_protocol::{ClientCodec, ClientMessage, ServerMessage, PROTOCOL_VERSION};
@@ -18,29 +20,67 @@ use ccmux_utils::{socket_path, CcmuxError, Result};
 /// Timeout for server responses
 const RESPONSE_TIMEOUT: Duration = Duration::from_secs(10);
 
+/// Trait alias for streams that can be used with Framed
+pub trait StreamTrait: AsyncRead + AsyncWrite + Unpin + Send {}
+impl<T: AsyncRead + AsyncWrite + Unpin + Send> StreamTrait for T {}
+
 /// Simple client for one-shot commands
 pub struct Client {
-    framed: Framed<UnixStream, ClientCodec>,
+    framed: Framed<Box<dyn StreamTrait>, ClientCodec>,
     client_id: Uuid,
 }
 
 impl Client {
-    /// Connect to the ccmux server
-    pub async fn connect() -> Result<Self> {
-        Self::connect_to(socket_path()).await
+    /// Connect to the ccmux server using default or provided address
+    pub async fn connect(addr: Option<String>) -> Result<Self> {
+        let addr = addr.unwrap_or_else(|| {
+            format!("unix://{}", socket_path().to_string_lossy())
+        });
+        Self::connect_to_addr(&addr).await
     }
 
-    /// Connect to a specific socket path
-    pub async fn connect_to(path: PathBuf) -> Result<Self> {
-        // Check if socket exists
-        if !path.exists() {
-            return Err(CcmuxError::ServerNotRunning { path });
-        }
+    /// Connect to a specific address URL
+    pub async fn connect_to_addr(addr: &str) -> Result<Self> {
+        let stream: Box<dyn StreamTrait> = if addr.starts_with("tcp://") {
+            let url = Url::parse(addr).map_err(|e| {
+                CcmuxError::Connection(format!("Invalid TCP URL '{}': {}", addr, e))
+            })?;
+            
+            let host = url.host_str().ok_or_else(|| {
+                CcmuxError::Connection("Missing host in TCP URL".into())
+            })?;
+            let port = url.port().ok_or_else(|| {
+                CcmuxError::Connection("Missing port in TCP URL".into())
+            })?;
+            
+            let tcp_addr = format!("{}:{}", host, port);
+            let tcp_stream = TcpStream::connect(&tcp_addr).await.map_err(|e| {
+                CcmuxError::Connection(format!("Failed to connect to {}: {}", tcp_addr, e))
+            })?;
+            
+            Box::new(tcp_stream)
+        } else {
+            // Assume Unix socket
+            let path_str = if addr.starts_with("unix://") {
+                let url = Url::parse(addr).map_err(|e| {
+                    CcmuxError::Connection(format!("Invalid Unix URL: {}", e))
+                })?;
+                url.path().to_string()
+            } else {
+                addr.to_string()
+            };
+            
+            let path = PathBuf::from(path_str);
+            if !path.exists() {
+                return Err(CcmuxError::ServerNotRunning { path });
+            }
 
-        // Connect to Unix socket
-        let stream = UnixStream::connect(&path)
-            .await
-            .map_err(|e| CcmuxError::Connection(format!("Failed to connect: {}", e)))?;
+            let unix_stream = UnixStream::connect(&path)
+                .await
+                .map_err(|e| CcmuxError::Connection(format!("Failed to connect to {}: {}", path.display(), e)))?;
+            
+            Box::new(unix_stream)
+        };
 
         // Create framed transport with codec
         let framed = Framed::new(stream, ClientCodec::new());

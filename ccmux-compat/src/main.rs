@@ -25,7 +25,7 @@ async fn main() {
 
     let cli = Cli::parse();
 
-    let exit_code = match commands::execute(cli.command).await {
+    let exit_code = match commands::execute(cli.command, cli.addr).await {
         Ok(code) => code,
         Err(e) => {
             eprintln!("{}", e);

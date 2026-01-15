@@ -46,12 +46,13 @@ We use a "CI-in-worktree" pattern to keep branches short-lived and history clean
 - **FEAT-066**: TCP listener support in daemon (Stream C).
 - **FEAT-067**: Client TCP connection support (Stream C).
 - **FEAT-068**: SSH tunnel integration and documentation (Stream C).
+- **FEAT-070**: Gastown remote pane support (Stream C).
 - **BUG-042**: Flatten Result nesting code smell (Stream A).
 - **Retro**: Conducted comprehensive retrospective, categorized backlog into streams.
 
 ### In Progress
 - **FEAT-075 (P2)**: Snapshot + replay resync API (Stream B).
-- **FEAT-070 (P2)**: Gastown remote pane support (Stream C).
+- **FEAT-073 (P2)**: Multi-tier routing logic (Stream C).
 
 ## Backlog Highlights
 
@@ -71,3 +72,53 @@ We use a "CI-in-worktree" pattern to keep branches short-lived and history clean
 - **Features**: `feature-management/features/features.md`
 - **Bugs**: `feature-management/bugs/bugs.md`
 - **Retrospective**: `feature-management/RETROSPECTIVE_2026_01_14.md`
+
+---
+
+## Session Log (2026-01-14) - Advanced Features & Remote Peering (Stream C)
+
+### Work Completed This Session
+1. **FEAT-080: Per-Pane/Session Configuration via Sideband Commands**
+   - Extended `SidebandParser` to support `config` attribute with JSON payload.
+   - Updated `AsyncCommandExecutor` to parse config, apply `env`, `cwd`, and `timeout_secs`.
+   - Implemented auto-kill logic for `timeout_secs`.
+   - Fixed `SidebandParser` regex to support mixed quotes (allowing JSON in attributes).
+
+2. **FEAT-081: Landlock Integration (Sandboxing)**
+   - Created `ccmux-sandbox` helper binary using `landlock` crate.
+   - Implemented RO system, RW CWD/tmp/dev policy.
+   - Updated `ccmux-server` to wrap PTY commands when sandboxing requested.
+
+3. **FEAT-071: Per-pane Claude configuration**
+   - Added `presets` support to `AppConfig`.
+   - Implemented resolved config writing to `.claude.json` in isolation dirs.
+   - Updated `ccmux_create_pane` MCP tool schema.
+
+4. **FEAT-066: TCP listener support in daemon (Phase 1)**
+   - Added `listen_tcp` to config and `--listen-tcp` CLI flag.
+   - Refactored server to support concurrent Unix and TCP listeners.
+
+5. **FEAT-067: Client TCP connection support (Phase 2)**
+   - Added `--addr` and `CCMUX_ADDR` support to `ccmux-client`.
+   - Refactored client connection to support `tcp://` and `unix://` URLs.
+
+6. **FEAT-068: SSH tunnel integration and documentation**
+   - Created `docs/REMOTE_ACCESS.md` guide.
+   - Updated `README.md` with Remote Access section.
+
+7. **FEAT-070: Gastown remote pane support**
+   - Updated `ccmux-compat` CLI wrapper to support `--addr` flag and `CCMUX_ADDR` env var.
+   - Implemented `set-environment` and `show-environment` commands in `ccmux-compat`.
+   - Refactored `ccmux-compat` client to support generic `StreamTrait` (Unix/TCP).
+   - Documented Gas Town integration and remote Claude presets in `docs/REMOTE_ACCESS.md`.
+
+### Commits Made
+- `9086333` - feat(sideband): implement FEAT-080 per-pane config and timeouts
+- `8497e08` - feat(advanced): implement FEAT-081 sandboxing and FEAT-071 per-pane claude config
+- `6b977a5` - feat(remote): implement FEAT-066 TCP listener support in daemon
+- `83fa28a` - feat(client): implement FEAT-067 client TCP connection support
+- `0525712` - docs: implement FEAT-068 SSH tunnel documentation
+- `64387fa` - feat(remote): implement FEAT-070 Gastown remote pane support
+
+### Next Steps
+- **FEAT-073**: Multi-tier routing logic.
