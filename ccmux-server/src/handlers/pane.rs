@@ -418,6 +418,39 @@ impl HandlerContext {
             }
         }
     }
+
+    /// Handle screen redraw request
+    pub async fn handle_redraw(&self, pane_id: Option<Uuid>) -> HandlerResult {
+        let session_manager = self.session_manager.read().await;
+        let pty_manager = self.pty_manager.read().await;
+
+        if let Some(pid) = pane_id {
+            // Redraw specific pane
+            if let Some(pane) = session_manager.find_pane(pid) {
+                if let Some(handle) = pty_manager.get(pid) {
+                    let (cols, rows) = pane.2.dimensions();
+                    // Calling resize with same dimensions triggers SIGWINCH in most PTYs
+                    let _ = handle.resize(cols, rows);
+                }
+            }
+        } else {
+            // Redraw all panes in the session this client is attached to
+            if let Some(session_id) = self.registry.get_client_session(self.client_id) {
+                if let Some(session) = session_manager.get_session(session_id) {
+                    for window in session.windows() {
+                        for pane in window.panes() {
+                            if let Some(handle) = pty_manager.get(pane.id()) {
+                                let (cols, rows) = pane.dimensions();
+                                let _ = handle.resize(cols, rows);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        HandlerResult::NoResponse
+    }
 }
 
 #[cfg(test)]

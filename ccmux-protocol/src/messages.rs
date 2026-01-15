@@ -145,6 +145,12 @@ pub enum ClientMessage {
     /// Request full state sync
     Sync,
 
+    /// Request screen redraw (triggers SIGWINCH to PTYs)
+    Redraw {
+        /// Optional specific pane to redraw. If None, redraw all panes in session.
+        pane_id: Option<Uuid>,
+    },
+
     /// Ping for keepalive
     Ping,
 

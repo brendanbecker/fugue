@@ -108,6 +108,8 @@ pub enum ClientCommand {
     ReloadConfig,
     /// Show clock
     ShowClock,
+    /// Force screen redraw
+    Redraw,
 }
 
 /// Direction for pane resizing
@@ -244,6 +246,7 @@ impl CommandHandler {
             "help" | "?" => Some(ClientCommand::ShowHelp),
             "source" | "reload" => Some(ClientCommand::ReloadConfig),
             "clock" | "clock-mode" => Some(ClientCommand::ShowClock),
+            "redraw" | "refresh" => Some(ClientCommand::Redraw),
 
             // Quit commands (handled at higher level)
             "quit" | "q" | "exit" => None, // Should be handled as detach/quit at app level
@@ -283,6 +286,7 @@ Other:
   copy-mode            Enter copy/scroll mode
   clear-history        Clear scrollback buffer
   zoom                 Toggle pane zoom
+  redraw               Force screen redraw
   help                 Show this help
 "#
     }

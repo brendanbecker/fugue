@@ -159,6 +159,8 @@ impl HandlerContext {
 
             ClientMessage::JumpToBottom { pane_id } => self.handle_jump_to_bottom(pane_id).await,
 
+            ClientMessage::Redraw { pane_id } => self.handle_redraw(pane_id).await,
+
             // Orchestration handlers
             ClientMessage::SendOrchestration { target, message } => {
                 self.handle_send_orchestration(target, message).await

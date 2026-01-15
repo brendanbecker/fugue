@@ -273,6 +273,11 @@ impl InputHandler {
             return InputAction::Quit;
         }
 
+        // Redraw binding (Ctrl+L)
+        if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('l') {
+            return InputAction::Command(ClientCommand::Redraw);
+        }
+
         // Check for quick navigation bindings (no prefix required)
         if let Some(action) = self.check_quick_bindings(&key) {
             return action;
@@ -377,6 +382,9 @@ impl InputHandler {
 
             // Zoom/fullscreen pane
             KeyCode::Char('z') => InputAction::Command(ClientCommand::ToggleZoom),
+
+            // Redraw screen
+            KeyCode::Char('r') => InputAction::Command(ClientCommand::Redraw),
 
             // Session management
             KeyCode::Char('d') => InputAction::Detach,
@@ -1140,5 +1148,22 @@ mod tests {
         // FEAT-056: Now returns EnterUserCommandMode instead of None
         assert!(matches!(result, InputAction::EnterUserCommandMode { .. }));
         assert_eq!(handler.mode(), InputMode::PrefixPending);
+    }
+
+    #[test]
+    fn test_redraw_keybinding() {
+        let mut handler = InputHandler::new();
+
+        // Ctrl+L triggers Redraw
+        let key = KeyEvent::new(KeyCode::Char('l'), KeyModifiers::CONTROL);
+        let result = handler.handle_key(key);
+        assert_eq!(result, InputAction::Command(ClientCommand::Redraw));
+
+        // Ctrl+B, r triggers Redraw
+        let prefix = KeyEvent::new(KeyCode::Char('b'), KeyModifiers::CONTROL);
+        let _ = handler.handle_key(prefix);
+        let r_key = KeyEvent::new(KeyCode::Char('r'), KeyModifiers::empty());
+        let result = handler.handle_key(r_key);
+        assert_eq!(result, InputAction::Command(ClientCommand::Redraw));
     }
 }
