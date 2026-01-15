@@ -7,7 +7,7 @@ use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use ccmux_protocol::{
-    ErrorCode, PaneListEntry, PaneState, ServerMessage, SplitDirection, WindowInfo, messages::ClientType,
+    ErrorCode, PaneListEntry, PaneState, ServerMessage, SplitDirection, WindowInfo, messages::{ClientType, ErrorDetails},
 };
 
 use crate::pty::{PtyConfig, PtyOutputPoller};
@@ -332,9 +332,10 @@ impl HandlerContext {
         let client_type = self.registry.get_client_type(self.client_id);
         if client_type == ClientType::Mcp {
             if let Err(remaining) = self.user_priority.check_layout_access(window_id) {
-                return HandlerContext::error(
+                return HandlerContext::error_with_details(
                     ErrorCode::UserPriorityActive,
                     format!("CreatePane blocked by human activity, retry after {}ms", remaining),
+                    ErrorDetails::HumanControl { remaining_ms: remaining },
                 );
             }
         } else if client_type == ClientType::Tui {
@@ -784,9 +785,10 @@ impl HandlerContext {
         let client_type = self.registry.get_client_type(self.client_id);
         if client_type == ClientType::Mcp {
             if let Err(remaining) = self.user_priority.check_layout_access(window_id) {
-                return HandlerContext::error(
+                return HandlerContext::error_with_details(
                     ErrorCode::UserPriorityActive,
                     format!("SplitPane blocked by human activity, retry after {}ms", remaining),
+                    ErrorDetails::HumanControl { remaining_ms: remaining },
                 );
             }
         } else if client_type == ClientType::Tui {
@@ -938,9 +940,10 @@ impl HandlerContext {
         let client_type = self.registry.get_client_type(self.client_id);
         if client_type == ClientType::Mcp {
             if let Err(remaining) = self.user_priority.check_layout_access(window_id) {
-                return HandlerContext::error(
+                return HandlerContext::error_with_details(
                     ErrorCode::UserPriorityActive,
                     format!("ResizePane blocked by human activity, retry after {}ms", remaining),
+                    ErrorDetails::HumanControl { remaining_ms: remaining },
                 );
             }
         } else if client_type == ClientType::Tui {
@@ -1099,9 +1102,10 @@ impl HandlerContext {
             let client_type = self.registry.get_client_type(self.client_id);
             if client_type == ClientType::Mcp {
                 if let Err(remaining) = self.user_priority.check_layout_access(window_id) {
-                    return HandlerContext::error(
+                    return HandlerContext::error_with_details(
                         ErrorCode::UserPriorityActive,
                         format!("CreateLayout blocked by human activity, retry after {}ms", remaining),
+                        ErrorDetails::HumanControl { remaining_ms: remaining },
                     );
                 }
             } else if client_type == ClientType::Tui {
@@ -2474,7 +2478,7 @@ mod tests {
                 // Verify broadcast contains pane info (BUG-032)
                 assert!(pane.id != Uuid::nil());
             }
-            HandlerResult::Response(ServerMessage::Error { code, message }) => {
+            HandlerResult::Response(ServerMessage::Error { code, message, .. }) => {
                 panic!("Layout creation failed: {:?} - {}", code, message);
             }
             _ => panic!("Expected LayoutCreated response with broadcast"),
@@ -2508,7 +2512,7 @@ mod tests {
                 // Verify broadcast contains pane info (BUG-032)
                 assert!(pane.id != Uuid::nil());
             }
-            HandlerResult::Response(ServerMessage::Error { code, message }) => {
+            HandlerResult::Response(ServerMessage::Error { code, message, .. }) => {
                 panic!("Layout creation failed: {:?} - {}", code, message);
             }
             _ => panic!("Expected LayoutCreated response with broadcast"),
@@ -2555,7 +2559,7 @@ mod tests {
                 // Verify broadcast contains pane info (BUG-032)
                 assert!(pane.id != Uuid::nil());
             }
-            HandlerResult::Response(ServerMessage::Error { code, message }) => {
+            HandlerResult::Response(ServerMessage::Error { code, message, .. }) => {
                 panic!("Layout creation failed: {:?} - {}", code, message);
             }
             _ => panic!("Expected LayoutCreated response with broadcast"),
@@ -2659,9 +2663,15 @@ mod tests {
             .await;
 
         match result {
-            HandlerResult::Response(ServerMessage::Error { code, message }) => {
+            HandlerResult::Response(ServerMessage::Error { code, message, details }) => {
                 assert_eq!(code, ErrorCode::UserPriorityActive);
                 assert!(message.contains("blocked by human activity"));
+                match details {
+                    Some(ErrorDetails::HumanControl { remaining_ms }) => {
+                        assert!(remaining_ms > 0);
+                    }
+                    _ => panic!("Expected HumanControl details"),
+                }
             }
             _ => panic!("Expected UserPriorityActive error"),
         }

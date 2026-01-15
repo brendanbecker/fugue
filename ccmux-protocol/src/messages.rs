@@ -432,7 +432,12 @@ pub enum ServerMessage {
     SessionsChanged { sessions: Vec<SessionInfo> },
 
     /// Error response
-    Error { code: ErrorCode, message: String },
+    Error {
+        code: ErrorCode,
+        message: String,
+        #[serde(default)]
+        details: Option<ErrorDetails>,
+    },
 
     /// Pong response to ping
     Pong,
@@ -705,6 +710,16 @@ pub enum ErrorCode {
     SessionNameExists,
     /// User priority lock is active - MCP focus operations blocked (FEAT-056)
     UserPriorityActive,
+}
+
+/// Detailed error information
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ErrorDetails {
+    /// Human control mode is active
+    HumanControl {
+        /// Remaining time in milliseconds until lock expires
+        remaining_ms: u64,
+    },
 }
 
 #[cfg(test)]
@@ -1205,11 +1220,13 @@ tags: HashSet::new(),
         let msg = ServerMessage::Error {
             code: ErrorCode::SessionNotFound,
             message: "Session 'test' not found".to_string(),
+            details: None,
         };
 
-        if let ServerMessage::Error { code, message } = msg {
+        if let ServerMessage::Error { code, message, details } = msg {
             assert_eq!(code, ErrorCode::SessionNotFound);
             assert!(message.contains("test"));
+            assert!(details.is_none());
         }
     }
 

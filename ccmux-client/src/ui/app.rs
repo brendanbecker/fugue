@@ -6,7 +6,7 @@
 #![allow(dead_code)]
 
 use std::collections::HashMap;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// Maximum size for a single input chunk sent to the server.
 /// This should be well under the protocol's MAX_MESSAGE_SIZE (16MB).
@@ -36,7 +36,7 @@ use uuid::Uuid;
 
 use ccmux_protocol::{
     ClientMessage, ClaudeActivity, PaneInfo, PaneState, ServerMessage, SessionInfo,
-    SplitDirection, WindowInfo, ClientType,
+    SplitDirection, WindowInfo, messages::ClientType,
 };
 use ccmux_utils::Result;
 
@@ -114,6 +114,8 @@ pub struct App {
     is_beads_tracked: bool,
     /// Beads ready task count (FEAT-058): None = unavailable, Some(n) = n tasks ready
     beads_ready_count: Option<usize>,
+    /// Expiry time for human control lock (FEAT-077)
+    human_control_lock_expiry: Option<Instant>,
 }
 
 impl App {
@@ -146,6 +148,7 @@ impl App {
             last_beads_request_tick: 0,
             is_beads_tracked: false,
             beads_ready_count: None,
+            human_control_lock_expiry: None,
         })
     }
 
@@ -178,6 +181,7 @@ impl App {
             last_beads_request_tick: 0,
             is_beads_tracked: false,
             beads_ready_count: None,
+            human_control_lock_expiry: None,
         })
     }
 
@@ -423,6 +427,9 @@ impl App {
 
     /// Send input to a pane, handling large pastes and chunking
     async fn send_pane_input(&mut self, pane_id: Uuid, data: Vec<u8>) -> Result<()> {
+        // FEAT-077: Update local human control lock
+        self.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(2000));
+
         // BUG-011 FIX: Handle large pastes gracefully
         let data_len = data.len();
 
@@ -592,6 +599,9 @@ impl App {
             }
 
             InputAction::Resize { cols, rows } => {
+                // FEAT-077: Update local human control lock (layout change)
+                self.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(5000));
+
                 self.terminal_size = (cols, rows);
 
                 // Calculate pane area (minus status bar)
@@ -666,6 +676,19 @@ impl App {
 
     /// Handle a client command from prefix key or command mode
     async fn handle_client_command(&mut self, cmd: ClientCommand) -> Result<()> {
+        // FEAT-077: Update local human control lock for layout-changing commands
+        match cmd {
+            ClientCommand::CreatePane
+            | ClientCommand::ClosePane
+            | ClientCommand::SplitVertical
+            | ClientCommand::SplitHorizontal
+            | ClientCommand::CreateSession(_)
+            | ClientCommand::CreateWindow => {
+                self.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(5000));
+            }
+            _ => {}
+        }
+
         match cmd {
             ClientCommand::CreatePane => {
                 if let Some(window) = self.windows.values().next() {
@@ -1525,8 +1548,12 @@ impl App {
                 // Refresh session list
                 self.connection.send(ClientMessage::ListSessions).await?;
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, details } => {
                 self.status_message = Some(format!("Error ({:?}): {}", code, message));
+                
+                if let Some(ccmux_protocol::messages::ErrorDetails::HumanControl { remaining_ms }) = details {
+                    self.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(remaining_ms));
+                }
             }
             ServerMessage::Pong => {
                 // Keepalive response, no action needed
@@ -1940,13 +1967,27 @@ impl App {
             "".to_string()
         };
 
+        // FEAT-077: Human control indicator
+        let human_control_indicator = if let Some(expiry) = self.human_control_lock_expiry {
+            let now = Instant::now();
+            if expiry > now {
+                let remaining = expiry.duration_since(now).as_secs_f32();
+                format!(" [LOCKED: {:.1}s]", remaining)
+            } else {
+                "".to_string()
+            }
+        } else {
+            "".to_string()
+        };
+
         format!(
-            " {} | {} panes {}{}{}",
+            " {} | {} panes {}{}{}{}",
             session_name,
             self.panes.len(),
             pane_info,
             beads_indicator,
-            mode_indicator
+            mode_indicator,
+            human_control_indicator
         )
     }
 }

@@ -200,7 +200,7 @@ impl McpBridge {
 
                 Ok(())
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Err(McpError::DaemonError(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1001,7 +1001,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1038,7 +1038,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1059,7 +1059,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1076,7 +1076,7 @@ impl McpBridge {
 
         match self.recv_response_from_daemon().await? {
             ServerMessage::PaneContent { content, .. } => Ok(ToolResult::text(content)),
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1140,7 +1140,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1175,7 +1175,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1212,7 +1212,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1276,7 +1276,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1318,7 +1318,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1346,7 +1346,7 @@ impl McpBridge {
                         .map_err(|e| McpError::Internal(e.to_string()))?;
                     return Ok(ToolResult::text(json));
                 }
-                ServerMessage::Error { code, message } => {
+                ServerMessage::Error { code, message, .. } => {
                     return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
                 }
                 msg if Self::is_broadcast_message(&msg) => {
@@ -1382,7 +1382,7 @@ impl McpBridge {
                         .map_err(|e| McpError::Internal(e.to_string()))?;
                     return Ok(ToolResult::text(json));
                 }
-                ServerMessage::Error { code, message } => {
+                ServerMessage::Error { code, message, .. } => {
                     return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
                 }
                 msg if Self::is_broadcast_message(&msg) => {
@@ -1417,7 +1417,7 @@ impl McpBridge {
                         .map_err(|e| McpError::Internal(e.to_string()))?;
                     return Ok(ToolResult::text(json));
                 }
-                ServerMessage::Error { code, message } => {
+                ServerMessage::Error { code, message, .. } => {
                     return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
                 }
                 msg if Self::is_broadcast_message(&msg) => {
@@ -1461,7 +1461,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1497,7 +1497,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1533,7 +1533,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1593,7 +1593,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1624,7 +1624,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1663,7 +1663,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1690,7 +1690,7 @@ impl McpBridge {
                             ))
                         })?
                 }
-                ServerMessage::Error { code, message } => {
+                ServerMessage::Error { code, message, .. } => {
                     return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
                 }
                 msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1716,7 +1716,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1755,7 +1755,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1789,7 +1789,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1828,7 +1828,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1862,7 +1862,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1913,7 +1913,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1950,7 +1950,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -1980,7 +1980,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2023,7 +2023,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2097,7 +2097,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2131,7 +2131,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2191,7 +2191,7 @@ impl McpBridge {
                         session_name,
                         ..
                     } => Ok((session_name, Some(pane_id))),
-                    ServerMessage::Error { code, message } => {
+                    ServerMessage::Error { code, message, .. } => {
                         Err(McpError::InvalidParams(format!("{:?}: {}", code, message)))
                     }
                     msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2209,7 +2209,7 @@ impl McpBridge {
                             Ok((sessions[0].name.clone(), None))
                         }
                     }
-                    ServerMessage::Error { code, message } => {
+                    ServerMessage::Error { code, message, .. } => {
                         Err(McpError::InvalidParams(format!("{:?}: {}", code, message)))
                     }
                     msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2247,7 +2247,7 @@ impl McpBridge {
 
         match self.recv_response_from_daemon().await? {
             ServerMessage::MetadataSet { .. } => {}
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
             }
             msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2280,7 +2280,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2307,7 +2307,7 @@ impl McpBridge {
             ServerMessage::MetadataList { metadata, .. } => {
                 metadata.get(beads::CURRENT_ISSUE).cloned()
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
             }
             msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2384,7 +2384,7 @@ impl McpBridge {
 
         match self.recv_response_from_daemon().await? {
             ServerMessage::MetadataSet { .. } => {}
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
             }
             msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2400,7 +2400,7 @@ impl McpBridge {
 
         match self.recv_response_from_daemon().await? {
             ServerMessage::MetadataSet { .. } => {}
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
             }
             msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2434,7 +2434,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2448,7 +2448,7 @@ impl McpBridge {
 
         let sessions = match self.recv_response_from_daemon().await? {
             ServerMessage::SessionList { sessions } => sessions,
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
             }
             msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2569,7 +2569,7 @@ impl McpBridge {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -2832,6 +2832,7 @@ mod tests {
         let msg = ServerMessage::Error {
             code: ccmux_protocol::ErrorCode::PaneNotFound,
             message: "Pane not found".to_string(),
+            details: None,
         };
         assert!(!McpBridge::is_broadcast_message(&msg));
     }

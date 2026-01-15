@@ -387,6 +387,20 @@ impl HandlerContext {
         HandlerResult::Response(ServerMessage::Error {
             code,
             message: message.into(),
+            details: None,
+        })
+    }
+
+    /// Create an error response with details
+    pub fn error_with_details(
+        code: ErrorCode, 
+        message: impl Into<String>,
+        details: ccmux_protocol::messages::ErrorDetails
+    ) -> HandlerResult {
+        HandlerResult::Response(ServerMessage::Error {
+            code,
+            message: message.into(),
+            details: Some(details),
         })
     }
 }
@@ -489,9 +503,10 @@ mod tests {
         let result = HandlerContext::error(ErrorCode::SessionNotFound, "Session not found");
 
         match result {
-            HandlerResult::Response(ServerMessage::Error { code, message }) => {
+            HandlerResult::Response(ServerMessage::Error { code, message, details }) => {
                 assert_eq!(code, ErrorCode::SessionNotFound);
                 assert_eq!(message, "Session not found");
+                assert!(details.is_none());
             }
             _ => panic!("Expected Error response"),
         }

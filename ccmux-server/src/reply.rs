@@ -53,6 +53,7 @@ impl ReplyError {
         ServerMessage::Error {
             code: self.error_code(),
             message: self.message(),
+            details: None,
         }
     }
 }
@@ -224,7 +225,7 @@ mod tests {
         };
         let msg = error.to_server_message();
 
-        if let ServerMessage::Error { code, message } = msg {
+        if let ServerMessage::Error { code, message, .. } = msg {
             assert_eq!(code, ErrorCode::PaneNotFound);
             assert!(message.contains("worker"));
         } else {

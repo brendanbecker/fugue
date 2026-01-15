@@ -5,7 +5,7 @@
 use tracing::{debug, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::{ErrorCode, ReplyMessage, ServerMessage, messages::ClientType};
+use ccmux_protocol::{ErrorCode, ReplyMessage, ServerMessage, messages::{ClientType, ErrorDetails}};
 
 use super::{HandlerContext, HandlerResult};
 use crate::reply::ReplyHandler;
@@ -25,9 +25,10 @@ impl HandlerContext {
                         "Input blocked for pane {} due to human activity (retry in {}ms)",
                         pane_id, remaining
                     );
-                    return HandlerContext::error(
+                    return HandlerContext::error_with_details(
                         ErrorCode::UserPriorityActive,
                         format!("Input blocked by human activity, retry after {}ms", remaining),
+                        ErrorDetails::HumanControl { remaining_ms: remaining },
                     );
                 }
             }

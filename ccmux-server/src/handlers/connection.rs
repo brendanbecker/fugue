@@ -221,7 +221,7 @@ mod tests {
         let result = ctx.handle_connect(Uuid::new_v4(), 9999, None).await;
 
         match result {
-            HandlerResult::Response(ServerMessage::Error { code, message }) => {
+            HandlerResult::Response(ServerMessage::Error { code, message, .. }) => {
                 assert_eq!(code, ErrorCode::ProtocolMismatch);
                 assert!(message.contains("9999"));
             }

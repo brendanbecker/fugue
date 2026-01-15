@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::{ErrorCode, ServerMessage, SplitDirection, messages::ClientType};
+use ccmux_protocol::{ErrorCode, ServerMessage, SplitDirection, messages::{ClientType, ErrorDetails}};
 
 use crate::beads::{self, metadata_keys};
 use crate::pty::{PtyConfig, PtyOutputPoller};
@@ -195,9 +195,10 @@ impl HandlerContext {
                 "SelectPane blocked by user priority lock, retry after {}ms",
                 remaining_ms
             );
-            return HandlerContext::error(
+            return HandlerContext::error_with_details(
                 ErrorCode::UserPriorityActive,
                 format!("User priority lock active, retry after {}ms", remaining_ms),
+                ErrorDetails::HumanControl { remaining_ms },
             );
         }
 
@@ -261,9 +262,10 @@ impl HandlerContext {
                 "SelectWindow blocked by user priority lock, retry after {}ms",
                 remaining_ms
             );
-            return HandlerContext::error(
+            return HandlerContext::error_with_details(
                 ErrorCode::UserPriorityActive,
                 format!("User priority lock active, retry after {}ms", remaining_ms),
+                ErrorDetails::HumanControl { remaining_ms },
             );
         }
 
@@ -318,9 +320,10 @@ impl HandlerContext {
                 "SelectSession blocked by user priority lock, retry after {}ms",
                 remaining_ms
             );
-            return HandlerContext::error(
+            return HandlerContext::error_with_details(
                 ErrorCode::UserPriorityActive,
                 format!("User priority lock active, retry after {}ms", remaining_ms),
+                ErrorDetails::HumanControl { remaining_ms },
             );
         }
 
@@ -376,9 +379,10 @@ impl HandlerContext {
                         "ClosePane blocked for window {} due to human activity (retry in {}ms)",
                         window_id, remaining
                     );
-                    return HandlerContext::error(
+                    return HandlerContext::error_with_details(
                         ErrorCode::UserPriorityActive,
                         format!("Layout mutation blocked by human activity, retry after {}ms", remaining),
+                        ErrorDetails::HumanControl { remaining_ms: remaining },
                     );
                 }
             }
@@ -468,9 +472,10 @@ impl HandlerContext {
                     ClientType::Tui => self.user_priority.record_human_layout(window_id),
                     ClientType::Mcp => {
                         if let Err(remaining) = self.user_priority.check_layout_access(window_id) {
-                             return HandlerContext::error(
+                             return HandlerContext::error_with_details(
                                 ErrorCode::UserPriorityActive,
                                 format!("Resize blocked by human activity, retry after {}ms", remaining),
+                                ErrorDetails::HumanControl { remaining_ms: remaining },
                             );
                         }
                     }
@@ -771,7 +776,7 @@ mod tests {
         let result = ctx.handle_select_pane(pane_id).await;
 
         match result {
-            HandlerResult::Response(ServerMessage::Error { code, message }) => {
+            HandlerResult::Response(ServerMessage::Error { code, message, .. }) => {
                 assert_eq!(code, ErrorCode::UserPriorityActive);
                 assert!(message.contains("retry after"));
             }
@@ -792,7 +797,7 @@ mod tests {
         let result = ctx.handle_select_window(window_id).await;
 
         match result {
-            HandlerResult::Response(ServerMessage::Error { code, message }) => {
+            HandlerResult::Response(ServerMessage::Error { code, message, .. }) => {
                 assert_eq!(code, ErrorCode::UserPriorityActive);
                 assert!(message.contains("retry after"));
             }
@@ -813,7 +818,7 @@ mod tests {
         let result = ctx.handle_select_session(session_id).await;
 
         match result {
-            HandlerResult::Response(ServerMessage::Error { code, message }) => {
+            HandlerResult::Response(ServerMessage::Error { code, message, .. }) => {
                 assert_eq!(code, ErrorCode::UserPriorityActive);
                 assert!(message.contains("retry after"));
             }

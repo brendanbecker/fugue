@@ -401,6 +401,7 @@ mod tests {
             ServerMessage::Error {
                 code: crate::messages::ErrorCode::SessionNotFound,
                 message: "Session not found".to_string(),
+                details: None,
             },
             ServerMessage::Pong,
             ServerMessage::ViewportUpdated {

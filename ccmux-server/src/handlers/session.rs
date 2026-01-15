@@ -8,7 +8,7 @@ use ccmux_utils::CcmuxError;
 
 use crate::pty::{PtyConfig, PtyOutputPoller};
 
-use ccmux_protocol::{ErrorCode, ServerMessage, messages::ClientType};
+use ccmux_protocol::{ErrorCode, ServerMessage, messages::{ClientType, ErrorDetails}};
 
 use super::{HandlerContext, HandlerResult};
 
@@ -273,9 +273,10 @@ impl HandlerContext {
         if client_type == ClientType::Mcp {
             for window_id in window_ids {
                 if let Err(remaining) = self.user_priority.check_layout_access(window_id) {
-                    return HandlerContext::error(
+                    return HandlerContext::error_with_details(
                         ErrorCode::UserPriorityActive,
                         format!("Session destruction blocked by human activity in window {}, retry after {}ms", window_id, remaining),
+                        ErrorDetails::HumanControl { remaining_ms: remaining },
                     );
                 }
             }
@@ -1012,7 +1013,7 @@ mod tests {
             .await;
 
         match result {
-            HandlerResult::Response(ServerMessage::Error { code, message }) => {
+            HandlerResult::Response(ServerMessage::Error { code, message, .. }) => {
                 assert_eq!(code, ErrorCode::SessionNameExists);
                 assert!(message.contains("session1"));
             }
