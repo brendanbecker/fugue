@@ -8,6 +8,14 @@ use clap::{Parser, Subcommand};
 #[command(about = "tmux-compatible CLI wrapper for ccmux")]
 #[command(version)]
 pub struct Cli {
+    /// Connection address (tcp://host:port or unix://path)
+    ///
+    /// Specifies the server address to connect to. Supports both TCP and Unix
+    /// sockets via URL format. Overrides default Unix socket if provided.
+    /// Example: tcp://127.0.0.1:3000 or unix:///tmp/ccmux.sock
+    #[arg(long, env = "CCMUX_ADDR")]
+    pub addr: Option<String>,
+
     #[command(subcommand)]
     pub command: Command,
 }

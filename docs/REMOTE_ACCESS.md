@@ -115,6 +115,53 @@ fi
 ccmux --addr tcp://127.0.0.1:$LOCAL_PORT "$@"
 ```
 
+## Gas Town Integration
+
+`ccmux-compat` (the tmux-compatible CLI wrapper) also supports remote connections. This is the primary way to integrate with the **Gas Town** multi-agent system.
+
+### Remote Agent Spawning
+
+To spawn an agent on a remote machine from a local orchestrator (like Mayor):
+
+```bash
+# On local machine
+ccmux-compat --addr tcp://localhost:9999 new-session -d -s polecat-1 "claude --resume"
+```
+
+### Environment Management
+
+You can set environment variables on remote sessions (e.g., `GT_RIG` or `BEADS_DIR`) using the compat layer:
+
+```bash
+# Set GT_RIG on remote session
+ccmux-compat --addr tcp://localhost:9999 set-environment -t polecat-1 GT_RIG "gaming-pc"
+
+# Verify environment
+ccmux-compat --addr tcp://localhost:9999 show-environment -t polecat-1
+```
+
+## Remote-Aware Presets (FEAT-071)
+
+You can define Claude configuration presets in your remote server's `config.toml` to optimize for remote agents.
+
+**Example `~/.config/ccmux/config.toml` on Remote Machine:**
+
+```toml
+[presets.haiku-worker]
+model = "claude-3-haiku-20240307"
+description = "Fast, low-cost model for background worker tasks"
+
+[presets.sonnet-heavy]
+model = "claude-3-5-sonnet-20241022"
+description = "High-intelligence model for complex remote tasks"
+```
+
+Then, when spawning a pane via MCP or sideband, specify the preset:
+
+```xml
+<ccmux:spawn direction="vertical" preset="haiku-worker" command="claude" />
+```
+
 ## Security Considerations
 
 *   **Bind to Localhost**: Always start the daemon with `--listen-tcp 127.0.0.1:PORT`. Never bind to `0.0.0.0` unless you are on a trusted private network (VPN) and understand the risks.

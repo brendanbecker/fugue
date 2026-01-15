@@ -160,6 +160,58 @@ pub async fn attach_session(target: Option<&str>) -> Result<i32> {
     Ok(1)
 }
 
+/// Set an environment variable on a session
+pub async fn set_environment(target: Option<&str>, name: String, value: String) -> Result<i32> {
+    let mut client = connect().await?;
+
+    // Default to active session if target is None
+    let session_filter = target.unwrap_or("").to_string();
+
+    let msg = ClientMessage::SetEnvironment {
+        session_filter,
+        key: name,
+        value,
+    };
+
+    match client.request(msg).await? {
+        ServerMessage::EnvironmentSet { .. } => Ok(0),
+        ServerMessage::Error { message, .. } => {
+            eprintln!("error: {}", message);
+            Ok(1)
+        }
+        _ => Ok(0),
+    }
+}
+
+/// Show environment variables from a session
+pub async fn show_environment(target: Option<&str>, name: Option<String>) -> Result<i32> {
+    let mut client = connect().await?;
+
+    // Default to active session if target is None
+    let session_filter = target.unwrap_or("").to_string();
+
+    let msg = ClientMessage::GetEnvironment {
+        session_filter,
+        key: name,
+    };
+
+    match client.request(msg).await? {
+        ServerMessage::EnvironmentList { environment, .. } => {
+            let mut keys: Vec<_> = environment.keys().collect();
+            keys.sort();
+            for key in keys {
+                println!("{}={}", key, environment[key]);
+            }
+            Ok(0)
+        }
+        ServerMessage::Error { message, .. } => {
+            eprintln!("error: {}", message);
+            Ok(1)
+        }
+        _ => Ok(1),
+    }
+}
+
 /// Helper to find a session by name or UUID
 async fn find_session(
     client: &mut super::super::client::Client,

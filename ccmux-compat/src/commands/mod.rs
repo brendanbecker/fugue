@@ -7,9 +7,16 @@ mod window;
 use crate::cli::Command;
 use crate::client::Client;
 use ccmux_utils::Result;
+use std::sync::OnceLock;
+
+/// Global storage for server address
+static SERVER_ADDR: OnceLock<Option<String>> = OnceLock::new();
 
 /// Execute a CLI command
-pub async fn execute(command: Command) -> Result<i32> {
+pub async fn execute(command: Command, addr: Option<String>) -> Result<i32> {
+    // Store address for use by connect()
+    SERVER_ADDR.set(addr).ok();
+
     match command {
         // Session commands
         Command::NewSession {
@@ -64,26 +71,23 @@ pub async fn execute(command: Command) -> Result<i32> {
 
         Command::ListWindows { target } => window::list_windows(target.as_deref()).await,
 
-        // Environment commands (not yet implemented in ccmux protocol)
+        // Environment commands
         Command::SetEnvironment {
-            target: _,
-            name: _,
-            value: _,
-        } => {
-            eprintln!("set-environment: not yet implemented");
-            Ok(1)
-        }
+            target,
+            name,
+            value,
+        } => session::set_environment(target.as_deref(), name, value).await,
 
-        Command::ShowEnvironment { target: _, name: _ } => {
-            eprintln!("show-environment: not yet implemented");
-            Ok(1)
+        Command::ShowEnvironment { target, name } => {
+            session::show_environment(target.as_deref(), name).await
         }
     }
 }
 
 /// Helper to connect to the server
 async fn connect() -> Result<Client> {
-    Client::connect().await
+    let addr = SERVER_ADDR.get().cloned().flatten();
+    Client::connect(addr).await
 }
 
 /// Parse a target string which may be a session name, UUID, or session:window:pane
