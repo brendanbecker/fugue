@@ -572,7 +572,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "properties": {
                     "session": {
                         "type": "string",
-                        "description": "Session UUID or name. Uses first session if omitted."
+                        "description": "Session UUID or name. Uses active session if omitted."
                     },
                     "add": {
                         "type": "array",
@@ -595,7 +595,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "properties": {
                     "session": {
                         "type": "string",
-                        "description": "Session UUID or name. Uses first session if omitted."
+                        "description": "Session UUID or name. Uses active session if omitted."
                     }
                 }
             }),
