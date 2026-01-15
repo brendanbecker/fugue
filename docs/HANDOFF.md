@@ -36,13 +36,22 @@ We use a "CI-in-worktree" pattern to keep branches short-lived and history clean
 
 ### Completed
 - **FEAT-064**: Refactor MCP bridge.rs into modular components (Stream A).
+- **BUG-033, BUG-034, BUG-035, BUG-039, BUG-040**: Core stability and validation fixes (Stream A).
+- **BUG-036**: Fix Selection tools not switching TUI view (Stream A).
+- **BUG-041**: Fix Claude Code crash on paste via bracketed paste (Stream B).
+- **FEAT-079**: Comprehensive Human-Control Arbitration (Stream B).
+- **FEAT-077**: Human-Control UX Indicators (Stream B).
+- **FEAT-078**: Per-client focus state support (Stream B).
 - **FEAT-080, FEAT-081, FEAT-071**: Sideband Config, Landlock Sandboxing, Per-pane Claude config (Stream C).
+- **FEAT-066**: TCP listener support in daemon (Stream C).
+- **FEAT-067**: Client TCP connection support (Stream C).
+- **FEAT-068**: SSH tunnel integration and documentation (Stream C).
+- **BUG-042**: Flatten Result nesting code smell (Stream A).
 - **Retro**: Conducted comprehensive retrospective, categorized backlog into streams.
 
 ### In Progress
-- **BUG-041 (P0)**: Claude Code crashes on paste inside ccmux (Stream B).
-- **BUG-035 (P1)**: MCP handlers return wrong response types (Stream A).
-- **FEAT-066 (P2)**: TCP listener support in daemon (Stream C).
+- **FEAT-075 (P2)**: Snapshot + replay resync API (Stream B).
+- **FEAT-070 (P2)**: Gastown remote pane support (Stream C).
 
 ## Backlog Highlights
 
