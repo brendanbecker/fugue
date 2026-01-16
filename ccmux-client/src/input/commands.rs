@@ -95,6 +95,8 @@ pub enum ClientCommand {
     ToggleZoom,
     /// Select next layout preset
     NextLayout,
+    /// Cycle through layout policies (Fixed, Balanced, Adaptive)
+    CycleLayoutPolicy,
     /// Resize pane
     ResizePane {
         direction: ResizeDirection,
@@ -241,6 +243,7 @@ impl CommandHandler {
             // Layout
             "zoom" | "resize-pane -Z" => Some(ClientCommand::ToggleZoom),
             "next-layout" | "layout" => Some(ClientCommand::NextLayout),
+            "layout-policy" | "policy" => Some(ClientCommand::CycleLayoutPolicy),
 
             // Help and misc
             "help" | "?" => Some(ClientCommand::ShowHelp),

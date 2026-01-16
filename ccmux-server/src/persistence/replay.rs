@@ -50,7 +50,17 @@ impl ReplayBuffer {
         self.max_seq = seq;
     }
 
-    /// Get all events strictly after the given sequence number
+    /// Get the minimum sequence number in the buffer
+    pub fn min_seq(&self) -> u64 {
+        self.min_seq
+    }
+
+    /// Get the maximum sequence number in the buffer
+    pub fn max_seq(&self) -> u64 {
+        self.max_seq
+    }
+
+    /// Get events starting from the given sequence (exclusive)
     ///
     /// Returns `None` if the requested sequence is too old (gap > buffer).
     pub fn get_events_since(&self, since_seq: u64) -> Option<Vec<(u64, ServerMessage)>> {

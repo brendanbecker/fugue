@@ -134,7 +134,8 @@ impl ResizeHandler {
         layout: &LayoutManager,
         area: Rect,
     ) -> Vec<(Uuid, u16, u16)> {
-        let rects = layout.calculate_rects(area);
+        let weights = std::collections::HashMap::new();
+        let rects = layout.calculate_rects(area, &weights);
 
         rects
             .into_iter()
@@ -168,7 +169,8 @@ impl ResizeHandler {
 
     /// Check if layout is valid for the given area
     pub fn is_layout_valid(&self, layout: &LayoutManager, area: Rect) -> bool {
-        let rects = layout.calculate_rects(area);
+        let weights = std::collections::HashMap::new();
+        let rects = layout.calculate_rects(area, &weights);
 
         for (_, rect) in rects {
             if !self.minimum_size.is_valid(rect) {

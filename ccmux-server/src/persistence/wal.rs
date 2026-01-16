@@ -12,6 +12,7 @@ use parking_lot::Mutex;
 use tracing::{debug, info, trace, warn};
 
 use super::types::WalEntry;
+use crate::observability::Metrics;
 use ccmux_utils::{CcmuxError, Result};
 
 /// WAL configuration
@@ -142,9 +143,12 @@ impl Wal {
 
     /// Append an entry to the WAL
     pub fn append(&self, entry: &WalEntry) -> Result<u64> {
+        let start = std::time::Instant::now();
         let sequence = self.sequence.fetch_add(1, Ordering::SeqCst);
 
-        // Serialize the entry
+        let span = tracing::debug_span!("wal.append", sequence);
+        let _enter = span.enter();
+
         let data = bincode::serialize(entry).map_err(|e| {
             CcmuxError::persistence(format!("Failed to serialize WAL entry: {}", e))
         })?;
@@ -163,6 +167,9 @@ impl Wal {
         let _entry_id = writer.commit().map_err(|e| {
             CcmuxError::persistence(format!("Failed to commit WAL entry: {}", e))
         })?;
+
+        // Record metrics
+        Metrics::global().record_wal_append(start.elapsed().as_millis() as u64, data.len() as u64);
 
         // Note: okaywal handles durability automatically via fsync on commit
         // We can periodically call checkpoint_active() for explicit durability

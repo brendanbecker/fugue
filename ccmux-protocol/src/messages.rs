@@ -150,6 +150,9 @@ pub enum ClientMessage {
     /// Request full state sync
     Sync,
 
+    /// Request server-wide status (FEAT-074)
+    GetServerStatus,
+
     /// Request screen redraw (triggers SIGWINCH to PTYs)
     Redraw {
         /// Optional specific pane to redraw. If None, redraw all panes in session.
@@ -408,6 +411,24 @@ pub enum ServerMessage {
     Connected {
         server_version: String,
         protocol_version: u32,
+    },
+
+    /// Server-wide status (FEAT-074)
+    ServerStatus {
+        /// Current commit sequence number
+        commit_seq: u64,
+        /// Number of connected clients
+        client_count: usize,
+        /// Number of active sessions
+        session_count: usize,
+        /// Replay buffer range (min_seq, max_seq)
+        replay_range: (u64, u64),
+        /// WAL health status
+        wal_healthy: bool,
+        /// Checkpoint health status
+        checkpoint_healthy: bool,
+        /// human control mode active?
+        human_control_active: bool,
     },
 
     /// A sequenced message for event log/replay (FEAT-075)

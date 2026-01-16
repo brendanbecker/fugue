@@ -6,6 +6,8 @@
 // Allow unused code that's part of the public API for future features
 #![allow(dead_code)]
 
+use std::collections::HashMap;
+
 use ratatui::layout::{Constraint, Direction, Layout as RatatuiLayout, Rect};
 use uuid::Uuid;
 
@@ -23,6 +25,18 @@ impl From<ccmux_protocol::SplitDirection> for SplitDirection {
             ccmux_protocol::SplitDirection::Vertical => SplitDirection::Vertical,
         }
     }
+}
+
+/// Layout policy for dynamic resizing
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LayoutPolicy {
+    /// Use fixed ratios as specified in the layout
+    #[default]
+    Fixed,
+    /// Distribute space equally among all children
+    Balanced,
+    /// Adjust space dynamically based on pane activity and focus
+    Adaptive,
 }
 
 /// A node in the layout tree
@@ -102,14 +116,42 @@ impl LayoutNode {
     }
 
     /// Calculate rectangles for all panes given a bounding rectangle
-    pub fn calculate_rects(&self, area: Rect) -> Vec<(Uuid, Rect)> {
+    pub fn calculate_rects(&self, area: Rect, policy: LayoutPolicy, weights: &HashMap<Uuid, f32>) -> Vec<(Uuid, Rect)> {
         match self {
             LayoutNode::Pane { id } => vec![(*id, area)],
             LayoutNode::Split { direction, children } => {
-                let constraints: Vec<Constraint> = children
-                    .iter()
-                    .map(|(_, ratio)| Constraint::Ratio((*ratio * 100.0) as u32, 100))
-                    .collect();
+                let constraints: Vec<Constraint> = match policy {
+                    LayoutPolicy::Fixed => children
+                        .iter()
+                        .map(|(_, ratio)| Constraint::Ratio((*ratio * 100.0) as u32, 100))
+                        .collect(),
+                    LayoutPolicy::Balanced => {
+                        let count = children.len() as u32;
+                        children.iter().map(|_| Constraint::Ratio(1, count)).collect()
+                    }
+                    LayoutPolicy::Adaptive => {
+                        // Calculate total weight for each child branch
+                        let branch_weights: Vec<f32> = children.iter().map(|(child, ratio)| {
+                            let pane_ids = child.pane_ids();
+                            let total_weight: f32 = pane_ids.iter()
+                                .map(|id| weights.get(id).copied().unwrap_or(1.0))
+                                .sum();
+                            // Average weight of panes in this branch, weighted by the branch's base ratio
+                            let avg_weight = total_weight / pane_ids.len().max(1) as f32;
+                            *ratio * avg_weight
+                        }).collect();
+
+                        let sum: f32 = branch_weights.iter().sum();
+                        branch_weights.iter().map(|&w| {
+                            let pct = if sum > 0.0 {
+                                (w / sum * 100.0) as u32
+                            } else {
+                                (100 / children.len()) as u32
+                            };
+                            Constraint::Percentage(pct as u16)
+                        }).collect()
+                    }
+                };
 
                 let ratatui_direction = match direction {
                     SplitDirection::Horizontal => Direction::Horizontal,
@@ -124,7 +166,7 @@ impl LayoutNode {
                 children
                     .iter()
                     .zip(chunks.iter())
-                    .flat_map(|((child, _), &rect)| child.calculate_rects(rect))
+                    .flat_map(|((child, _), &rect)| child.calculate_rects(rect, policy, weights))
                     .collect()
             }
         }
@@ -383,6 +425,8 @@ pub struct LayoutManager {
     root: LayoutNode,
     /// Active pane ID
     active_pane_id: Option<Uuid>,
+    /// Layout policy
+    policy: LayoutPolicy,
 }
 
 impl LayoutManager {
@@ -391,6 +435,7 @@ impl LayoutManager {
         Self {
             root: LayoutNode::pane(pane_id),
             active_pane_id: Some(pane_id),
+            policy: LayoutPolicy::default(),
         }
     }
 
@@ -401,6 +446,7 @@ impl LayoutManager {
         Self {
             root,
             active_pane_id,
+            policy: LayoutPolicy::default(),
         }
     }
 
@@ -426,23 +472,33 @@ impl LayoutManager {
         }
     }
 
+    /// Get the current policy
+    pub fn policy(&self) -> LayoutPolicy {
+        self.policy
+    }
+
+    /// Set the layout policy
+    pub fn set_policy(&mut self, policy: LayoutPolicy) {
+        self.policy = policy;
+    }
+
     /// Calculate all pane rectangles for a given area
-    pub fn calculate_rects(&self, area: Rect) -> Vec<(Uuid, Rect)> {
-        self.root.calculate_rects(area)
+    pub fn calculate_rects(&self, area: Rect, weights: &HashMap<Uuid, f32>) -> Vec<(Uuid, Rect)> {
+        self.root.calculate_rects(area, self.policy, weights)
     }
 
     /// Get rectangle for a specific pane
-    pub fn get_pane_rect(&self, area: Rect, pane_id: Uuid) -> Option<Rect> {
-        self.calculate_rects(area)
+    pub fn get_pane_rect(&self, area: Rect, pane_id: Uuid, weights: &HashMap<Uuid, f32>) -> Option<Rect> {
+        self.calculate_rects(area, weights)
             .into_iter()
             .find(|(id, _)| *id == pane_id)
             .map(|(_, rect)| rect)
     }
 
     /// Get rectangle for the active pane
-    pub fn active_pane_rect(&self, area: Rect) -> Option<Rect> {
+    pub fn active_pane_rect(&self, area: Rect, weights: &HashMap<Uuid, f32>) -> Option<Rect> {
         self.active_pane_id
-            .and_then(|id| self.get_pane_rect(area, id))
+            .and_then(|id| self.get_pane_rect(area, id, weights))
     }
 
     /// Split the active pane
@@ -579,8 +635,9 @@ mod tests {
         let id = Uuid::new_v4();
         let node = LayoutNode::pane(id);
         let area = Rect::new(0, 0, 100, 50);
+        let weights = HashMap::new();
 
-        let rects = node.calculate_rects(area);
+        let rects = node.calculate_rects(area, LayoutPolicy::Fixed, &weights);
         assert_eq!(rects.len(), 1);
         assert_eq!(rects[0].0, id);
         assert_eq!(rects[0].1, area);
@@ -595,8 +652,9 @@ mod tests {
             LayoutNode::pane(id2),
         ]);
         let area = Rect::new(0, 0, 100, 50);
+        let weights = HashMap::new();
 
-        let rects = node.calculate_rects(area);
+        let rects = node.calculate_rects(area, LayoutPolicy::Fixed, &weights);
         assert_eq!(rects.len(), 2);
 
         // Each pane should be roughly half the width
@@ -618,8 +676,9 @@ mod tests {
             LayoutNode::pane(id2),
         ]);
         let area = Rect::new(0, 0, 100, 50);
+        let weights = HashMap::new();
 
-        let rects = node.calculate_rects(area);
+        let rects = node.calculate_rects(area, LayoutPolicy::Fixed, &weights);
         assert_eq!(rects.len(), 2);
 
         // Each pane should be roughly half the height
@@ -773,8 +832,9 @@ mod tests {
             vec![id1, id2],
         );
         let area = Rect::new(0, 0, 100, 50);
+        let weights = HashMap::new();
 
-        let rect = manager.get_pane_rect(area, id1);
+        let rect = manager.get_pane_rect(area, id1, &weights);
         assert!(rect.is_some());
         let rect = rect.unwrap();
         assert!(rect.width >= 45 && rect.width <= 55);
@@ -926,10 +986,47 @@ mod tests {
 
         // Verify it uses full area
         let area = Rect::new(0, 0, 100, 50);
-        let rects = manager.calculate_rects(area);
+        let weights = HashMap::new();
+        let rects = manager.calculate_rects(area, &weights);
         assert_eq!(rects.len(), 1);
         assert_eq!(rects[0].0, id1);
         assert_eq!(rects[0].1, area);
+    }
+
+    #[test]
+    fn test_adaptive_layout_weights() {
+        let id1 = Uuid::new_v4();
+        let id2 = Uuid::new_v4();
+        let mut manager = LayoutManager::from_preset(
+            LayoutPreset::SplitHorizontal,
+            vec![id1, id2],
+        );
+        manager.set_policy(LayoutPolicy::Adaptive);
+        
+        let area = Rect::new(0, 0, 100, 50);
+        
+        // Equal weights
+        let mut weights = HashMap::new();
+        weights.insert(id1, 1.0);
+        weights.insert(id2, 1.0);
+        
+        let rects = manager.calculate_rects(area, &weights);
+        let rect1 = rects.iter().find(|(id, _)| *id == id1).unwrap().1;
+        let rect2 = rects.iter().find(|(id, _)| *id == id2).unwrap().1;
+        assert!(rect1.width >= 45 && rect1.width <= 55);
+        assert!(rect2.width >= 45 && rect2.width <= 55);
+        
+        // id1 is twice as important as id2
+        weights.insert(id1, 2.0);
+        weights.insert(id2, 1.0);
+        
+        let rects = manager.calculate_rects(area, &weights);
+        let rect1 = rects.iter().find(|(id, _)| *id == id1).unwrap().1;
+        let rect2 = rects.iter().find(|(id, _)| *id == id2).unwrap().1;
+        
+        // Should be roughly 66% and 33%
+        assert!(rect1.width >= 64 && rect1.width <= 68);
+        assert!(rect2.width >= 31 && rect2.width <= 35);
     }
 
     #[test]

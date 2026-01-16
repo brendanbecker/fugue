@@ -383,6 +383,9 @@ impl InputHandler {
             // Zoom/fullscreen pane
             KeyCode::Char('z') => InputAction::Command(ClientCommand::ToggleZoom),
 
+            // Layout policy cycle
+            KeyCode::Char('E') => InputAction::Command(ClientCommand::CycleLayoutPolicy),
+
             // Redraw screen
             KeyCode::Char('r') => InputAction::Command(ClientCommand::Redraw),
 

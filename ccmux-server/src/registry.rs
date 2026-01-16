@@ -13,6 +13,7 @@ use tokio::sync::mpsc;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
+use crate::observability::Metrics;
 use ccmux_protocol::{ServerMessage, messages::ClientType};
 
 /// Type alias for session IDs (matches the Uuid type used in session module)
@@ -469,6 +470,7 @@ impl ClientRegistry {
         );
 
         let mut success_count = 0;
+        let start = std::time::Instant::now();
 
         for client_id in client_ids {
             if self.send_to_client(client_id, message.clone()).await {
@@ -478,6 +480,8 @@ impl ClientRegistry {
                 warn!("Broadcast to client {} failed", client_id);
             }
         }
+
+        Metrics::global().record_event_dispatch(start.elapsed().as_millis() as u64);
 
         info!("Broadcast complete: {}/{} succeeded", success_count, success_count);
         success_count
@@ -1278,7 +1282,8 @@ mod tests {
             name: None,
             title: Some("test".to_string()),
             cwd: None,
-            stuck_status: None, metadata: std::collections::HashMap::new(),
+            stuck_status: None,
+            metadata: std::collections::HashMap::new(),
         };
         let broadcast_msg = ServerMessage::PaneCreated {
             pane: pane_info,

@@ -11,6 +11,7 @@ use std::time::SystemTime;
 use tracing::{debug, info, warn};
 
 use super::types::{Checkpoint, SessionSnapshot, CHECKPOINT_MAGIC, CHECKPOINT_VERSION};
+use crate::observability::Metrics;
 use ccmux_utils::{CcmuxError, Result};
 
 // Helper functions for specific error types
@@ -115,20 +116,22 @@ impl CheckpointManager {
         Ok(max_sequence)
     }
 
-    /// Create a new checkpoint with the given sessions
+    /// Create a new checkpoint
     pub fn create(&mut self, sessions: Vec<SessionSnapshot>) -> Result<PathBuf> {
         self.sequence += 1;
+        let sequence = self.sequence;
+        let path = self.checkpoint_path(sequence);
+
+        let span = tracing::info_span!("checkpoint.write", sequence, session_count = sessions.len());
+        let _enter = span.enter();
+
         let checkpoint = Checkpoint {
             version: CHECKPOINT_VERSION,
-            timestamp: SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .map(|d| d.as_secs())
-                .unwrap_or(0),
-            sequence: self.sequence,
+            sequence,
+            timestamp: Self::unix_timestamp(),
             sessions,
         };
 
-        let path = self.checkpoint_path(self.sequence);
         self.write_checkpoint(&path, &checkpoint)?;
 
         info!(
@@ -145,6 +148,7 @@ impl CheckpointManager {
 
     /// Write a checkpoint to disk
     fn write_checkpoint(&self, path: &Path, checkpoint: &Checkpoint) -> Result<()> {
+        let start = std::time::Instant::now();
         // Write to a temporary file first, then rename for atomicity
         let temp_path = path.with_extension("tmp");
 
@@ -183,6 +187,9 @@ impl CheckpointManager {
         fs::rename(&temp_path, path).map_err(|e| {
             io_error(format!("Failed to rename checkpoint file: {}", e))
         })?;
+
+        // Record metrics
+        Metrics::global().record_checkpoint(start.elapsed().as_millis() as u64, data.len() as u64);
 
         debug!("Wrote checkpoint to {}", path.display());
 
@@ -263,8 +270,8 @@ impl CheckpointManager {
         Ok(checkpoint)
     }
 
-    /// List all checkpoint files sorted by sequence number
-    fn list_checkpoints(&self) -> Result<Vec<PathBuf>> {
+    /// List all valid checkpoint files in the directory, sorted by sequence
+    pub fn list_checkpoints(&self) -> Result<Vec<PathBuf>> {
         let mut checkpoints = Vec::new();
 
         if !self.checkpoint_dir.exists() {
@@ -277,24 +284,29 @@ impl CheckpointManager {
             let entry = entry.map_err(|e| {
                 io_error(format!("Failed to read directory entry: {}", e))
             })?;
-
             let path = entry.path();
-            if path.extension().map(|e| e == "bin").unwrap_or(false) {
-                let name = path.file_name().unwrap().to_string_lossy();
-                if name.starts_with(&self.config.file_prefix) {
-                    checkpoints.push(path);
+
+            if path.is_file() {
+                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                    if name.starts_with(&self.config.file_prefix) && name.ends_with(".bin") {
+                        checkpoints.push(path);
+                    }
                 }
             }
         }
 
-        // Sort by sequence number
-        checkpoints.sort_by(|a, b| {
-            let seq_a = Self::extract_sequence(a, &self.config.file_prefix);
-            let seq_b = Self::extract_sequence(b, &self.config.file_prefix);
-            seq_a.cmp(&seq_b)
-        });
+        // Sort by name (which includes sequence number)
+        checkpoints.sort();
 
         Ok(checkpoints)
+    }
+
+    /// Get current Unix timestamp
+    fn unix_timestamp() -> u64 {
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0)
     }
 
     /// Extract sequence number from checkpoint path
