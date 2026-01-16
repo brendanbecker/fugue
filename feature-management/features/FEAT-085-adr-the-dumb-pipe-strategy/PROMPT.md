@@ -5,59 +5,61 @@
 **Type**: enhancement
 **Estimated Effort**: medium
 **Business Value**: medium
+**Status**: COMPLETED (2026-01-16)
 
 ## Overview
 
 Draft an Architectural Decision Record (ADR) defining the 'Dumb Pipe' philosophy for ccmux. Explicitly forbid future application-specific logic in the core server/protocol. Define the standard for Sideband usage as the primary integration point.
 
-## Benefits
+## Deliverables
 
+- [x] `docs/adr/ADR-001-dumb-pipe-strategy.md` - The ADR document
+- [x] Updated `docs/HANDOFF.md` - Reference the ADR
+- [x] Updated feature-management files - Marked complete
 
+## What Was Done
 
-## Implementation Tasks
+### ADR Document Created
 
-### Section 1: Design
-- [ ] Review requirements and acceptance criteria
-- [ ] Design solution architecture
-- [ ] Identify affected components
-- [ ] Document implementation approach
+Created `docs/adr/ADR-001-dumb-pipe-strategy.md` with:
 
-### Section 2: Implementation
-- [ ] Implement core functionality
-- [ ] Add error handling
-- [ ] Update configuration if needed
-- [ ] Add logging and monitoring
+1. **Full Context**: Documented all current agent-specific code:
+   - `ClaudeState` and `ClaudeActivity` in protocol types
+   - `BeadsTask` and `BeadsStatus` in protocol types
+   - Beads-specific MCP tools in handlers.rs
+   - Problems with tight coupling (fragility, maintenance burden, limited extensibility)
 
-### Section 3: Testing
-- [ ] Add unit tests
-- [ ] Add integration tests
-- [ ] Manual testing of key scenarios
-- [ ] Performance testing if needed
+2. **Decision**: ccmux evolves toward a "dumb pipe" - a minimal, reliable multiplexer that:
+   - Multiplexes PTY streams reliably
+   - Provides generic metadata storage
+   - Offers simple message passing
+   - Exposes capabilities via sideband protocol
 
-### Section 4: Documentation
-- [ ] Update user documentation
-- [ ] Update technical documentation
-- [ ] Add code comments
-- [ ] Update CHANGELOG
+3. **Consequences** (positive and negative):
+   - Positive: Increased reliability, agent-agnostic, easier maintenance
+   - Negative: Loss of "magic" features, agent-side burden
+   - Mitigations documented
 
-### Section 5: Verification
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code review completed
-- [ ] Ready for deployment
+4. **Implementation Path**:
+   - Phase 1: Generic Widget System (FEAT-083)
+   - Phase 2: Abstract Agent State (FEAT-084)
+   - Phase 3: Deprecate agent-specific sideband commands
+   - Phase 4: Document agent-side patterns
+
+5. **Before/After Examples** for:
+   - Displaying agent activity
+   - Task tracking widgets
+   - Agent coordination
 
 ## Acceptance Criteria
 
-- [ ] Feature implemented as described
-- [ ] All tests passing
-- [ ] Documentation updated
-- [ ] No regressions in existing functionality
-- [ ] Performance meets requirements
+- [x] ADR document created with full context, decision, and consequences
+- [x] Clear implementation path outlined (FEAT-083, FEAT-084)
+- [x] Examples of "before/after" for key features
+- [x] Team alignment on direction (implicit via PR review)
 
-## Dependencies
+## Next Steps
 
-[]
-
-## Notes
-
-
+After committing this ADR, proceed to:
+- FEAT-083 (Generic Widget System) - Replace BeadsTask
+- FEAT-084 (Abstract Agent State) - Generalize ClaudeState
