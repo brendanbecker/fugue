@@ -1191,9 +1191,8 @@ impl App {
                         self.last_window_id = current_window_id;
                         self.active_pane_id = Some(pane_id);
                         self.pane_manager.set_active(pane_id);
-                        if let Some(ref mut layout) = self.layout {
-                            layout.set_active_pane(pane_id);
-                        }
+                        // BUG-045: Rebuild layout to show only the new window's panes
+                        self.rebuild_layout_for_active_window();
                     }
                 } else {
                     self.status_message = Some("No last window".to_string());
@@ -1247,7 +1246,8 @@ impl App {
                         .and_then(|pid| self.panes.get(&pid))
                         .map(|p| p.window_id);
 
-                    if current_window_id != Some(window_id) {
+                    let switching_windows = current_window_id != Some(window_id);
+                    if switching_windows {
                         self.last_window_id = current_window_id;
                     }
 
@@ -1255,7 +1255,10 @@ impl App {
                     if let Some(pane_id) = self.first_pane_in_window(window_id) {
                         self.active_pane_id = Some(pane_id);
                         self.pane_manager.set_active(pane_id);
-                        if let Some(ref mut layout) = self.layout {
+                        // BUG-045: Rebuild layout to show only the new window's panes
+                        if switching_windows {
+                            self.rebuild_layout_for_active_window();
+                        } else if let Some(ref mut layout) = self.layout {
                             layout.set_active_pane(pane_id);
                         }
                     }
@@ -1352,6 +1355,11 @@ impl App {
             self.active_pane_id = Some(pane_id);
             self.pane_manager.set_active(pane_id);
         }
+
+        // BUG-045: Rebuild layout to show only the new window's panes
+        if current_window_id != Some(new_window_id) {
+            self.rebuild_layout_for_active_window();
+        }
     }
 
     /// Get the first pane in a window (by index)
@@ -1361,6 +1369,59 @@ impl App {
             .filter(|p| p.window_id == window_id)
             .min_by_key(|p| p.index)
             .map(|p| p.id)
+    }
+
+    /// Get the active window ID (from the active pane)
+    fn active_window_id(&self) -> Option<Uuid> {
+        self.active_pane_id
+            .and_then(|pid| self.panes.get(&pid))
+            .map(|p| p.window_id)
+    }
+
+    /// Rebuild the layout manager to only include panes from the active window.
+    /// This ensures windows act like tabs - only one window's panes are visible at a time.
+    fn rebuild_layout_for_active_window(&mut self) {
+        let active_window_id = match self.active_window_id() {
+            Some(id) => id,
+            None => {
+                // No active window - clear layout
+                self.layout = None;
+                return;
+            }
+        };
+
+        // Filter panes to only those in the active window
+        let mut pane_ids: Vec<Uuid> = self
+            .panes
+            .values()
+            .filter(|p| p.window_id == active_window_id)
+            .map(|p| p.id)
+            .collect();
+
+        if pane_ids.is_empty() {
+            self.layout = None;
+            return;
+        }
+
+        // Sort by index for consistent layout ordering
+        pane_ids.sort_by_key(|id| self.panes.get(id).map(|p| p.index).unwrap_or(0));
+
+        // Build a new layout manager with only the active window's panes
+        let first_pane_id = pane_ids[0];
+        let mut layout_manager = LayoutManager::new(first_pane_id);
+
+        // Add remaining panes as vertical splits (simple layout)
+        // TODO: Persist per-window layouts in the server for better reconstruction
+        for &pane_id in pane_ids.iter().skip(1) {
+            layout_manager.root_mut().add_pane(
+                first_pane_id,
+                pane_id,
+                LayoutSplitDirection::Vertical,
+            );
+        }
+
+        layout_manager.set_active_pane(self.active_pane_id.unwrap_or(first_pane_id));
+        self.layout = Some(layout_manager);
     }
 
     /// Calculate weights for all panes based on activity and focus
@@ -1556,23 +1617,9 @@ impl App {
                 let pane_rows = term_rows.saturating_sub(3); // Account for borders and status bar
                 let pane_cols = term_cols.saturating_sub(2); // Account for side borders
 
-                // Initialize layout manager with panes
-                // For now, when reattaching, we create a simple layout with existing panes
-                // (a more complete solution would persist layout in the server)
-                let pane_ids: Vec<Uuid> = self.panes.keys().copied().collect();
-                if let Some(&first_pane_id) = pane_ids.first() {
-                    let mut layout_manager = LayoutManager::new(first_pane_id);
-                    // Add remaining panes as vertical splits (simple layout for reattach)
-                    for &pane_id in pane_ids.iter().skip(1) {
-                        layout_manager.root_mut().add_pane(
-                            first_pane_id,
-                            pane_id,
-                            LayoutSplitDirection::Vertical,
-                        );
-                    }
-                    layout_manager.set_active_pane(self.active_pane_id.unwrap_or(first_pane_id));
-                    self.layout = Some(layout_manager);
-                }
+                // Initialize layout manager with panes from the active window only
+                // (BUG-045: windows are tabs, only show panes from active window)
+                self.rebuild_layout_for_active_window();
 
                 // Create UI panes with CLIENT's terminal dimensions
                 for pane_info in self.panes.values() {
@@ -1632,20 +1679,9 @@ impl App {
                 let pane_rows = term_rows.saturating_sub(3);
                 let pane_cols = term_cols.saturating_sub(2);
 
-                // Initialize layout manager with panes
-                let pane_ids: Vec<Uuid> = self.panes.keys().copied().collect();
-                if let Some(&first_pane_id) = pane_ids.first() {
-                    let mut layout_manager = LayoutManager::new(first_pane_id);
-                    for &pane_id in pane_ids.iter().skip(1) {
-                        layout_manager.root_mut().add_pane(
-                            first_pane_id,
-                            pane_id,
-                            LayoutSplitDirection::Vertical,
-                        );
-                    }
-                    layout_manager.set_active_pane(self.active_pane_id.unwrap_or(first_pane_id));
-                    self.layout = Some(layout_manager);
-                }
+                // Initialize layout manager with panes from the active window only
+                // (BUG-045: windows are tabs, only show panes from active window)
+                self.rebuild_layout_for_active_window();
 
                 // Create UI panes with CLIENT's terminal dimensions
                 // Note: We might be replacing existing panes, so we clear/recreate or update?
@@ -1707,34 +1743,47 @@ impl App {
                 let _ = self.pending_split_direction.take();
                 let layout_direction = LayoutSplitDirection::from(direction);
 
-                // Add new pane to layout
-                if let Some(ref mut layout) = self.layout {
-                    // Split the active pane to add the new one
-                    if let Some(active_id) = self.active_pane_id {
-                        layout.root_mut().add_pane(active_id, pane.id, layout_direction);
-                    } else {
-                        // No active pane - this is the first pane, initialize layout
-                        *layout = LayoutManager::new(pane.id);
-                    }
-                } else {
-                    // Layout not initialized - create with this pane
-                    self.layout = Some(LayoutManager::new(pane.id));
-                }
-
-                // Create UI pane for terminal rendering
+                // Create UI pane for terminal rendering (always do this)
                 self.pane_manager.add_pane(pane.id, pane.rows, pane.cols);
                 if let Some(ui_pane) = self.pane_manager.get_mut(pane.id) {
                     ui_pane.set_title(pane.title.clone());
                     ui_pane.set_cwd(pane.cwd.clone());
                     ui_pane.set_pane_state(pane.state.clone());
                 }
+
+                // Store pane info (always)
+                let pane_window_id = pane.window_id;
                 self.panes.insert(pane.id, pane.clone());
+
+                // BUG-045: Determine if this pane is in the active window
+                let active_window_id = self.active_window_id();
+                let pane_in_active_window = active_window_id == Some(pane_window_id);
+
+                if pane_in_active_window {
+                    // Add new pane to layout (only if in active window)
+                    if let Some(ref mut layout) = self.layout {
+                        // Split the active pane to add the new one
+                        if let Some(active_id) = self.active_pane_id {
+                            layout.root_mut().add_pane(active_id, pane.id, layout_direction);
+                        } else {
+                            // No active pane - this is the first pane, initialize layout
+                            *layout = LayoutManager::new(pane.id);
+                        }
+                    } else {
+                        // Layout not initialized - create with this pane
+                        self.layout = Some(LayoutManager::new(pane.id));
+                    }
+                }
 
                 // Switch focus to the new pane if requested
                 if should_focus {
                     self.active_pane_id = Some(pane.id);
                     self.pane_manager.set_active(pane.id);
-                    if let Some(ref mut layout) = self.layout {
+
+                    // If the pane is in a different window, rebuild layout for that window
+                    if !pane_in_active_window {
+                        self.rebuild_layout_for_active_window();
+                    } else if let Some(ref mut layout) = self.layout {
                         layout.set_active_pane(pane.id);
                     }
                 }
@@ -1958,12 +2007,22 @@ impl App {
                         .send(ClientMessage::AttachSession { session_id })
                         .await?;
                 } else {
+                    // Get current window before switching
+                    let current_window_id = self.active_window_id();
+                    let switching_windows = current_window_id != Some(window_id);
+
                     // Update active window - focus its active pane
                     if let Some(window) = self.windows.get(&window_id) {
                         if let Some(active_pane) = window.active_pane_id {
                             self.active_pane_id = Some(active_pane);
                             tracing::debug!("Window {} focused, now focusing pane {} (via MCP)", window_id, active_pane);
                         }
+                    }
+
+                    // BUG-045: Rebuild layout to show only the new window's panes
+                    if switching_windows {
+                        self.last_window_id = current_window_id;
+                        self.rebuild_layout_for_active_window();
                     }
                 }
             }
