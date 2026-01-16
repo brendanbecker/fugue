@@ -84,6 +84,7 @@ mod tests {
                 name: None,
                 title: None,
                 cwd: None,
+                stuck_status: None,
             },
             direction: SplitDirection::Horizontal,
         };

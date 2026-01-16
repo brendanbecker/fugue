@@ -152,6 +152,19 @@ pub struct PaneInfo {
     /// Terminal title from escape sequences
     pub title: Option<String>,
     pub cwd: Option<String>,
+    /// Stuck/health status of the pane (FEAT-073)
+    pub stuck_status: Option<PaneStuckStatus>,
+}
+
+/// Pane stuck/health status (FEAT-073)
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum PaneStuckStatus {
+    /// Pane is healthy/normal
+    None,
+    /// Pane is slow (warning)
+    Slow { duration: u64 },
+    /// Pane is stuck (error)
+    Stuck { duration: u64, reason: String },
 }
 
 /// Pane state
