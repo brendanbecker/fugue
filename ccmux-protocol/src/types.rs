@@ -170,6 +170,14 @@ pub enum PaneStuckStatus {
     Stuck { duration: u64, reason: String },
 }
 
+/// Priority for mailbox messages (FEAT-073)
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum MailPriority {
+    Info,
+    Warning,
+    Error,
+}
+
 /// Pane state
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum PaneState {
@@ -723,7 +731,8 @@ mod tests {
             state: PaneState::Normal,
             name: None,
             title: None,
-            cwd: None, stuck_status: None,
+            cwd: None,
+            stuck_status: None,
             metadata: std::collections::HashMap::new(),
         };
 
@@ -749,7 +758,7 @@ mod tests {
             name: None,
             title: Some("vim".to_string()),
             cwd: Some("/home/user/project".to_string()),
-            stuck_status: None,
+            stuck_status: Some(PaneStuckStatus::Slow { duration: 10 }),
             metadata: std::collections::HashMap::new(),
         };
 
@@ -758,6 +767,10 @@ mod tests {
         assert_eq!(pane.index, 2);
         assert_eq!(pane.title, Some("vim".to_string()));
         assert_eq!(pane.cwd, Some("/home/user/project".to_string()));
+        assert_eq!(
+            pane.stuck_status,
+            Some(PaneStuckStatus::Slow { duration: 10 })
+        );
     }
 
     #[test]
@@ -794,7 +807,8 @@ mod tests {
             state: PaneState::Normal,
             name: None,
             title: None,
-            cwd: None, stuck_status: None,
+            cwd: None,
+            stuck_status: None,
             metadata: std::collections::HashMap::new(),
         };
 
@@ -807,7 +821,8 @@ mod tests {
             state: PaneState::Normal,
             name: None,
             title: None,
-            cwd: None, stuck_status: None,
+            cwd: None,
+            stuck_status: None,
             metadata: std::collections::HashMap::new(),
         };
 
@@ -820,7 +835,8 @@ mod tests {
             state: PaneState::Normal,
             name: None,
             title: None,
-            cwd: None, stuck_status: None,
+            cwd: None,
+            stuck_status: None,
             metadata: std::collections::HashMap::new(),
         };
 

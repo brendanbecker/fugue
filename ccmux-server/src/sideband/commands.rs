@@ -5,6 +5,7 @@
 //! - `<ccmux:input pane="1">ls -la</ccmux:input>`
 
 use uuid::Uuid;
+use ccmux_protocol::MailPriority;
 
 /// Direction for pane splitting
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -47,6 +48,11 @@ pub enum SidebandCommand {
         title: Option<String>,
         message: String,
         level: NotifyLevel,
+    },
+    /// Send mail/summary to dashboard (FEAT-073)
+    Mail {
+        summary: String,
+        priority: MailPriority,
     },
     /// Pane control action
     Control { action: ControlAction, pane: PaneRef },
@@ -198,6 +204,21 @@ mod tests {
             assert_eq!(level, NotifyLevel::Info);
         } else {
             panic!("Expected Notify command");
+        }
+    }
+
+    #[test]
+    fn test_mail_command() {
+        let cmd = SidebandCommand::Mail {
+            summary: "Task completed".to_string(),
+            priority: MailPriority::Info,
+        };
+
+        if let SidebandCommand::Mail { summary, priority } = cmd {
+            assert_eq!(summary, "Task completed");
+            assert_eq!(priority, MailPriority::Info);
+        } else {
+            panic!("Expected Mail command");
         }
     }
 

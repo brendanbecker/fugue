@@ -35,7 +35,7 @@ use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
 use uuid::Uuid;
 
 use ccmux_protocol::{
-    ClientMessage, ClaudeActivity, PaneInfo, PaneState, ServerMessage, SessionInfo,
+    ClientMessage, ClaudeActivity, PaneInfo, PaneState, PaneStuckStatus, ServerMessage, SessionInfo,
     SplitDirection, WindowInfo, messages::ClientType,
 };
 use ccmux_utils::Result;
@@ -2114,12 +2114,19 @@ impl App {
             }
         };
 
+        let stuck_info = match &pane.stuck_status {
+            Some(PaneStuckStatus::Stuck { duration, .. }) => format!("\nStuck: {}s", duration),
+            Some(PaneStuckStatus::Slow { duration }) => format!("\nSlow: {}s", duration),
+            _ => "".to_string(),
+        };
+
         format!(
-            "Size: {}x{}\nState: {}\nCWD: {}",
+            "Size: {}x{}\nState: {}\nCWD: {}{}",
             pane.cols,
             pane.rows,
             state_info,
-            pane.cwd.as_deref().unwrap_or("unknown")
+            pane.cwd.as_deref().unwrap_or("unknown"),
+            stuck_info
         )
     }
 
@@ -2141,10 +2148,31 @@ impl App {
 
         let pane_info = if let Some(pane_id) = self.active_pane_id {
             if let Some(pane) = self.panes.get(&pane_id) {
-                match &pane.state {
-                    PaneState::Normal => "[ ]".to_string(),
-                    PaneState::Claude(cs) => format_claude_indicator(&cs.activity, self.tick_count),
-                    PaneState::Exited { code } => format!("[Exit:{}]", code.unwrap_or(-1)),
+                // Check stuck status first (overrides normal indicator)
+                if let Some(stuck) = &pane.stuck_status {
+                    match stuck {
+                        PaneStuckStatus::Stuck { duration, .. } => {
+                            format!("[STUCK {}s]", duration)
+                        }
+                        PaneStuckStatus::Slow { duration } => {
+                            format!("[SLOW {}s]", duration)
+                        }
+                        PaneStuckStatus::None => match &pane.state {
+                            PaneState::Normal => "[ ]".to_string(),
+                            PaneState::Claude(cs) => {
+                                format_claude_indicator(&cs.activity, self.tick_count)
+                            }
+                            PaneState::Exited { code } => format!("[Exit:{}]", code.unwrap_or(-1)),
+                        },
+                    }
+                } else {
+                    match &pane.state {
+                        PaneState::Normal => "[ ]".to_string(),
+                        PaneState::Claude(cs) => {
+                            format_claude_indicator(&cs.activity, self.tick_count)
+                        }
+                        PaneState::Exited { code } => format!("[Exit:{}]", code.unwrap_or(-1)),
+                    }
                 }
             } else {
                 "".to_string()

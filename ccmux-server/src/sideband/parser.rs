@@ -11,6 +11,7 @@ use std::collections::HashMap;
 
 use regex::Regex;
 use tracing::warn;
+use ccmux_protocol::MailPriority;
 
 use super::commands::{ControlAction, NotifyLevel, PaneRef, SidebandCommand, SplitDirection};
 
@@ -217,6 +218,15 @@ impl SidebandParser {
                     Some("warning") => NotifyLevel::Warning,
                     Some("error") => NotifyLevel::Error,
                     _ => NotifyLevel::Info,
+                },
+            }),
+
+            "mail" => Ok(SidebandCommand::Mail {
+                summary: attrs.get("summary").cloned().unwrap_or_else(|| content.to_string()),
+                priority: match attrs.get("priority").map(|s| s.as_str()) {
+                    Some("warning") => MailPriority::Warning,
+                    Some("error") => MailPriority::Error,
+                    _ => MailPriority::Info,
                 },
             }),
 
@@ -537,6 +547,21 @@ mod tests {
             assert_eq!(*level, NotifyLevel::Error);
         } else {
             panic!("Expected Notify command");
+        }
+    }
+
+    #[test]
+    fn test_parse_mail_command() {
+        let mut parser = SidebandParser::new();
+        let input = osc(r#"mail summary="Task complete" priority="info""#);
+
+        let (_, commands) = parser.parse(&input);
+
+        if let SidebandCommand::Mail { summary, priority } = &commands[0] {
+            assert_eq!(summary, "Task complete");
+            assert_eq!(*priority, MailPriority::Info);
+        } else {
+            panic!("Expected Mail command");
         }
     }
 

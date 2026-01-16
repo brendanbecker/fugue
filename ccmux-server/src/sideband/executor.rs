@@ -11,7 +11,7 @@ use thiserror::Error;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::{PaneInfo, ServerMessage};
+use ccmux_protocol::{MailPriority, PaneInfo, ServerMessage};
 
 use super::commands::{ControlAction, NotifyLevel, PaneRef, SidebandCommand, SplitDirection};
 use crate::pty::{PtyConfig, PtyManager};
@@ -153,6 +153,10 @@ impl CommandExecutor {
                 message,
                 level,
             } => self.execute_notify(title, message, level),
+
+            SidebandCommand::Mail { summary, priority } => {
+                self.execute_mail(source_pane, summary, priority)
+            }
 
             SidebandCommand::Control { action, pane } => {
                 self.execute_control(source_pane, pane, action)
@@ -444,6 +448,25 @@ impl CommandExecutor {
         Ok(())
     }
 
+    /// Execute mail command - send worker summary to dashboard
+    fn execute_mail(
+        &self,
+        source_pane: Uuid,
+        summary: String,
+        priority: MailPriority,
+    ) -> ExecuteResult<()> {
+        info!(
+            "Mail from pane {}: [{:?}] {}",
+            source_pane, priority, summary
+        );
+
+        // TODO: Broadcast mail to dashboard/mailbox widget
+        // For now, log it and potentially implement client broadcast later
+        // ServerMessage::MailReceived { ... }
+
+        Ok(())
+    }
+
     /// Execute control command - pane control actions
     fn execute_control(
         &self,
@@ -721,6 +744,19 @@ mod tests {
             title: Some("Error".to_string()),
             message: "Error message".to_string(),
             level: NotifyLevel::Error,
+        };
+
+        let result = executor.execute(cmd, Uuid::new_v4());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_execute_mail() {
+        let (executor, _) = create_test_executor();
+
+        let cmd = SidebandCommand::Mail {
+            summary: "Task complete".to_string(),
+            priority: MailPriority::Info,
         };
 
         let result = executor.execute(cmd, Uuid::new_v4());

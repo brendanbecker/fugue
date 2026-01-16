@@ -12,7 +12,7 @@ use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::ServerMessage;
+use ccmux_protocol::{MailPriority, ServerMessage};
 
 use super::commands::{ControlAction, NotifyLevel, PaneRef, SidebandCommand, SplitDirection};
 use super::executor::{ExecuteError, ExecuteResult, SpawnResult};
@@ -155,6 +155,10 @@ impl AsyncCommandExecutor {
                 message,
                 level,
             } => self.execute_notify(title, message, level),
+
+            SidebandCommand::Mail { summary, priority } => {
+                self.execute_mail(source_pane, summary, priority).await
+            }
 
             SidebandCommand::Control { action, pane } => {
                 self.execute_control(source_pane, Some(pane), action).await
@@ -547,6 +551,24 @@ impl AsyncCommandExecutor {
         Ok(())
     }
 
+    /// Execute mail command - send worker summary to dashboard
+    async fn execute_mail(
+        &self,
+        source_pane: Uuid,
+        summary: String,
+        priority: MailPriority,
+    ) -> ExecuteResult<()> {
+        info!(
+            "Mail from pane {}: [{:?}] {}",
+            source_pane, priority, summary
+        );
+
+        // TODO: Broadcast mail to dashboard/mailbox widget
+        // For now, log it and potentially implement client broadcast later
+
+        Ok(())
+    }
+
     /// Execute control command - pane control actions
     async fn execute_control(
         &self,
@@ -697,6 +719,21 @@ mod tests {
                 title: Some("Error".to_string()),
                 message: "Something went wrong".to_string(),
                 level: NotifyLevel::Error,
+            },
+            Uuid::new_v4(),
+        ).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_execute_mail() {
+        let (executor, _) = create_test_executor();
+
+        let result = executor.execute(
+            SidebandCommand::Mail {
+                summary: "Task complete".to_string(),
+                priority: MailPriority::Info,
             },
             Uuid::new_v4(),
         ).await;
