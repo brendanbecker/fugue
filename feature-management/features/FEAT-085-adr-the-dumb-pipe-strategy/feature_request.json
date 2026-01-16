@@ -1,0 +1,11 @@
+{
+  "feature_id": "FEAT-085",
+  "title": "ADR: The Dumb Pipe Strategy",
+  "component": "docs",
+  "priority": "P1",
+  "status": "new",
+  "type": "enhancement",
+  "estimated_effort": "medium",
+  "description": "Draft an Architectural Decision Record (ADR) defining the 'Dumb Pipe' philosophy for ccmux. Explicitly forbid future application-specific logic in the core server/protocol. Define the standard for Sideband usage as the primary integration point.",
+  "business_value": "medium"
+}

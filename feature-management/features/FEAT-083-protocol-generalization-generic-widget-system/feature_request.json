@@ -1,0 +1,11 @@
+{
+  "feature_id": "FEAT-083",
+  "title": "Protocol Generalization: Generic Widget System",
+  "component": "ccmux-protocol",
+  "priority": "P1",
+  "status": "new",
+  "type": "enhancement",
+  "estimated_effort": "medium",
+  "description": "Remove hardcoded integration structs (e.g., BeadsTask) from the core binary protocol. Implement a generic 'Widget' or 'Extension' message type capable of carrying arbitrary JSON payloads for client-side rendering. This decouples the multiplexer from specific tools.",
+  "business_value": "medium"
+}

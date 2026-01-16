@@ -1,0 +1,11 @@
+{
+  "feature_id": "FEAT-084",
+  "title": "Protocol Generalization: Abstract Agent State",
+  "component": "ccmux-protocol",
+  "priority": "P2",
+  "status": "new",
+  "type": "enhancement",
+  "estimated_effort": "medium",
+  "description": "Refactor 'ClaudeState' and 'ClaudeActivity' into a generic 'AgentState'. The server should not need to know about specific agent implementations. Use a status enum (Busy, Idle, Error) and a metadata map for specific details.",
+  "business_value": "medium"
+}

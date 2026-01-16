@@ -212,4 +212,6 @@ The project follows a multi-crate workspace structure:
 - `ccmux-session/` - Session/window/pane hierarchy
 - `ccmux-utils/` - Shared utilities
 - `ccmux-persistence/` - WAL-based crash recovery
-- `ccmux-sandbox/` - Landlock sandboxing helper
+- `ccmux-sandbox/` - Landlock sandboxing helper| FEAT-083 | Protocol Generalization: Generic Widget System | ccmux-protocol | P1 | new | [Link](features/FEAT-083-protocol-generalization-generic-widget-system/) |
+| FEAT-084 | Protocol Generalization: Abstract Agent State | ccmux-protocol | P2 | new | [Link](features/FEAT-084-protocol-generalization-abstract-agent-state/) |
+| FEAT-085 | ADR: The Dumb Pipe Strategy | docs | P1 | new | [Link](features/FEAT-085-adr-the-dumb-pipe-strategy/) |
