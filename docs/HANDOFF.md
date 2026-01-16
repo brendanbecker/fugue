@@ -16,9 +16,9 @@
 
 | Stream | Focus | Worktree | Objective | Status |
 |--------|-------|----------|-----------|--------|
-| **Stream A** | Core Stability | `../ccmux-stream-a` | Modularize MCP bridge, fix state drift bugs. | Complete |
-| **Stream B** | UX / Safety | `../ccmux-stream-b` | Fix client crashes, implement Human Arbitration. | Ready |
-| **Stream C** | Features | `../ccmux-stream-c` | Sideband Config, Sandboxing, Remote Peering. | Ready |
+| **Stream A** | User Interface | `../ccmux-stream-a` | Implement TUI visibility dashboard. | Active (FEAT-073) |
+| **Stream B** | UX / Safety | `../ccmux-stream-b` | Fix client crashes, implement Adaptive Layout. | In Progress (FEAT-082) |
+| **Stream C** | Observability | `../ccmux-stream-c` | Backend metrics and structured tracing. | Active (FEAT-074) |
 
 ### Workflow: Continuous Integration
 
@@ -55,13 +55,14 @@ We use a "CI-in-worktree" pattern to keep branches short-lived and history clean
 - **Retro**: Conducted comprehensive retrospective, categorized backlog into streams.
 
 ### In Progress
+- **FEAT-073 (P2)**: Visibility dashboard (Stream A).
 - **FEAT-082 (P2)**: Adaptive layout engine (Stream B).
 - **FEAT-074 (P2)**: Telemetry and observability dashboard (Stream C).
 
 ## Backlog Highlights
 
 ### High Priority (P0/P1)
-- **BUG-041**: Client crash on paste (Verified Fix, monitor).
+- **FEAT-061**: Screen Redraw Command (UX).
 - **BUG-039**: MCP tools hang intermittently (Logging added, monitor).
 - **BUG-033**: Layout validation too strict.
 
@@ -78,26 +79,14 @@ We use a "CI-in-worktree" pattern to keep branches short-lived and history clean
 
 ---
 
-## Session Log (2026-01-15) - Core Stability & Conflict Resolution
+## Session Log (2026-01-15) - Task Reassignment
 
 ### Work Completed This Session
-1. **BUG-032 Resolved (Stream A)**
-   - Merged `stream-a-core-stability` which implemented global TUI broadcasts for MCP operations (CreateSession, CreateWindow, CreatePane, etc.).
-   - Updated handlers to return `ResponseWithGlobalBroadcast` or `ResponseWithBroadcast` variants.
-
-2. **Merge Conflict Resolution**
-   - Resolved complex conflicts in `ccmux-server/src/handlers/mcp_bridge.rs` and `session.rs` arising from parallel changes in Stream A (broadcasts), Stream B (persistence/sequencing), and Stream C (per-pane config).
-   - Harmonized logic to ensure:
-     - New sessions/panes get custom Claude config (FEAT-071).
-     - Events are logged to persistence (FEAT-075).
-     - Events are sequenced for replay (FEAT-075).
-     - Events are broadcast to all TUI clients (BUG-032).
-
-3. **Compilation & Testing**
-   - Fixed compilation errors in `mcp_bridge.rs`, `tcp.rs`, `compat/client.rs`.
-   - Updated `test_handle_resize_success` to match new broadcast behavior.
-   - Verified 1626+ tests passing across the workspace.
+1. **Stream Reassignment**
+   - Stream A (completed stability) assigned **FEAT-073** (Visibility Dashboard).
+   - Stream C (completed remote peering) assigned **FEAT-074** (Observability Instrumentation).
+   - Main branch updated to reflect new stream objectives.
 
 ### Next Steps
-- **Stream B**: FEAT-082 (Adaptive Layout).
-- **Stream C**: FEAT-074 (Telemetry/Dashboard).
+- Monitor Stream B progress on Adaptive Layout.
+- Prepare for FEAT-073/074 integration.
