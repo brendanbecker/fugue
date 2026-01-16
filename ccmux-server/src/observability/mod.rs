@@ -2,6 +2,8 @@
 //!
 //! Provides metrics, structured logging, and tracing infrastructure.
 
+pub mod http;
 pub mod metrics;
 
-pub use metrics::Metrics;
+pub use http::run_metrics_server;
+pub use metrics::{GaugeSnapshot, Metrics};

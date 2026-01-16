@@ -18,6 +18,7 @@ use ccmux_protocol::{ClientMessage, ErrorCode, ServerMessage, messages::ErrorDet
 
 use crate::arbitration::{Action, Actor, Arbitrator, Resource};
 use crate::config::AppConfig;
+use crate::observability::Metrics;
 use crate::persistence::PersistenceManager;
 use crate::pty::{PaneClosedNotification, PtyManager};
 use crate::registry::{ClientId, ClientRegistry};
@@ -165,6 +166,9 @@ impl HandlerContext {
 
     /// Route a message to the appropriate handler
     pub async fn route_message(&self, msg: ClientMessage) -> HandlerResult {
+        // FEAT-074: Record request metric by message type
+        Metrics::global().record_request(&msg.type_name());
+
         match msg {
             // Connection handlers
             ClientMessage::Connect {
@@ -517,6 +521,8 @@ impl HandlerContext {
 
     /// Create an error response
     pub fn error(code: ErrorCode, message: impl Into<String>) -> HandlerResult {
+        // FEAT-074: Record error metric
+        Metrics::global().record_error(&format!("{:?}", code));
         HandlerResult::Response(ServerMessage::Error {
             code,
             message: message.into(),
@@ -526,10 +532,12 @@ impl HandlerContext {
 
     /// Create an error response with details
     pub fn error_with_details(
-        code: ErrorCode, 
+        code: ErrorCode,
         message: impl Into<String>,
-        details: ccmux_protocol::messages::ErrorDetails
+        details: ccmux_protocol::messages::ErrorDetails,
     ) -> HandlerResult {
+        // FEAT-074: Record error metric
+        Metrics::global().record_error(&format!("{:?}", code));
         HandlerResult::Response(ServerMessage::Error {
             code,
             message: message.into(),

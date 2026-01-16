@@ -911,6 +911,15 @@ async fn run_daemon(tcp_override: Option<String>) -> Result<()> {
         None
     };
 
+    // Spawn metrics HTTP server (FEAT-074)
+    if app_config.metrics.enabled {
+        let metrics_addr = app_config.metrics.listen_addr.clone();
+        let state = Arc::new(shared_state.clone());
+        tokio::spawn(async move {
+            observability::run_metrics_server(metrics_addr, state).await;
+        });
+    }
+
     // Spawn checkpoint task
     let server_for_checkpoint = Arc::clone(&server);
     let shared_state_for_checkpoint = shared_state.clone();
