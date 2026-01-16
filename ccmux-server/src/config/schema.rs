@@ -19,6 +19,27 @@ pub struct AppConfig {
     pub beads: BeadsConfig,
     /// Claude configuration presets (FEAT-071)
     pub presets: HashMap<String, ClaudePreset>,
+    /// Prometheus metrics endpoint configuration (FEAT-074)
+    pub metrics: MetricsConfig,
+}
+
+/// Prometheus metrics endpoint configuration (FEAT-074)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct MetricsConfig {
+    /// Enable the metrics HTTP endpoint (default: false)
+    pub enabled: bool,
+    /// Address to listen on (default: "127.0.0.1:9898")
+    pub listen_addr: String,
+}
+
+impl Default for MetricsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            listen_addr: "127.0.0.1:9898".to_string(),
+        }
+    }
 }
 
 /// Claude configuration preset (FEAT-071)

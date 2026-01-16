@@ -401,6 +401,61 @@ pub enum ClientMessage {
     },
 }
 
+impl ClientMessage {
+    /// Return the message type name for metrics and logging (FEAT-074)
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            ClientMessage::Connect { .. } => "Connect",
+            ClientMessage::ListSessions => "ListSessions",
+            ClientMessage::CreateSession { .. } => "CreateSession",
+            ClientMessage::AttachSession { .. } => "AttachSession",
+            ClientMessage::CreateWindow { .. } => "CreateWindow",
+            ClientMessage::CreatePane { .. } => "CreatePane",
+            ClientMessage::Input { .. } => "Input",
+            ClientMessage::Paste { .. } => "Paste",
+            ClientMessage::Resize { .. } => "Resize",
+            ClientMessage::ClosePane { .. } => "ClosePane",
+            ClientMessage::SelectPane { .. } => "SelectPane",
+            ClientMessage::SelectWindow { .. } => "SelectWindow",
+            ClientMessage::SelectSession { .. } => "SelectSession",
+            ClientMessage::Detach => "Detach",
+            ClientMessage::Sync => "Sync",
+            ClientMessage::GetServerStatus => "GetServerStatus",
+            ClientMessage::Redraw { .. } => "Redraw",
+            ClientMessage::Ping => "Ping",
+            ClientMessage::SetViewportOffset { .. } => "SetViewportOffset",
+            ClientMessage::JumpToBottom { .. } => "JumpToBottom",
+            ClientMessage::Reply { .. } => "Reply",
+            ClientMessage::SendOrchestration { .. } => "SendOrchestration",
+            ClientMessage::DestroySession { .. } => "DestroySession",
+            ClientMessage::ListAllPanes { .. } => "ListAllPanes",
+            ClientMessage::ListWindows { .. } => "ListWindows",
+            ClientMessage::ReadPane { .. } => "ReadPane",
+            ClientMessage::GetPaneStatus { .. } => "GetPaneStatus",
+            ClientMessage::CreatePaneWithOptions { .. } => "CreatePaneWithOptions",
+            ClientMessage::CreateSessionWithOptions { .. } => "CreateSessionWithOptions",
+            ClientMessage::CreateWindowWithOptions { .. } => "CreateWindowWithOptions",
+            ClientMessage::RenameSession { .. } => "RenameSession",
+            ClientMessage::RenamPane { .. } => "RenamePane",
+            ClientMessage::RenameWindow { .. } => "RenameWindow",
+            ClientMessage::SplitPane { .. } => "SplitPane",
+            ClientMessage::ResizePaneDelta { .. } => "ResizePaneDelta",
+            ClientMessage::CreateLayout { .. } => "CreateLayout",
+            ClientMessage::SetEnvironment { .. } => "SetEnvironment",
+            ClientMessage::GetEnvironment { .. } => "GetEnvironment",
+            ClientMessage::SetMetadata { .. } => "SetMetadata",
+            ClientMessage::GetMetadata { .. } => "GetMetadata",
+            ClientMessage::SetTags { .. } => "SetTags",
+            ClientMessage::GetTags { .. } => "GetTags",
+            ClientMessage::UserCommandModeEntered { .. } => "UserCommandModeEntered",
+            ClientMessage::UserCommandModeExited => "UserCommandModeExited",
+            ClientMessage::RequestBeadsStatus { .. } => "RequestBeadsStatus",
+            ClientMessage::RequestBeadsReadyList { .. } => "RequestBeadsReadyList",
+            ClientMessage::GetEventsSince { .. } => "GetEventsSince",
+        }
+    }
+}
+
 /// Messages sent from server to client
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ServerMessage {

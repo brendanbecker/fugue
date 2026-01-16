@@ -52,6 +52,11 @@ dirs = "5"
 # Logging
 tracing = { workspace = true }
 
+# HTTP metrics endpoint (FEAT-074)
+hyper = { version = "1.0", features = ["http1", "server"] }
+hyper-util = { version = "0.1", features = ["server", "tokio"] }
+http-body-util = "0.1"
+
 [features]
 default = []
 
