@@ -25,7 +25,8 @@ pub struct ConnectionManager {
     /// Channel for sending messages to daemon
     pub daemon_tx: Option<mpsc::Sender<ClientMessage>>,
     /// Channel for receiving messages from daemon
-    pub daemon_rx: Option<mpsc::Receiver<ServerMessage>>,
+    /// BUG-037 FIX: Changed to unbounded to prevent I/O task blocking
+    pub daemon_rx: Option<mpsc::UnboundedReceiver<ServerMessage>>,
     /// Client ID for daemon connection
     client_id: Uuid,
     /// Current connection state (shared with health monitor)
@@ -83,8 +84,13 @@ impl ConnectionManager {
         let (mut sink, mut stream) = framed.split();
 
         // Set up channels
+        // BUG-037 FIX: Use unbounded channel for incoming messages to prevent I/O task blocking.
+        // When the channel was bounded (32), heavy broadcast traffic (PTY output) could fill
+        // the channel, causing `incoming_tx.send().await` to block. This blocked the entire
+        // I/O task, preventing it from sending outgoing messages or receiving responses.
+        // Tool calls would then timeout waiting for responses that could never arrive.
         let (daemon_tx, mut outgoing_rx) = mpsc::channel::<ClientMessage>(32);
-        let (incoming_tx, daemon_rx) = mpsc::channel::<ServerMessage>(32);
+        let (incoming_tx, daemon_rx) = mpsc::unbounded_channel::<ServerMessage>();
 
         self.daemon_tx = Some(daemon_tx);
         self.daemon_rx = Some(daemon_rx);
@@ -109,7 +115,8 @@ impl ConnectionManager {
                     result = stream.next() => {
                         match result {
                             Some(Ok(msg)) => {
-                                if incoming_tx.send(msg).await.is_err() {
+                                // BUG-037 FIX: Non-blocking send with unbounded channel
+                                if incoming_tx.send(msg).is_err() {
                                     break; // Receiver dropped
                                 }
                             }

@@ -3,11 +3,14 @@
   "title": "close_pane Returns AbortError",
   "priority": "P2",
   "severity": "medium",
-  "component": "daemon",
-  "subcomponent": "close_pane",
-  "status": "new",
+  "component": "mcp-bridge",
+  "subcomponent": "connection",
+  "status": "fixed",
   "created": "2026-01-11",
+  "fixed": "2026-01-16",
   "reporter": "claude-qa-demo",
-  "labels": ["mcp", "pane-management"],
-  "workaround": "User manually closes pane via keyboard"
+  "labels": ["mcp", "pane-management", "channel-backpressure"],
+  "workaround": "User manually closes pane via keyboard",
+  "root_cause": "Bounded channel (32) in I/O task blocked when full of broadcasts, preventing responses",
+  "fix": "Changed to unbounded channel in connection.rs"
 }
