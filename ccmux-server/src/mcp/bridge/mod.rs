@@ -10,8 +10,9 @@ pub mod types;
 #[cfg(test)]
 mod tests;
 
-use std::io::{BufRead, Write};
+use std::io::Write;
 use std::sync::atomic::{AtomicU64, Ordering};
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
@@ -50,14 +51,17 @@ impl McpBridge {
         // Connect to daemon first
         self.connection.connect_to_daemon().await?;
 
-        let stdin = std::io::stdin();
+        // Use async stdin to avoid blocking the Tokio runtime (BUG-044 fix)
+        let stdin = tokio::io::stdin();
+        let reader = BufReader::new(stdin);
+        let mut lines = reader.lines();
+
         let stdout = std::io::stdout();
         let mut stdout = stdout.lock();
 
         info!("MCP bridge starting");
 
-        for line in stdin.lock().lines() {
-            let line = line?;
+        while let Some(line) = lines.next_line().await? {
             if line.is_empty() {
                 continue;
             }
