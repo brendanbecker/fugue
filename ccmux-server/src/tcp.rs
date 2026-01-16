@@ -54,7 +54,7 @@ mod tests {
     use crate::registry::ClientRegistry;
     use crate::config::AppConfig;
     use crate::sideband::AsyncCommandExecutor;
-    use crate::user_priority::UserPriorityManager;
+    use crate::user_priority::Arbitrator;
 
     #[tokio::test]
     async fn test_tcp_listener_binds() {
@@ -78,7 +78,8 @@ mod tests {
             shutdown_tx: shutdown_tx.clone(),
             pane_closed_tx,
             command_executor,
-            user_priority: Arc::new(UserPriorityManager::new()),
+            user_priority: Arc::new(Arbitrator::new()),
+            persistence: None,
         };
 
         // Pick a random high port

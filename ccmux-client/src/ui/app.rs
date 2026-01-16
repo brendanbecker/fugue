@@ -184,6 +184,8 @@ impl App {
             last_beads_request_tick: 0,
             is_beads_tracked: false,
             beads_ready_count: None,
+            human_control_lock_expiry: None,
+            last_seen_commit_seq: 0,
         })
     }
 
@@ -1315,32 +1317,30 @@ impl App {
             "handle_server_message processing"
         );
 
-        // FEAT-075: Sequence tracking and resync
-        if let ServerMessage::Sequenced { seq, inner } = msg {
-            if self.last_seen_commit_seq > 0 && seq > self.last_seen_commit_seq + 1 {
-                tracing::warn!(
-                    "Gap detected: last_seen={}, got {}. Requesting resync.",
-                    self.last_seen_commit_seq,
-                    seq
-                );
-                self.connection
-                    .send(ClientMessage::GetEventsSince {
-                        last_commit_seq: self.last_seen_commit_seq,
-                    })
-                    .await?;
-                // Drop this message as we'll get it during replay
-                return Ok(());
-            }
-
-            if seq > self.last_seen_commit_seq {
-                self.last_seen_commit_seq = seq;
-            }
-
-            // Recursive call for inner message
-            return Box::pin(self.handle_server_message(*inner)).await;
-        }
-
         match msg {
+            ServerMessage::Sequenced { seq, inner } => {
+                if self.last_seen_commit_seq > 0 && seq > self.last_seen_commit_seq + 1 {
+                    tracing::warn!(
+                        "Gap detected: last_seen={}, got {}. Requesting resync.",
+                        self.last_seen_commit_seq,
+                        seq
+                    );
+                    self.connection
+                        .send(ClientMessage::GetEventsSince {
+                            last_commit_seq: self.last_seen_commit_seq,
+                        })
+                        .await?;
+                    // Drop this message as we'll get it during replay
+                    return Ok(());
+                }
+
+                if seq > self.last_seen_commit_seq {
+                    self.last_seen_commit_seq = seq;
+                }
+
+                // Recursive call for inner message
+                return Box::pin(self.handle_server_message(*inner)).await;
+            }
             ServerMessage::Connected {
                 server_version,
                 protocol_version: _,
@@ -1486,78 +1486,6 @@ impl App {
                 // Assuming it resets or we should clear first.
                 // But we just updated self.panes.
                 // Let's clear pane_manager to be safe?
-                self.pane_manager = PaneManager::new(); // Reset UI state
-                for pane_info in self.panes.values() {
-                    self.pane_manager.add_pane(pane_info.id, pane_rows, pane_cols);
-                    if let Some(ui_pane) = self.pane_manager.get_mut(pane_info.id) {
-                        ui_pane.set_title(pane_info.title.clone());
-                        ui_pane.set_cwd(pane_info.cwd.clone());
-                        ui_pane.set_pane_state(pane_info.state.clone());
-                    }
-                }
-
-                // Send resize messages to server
-                for pane_id in self.pane_manager.pane_ids() {
-                    self.connection
-                        .send(ClientMessage::Resize {
-                            pane_id,
-                            cols: pane_cols,
-                            rows: pane_rows,
-                        })
-                        .await?;
-                }
-
-                // Set active UI pane
-                if let Some(active_id) = self.active_pane_id {
-                    self.pane_manager.set_active(active_id);
-                }
-
-                // Update beads tracking
-                self.is_beads_tracked = self
-                    .session
-                    .as_ref()
-                    .map(|s| s.metadata.contains_key("beads.root"))
-                    .unwrap_or(false);
-
-                self.last_beads_request_tick = 0;
-                self.beads_ready_count = None;
-            }
-            ServerMessage::StateSnapshot {
-                commit_seq,
-                session,
-                windows,
-                panes,
-            } => {
-                tracing::info!("Received StateSnapshot (seq={})", commit_seq);
-                self.last_seen_commit_seq = commit_seq;
-                self.session = Some(session);
-                self.windows = windows.into_iter().map(|w| (w.id, w)).collect();
-                self.panes = panes.into_iter().map(|p| (p.id, p)).collect();
-                self.active_pane_id = self.panes.keys().next().copied();
-                self.state = AppState::Attached;
-                self.status_message = Some("State resynchronized".to_string());
-
-                // BUG-006 FIX: Use client's terminal size, not server-reported size
-                let (term_cols, term_rows) = self.terminal_size;
-                let pane_rows = term_rows.saturating_sub(3);
-                let pane_cols = term_cols.saturating_sub(2);
-
-                // Initialize layout manager with panes
-                let pane_ids: Vec<Uuid> = self.panes.keys().copied().collect();
-                if let Some(&first_pane_id) = pane_ids.first() {
-                    let mut layout_manager = LayoutManager::new(first_pane_id);
-                    for &pane_id in pane_ids.iter().skip(1) {
-                        layout_manager.root_mut().add_pane(
-                            first_pane_id,
-                            pane_id,
-                            LayoutSplitDirection::Vertical,
-                        );
-                    }
-                    layout_manager.set_active_pane(self.active_pane_id.unwrap_or(first_pane_id));
-                    self.layout = Some(layout_manager);
-                }
-
-                // Create UI panes with CLIENT's terminal dimensions
                 self.pane_manager = PaneManager::new(); // Reset UI state
                 for pane_info in self.panes.values() {
                     self.pane_manager.add_pane(pane_info.id, pane_rows, pane_cols);

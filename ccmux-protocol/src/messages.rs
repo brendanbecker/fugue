@@ -73,6 +73,8 @@ pub enum ClientType {
     Tui,
     /// MCP Bridge client (Agent)
     Mcp,
+    /// CLI compatibility client (tmux wrapper)
+    Compat,
     /// Unknown or legacy client
     Unknown,
 }

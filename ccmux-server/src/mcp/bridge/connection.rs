@@ -373,7 +373,7 @@ impl ConnectionManager {
 
             match self.recv_from_daemon_with_timeout(remaining).await? {
                 msg if predicate(&msg) => return Ok(msg),
-                ServerMessage::Error { code, message } => {
+                ServerMessage::Error { code, message, .. } => {
                     // Always return errors immediately unless the predicate specifically wanted them
                     return Err(McpError::DaemonError(format!("{:?}: {}", code, message)));
                 }

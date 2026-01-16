@@ -2810,7 +2810,7 @@ mod tests {
 
         // Try to create pane - should be blocked
         let result = ctx
-            .handle_create_pane_with_options(None, None, SplitDirection::Vertical, None, None, false, None)
+            .handle_create_pane_with_options(None, None, SplitDirection::Vertical, None, None, false, None, None, None, None)
             .await;
 
         match result {

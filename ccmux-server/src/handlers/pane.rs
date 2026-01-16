@@ -657,8 +657,18 @@ mod tests {
         let result = ctx.handle_resize(pane_id, 120, 40).await;
 
         match result {
-            HandlerResult::NoResponse => {}
-            _ => panic!("Expected NoResponse"),
+            HandlerResult::BroadcastToSession { session_id: broadcast_session, broadcast } => {
+                assert_eq!(broadcast_session, session_id);
+                match broadcast {
+                    ServerMessage::PaneResized { pane_id: id, new_cols, new_rows } => {
+                        assert_eq!(id, pane_id);
+                        assert_eq!(new_cols, 120);
+                        assert_eq!(new_rows, 40);
+                    }
+                    _ => panic!("Expected PaneResized broadcast"),
+                }
+            }
+            _ => panic!("Expected BroadcastToSession response"),
         }
 
         // Verify dimensions were updated

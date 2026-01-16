@@ -418,7 +418,7 @@ impl<'a> ToolHandlers<'a> {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -445,7 +445,7 @@ impl<'a> ToolHandlers<'a> {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -471,7 +471,7 @@ impl<'a> ToolHandlers<'a> {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -496,7 +496,7 @@ impl<'a> ToolHandlers<'a> {
                     .map_err(|e| McpError::Internal(e.to_string()))?;
                 Ok(ToolResult::text(json))
             }
-            ServerMessage::Error { code, message } => {
+            ServerMessage::Error { code, message, .. } => {
                 Ok(ToolResult::error(format!("{:?}: {}", code, message)))
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
@@ -752,7 +752,7 @@ impl<'a> ToolHandlers<'a> {
                                 "Session '{}' not found",
                                 session_filter
                             ))
-                        })?;
+                        })?
                 }
                 ServerMessage::Error { code, message, .. } => {
                     return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
@@ -1117,7 +1117,7 @@ impl<'a> ToolHandlers<'a> {
         }
 
         match self.connection.recv_response_from_daemon().await {
-            Ok(ServerMessage::MetadataList { metadata, .. } => {
+            Ok(ServerMessage::MetadataList { metadata, .. }) => {
                 metadata
                     .get(beads::CURRENT_ISSUE)
                     .cloned()

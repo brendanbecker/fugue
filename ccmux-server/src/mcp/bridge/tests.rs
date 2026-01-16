@@ -159,6 +159,7 @@ mod tests {
         let msg = ServerMessage::Error {
             code: ErrorCode::PaneNotFound,
             message: "Pane not found".to_string(),
+            details: None,
         };
         assert!(!ConnectionManager::is_broadcast_message(&msg));
     }
