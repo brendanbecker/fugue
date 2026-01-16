@@ -383,7 +383,14 @@ impl ConnectionManager {
 
     /// Receive a response from the daemon, filtering out broadcast messages
     pub async fn recv_response_from_daemon(&mut self) -> Result<ServerMessage, McpError> {
-        self.recv_filtered(|msg| !Self::is_broadcast_message(msg)).await
+        let msg = self.recv_filtered(|msg| !Self::is_broadcast_message(msg)).await?;
+        // BUG-043: Unwrap Sequenced messages to get the actual response
+        // The daemon wraps responses in Sequenced { seq, inner } for persistence tracking,
+        // but tool handlers expect the unwrapped message types
+        match msg {
+            ServerMessage::Sequenced { inner, .. } => Ok(*inner),
+            other => Ok(other),
+        }
     }
 
     /// Check if a message is a broadcast
