@@ -590,6 +590,30 @@ impl App {
                     // FEAT-077: Update local human control lock
                     self.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(2000));
 
+                    // BUG-041 FIX: Check if bracketed paste mode is enabled for this pane.
+                    // If enabled, we wrap the ENTIRE paste client-side BEFORE chunking.
+                    // This prevents the server from wrapping each chunk separately, which
+                    // would send multiple bracketed paste sequences and crash Claude Code.
+                    let use_bracketed = self.pane_manager
+                        .get(pane_id)
+                        .map(|p| p.is_bracketed_paste_enabled())
+                        .unwrap_or(false);
+
+                    let data = if use_bracketed {
+                        tracing::debug!(
+                            "Wrapping paste in brackets client-side for pane {} ({} bytes)",
+                            pane_id,
+                            data.len()
+                        );
+                        let mut wrapped = Vec::with_capacity(data.len() + 12);
+                        wrapped.extend_from_slice(b"\x1b[200~");
+                        wrapped.extend_from_slice(&data);
+                        wrapped.extend_from_slice(b"\x1b[201~");
+                        wrapped
+                    } else {
+                        data
+                    };
+
                     // BUG-011 FIX: Handle large pastes gracefully
                     let data_len = data.len();
 
@@ -610,6 +634,7 @@ impl App {
                     }
 
                     // Chunk large inputs to avoid protocol message size limits
+                    // BUG-041 FIX: Send as Input since wrapping is already done client-side
                     if data_len > MAX_INPUT_CHUNK_SIZE {
                         let num_chunks = (data_len + MAX_INPUT_CHUNK_SIZE - 1) / MAX_INPUT_CHUNK_SIZE;
                         tracing::debug!(
@@ -628,19 +653,19 @@ impl App {
                             ));
                         }
 
-                        // Send data in chunks
+                        // Send data in chunks as Input (wrapping already done)
                         for chunk in data.chunks(MAX_INPUT_CHUNK_SIZE) {
                             self.connection
-                                .send(ClientMessage::Paste {
+                                .send(ClientMessage::Input {
                                     pane_id,
                                     data: chunk.to_vec(),
                                 })
                                 .await?;
                         }
                     } else {
-                        // Small input - send directly
+                        // Small input - send directly as Input (wrapping already done if needed)
                         self.connection
-                            .send(ClientMessage::Paste { pane_id, data })
+                            .send(ClientMessage::Input { pane_id, data })
                             .await?;
                     }
                 }
