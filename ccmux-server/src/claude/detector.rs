@@ -4,11 +4,11 @@
 //! The detector identifies when Claude is running, tracks its activity state
 //! (Idle, Thinking, Coding, etc.), and extracts session IDs for crash recovery.
 
-use ccmux_protocol::{ClaudeActivity, ClaudeState};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, trace};
-
-use super::state::{ClaudeSessionInfo, ClaudeStateChange, DetectorConfig};
+use ccmux_protocol::{ClaudeActivity, ClaudeState};
+use crate::observability::Metrics;
+use super::state::{DetectorConfig, ClaudeSessionInfo, ClaudeStateChange};
 
 /// Strip ANSI escape sequences from text for cleaner pattern matching
 fn strip_ansi(text: &str) -> String {
@@ -238,6 +238,9 @@ impl ClaudeDetector {
                     "Claude state changed"
                 );
             }
+
+            // Record metrics
+            Metrics::global().record_claude_transition();
 
             Some(change)
         } else {

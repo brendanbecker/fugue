@@ -931,6 +931,7 @@ impl McpBridge {
             }
             // FEAT-060: Connection status tool
             "ccmux_connection_status" => self.tool_connection_status().await,
+            "ccmux_server_status" => self.tool_server_status().await,
             // FEAT-059: Beads workflow integration tools
             "ccmux_beads_assign" => {
                 let issue_id = arguments["issue_id"]
@@ -1162,6 +1163,7 @@ impl McpBridge {
                 session_name,
                 window_id,
                 pane_id,
+                ..
             } => {
                 let result = serde_json::json!({
                     "session_id": session_id.to_string(),
@@ -1200,6 +1202,7 @@ impl McpBridge {
                 window_id,
                 pane_id,
                 session_name,
+                ..
             } => {
                 let result = serde_json::json!({
                     "window_id": window_id.to_string(),
@@ -1262,6 +1265,7 @@ impl McpBridge {
                 session_name,
                 window_id,
                 direction: _, // Ignore daemon's direction, use user's requested direction
+                ..
             } => {
                 let result = serde_json::json!({
                     "pane_id": pane_id.to_string(),
@@ -1579,6 +1583,7 @@ impl McpBridge {
                 session_name,
                 window_id,
                 direction: _, // Ignore daemon's direction, use user's requested direction
+                ..
             } => {
                 let result = serde_json::json!({
                     "new_pane_id": new_pane_id.to_string(),
@@ -2172,6 +2177,50 @@ impl McpBridge {
         Ok(ToolResult::text(json))
     }
 
+    async fn tool_server_status(&mut self) -> Result<ToolResult, McpError> {
+        self.send_to_daemon(ClientMessage::GetServerStatus).await?;
+
+        match self.recv_response_from_daemon().await? {
+            ServerMessage::ServerStatus {
+                commit_seq,
+                client_count,
+                session_count,
+                replay_range,
+                wal_healthy,
+                checkpoint_healthy,
+                human_control_active,
+            } => {
+                let result = serde_json::json!({
+                    "commit_seq": commit_seq,
+                    "client_count": client_count,
+                    "session_count": session_count,
+                    "replay_buffer": {
+                        "min_seq": replay_range.0,
+                        "max_seq": replay_range.1,
+                        "available_events": if replay_range.1 >= replay_range.0 && replay_range.0 > 0 {
+                            replay_range.1 - replay_range.0 + 1
+                        } else {
+                            0
+                        }
+                    },
+                    "persistence": {
+                        "wal_healthy": wal_healthy,
+                        "checkpoint_healthy": checkpoint_healthy,
+                    },
+                    "human_control_active": human_control_active,
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message, .. } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
     // ==================== FEAT-059: Beads Workflow Integration Tools ====================
 
     /// Helper: Get session name from pane_id, or use first session if pane_id is None
@@ -2717,8 +2766,10 @@ mod tests {
                 name: None,
                 title: None,
                 cwd: None,
+                metadata: std::collections::HashMap::new(),
             },
             direction: ccmux_protocol::SplitDirection::Horizontal,
+            should_focus: false,
         };
         assert!(McpBridge::is_broadcast_message(&msg));
     }
@@ -2734,6 +2785,7 @@ mod tests {
                 pane_count: 1,
                 active_pane_id: None,
             },
+            should_focus: false,
         };
         assert!(McpBridge::is_broadcast_message(&msg));
     }
@@ -2823,6 +2875,7 @@ mod tests {
             session_name: "test".to_string(),
             window_id: Uuid::new_v4(),
             direction: "horizontal".to_string(),
+            should_focus: false,
         };
         assert!(!McpBridge::is_broadcast_message(&msg));
     }

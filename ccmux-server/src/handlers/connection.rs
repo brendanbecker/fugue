@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use ccmux_protocol::{ErrorCode, ServerMessage, PROTOCOL_VERSION, messages::ClientType};
 
+use crate::observability::Metrics;
 use super::{HandlerContext, HandlerResult};
 
 impl HandlerContext {
@@ -177,6 +178,10 @@ impl HandlerContext {
         if let Some(persistence_lock) = &self.persistence {
             let persistence = persistence_lock.read().await;
             if let Some(events) = persistence.get_events_since(last_commit_seq) {
+                // Record metrics
+                Metrics::global().record_resync();
+                Metrics::global().record_replay_requested();
+
                 // Return events as follow-up
                 let follow_up: Vec<ServerMessage> = events
                     .into_iter()
@@ -190,6 +195,9 @@ impl HandlerContext {
                     response: ServerMessage::Pong, // Signal success
                     follow_up,
                 };
+            } else {
+                // Replay buffer didn't have the events (gap too large)
+                Metrics::global().record_desync();
             }
         }
 
@@ -201,6 +209,8 @@ impl HandlerContext {
 
         if let Some(session_id) = attached_session_id {
             if let Some(session) = session_manager.get_session(session_id) {
+                // Record metrics for snapshot resync
+                Metrics::global().record_resync();
                 let session_info = session.to_info();
                 let windows: Vec<_> = session.windows().map(|w| w.to_info()).collect();
                 let mut panes = Vec::new();

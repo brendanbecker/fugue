@@ -21,14 +21,13 @@ mod claude;
 mod config;
 mod handlers;
 mod isolation;
-pub mod mcp;
-#[allow(dead_code)]
+mod mcp;
+mod observability;
 mod orchestration;
 mod parser;
-#[allow(dead_code)]
 mod persistence;
 mod pty;
-pub mod registry;
+mod registry;
 mod reply;
 mod session;
 pub mod sideband;
@@ -558,7 +557,11 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
 
     // Register client with the registry
     let client_id = shared_state.registry.register_client(tx);
-    info!("Client {} connected", client_id);
+
+    let client_span = tracing::info_span!("client.handler", %client_id);
+    let _enter = client_span.enter();
+
+    info!(%client_id, "Client connected");
 
     // Split stream for reading and writing
     let (reader, writer) = stream.into_split();
@@ -588,16 +591,23 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
             result = framed_reader.next() => {
                 match result {
                     Some(Ok(msg)) => {
-                        debug!("Received message from {}: {:?}", client_id, msg);
+                        let start = std::time::Instant::now();
+                        let request_span = tracing::debug_span!("rpc.request", %client_id, msg_type = ?std::mem::discriminant(&msg));
+                        let _request_enter = request_span.enter();
+
+                        debug!(%client_id, ?msg, "Received message");
 
                         // Route message through handlers
                         let handler_result = handler_ctx.route_message(msg).await;
+
+                        // Record latency metric
+                        crate::observability::Metrics::global().record_command_latency(start.elapsed().as_millis() as u64);
 
                         // Process handler result
                         match handler_result {
                             HandlerResult::Response(response) => {
                                 if let Err(e) = framed_writer.send(response).await {
-                                    error!("Failed to send response to {}: {}", client_id, e);
+                                    error!(%client_id, error = %e, "Failed to send response");
                                     break;
                                 }
                             }
@@ -607,8 +617,8 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
                                 broadcast,
                             } => {
                                 debug!(
-                                    client_id = %client_id,
-                                    session_id = %session_id,
+                                    %client_id,
+                                    %session_id,
                                     response_type = ?std::mem::discriminant(&response),
                                     broadcast_type = ?std::mem::discriminant(&broadcast),
                                     "Received ResponseWithBroadcast from handler"
@@ -616,13 +626,13 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
 
                                 // Send response to this client
                                 if let Err(e) = framed_writer.send(response).await {
-                                    error!("Failed to send response to {}: {}", client_id, e);
+                                    error!(%client_id, error = %e, "Failed to send response");
                                     break;
                                 }
 
                                 // Broadcast to other clients in the session
                                 debug!(
-                                    session_id = %session_id,
+                                    %session_id,
                                     except_client = %client_id,
                                     "About to broadcast to session"
                                 );
@@ -631,7 +641,7 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
                                     .broadcast_to_session_except(session_id, client_id, broadcast)
                                     .await;
                                 info!(
-                                    session_id = %session_id,
+                                    %session_id,
                                     clients_notified = broadcast_count,
                                     "Broadcast complete"
                                 );
@@ -642,14 +652,14 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
                             } => {
                                 // Send the main response first
                                 if let Err(e) = framed_writer.send(response).await {
-                                    error!("Failed to send response to {}: {}", client_id, e);
+                                    error!(%client_id, error = %e, "Failed to send response");
                                     break;
                                 }
 
                                 // Send follow-up messages (e.g., initial scrollback on attach)
                                 for msg in follow_up {
                                     if let Err(e) = framed_writer.send(msg).await {
-                                        error!("Failed to send follow-up message to {}: {}", client_id, e);
+                                        error!(%client_id, error = %e, "Failed to send follow-up message");
                                         break;
                                     }
                                 }
@@ -660,12 +670,12 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
                         }
                     }
                     Some(Err(e)) => {
-                        error!("Client {} read error: {}", client_id, e);
+                        error!(%client_id, error = %e, "Client read error");
                         break;
                     }
                     None => {
                         // Client disconnected (EOF)
-                        debug!("Client {} disconnected (EOF)", client_id);
+                        debug!(%client_id, "Client disconnected (EOF)");
                         break;
                     }
                 }
@@ -673,19 +683,13 @@ async fn handle_client(stream: UnixStream, shared_state: SharedState) {
 
             // Handle messages from registry (broadcasts from other clients)
             Some(msg) = rx.recv() => {
-                debug!(
-                    client_id = %client_id,
-                    message_type = ?std::mem::discriminant(&msg),
-                    "Client handler received broadcast from channel"
-                );
+                let broadcast_span = tracing::debug_span!("broadcast.deliver", %client_id, msg_type = ?std::mem::discriminant(&msg));
+                let _broadcast_enter = broadcast_span.enter();
+
                 if let Err(e) = framed_writer.send(msg).await {
-                    error!("Failed to send broadcast to {}: {}", client_id, e);
+                    error!(%client_id, error = %e, "Failed to send broadcast");
                     break;
                 }
-                debug!(
-                    client_id = %client_id,
-                    "Broadcast written to socket successfully"
-                );
             }
 
             // Handle shutdown signal
@@ -1092,13 +1096,16 @@ async fn run_checkpoint_loop(server: Arc<Mutex<Server>>, shared_state: SharedSta
             _ = tokio::time::sleep(checkpoint_interval) => {
                 let mut server_guard = server.lock().await;
                 if server_guard.is_checkpoint_due().await {
+                    let span = tracing::info_span!("checkpoint.write");
+                    let _enter = span.enter();
+
                     // Collect snapshots from shared state
                     let session_manager = shared_state.session_manager.read().await;
                     let snapshots = server_guard.collect_session_snapshots_from(&session_manager);
                     drop(session_manager);
 
                     if let Err(e) = server_guard.checkpoint_with_snapshots(snapshots).await {
-                        error!("Checkpoint failed: {}", e);
+                        error!(error = %e, "Checkpoint failed");
                     }
                 }
             }

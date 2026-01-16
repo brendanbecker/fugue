@@ -135,6 +135,8 @@ impl HandlerContext {
 
             ClientMessage::Sync => self.handle_sync().await,
 
+            ClientMessage::GetServerStatus => self.handle_get_server_status().await,
+
             ClientMessage::Detach => self.handle_detach().await,
 
             // Session handlers
@@ -416,6 +418,36 @@ impl HandlerContext {
         };
 
         HandlerResult::Response(ServerMessage::BeadsReadyList { pane_id, tasks })
+    }
+
+    /// Handle GetServerStatus message (FEAT-074)
+    pub async fn handle_get_server_status(&self) -> HandlerResult {
+        let (commit_seq, replay_range, wal_healthy, checkpoint_healthy) =
+            if let Some(ref p) = self.persistence {
+                let p = p.read().await;
+                (
+                    p.commit_seq(),
+                    p.replay_range(),
+                    p.is_wal_healthy(),
+                    p.is_checkpoint_healthy(),
+                )
+            } else {
+                (0, (0, 0), true, true)
+            };
+
+        let client_count = self.registry.client_count();
+        let session_count = self.session_manager.read().await.session_count();
+        let human_control_active = self.user_priority.check_focus_lock().is_some();
+
+        HandlerResult::Response(ServerMessage::ServerStatus {
+            commit_seq,
+            client_count,
+            session_count,
+            replay_range,
+            wal_healthy,
+            checkpoint_healthy,
+            human_control_active,
+        })
     }
 
     /// Create an error response

@@ -1320,15 +1320,33 @@ impl App {
                         continue;
                     }
     
-                    ServerMessage::Connected {                server_version,
-                protocol_version: _,
-            } => {
-                self.status_message = Some(format!("Connected to server v{}", server_version));
-                // Request session list
-                self.connection.send(ClientMessage::ListSessions).await?;
-                self.state = AppState::SessionSelect;
-            }
-            ServerMessage::SessionList { sessions } => {
+                                    ServerMessage::Connected {
+    
+                                        server_version,
+    
+                                        protocol_version: _,
+    
+                                    } => {
+    
+                                        self.status_message = Some(format!("Connected to server v{}", server_version));
+    
+                                        // Request session list
+    
+                                        self.connection.send(ClientMessage::ListSessions).await?;
+    
+                                        self.state = AppState::SessionSelect;
+    
+                                    }
+    
+                                    ServerMessage::ServerStatus { .. } => {
+    
+                                        // Operational status received (FEAT-074)
+    
+                                        // TODO: Could display in a special dashboard view
+    
+                                    }
+    
+                                    ServerMessage::SessionList { sessions } => {
                 self.available_sessions = sessions;
                 self.session_list_index = 0;
             }

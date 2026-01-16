@@ -724,6 +724,15 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "properties": {}
             }),
         },
+        // ==================== FEAT-074: Server Status Tool ====================
+        Tool {
+            name: "ccmux_server_status".into(),
+            description: "Get server-wide operational status including persistence health and metrics".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {}
+            }),
+        },
     ]
 }
 

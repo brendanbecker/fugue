@@ -447,6 +447,34 @@ impl PersistenceManager {
         self.recovery_manager.wal().sequence()
     }
 
+    /// Get current commit sequence number (FEAT-074)
+    pub fn commit_seq(&self) -> u64 {
+        self.current_sequence()
+    }
+
+    /// Get replay buffer range (min_seq, max_seq) (FEAT-074)
+    pub fn replay_range(&self) -> (u64, u64) {
+        let buffer = self.replay_buffer.lock();
+        (buffer.min_seq(), buffer.max_seq())
+    }
+
+    /// Check if WAL is healthy (FEAT-074)
+    pub fn is_wal_healthy(&self) -> bool {
+        // Basic check: is the WAL file writable?
+        // For now just return true if it exists
+        self.state_dir.join("wal").exists()
+    }
+
+    /// Check if checkpoint is healthy (FEAT-074)
+    pub fn is_checkpoint_healthy(&self) -> bool {
+        // Basic check: does at least one valid checkpoint exist?
+        self.recovery_manager
+            .checkpoint_manager()
+            .list_checkpoints()
+            .map(|list| !list.is_empty())
+            .unwrap_or(false)
+    }
+
     // ==================== Shutdown ====================
 
     /// Mark clean shutdown and create final checkpoint

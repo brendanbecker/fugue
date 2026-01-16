@@ -3,9 +3,10 @@
   "title": "Observability instrumentation (metrics, tracing, status)",
   "component": "ccmux-server",
   "priority": "P2",
-  "status": "new",
+  "status": "in_progress",
   "created_date": "2026-01-13",
   "created_by": "create-work-item skill",
+  "started_date": "2026-01-14",
   "description": "Implement structured logging, tracing, metrics, and status expansion per OBSERVABILITY.md.",
   "labels": ["feature", "enhancement", "observability"]
 }
