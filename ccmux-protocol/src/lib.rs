@@ -16,7 +16,7 @@ pub use messages::{
 pub use types::{
     ClaudeActivity, ClaudeState, ClientType, Dimensions, MailPriority, PaneInfo, PaneState,
     PaneStuckStatus, PaneTarget, ReplyMessage, ReplyResult, SessionInfo, SplitDirection,
-    ViewportState, WindowInfo, WorktreeInfo,
+    ViewportState, Widget, WidgetConversionError, WidgetUpdate, WindowInfo, WorktreeInfo,
 };
 
 /// Current protocol version

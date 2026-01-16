@@ -2065,6 +2065,25 @@ impl App {
                 // TODO: Implement beads panel display (FEAT-058 Section 4)
                 // For now, this message is received but not displayed
             }
+
+            // FEAT-083: Generic widget updates
+            ServerMessage::WidgetUpdate { pane_id, update } => {
+                // Handle widget updates based on type
+                // For backward compatibility, beads.status updates are processed
+                // the same way as BeadsStatusUpdate
+                if update.update_type == "beads.status" {
+                    if Some(pane_id) == self.active_pane_id {
+                        if update.metadata()["daemon_available"].as_bool().unwrap_or(false) {
+                            if let Some(count) = update.metadata()["ready_count"].as_u64() {
+                                self.beads_ready_count = Some(count as usize);
+                            }
+                        } else {
+                            self.beads_ready_count = None;
+                        }
+                    }
+                }
+                // Other widget types can be handled here in the future
+            }
         }
         break;
     }

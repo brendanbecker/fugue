@@ -408,6 +408,11 @@ impl HandlerContext {
                 self.handle_request_beads_ready_list(pane_id).await
             }
 
+            // Generic widget handlers (FEAT-083)
+            ClientMessage::RequestWidgetUpdate { pane_id, widget_type } => {
+                self.handle_request_widget_update(pane_id, widget_type).await
+            }
+
             ClientMessage::GetEventsSince { last_commit_seq } => {
                 self.handle_get_events_since(last_commit_seq).await
             }
@@ -483,6 +488,89 @@ impl HandlerContext {
         };
 
         HandlerResult::Response(ServerMessage::BeadsReadyList { pane_id, tasks })
+    }
+
+    // ==================== Generic Widget Handlers (FEAT-083) ====================
+
+    /// Handle generic widget update request
+    ///
+    /// Delegates to the appropriate handler based on widget_type:
+    /// - "beads.status" -> returns BeadsStatus as WidgetUpdate
+    /// - "beads.ready_list" -> returns BeadsReadyList as WidgetUpdate
+    /// - Unknown types -> returns error
+    async fn handle_request_widget_update(&self, pane_id: Uuid, widget_type: String) -> HandlerResult {
+        use ccmux_protocol::types::{BeadsStatus, WidgetUpdate};
+
+        match widget_type.as_str() {
+            "beads.status" => {
+                // Delegate to existing beads handler and convert to WidgetUpdate
+                use crate::beads::BeadsClient;
+                use std::path::PathBuf;
+
+                let cwd: PathBuf = {
+                    let session_mgr = self.session_manager.read().await;
+                    session_mgr
+                        .find_pane(pane_id)
+                        .and_then(|(_, _, pane)| pane.cwd().map(PathBuf::from))
+                        .unwrap_or_else(|| std::env::current_dir().unwrap_or_default())
+                };
+
+                let timeout_ms = self.config.beads.query.socket_timeout;
+
+                let status = if let Some(client) = BeadsClient::new(&cwd, timeout_ms) {
+                    client.get_status(Some(10)).await
+                } else {
+                    BeadsStatus::unavailable()
+                };
+
+                // Convert BeadsStatus to WidgetUpdate
+                let update: WidgetUpdate = status.into();
+
+                HandlerResult::Response(ServerMessage::WidgetUpdate { pane_id, update })
+            }
+
+            "beads.ready_list" => {
+                // Delegate to existing beads handler and convert to WidgetUpdate
+                use crate::beads::BeadsClient;
+                use ccmux_protocol::types::Widget;
+                use std::path::PathBuf;
+
+                let cwd: PathBuf = {
+                    let session_mgr = self.session_manager.read().await;
+                    session_mgr
+                        .find_pane(pane_id)
+                        .and_then(|(_, _, pane)| pane.cwd().map(PathBuf::from))
+                        .unwrap_or_else(|| std::env::current_dir().unwrap_or_default())
+                };
+
+                let timeout_ms = self.config.beads.query.socket_timeout;
+
+                let tasks = if let Some(client) = BeadsClient::new(&cwd, timeout_ms) {
+                    client.query_ready(Some(100)).await.unwrap_or_default()
+                } else {
+                    Vec::new()
+                };
+
+                // Convert tasks to widgets
+                let widgets: Vec<Widget> = tasks.into_iter().map(Widget::from).collect();
+
+                let update = WidgetUpdate::new(
+                    "beads.ready_list",
+                    serde_json::json!({"count": widgets.len()}),
+                )
+                .with_widgets(widgets);
+
+                HandlerResult::Response(ServerMessage::WidgetUpdate { pane_id, update })
+            }
+
+            _ => {
+                // Unknown widget type
+                HandlerContext::error(
+                    ErrorCode::InvalidOperation,
+                    format!("Unknown widget type: '{}'", widget_type),
+                )
+            }
+        }
     }
 
     /// Handle GetServerStatus message (FEAT-074)

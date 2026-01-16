@@ -375,6 +375,23 @@ pub enum ClientMessage {
     /// Request full ready task list for the beads panel
     RequestBeadsReadyList { pane_id: Uuid },
 
+    // ==================== Generic Widget System (FEAT-083) ====================
+
+    /// Request widget update for a pane (generic alternative to RequestBeadsStatus)
+    ///
+    /// The server will delegate to the appropriate handler based on widget_type:
+    /// - "beads.*" types delegate to existing beads handlers
+    /// - Unknown types return an error
+    ///
+    /// This provides forward compatibility - new widget types can be added
+    /// without protocol changes.
+    RequestWidgetUpdate {
+        /// Target pane ID
+        pane_id: Uuid,
+        /// Widget type to request (e.g., "beads.status", "beads.ready_list")
+        widget_type: String,
+    },
+
     // ==================== Resync / Event Log (FEAT-075) ====================
 
     /// Request events since a specific commit sequence
@@ -741,6 +758,19 @@ pub enum ServerMessage {
     BeadsReadyList {
         pane_id: Uuid,
         tasks: Vec<crate::types::BeadsTask>,
+    },
+
+    // ==================== Generic Widget System (FEAT-083) ====================
+
+    /// Generic widget update response (alternative to BeadsStatusUpdate)
+    ///
+    /// This provides a generic mechanism for returning widget data without
+    /// requiring protocol changes for new widget types.
+    WidgetUpdate {
+        /// Target pane ID
+        pane_id: Uuid,
+        /// The widget update containing metadata and widget items
+        update: crate::types::WidgetUpdate,
     },
 }
 
