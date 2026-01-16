@@ -723,7 +723,7 @@ mod tests {
             state: PaneState::Normal,
             name: None,
             title: None,
-            cwd: None,
+            cwd: None, stuck_status: None,
             metadata: std::collections::HashMap::new(),
         };
 
@@ -749,6 +749,7 @@ mod tests {
             name: None,
             title: Some("vim".to_string()),
             cwd: Some("/home/user/project".to_string()),
+            stuck_status: None,
             metadata: std::collections::HashMap::new(),
         };
 
@@ -771,6 +772,7 @@ mod tests {
             name: None,
             title: Some("bash".to_string()),
             cwd: Some("/tmp".to_string()),
+            stuck_status: None,
             metadata: std::collections::HashMap::new(),
         };
 
@@ -792,7 +794,7 @@ mod tests {
             state: PaneState::Normal,
             name: None,
             title: None,
-            cwd: None,
+            cwd: None, stuck_status: None,
             metadata: std::collections::HashMap::new(),
         };
 
@@ -805,7 +807,7 @@ mod tests {
             state: PaneState::Normal,
             name: None,
             title: None,
-            cwd: None,
+            cwd: None, stuck_status: None,
             metadata: std::collections::HashMap::new(),
         };
 
@@ -818,7 +820,7 @@ mod tests {
             state: PaneState::Normal,
             name: None,
             title: None,
-            cwd: None,
+            cwd: None, stuck_status: None,
             metadata: std::collections::HashMap::new(),
         };
 
@@ -1120,6 +1122,7 @@ tags: HashSet::new(),
             name: None,
             title: Some("test".to_string()),
             cwd: Some("/home".to_string()),
+            stuck_status: None,
             metadata: std::collections::HashMap::new(),
         };
 

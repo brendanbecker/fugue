@@ -900,7 +900,7 @@ impl HandlerContext {
         self.registry.broadcast_to_session_except(
             session_id,
             self.client_id,
-            ServerMessage::WindowCreated {
+            ServerMessage::WindowCreated { should_focus: false, 
                 window: window_info,
             },
         ).await;

@@ -16,47 +16,47 @@ use super::types::{ConnectionState, MAX_RECONNECT_ATTEMPTS};
 /// Parse a UUID from arguments
 pub fn parse_uuid(arguments: &serde_json::Value, field: &str) -> Result<Uuid, McpError> {
     let id_str = arguments[field]
-        .as_str()
-        .ok_or_else(|| McpError::InvalidParams(format!("Missing '{}' parameter", field)))?;
+    .as_str()
+    .ok_or_else(|| McpError::InvalidParams(format!("Missing '{}' parameter", field)))?;
 
     Uuid::parse_str(id_str)
-        .map_err(|e| McpError::InvalidParams(format!("Invalid UUID for '{}': {}", field, e)))
+    .map_err(|e| McpError::InvalidParams(format!("Invalid UUID for '{}': {}", field, e)))
 }
 
 /// Format pane list for JSON output
 pub fn format_pane_list(panes: &[PaneListEntry]) -> Vec<serde_json::Value> {
     panes
-        .iter()
-        .map(|p| {
-            let state_str = match &p.state {
-                ccmux_protocol::PaneState::Normal => "normal",
-                ccmux_protocol::PaneState::Claude(_) => "claude",
-                ccmux_protocol::PaneState::Exited { .. } => "exited",
-            };
+    .iter()
+    .map(|p| {
+    let state_str = match &p.state {
+    ccmux_protocol::PaneState::Normal => "normal",
+    ccmux_protocol::PaneState::Claude(_) => "claude",
+    ccmux_protocol::PaneState::Exited { .. } => "exited",
+    };
 
-            serde_json::json!({
-                "id": p.id.to_string(),
-                "session": p.session_name,
-                "window": p.window_index,
-                "window_name": p.window_name,
-                "index": p.pane_index,
-                "cols": p.cols,
-                "rows": p.rows,
-                "title": p.title,
-                "cwd": p.cwd,
-                "is_claude": p.is_claude,
-                "claude_state": p.claude_state.as_ref().map(|cs| {
-                    serde_json::json!({
-                        "session_id": cs.session_id,
-                        "activity": format!("{:?}", cs.activity),
-                        "model": cs.model,
-                        "tokens_used": cs.tokens_used,
-                    })
-                }),
-                "state": state_str,
-            })
-        })
-        .collect()
+    serde_json::json!({
+    "id": p.id.to_string(),
+    "session": p.session_name,
+    "window": p.window_index,
+    "window_name": p.window_name,
+    "index": p.pane_index,
+    "cols": p.cols,
+    "rows": p.rows,
+    "title": p.title,
+    "cwd": p.cwd,
+    "is_claude": p.is_claude,
+    "claude_state": p.claude_state.as_ref().map(|cs| {
+    serde_json::json!({
+        "session_id": cs.session_id,
+        "activity": format!("{:?}", cs.activity),
+        "model": cs.model,
+        "tokens_used": cs.tokens_used,
+    })
+    }),
+    "state": state_str,
+    })
+    })
+    .collect()
 }
 
 pub struct ToolHandlers<'a> {
@@ -65,579 +65,582 @@ pub struct ToolHandlers<'a> {
 
 impl<'a> ToolHandlers<'a> {
     pub fn new(connection: &'a mut ConnectionManager) -> Self {
-        Self { connection }
+    Self { connection }
     }
 
     pub async fn tool_list_sessions(&mut self) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
+    self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::SessionList { sessions } => {
-                let result: Vec<serde_json::Value> = sessions
-                    .iter()
-                    .map(|s| {
-                        serde_json::json!({
-                            "id": s.id.to_string(),
-                            "name": s.name,
-                            "window_count": s.window_count,
-                            "attached_clients": s.attached_clients,
-                            "created_at": s.created_at,
-                            "metadata": s.metadata,
-                        })
-                    })
-                    .collect();
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::SessionList { sessions } => {
+    let result: Vec<serde_json::Value> = sessions
+    .iter()
+    .map(|s| {
+        serde_json::json!({
+        "id": s.id.to_string(),
+        "name": s.name,
+        "window_count": s.window_count,
+        "attached_clients": s.attached_clients,
+        "created_at": s.created_at,
+        "metadata": s.metadata,
+        })
+    })
+    .collect();
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_list_windows(
-        &mut self,
-        session_filter: Option<String>,
+    &mut self,
+    session_filter: Option<String>,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::ListWindows { session_filter })
-            .await?;
+    self.connection.send_to_daemon(ClientMessage::ListWindows { session_filter })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::WindowList {
-                session_name,
-                windows,
-            } => {
-                let result: Vec<serde_json::Value> = windows
-                    .iter()
-                    .map(|w| {
-                        serde_json::json!({
-                            "id": w.id.to_string(),
-                            "index": w.index,
-                            "name": w.name,
-                            "pane_count": w.pane_count,
-                            "active_pane_id": w.active_pane_id.map(|id| id.to_string()),
-                            "session": session_name,
-                        })
-                    })
-                    .collect();
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::WindowList {
+    session_name,
+    windows,
+    } => {
+    let result: Vec<serde_json::Value> = windows
+    .iter()
+    .map(|w| {
+        serde_json::json!({
+        "id": w.id.to_string(),
+        "index": w.index,
+        "name": w.name,
+        "pane_count": w.pane_count,
+        "active_pane_id": w.active_pane_id.map(|id| id.to_string()),
+        "session": session_name,
+        })
+    })
+    .collect();
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_list_panes(
-        &mut self,
-        session_filter: Option<String>,
+    &mut self,
+    session_filter: Option<String>,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::ListAllPanes { session_filter })
-            .await?;
+    self.connection.send_to_daemon(ClientMessage::ListAllPanes { session_filter })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::AllPanesList { panes } => {
-                let result = format_pane_list(&panes);
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::AllPanesList { panes } => {
+    let result = format_pane_list(&panes);
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_read_pane(
-        &mut self,
-        pane_id: Uuid,
-        lines: usize,
+    &mut self,
+    pane_id: Uuid,
+    lines: usize,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::ReadPane { pane_id, lines })
-            .await?;
+    self.connection.send_to_daemon(ClientMessage::ReadPane { pane_id, lines })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::PaneContent { content, .. } => Ok(ToolResult::text(content)),
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::PaneContent { content, .. } => Ok(ToolResult::text(content)),
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_get_status(&mut self, pane_id: Uuid) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::GetPaneStatus { pane_id })
-            .await?;
+    self.connection.send_to_daemon(ClientMessage::GetPaneStatus { pane_id })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::PaneStatus {
-                pane_id,
-                session_name,
-                window_name,
-                window_index,
-                pane_index,
-                cols,
-                rows,
-                title,
-                cwd,
-                state,
-                has_pty,
-                is_awaiting_input,
-                is_awaiting_confirmation,
-            } => {
-                let state_json = match &state {
-                    ccmux_protocol::PaneState::Normal => serde_json::json!({"type": "normal"}),
-                    ccmux_protocol::PaneState::Claude(cs) => serde_json::json!({
-                        "type": "claude",
-                        "session_id": cs.session_id,
-                        "activity": format!("{:?}", cs.activity),
-                        "model": cs.model,
-                        "tokens_used": cs.tokens_used,
-                    }),
-                    ccmux_protocol::PaneState::Exited { code } => serde_json::json!({
-                        "type": "exited",
-                        "exit_code": code,
-                    }),
-                };
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::PaneStatus {
+    pane_id,
+    session_name,
+    window_name,
+    window_index,
+    pane_index,
+    cols,
+    rows,
+    title,
+    cwd,
+    state,
+    has_pty,
+    is_awaiting_input,
+    is_awaiting_confirmation,
+    } => {
+    let state_json = match &state {
+    ccmux_protocol::PaneState::Normal => serde_json::json!({"type": "normal"}),
+    ccmux_protocol::PaneState::Claude(cs) => serde_json::json!({
+        "type": "claude",
+        "session_id": cs.session_id,
+        "activity": format!("{:?}", cs.activity),
+        "model": cs.model,
+        "tokens_used": cs.tokens_used,
+    }),
+    ccmux_protocol::PaneState::Exited { code } => serde_json::json!({
+        "type": "exited",
+        "exit_code": code,
+    }),
+    };
 
-                let result = serde_json::json!({
-                    "pane_id": pane_id.to_string(),
-                    "session": session_name,
-                    "window": window_index,
-                    "window_name": window_name,
-                    "index": pane_index,
-                    "dimensions": {
-                        "cols": cols,
-                        "rows": rows,
-                    },
-                    "title": title,
-                    "cwd": cwd,
-                    "has_pty": has_pty,
-                    "state": state_json,
-                    "is_awaiting_input": is_awaiting_input,
-                    "is_awaiting_confirmation": is_awaiting_confirmation,
-                });
+    let result = serde_json::json!({
+    "pane_id": pane_id.to_string(),
+    "session": session_name,
+    "window": window_index,
+    "window_name": window_name,
+    "index": pane_index,
+    "dimensions": {
+        "cols": cols,
+        "rows": rows,
+    },
+    "title": title,
+    "cwd": cwd,
+    "has_pty": has_pty,
+    "state": state_json,
+    "is_awaiting_input": is_awaiting_input,
+    "is_awaiting_confirmation": is_awaiting_confirmation,
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_create_session(
-        &mut self,
-        name: Option<String>,
-        command: Option<String>,
-        cwd: Option<String>,
-        claude_model: Option<String>,
-        claude_config: Option<serde_json::Value>,
-        preset: Option<String>,
+    &mut self,
+    name: Option<String>,
+    command: Option<String>,
+    cwd: Option<String>,
+    claude_model: Option<String>,
+    claude_config: Option<serde_json::Value>,
+    preset: Option<String>,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::CreateSessionWithOptions {
-            name,
-            command,
-            cwd,
-            claude_model,
-            claude_config: claude_config.map(Into::into),
-            preset,
-        })
-            .await?;
+    self.connection.send_to_daemon(ClientMessage::CreateSessionWithOptions {
+    name,
+    command,
+    cwd,
+    claude_model,
+    claude_config: claude_config.map(Into::into),
+    preset,
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
+    match self.connection.recv_response_from_daemon().await? {
             ServerMessage::SessionCreatedWithDetails {
                 session_id,
                 session_name,
                 window_id,
                 pane_id,
+                ..
             } => {
-                let result = serde_json::json!({
-                    "session_id": session_id.to_string(),
-                    "session_name": session_name,
-                    "window_id": window_id.to_string(),
-                    "pane_id": pane_id.to_string(),
-                    "status": "created"
-                });
+    let result = serde_json::json!({
+    "session_id": session_id.to_string(),
+    "session_name": session_name,
+    "window_id": window_id.to_string(),
+    "pane_id": pane_id.to_string(),
+    "status": "created"
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_create_window(
-        &mut self,
-        session_filter: Option<String>,
-        name: Option<String>,
-        command: Option<String>,
+    &mut self,
+    session_filter: Option<String>,
+    name: Option<String>,
+    command: Option<String>,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::CreateWindowWithOptions {
-            session_filter,
-            name,
-            command,
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::CreateWindowWithOptions {
+    session_filter,
+    name,
+    command,
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
+    match self.connection.recv_response_from_daemon().await? {
             ServerMessage::WindowCreatedWithDetails {
                 window_id,
                 pane_id,
                 session_name,
+                ..
             } => {
-                let result = serde_json::json!({
-                    "window_id": window_id.to_string(),
-                    "pane_id": pane_id.to_string(),
-                    "session": session_name,
-                    "status": "created"
-                });
+    let result = serde_json::json!({
+    "window_id": window_id.to_string(),
+    "pane_id": pane_id.to_string(),
+    "session": session_name,
+    "status": "created"
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_create_pane(
-        &mut self,
-        session: Option<String>,
-        window: Option<String>,
-        name: Option<String>,
-        direction: Option<String>,
-        command: Option<String>,
-        cwd: Option<String>,
-        select: bool,
-        claude_model: Option<String>,
-        claude_config: Option<serde_json::Value>,
-        preset: Option<String>,
+    &mut self,
+    session: Option<String>,
+    window: Option<String>,
+    name: Option<String>,
+    direction: Option<String>,
+    command: Option<String>,
+    cwd: Option<String>,
+    select: bool,
+    claude_model: Option<String>,
+    claude_config: Option<serde_json::Value>,
+    preset: Option<String>,
     ) -> Result<ToolResult, McpError> {
-        let split_direction = match direction.as_deref() {
-            Some("horizontal") | Some("h") => SplitDirection::Vertical,
-            _ => SplitDirection::Horizontal,
-        };
+    let split_direction = match direction.as_deref() {
+    Some("horizontal") | Some("h") => SplitDirection::Vertical,
+    _ => SplitDirection::Horizontal,
+    };
 
-        let user_direction = match direction.as_deref() {
-            Some("horizontal") | Some("h") => "horizontal",
-            _ => "vertical",
-        };
+    let user_direction = match direction.as_deref() {
+    Some("horizontal") | Some("h") => "horizontal",
+    _ => "vertical",
+    };
 
-        self.connection.send_to_daemon(ClientMessage::CreatePaneWithOptions {
-            session_filter: session,
-            window_filter: window,
-            direction: split_direction,
-            command,
-            cwd,
-            select,
-            name,
-            claude_model,
-            claude_config: claude_config.map(Into::into),
-            preset,
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::CreatePaneWithOptions {
+    session_filter: session,
+    window_filter: window,
+    direction: split_direction,
+    command,
+    cwd,
+    select,
+    name,
+    claude_model,
+    claude_config: claude_config.map(Into::into),
+    preset,
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
+    match self.connection.recv_response_from_daemon().await? {
             ServerMessage::PaneCreatedWithDetails {
                 pane_id,
                 session_id,
                 session_name,
                 window_id,
                 direction: _,
+                ..
             } => {
-                let result = serde_json::json!({
-                    "pane_id": pane_id.to_string(),
-                    "session_id": session_id.to_string(),
-                    "session": session_name,
-                    "window_id": window_id.to_string(),
-                    "direction": user_direction,
-                    "status": "created"
-                });
+    let result = serde_json::json!({
+    "pane_id": pane_id.to_string(),
+    "session_id": session_id.to_string(),
+    "session": session_name,
+    "window_id": window_id.to_string(),
+    "direction": user_direction,
+    "status": "created"
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_send_input(
-        &mut self,
-        pane_id: Uuid,
-        input: &str,
-        submit: bool,
+    &mut self,
+    pane_id: Uuid,
+    input: &str,
+    submit: bool,
     ) -> Result<ToolResult, McpError> {
-        let mut data = input.as_bytes().to_vec();
-        if submit {
-            data.push(b'\r');
-        }
+    let mut data = input.as_bytes().to_vec();
+    if submit {
+    data.push(b'\r');
+    }
 
-        self.connection.send_to_daemon(ClientMessage::Input { pane_id, data }).await?;
+    self.connection.send_to_daemon(ClientMessage::Input { pane_id, data }).await?;
 
-        Ok(ToolResult::text(r#"{"status": "sent"}"#.to_string()))
+    Ok(ToolResult::text(r#"{"status": "sent"}"#.to_string()))
     }
 
     pub async fn tool_close_pane(&mut self, pane_id: Uuid) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::ClosePane { pane_id })
-            .await?;
+    self.connection.send_to_daemon(ClientMessage::ClosePane { pane_id })
+    .await?;
 
-        match self.connection
-            .recv_filtered(|msg| matches!(msg, ServerMessage::PaneClosed { pane_id: id, .. } if *id == pane_id))
-            .await? 
-        {
-            ServerMessage::PaneClosed { pane_id: closed_id, .. } if closed_id == pane_id => {
-                let result = serde_json::json!({
-                    "pane_id": pane_id.to_string(),
-                    "status": "closed"
-                });
+    match self.connection
+    .recv_filtered(|msg| matches!(msg, ServerMessage::PaneClosed { pane_id: id, .. } if *id == pane_id))
+    .await? 
+    {
+    ServerMessage::PaneClosed { pane_id: closed_id, .. } if closed_id == pane_id => {
+    let result = serde_json::json!({
+    "pane_id": pane_id.to_string(),
+    "status": "closed"
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_focus_pane(&mut self, pane_id: Uuid) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::SelectPane { pane_id })
-            .await?;
+    self.connection.send_to_daemon(ClientMessage::SelectPane { pane_id })
+    .await?;
 
-        match self.connection
-            .recv_filtered(|msg| matches!(msg, ServerMessage::PaneFocused { pane_id: id, .. } if *id == pane_id))
-            .await? 
-        {
-            ServerMessage::PaneFocused { pane_id: focused_id, session_id, window_id } if focused_id == pane_id => {
-                let result = serde_json::json!({
-                    "pane_id": pane_id.to_string(),
-                    "session_id": session_id.to_string(),
-                    "window_id": window_id.to_string(),
-                    "status": "focused"
-                });
+    match self.connection
+    .recv_filtered(|msg| matches!(msg, ServerMessage::PaneFocused { pane_id: id, .. } if *id == pane_id))
+    .await? 
+    {
+    ServerMessage::PaneFocused { pane_id: focused_id, session_id, window_id } if focused_id == pane_id => {
+    let result = serde_json::json!({
+    "pane_id": pane_id.to_string(),
+    "session_id": session_id.to_string(),
+    "window_id": window_id.to_string(),
+    "status": "focused"
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_select_window(&mut self, window_id: Uuid) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::SelectWindow { window_id })
-            .await?;
+    self.connection.send_to_daemon(ClientMessage::SelectWindow { window_id })
+    .await?;
 
-        match self.connection
-            .recv_filtered(|msg| matches!(msg, ServerMessage::WindowFocused { window_id: id, .. } if *id == window_id))
-            .await? 
-        {
-            ServerMessage::WindowFocused { window_id: focused_id, session_id } if focused_id == window_id => {
-                let result = serde_json::json!({
-                    "window_id": window_id.to_string(),
-                    "session_id": session_id.to_string(),
-                    "status": "selected"
-                });
+    match self.connection
+    .recv_filtered(|msg| matches!(msg, ServerMessage::WindowFocused { window_id: id, .. } if *id == window_id))
+    .await? 
+    {
+    ServerMessage::WindowFocused { window_id: focused_id, session_id } if focused_id == window_id => {
+    let result = serde_json::json!({
+    "window_id": window_id.to_string(),
+    "session_id": session_id.to_string(),
+    "status": "selected"
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_select_session(&mut self, session_id: Uuid) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::SelectSession { session_id })
-            .await?;
+    self.connection.send_to_daemon(ClientMessage::SelectSession { session_id })
+    .await?;
 
-        match self.connection
-            .recv_filtered(|msg| matches!(msg, ServerMessage::SessionFocused { session_id: id } if *id == session_id))
-            .await? 
-        {
-            ServerMessage::SessionFocused { session_id: focused_id } if focused_id == session_id => {
-                let result = serde_json::json!({
-                    "session_id": session_id.to_string(),
-                    "status": "selected"
-                });
+    match self.connection
+    .recv_filtered(|msg| matches!(msg, ServerMessage::SessionFocused { session_id: id } if *id == session_id))
+    .await? 
+    {
+    ServerMessage::SessionFocused { session_id: focused_id } if focused_id == session_id => {
+    let result = serde_json::json!({
+    "session_id": session_id.to_string(),
+    "status": "selected"
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_rename_session(
-        &mut self,
-        session_filter: &str,
-        new_name: &str,
+    &mut self,
+    session_filter: &str,
+    new_name: &str,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::RenameSession {
-            session_filter: session_filter.to_string(),
-            new_name: new_name.to_string(),
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::RenameSession {
+    session_filter: session_filter.to_string(),
+    new_name: new_name.to_string(),
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::SessionRenamed {
-                session_id,
-                previous_name,
-                new_name,
-            } => {
-                let result = serde_json::json!({
-                    "success": true,
-                    "session_id": session_id.to_string(),
-                    "previous_name": previous_name,
-                    "new_name": new_name
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::SessionRenamed {
+    session_id,
+    previous_name,
+    new_name,
+    } => {
+    let result = serde_json::json!({
+    "success": true,
+    "session_id": session_id.to_string(),
+    "previous_name": previous_name,
+    "new_name": new_name
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_rename_pane(
-        &mut self,
-        pane_id: Uuid,
-        new_name: &str,
+    &mut self,
+    pane_id: Uuid,
+    new_name: &str,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::RenamPane {
-            pane_id,
-            new_name: new_name.to_string(),
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::RenamPane {
+    pane_id,
+    new_name: new_name.to_string(),
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::PaneRenamed {
-                pane_id,
-                previous_name,
-                new_name,
-            } => {
-                let result = serde_json::json!({
-                    "success": true,
-                    "pane_id": pane_id.to_string(),
-                    "previous_name": previous_name,
-                    "new_name": new_name
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::PaneRenamed {
+    pane_id,
+    previous_name,
+    new_name,
+    } => {
+    let result = serde_json::json!({
+    "success": true,
+    "pane_id": pane_id.to_string(),
+    "previous_name": previous_name,
+    "new_name": new_name
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_rename_window(
-        &mut self,
-        window_id: Uuid,
-        new_name: &str,
+    &mut self,
+    window_id: Uuid,
+    new_name: &str,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::RenameWindow {
-            window_id,
-            new_name: new_name.to_string(),
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::RenameWindow {
+    window_id,
+    new_name: new_name.to_string(),
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::WindowRenamed {
-                window_id,
-                previous_name,
-                new_name,
-            } => {
-                let result = serde_json::json!({
-                    "success": true,
-                    "window_id": window_id.to_string(),
-                    "previous_name": previous_name,
-                    "new_name": new_name
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::WindowRenamed {
+    window_id,
+    previous_name,
+    new_name,
+    } => {
+    let result = serde_json::json!({
+    "success": true,
+    "window_id": window_id.to_string(),
+    "previous_name": previous_name,
+    "new_name": new_name
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_split_pane(
-        &mut self,
-        pane_id: Uuid,
-        direction: Option<String>,
-        ratio: f32,
-        command: Option<String>,
-        cwd: Option<String>,
-        select: bool,
+    &mut self,
+    pane_id: Uuid,
+    direction: Option<String>,
+    ratio: f32,
+    command: Option<String>,
+    cwd: Option<String>,
+    select: bool,
     ) -> Result<ToolResult, McpError> {
-        let split_direction = match direction.as_deref() {
-            Some("horizontal") | Some("h") => SplitDirection::Vertical,
-            _ => SplitDirection::Horizontal,
-        };
+    let split_direction = match direction.as_deref() {
+    Some("horizontal") | Some("h") => SplitDirection::Vertical,
+    _ => SplitDirection::Horizontal,
+    };
 
-        let user_direction = match direction.as_deref() {
-            Some("horizontal") | Some("h") => "horizontal",
-            _ => "vertical",
-        };
+    let user_direction = match direction.as_deref() {
+    Some("horizontal") | Some("h") => "horizontal",
+    _ => "vertical",
+    };
 
-        self.connection.send_to_daemon(ClientMessage::SplitPane {
-            pane_id,
-            direction: split_direction,
-            ratio,
-            command,
-            cwd,
-            select,
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::SplitPane {
+    pane_id,
+    direction: split_direction,
+    ratio,
+    command,
+    cwd,
+    select,
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
+    match self.connection.recv_response_from_daemon().await? {
             ServerMessage::PaneSplit {
                 new_pane_id,
                 original_pane_id,
@@ -645,951 +648,952 @@ impl<'a> ToolHandlers<'a> {
                 session_name,
                 window_id,
                 direction: _,
+                ..
             } => {
-                let result = serde_json::json!({
-                    "new_pane_id": new_pane_id.to_string(),
-                    "original_pane_id": original_pane_id.to_string(),
-                    "session_id": session_id.to_string(),
-                    "session": session_name,
-                    "window_id": window_id.to_string(),
-                    "direction": user_direction,
-                });
+    let result = serde_json::json!({
+    "new_pane_id": new_pane_id.to_string(),
+    "original_pane_id": original_pane_id.to_string(),
+    "session_id": session_id.to_string(),
+    "session": session_name,
+    "window_id": window_id.to_string(),
+    "direction": user_direction,
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_resize_pane(
-        &mut self,
-        pane_id: Uuid,
-        delta: f32,
+    &mut self,
+    pane_id: Uuid,
+    delta: f32,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::ResizePaneDelta { pane_id, delta })
-            .await?;
+    self.connection.send_to_daemon(ClientMessage::ResizePaneDelta { pane_id, delta })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::PaneResized {
-                pane_id,
-                new_cols,
-                new_rows,
-            } => {
-                let result = serde_json::json!({
-                    "pane_id": pane_id.to_string(),
-                    "new_cols": new_cols,
-                    "new_rows": new_rows,
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::PaneResized {
+    pane_id,
+    new_cols,
+    new_rows,
+    } => {
+    let result = serde_json::json!({
+    "pane_id": pane_id.to_string(),
+    "new_cols": new_cols,
+    "new_rows": new_rows,
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_create_layout(
-        &mut self,
-        session: Option<String>,
-        window: Option<String>,
-        layout: serde_json::Value,
+    &mut self,
+    session: Option<String>,
+    window: Option<String>,
+    layout: serde_json::Value,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::CreateLayout {
-            session_filter: session,
-            window_filter: window,
-            layout: layout.into(),
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::CreateLayout {
+    session_filter: session,
+    window_filter: window,
+    layout: layout.into(),
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::LayoutCreated {
-                session_id,
-                session_name,
-                window_id,
-                pane_ids,
-            } => {
-                let result = serde_json::json!({
-                    "session_id": session_id.to_string(),
-                    "session": session_name,
-                    "window_id": window_id.to_string(),
-                    "pane_ids": pane_ids.iter().map(|id| id.to_string()).collect::<Vec<_>>(),
-                    "pane_count": pane_ids.len(),
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::LayoutCreated {
+    session_id,
+    session_name,
+    window_id,
+    pane_ids,
+    } => {
+    let result = serde_json::json!({
+    "session_id": session_id.to_string(),
+    "session": session_name,
+    "window_id": window_id.to_string(),
+    "pane_ids": pane_ids.iter().map(|id| id.to_string()).collect::<Vec<_>>(),
+    "pane_count": pane_ids.len(),
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_kill_session(&mut self, session_filter: &str) -> Result<ToolResult, McpError> {
-        let session_id = if let Ok(uuid) = Uuid::parse_str(session_filter) {
-            uuid
-        } else {
-            self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
-            match self.connection.recv_response_from_daemon().await? {
-                ServerMessage::SessionList { sessions } => {
-                    sessions
-                        .iter()
-                        .find(|s| s.name == session_filter)
-                        .map(|s| s.id)
-                        .ok_or_else(|| {
-                            McpError::InvalidParams(format!(
-                                "Session '{}' not found",
-                                session_filter
-                            ))
-                        })?
-                }
-                ServerMessage::Error { code, message, .. } => {
-                    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
-                }
-                msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-            }
-        };
+    let session_id = if let Ok(uuid) = Uuid::parse_str(session_filter) {
+    uuid
+    } else {
+    self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::SessionList { sessions } => {
+    sessions
+        .iter()
+        .find(|s| s.name == session_filter)
+        .map(|s| s.id)
+        .ok_or_else(|| {
+        McpError::InvalidParams(format!(
+        "Session '{}' not found",
+        session_filter
+        ))
+        })?
+    }
+    ServerMessage::Error { code, message, .. } => {
+    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
+    }
+    msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
+    };
 
-        self.connection.send_to_daemon(ClientMessage::DestroySession { session_id })
-            .await?;
+    self.connection.send_to_daemon(ClientMessage::DestroySession { session_id })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::SessionDestroyed {
-                session_id,
-                session_name,
-            } => {
-                let result = serde_json::json!({
-                    "success": true,
-                    "message": "Session killed",
-                    "session_id": session_id.to_string(),
-                    "session_name": session_name,
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::SessionDestroyed {
+    session_id,
+    session_name,
+    } => {
+    let result = serde_json::json!({
+    "success": true,
+    "message": "Session killed",
+    "session_id": session_id.to_string(),
+    "session_name": session_name,
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_set_environment(
-        &mut self,
-        session_filter: &str,
-        key: &str,
-        value: &str,
+    &mut self,
+    session_filter: &str,
+    key: &str,
+    value: &str,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::SetEnvironment {
-            session_filter: session_filter.to_string(),
-            key: key.to_string(),
-            value: value.to_string(),
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::SetEnvironment {
+    session_filter: session_filter.to_string(),
+    key: key.to_string(),
+    value: value.to_string(),
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::EnvironmentSet {
-                session_id,
-                session_name,
-                key,
-                value,
-            } => {
-                let result = serde_json::json!({
-                    "success": true,
-                    "session_id": session_id.to_string(),
-                    "session_name": session_name,
-                    "key": key,
-                    "value": value,
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::EnvironmentSet {
+    session_id,
+    session_name,
+    key,
+    value,
+    } => {
+    let result = serde_json::json!({
+    "success": true,
+    "session_id": session_id.to_string(),
+    "session_name": session_name,
+    "key": key,
+    "value": value,
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_get_environment(
-        &mut self,
-        session_filter: &str,
-        key: Option<String>,
+    &mut self,
+    session_filter: &str,
+    key: Option<String>,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::GetEnvironment {
-            session_filter: session_filter.to_string(),
-            key,
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::GetEnvironment {
+    session_filter: session_filter.to_string(),
+    key,
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::EnvironmentList {
-                session_id,
-                session_name,
-                environment,
-            } => {
-                let result = serde_json::json!({
-                    "session_id": session_id.to_string(),
-                    "session_name": session_name,
-                    "environment": environment,
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::EnvironmentList {
+    session_id,
+    session_name,
+    environment,
+    } => {
+    let result = serde_json::json!({
+    "session_id": session_id.to_string(),
+    "session_name": session_name,
+    "environment": environment,
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_set_metadata(
-        &mut self,
-        session_filter: &str,
-        key: &str,
-        value: &str,
+    &mut self,
+    session_filter: &str,
+    key: &str,
+    value: &str,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::SetMetadata {
-            session_filter: session_filter.to_string(),
-            key: key.to_string(),
-            value: value.to_string(),
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::SetMetadata {
+    session_filter: session_filter.to_string(),
+    key: key.to_string(),
+    value: value.to_string(),
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::MetadataSet {
-                session_id,
-                session_name,
-                key,
-                value,
-            } => {
-                let result = serde_json::json!({
-                    "success": true,
-                    "session_id": session_id.to_string(),
-                    "session_name": session_name,
-                    "key": key,
-                    "value": value,
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::MetadataSet {
+    session_id,
+    session_name,
+    key,
+    value,
+    } => {
+    let result = serde_json::json!({
+    "success": true,
+    "session_id": session_id.to_string(),
+    "session_name": session_name,
+    "key": key,
+    "value": value,
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_get_metadata(
-        &mut self,
-        session_filter: &str,
-        key: Option<String>,
+    &mut self,
+    session_filter: &str,
+    key: Option<String>,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::GetMetadata {
-            session_filter: session_filter.to_string(),
-            key,
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::GetMetadata {
+    session_filter: session_filter.to_string(),
+    key,
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::MetadataList {
-                session_id,
-                session_name,
-                metadata,
-            } => {
-                let result = serde_json::json!({
-                    "session_id": session_id.to_string(),
-                    "session_name": session_name,
-                    "metadata": metadata,
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::MetadataList {
+    session_id,
+    session_name,
+    metadata,
+    } => {
+    let result = serde_json::json!({
+    "session_id": session_id.to_string(),
+    "session_name": session_name,
+    "metadata": metadata,
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_send_orchestration(
-        &mut self,
-        target: &serde_json::Value,
-        msg_type: &str,
-        payload: serde_json::Value,
+    &mut self,
+    target: &serde_json::Value,
+    msg_type: &str,
+    payload: serde_json::Value,
     ) -> Result<ToolResult, McpError> {
-        let orchestration_target = if let Some(tag) = target.get("tag").and_then(|v| v.as_str()) {
-            OrchestrationTarget::Tagged(tag.to_string())
-        } else if let Some(session) = target.get("session").and_then(|v| v.as_str()) {
-            let session_id = Uuid::parse_str(session)
-                .map_err(|e| McpError::InvalidParams(format!("Invalid session UUID: {}", e)))?;
-            OrchestrationTarget::Session(session_id)
-        } else if target.get("broadcast").and_then(|v| v.as_bool()).unwrap_or(false) {
-            OrchestrationTarget::Broadcast
-        } else if let Some(worktree) = target.get("worktree").and_then(|v| v.as_str()) {
-            OrchestrationTarget::Worktree(worktree.to_string())
-        } else {
-            return Err(McpError::InvalidParams(
-                "Invalid target: must specify 'tag', 'session', 'broadcast', or 'worktree'".into(),
-            ));
-        };
+    let orchestration_target = if let Some(tag) = target.get("tag").and_then(|v| v.as_str()) {
+    OrchestrationTarget::Tagged(tag.to_string())
+    } else if let Some(session) = target.get("session").and_then(|v| v.as_str()) {
+    let session_id = Uuid::parse_str(session)
+    .map_err(|e| McpError::InvalidParams(format!("Invalid session UUID: {}", e)))?;
+    OrchestrationTarget::Session(session_id)
+    } else if target.get("broadcast").and_then(|v| v.as_bool()).unwrap_or(false) {
+    OrchestrationTarget::Broadcast
+    } else if let Some(worktree) = target.get("worktree").and_then(|v| v.as_str()) {
+    OrchestrationTarget::Worktree(worktree.to_string())
+    } else {
+    return Err(McpError::InvalidParams(
+    "Invalid target: must specify 'tag', 'session', 'broadcast', or 'worktree'".into(),
+    ));
+    };
 
-        let message = OrchestrationMessage::new(msg_type, payload);
+    let message = OrchestrationMessage::new(msg_type, payload);
 
-        self.connection.send_to_daemon(ClientMessage::SendOrchestration {
-            target: orchestration_target,
-            message,
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::SendOrchestration {
+    target: orchestration_target,
+    message,
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::OrchestrationDelivered { delivered_count } => {
-                let result = serde_json::json!({
-                    "success": true,
-                    "delivered_count": delivered_count,
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::OrchestrationDelivered { delivered_count } => {
+    let result = serde_json::json!({
+    "success": true,
+    "delivered_count": delivered_count,
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_set_tags(
-        &mut self,
-        session_filter: Option<String>,
-        add: Vec<String>,
-        remove: Vec<String>,
+    &mut self,
+    session_filter: Option<String>,
+    add: Vec<String>,
+    remove: Vec<String>,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::SetTags {
-            session_filter,
-            add,
-            remove,
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::SetTags {
+    session_filter,
+    add,
+    remove,
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::TagsSet {
-                session_id,
-                session_name,
-                tags,
-            } => {
-                let result = serde_json::json!({
-                    "success": true,
-                    "session_id": session_id.to_string(),
-                    "session_name": session_name,
-                    "tags": tags.into_iter().collect::<Vec<_>>(),
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::TagsSet {
+    session_id,
+    session_name,
+    tags,
+    } => {
+    let result = serde_json::json!({
+    "success": true,
+    "session_id": session_id.to_string(),
+    "session_name": session_name,
+    "tags": tags.into_iter().collect::<Vec<_>>(),
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_get_tags(
-        &mut self,
-        session_filter: Option<String>,
+    &mut self,
+    session_filter: Option<String>,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::GetTags { session_filter })
-            .await?;
+    self.connection.send_to_daemon(ClientMessage::GetTags { session_filter })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::TagsList {
-                session_id,
-                session_name,
-                tags,
-            } => {
-                let result = serde_json::json!({
-                    "session_id": session_id.to_string(),
-                    "session_name": session_name,
-                    "tags": tags.into_iter().collect::<Vec<_>>(),
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::TagsList {
+    session_id,
+    session_name,
+    tags,
+    } => {
+    let result = serde_json::json!({
+    "session_id": session_id.to_string(),
+    "session_name": session_name,
+    "tags": tags.into_iter().collect::<Vec<_>>(),
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_report_status(
-        &mut self,
-        status: &str,
-        message: Option<String>,
+    &mut self,
+    status: &str,
+    message: Option<String>,
     ) -> Result<ToolResult, McpError> {
-        let current_issue_id = self.get_current_issue_id().await;
+    let current_issue_id = self.get_current_issue_id().await;
 
-        let target = OrchestrationTarget::Tagged("orchestrator".to_string());
-        let payload = serde_json::json!({
-            "status": status,
-            "message": message,
-            "issue_id": current_issue_id,
-        });
-        let msg = OrchestrationMessage::new("status.update", payload);
+    let target = OrchestrationTarget::Tagged("orchestrator".to_string());
+    let payload = serde_json::json!({
+    "status": status,
+    "message": message,
+    "issue_id": current_issue_id,
+    });
+    let msg = OrchestrationMessage::new("status.update", payload);
 
-        self.connection.send_to_daemon(ClientMessage::SendOrchestration {
-            target,
-            message: msg,
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::SendOrchestration {
+    target,
+    message: msg,
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::OrchestrationDelivered { delivered_count } => {
-                let result = serde_json::json!({
-                    "success": true,
-                    "delivered_count": delivered_count,
-                    "status": status,
-                    "issue_id": current_issue_id,
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::OrchestrationDelivered { delivered_count } => {
+    let result = serde_json::json!({
+    "success": true,
+    "delivered_count": delivered_count,
+    "status": status,
+    "issue_id": current_issue_id,
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     async fn get_current_issue_id(&mut self) -> Option<String> {
-        if self.connection.send_to_daemon(ClientMessage::ListSessions).await.is_err() {
-            return None;
-        }
+    if self.connection.send_to_daemon(ClientMessage::ListSessions).await.is_err() {
+    return None;
+    }
 
-        let sessions = match self.connection.recv_response_from_daemon().await {
-            Ok(ServerMessage::SessionList { sessions }) => sessions,
-            _ => return None,
-        };
+    let sessions = match self.connection.recv_response_from_daemon().await {
+    Ok(ServerMessage::SessionList { sessions }) => sessions,
+    _ => return None,
+    };
 
-        if sessions.is_empty() {
-            return None;
-        }
+    if sessions.is_empty() {
+    return None;
+    }
 
-        let session_name = &sessions[0].name;
+    let session_name = &sessions[0].name;
 
-        if self.connection
-            .send_to_daemon(ClientMessage::GetMetadata {
-                session_filter: session_name.clone(),
-                key: Some(beads::CURRENT_ISSUE.to_string()),
-            })
-            .await
-            .is_err()
-        {
-            return None;
-        }
+    if self.connection
+    .send_to_daemon(ClientMessage::GetMetadata {
+    session_filter: session_name.clone(),
+    key: Some(beads::CURRENT_ISSUE.to_string()),
+    })
+    .await
+    .is_err()
+    {
+    return None;
+    }
 
-        match self.connection.recv_response_from_daemon().await {
-            Ok(ServerMessage::MetadataList { metadata, .. }) => {
-                metadata
-                    .get(beads::CURRENT_ISSUE)
-                    .cloned()
-                    .filter(|s| !s.is_empty())
-            }
-            _ => None,
-        }
+    match self.connection.recv_response_from_daemon().await {
+    Ok(ServerMessage::MetadataList { metadata, .. }) => {
+    metadata
+    .get(beads::CURRENT_ISSUE)
+    .cloned()
+    .filter(|s| !s.is_empty())
+    }
+    _ => None,
+    }
     }
 
     pub async fn tool_request_help(&mut self, context: &str) -> Result<ToolResult, McpError> {
-        let target = OrchestrationTarget::Tagged("orchestrator".to_string());
-        let payload = serde_json::json!({
-            "context": context,
-        });
-        let msg = OrchestrationMessage::new("help.request", payload);
+    let target = OrchestrationTarget::Tagged("orchestrator".to_string());
+    let payload = serde_json::json!({
+    "context": context,
+    });
+    let msg = OrchestrationMessage::new("help.request", payload);
 
-        self.connection.send_to_daemon(ClientMessage::SendOrchestration {
-            target,
-            message: msg,
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::SendOrchestration {
+    target,
+    message: msg,
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::OrchestrationDelivered { delivered_count } => {
-                let result = serde_json::json!({
-                    "success": true,
-                    "delivered_count": delivered_count,
-                    "type": "help.request",
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::OrchestrationDelivered { delivered_count } => {
+    let result = serde_json::json!({
+    "success": true,
+    "delivered_count": delivered_count,
+    "type": "help.request",
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_broadcast(
-        &mut self,
-        msg_type: &str,
-        payload: serde_json::Value,
+    &mut self,
+    msg_type: &str,
+    payload: serde_json::Value,
     ) -> Result<ToolResult, McpError> {
-        let target = OrchestrationTarget::Broadcast;
-        let msg = OrchestrationMessage::new(msg_type, payload);
+    let target = OrchestrationTarget::Broadcast;
+    let msg = OrchestrationMessage::new(msg_type, payload);
 
-        self.connection.send_to_daemon(ClientMessage::SendOrchestration {
-            target,
-            message: msg,
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::SendOrchestration {
+    target,
+    message: msg,
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::OrchestrationDelivered { delivered_count } => {
-                let result = serde_json::json!({
-                    "success": true,
-                    "delivered_count": delivered_count,
-                    "type": msg_type,
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::OrchestrationDelivered { delivered_count } => {
+    let result = serde_json::json!({
+    "success": true,
+    "delivered_count": delivered_count,
+    "type": msg_type,
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_connection_status(&self) -> Result<ToolResult, McpError> {
-        let state = *self.connection.connection_state.read().await;
+    let state = *self.connection.connection_state.read().await;
 
-        let result = match state {
-            ConnectionState::Connected => serde_json::json!({
-                "status": "connected",
-                "healthy": true,
-                "daemon_responsive": true
-            }),
-            ConnectionState::Reconnecting { attempt } => serde_json::json!({
-                "status": "reconnecting",
-                "healthy": false,
-                "reconnect_attempt": attempt,
-                "max_attempts": MAX_RECONNECT_ATTEMPTS
-            }),
-            ConnectionState::Disconnected => serde_json::json!({
-                "status": "disconnected",
-                "healthy": false,
-                "recoverable": true,
-                "action": "Tool calls will trigger automatic reconnection"
-            }),
-        };
+    let result = match state {
+    ConnectionState::Connected => serde_json::json!({
+    "status": "connected",
+    "healthy": true,
+    "daemon_responsive": true
+    }),
+    ConnectionState::Reconnecting { attempt } => serde_json::json!({
+    "status": "reconnecting",
+    "healthy": false,
+    "reconnect_attempt": attempt,
+    "max_attempts": MAX_RECONNECT_ATTEMPTS
+    }),
+    ConnectionState::Disconnected => serde_json::json!({
+    "status": "disconnected",
+    "healthy": false,
+    "recoverable": true,
+    "action": "Tool calls will trigger automatic reconnection"
+    }),
+    };
 
-        let json = serde_json::to_string_pretty(&result)
-            .map_err(|e| McpError::Internal(e.to_string()))?;
-        Ok(ToolResult::text(json))
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
     }
 
     async fn resolve_session_for_pane(
-        &mut self,
-        pane_id: Option<Uuid>,
+    &mut self,
+    pane_id: Option<Uuid>,
     ) -> Result<(String, Option<Uuid>), McpError> {
-        match pane_id {
-            Some(id) => {
-                self.connection.send_to_daemon(ClientMessage::GetPaneStatus { pane_id: id })
-                    .await?;
+    match pane_id {
+    Some(id) => {
+    self.connection.send_to_daemon(ClientMessage::GetPaneStatus { pane_id: id })
+    .await?;
 
-                match self.connection.recv_response_from_daemon().await? {
-                    ServerMessage::PaneStatus {
-                        pane_id,
-                        session_name,
-                        ..
-                    } => Ok((session_name, Some(pane_id))),
-                    ServerMessage::Error { code, message, .. } => {
-                        Err(McpError::InvalidParams(format!("{:?}: {}", code, message)))
-                    }
-                    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-                }
-            }
-            None => {
-                self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::PaneStatus {
+        pane_id,
+        session_name,
+        ..
+    } => Ok((session_name, Some(pane_id))),
+    ServerMessage::Error { code, message, .. } => {
+        Err(McpError::InvalidParams(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
+    }
+    None => {
+    self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
 
-                match self.connection.recv_response_from_daemon().await? {
-                    ServerMessage::SessionList { sessions } => {
-                        if sessions.is_empty() {
-                            Err(McpError::InvalidParams("No sessions available".into()))
-                        } else {
-                            Ok((sessions[0].name.clone(), None))
-                        }
-                    }
-                    ServerMessage::Error { code, message, .. } => {
-                        Err(McpError::InvalidParams(format!("{:?}: {}", code, message)))
-                    }
-                    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-                }
-            }
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::SessionList { sessions } => {
+        if sessions.is_empty() {
+        Err(McpError::InvalidParams("No sessions available".into()))
+        } else {
+        Ok((sessions[0].name.clone(), None))
         }
+    }
+    ServerMessage::Error { code, message, .. } => {
+        Err(McpError::InvalidParams(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
+    }
+    }
     }
 
     pub async fn tool_beads_assign(
-        &mut self,
-        issue_id: &str,
-        pane_id: Option<Uuid>,
+    &mut self,
+    issue_id: &str,
+    pane_id: Option<Uuid>,
     ) -> Result<ToolResult, McpError> {
-        let (session_name, resolved_pane_id) = self.resolve_session_for_pane(pane_id).await?;
+    let (session_name, resolved_pane_id) = self.resolve_session_for_pane(pane_id).await?;
 
-        let timestamp = {
-            use std::time::{SystemTime, UNIX_EPOCH};
-            let duration = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default();
-            format!("{}", duration.as_secs())
-        };
+    let timestamp = {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let duration = SystemTime::now()
+    .duration_since(UNIX_EPOCH)
+    .unwrap_or_default();
+    format!("{}", duration.as_secs())
+    };
 
-        self.connection.send_to_daemon(ClientMessage::SetMetadata {
-            session_filter: session_name.clone(),
-            key: beads::CURRENT_ISSUE.to_string(),
-            value: issue_id.to_string(),
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::SetMetadata {
+    session_filter: session_name.clone(),
+    key: beads::CURRENT_ISSUE.to_string(),
+    value: issue_id.to_string(),
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::MetadataSet { .. } => {} // Ignore success
-            ServerMessage::Error { code, message, .. } => {
-                return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
-            }
-            msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::MetadataSet { .. } => {}
+    ServerMessage::Error { code, message, .. } => {
+    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
+    }
+    msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
 
-        self.connection.send_to_daemon(ClientMessage::SetMetadata {
-            session_filter: session_name.clone(),
-            key: beads::ASSIGNED_AT.to_string(),
-            value: timestamp.clone(),
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::SetMetadata {
+    session_filter: session_name.clone(),
+    key: beads::ASSIGNED_AT.to_string(),
+    value: timestamp.clone(),
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::MetadataSet {
-                session_id,
-                session_name,
-                ..
-            } => {
-                let result = serde_json::json!({
-                    "success": true,
-                    "session_id": session_id.to_string(),
-                    "session_name": session_name,
-                    "pane_id": resolved_pane_id.map(|id| id.to_string()),
-                    "issue_id": issue_id,
-                    "assigned_at": timestamp,
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::MetadataSet {
+    session_id,
+    session_name,
+    ..
+    } => {
+    let result = serde_json::json!({
+    "success": true,
+    "session_id": session_id.to_string(),
+    "session_name": session_name,
+    "pane_id": resolved_pane_id.map(|id| id.to_string()),
+    "issue_id": issue_id,
+    "assigned_at": timestamp,
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_beads_release(
-        &mut self,
-        pane_id: Option<Uuid>,
-        outcome: Option<String>,
+    &mut self,
+    pane_id: Option<Uuid>,
+    outcome: Option<String>,
     ) -> Result<ToolResult, McpError> {
-        let (session_name, resolved_pane_id) = self.resolve_session_for_pane(pane_id).await?;
-        let outcome = outcome.unwrap_or_else(|| "completed".to_string());
+    let (session_name, resolved_pane_id) = self.resolve_session_for_pane(pane_id).await?;
+    let outcome = outcome.unwrap_or_else(|| "completed".to_string());
 
-        self.connection.send_to_daemon(ClientMessage::GetMetadata {
-            session_filter: session_name.clone(),
-            key: Some(beads::CURRENT_ISSUE.to_string()),
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::GetMetadata {
+    session_filter: session_name.clone(),
+    key: Some(beads::CURRENT_ISSUE.to_string()),
+    })
+    .await?;
 
-        let current_issue = match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::MetadataList { metadata, .. } => {
-                metadata.get(beads::CURRENT_ISSUE).cloned()
-            }
-            ServerMessage::Error { code, message, .. } => {
-                return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
-            }
-            msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        };
+    let current_issue = match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::MetadataList { metadata, .. } => {
+    metadata.get(beads::CURRENT_ISSUE).cloned()
+    }
+    ServerMessage::Error { code, message, .. } => {
+    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
+    }
+    msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    };
 
-        let current_issue = match current_issue {
-            Some(issue) => issue,
-            None => {
-                return Ok(ToolResult::error("No issue currently assigned".to_string()));
-            }
-        };
+    let current_issue = match current_issue {
+    Some(issue) => issue,
+    None => {
+    return Ok(ToolResult::error("No issue currently assigned".to_string()));
+    }
+    };
 
-        self.connection.send_to_daemon(ClientMessage::GetMetadata {
-            session_filter: session_name.clone(),
-            key: Some(beads::ASSIGNED_AT.to_string()),
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::GetMetadata {
+    session_filter: session_name.clone(),
+    key: Some(beads::ASSIGNED_AT.to_string()),
+    })
+    .await?;
 
-        let assigned_at = match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::MetadataList { metadata, .. } => {
-                metadata.get(beads::ASSIGNED_AT).cloned().unwrap_or_default()
-            }
-            ServerMessage::Error { .. } => String::new(),
-            _ => String::new(),
-        };
+    let assigned_at = match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::MetadataList { metadata, .. } => {
+    metadata.get(beads::ASSIGNED_AT).cloned().unwrap_or_default()
+    }
+    ServerMessage::Error { .. } => String::new(),
+    _ => String::new(),
+    };
 
-        self.connection.send_to_daemon(ClientMessage::GetMetadata {
-            session_filter: session_name.clone(),
-            key: Some(beads::ISSUE_HISTORY.to_string()),
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::GetMetadata {
+    session_filter: session_name.clone(),
+    key: Some(beads::ISSUE_HISTORY.to_string()),
+    })
+    .await?;
 
-        let existing_history = match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::MetadataList { metadata, .. } => {
-                metadata.get(beads::ISSUE_HISTORY).cloned()
-            }
-            _ => None,
-        };
+    let existing_history = match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::MetadataList { metadata, .. } => {
+    metadata.get(beads::ISSUE_HISTORY).cloned()
+    }
+    _ => None,
+    };
 
-        let mut history: Vec<serde_json::Value> = existing_history
-            .and_then(|h| serde_json::from_str(&h).ok())
-            .unwrap_or_default();
+    let mut history: Vec<serde_json::Value> = existing_history
+    .and_then(|h| serde_json::from_str(&h).ok())
+    .unwrap_or_default();
 
-        let released_at = {
-            use std::time::{SystemTime, UNIX_EPOCH};
-            let duration = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default();
-            format!("{}", duration.as_secs())
-        };
+    let released_at = {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let duration = SystemTime::now()
+    .duration_since(UNIX_EPOCH)
+    .unwrap_or_default();
+    format!("{}", duration.as_secs())
+    };
 
-        history.push(serde_json::json!({
-            "issue_id": current_issue,
-            "assigned_at": assigned_at,
-            "released_at": released_at,
-            "outcome": outcome,
-        }));
+    history.push(serde_json::json!({
+    "issue_id": current_issue,
+    "assigned_at": assigned_at,
+    "released_at": released_at,
+    "outcome": outcome,
+    }));
 
-        let history_json = serde_json::to_string(&history)
-            .map_err(|e| McpError::Internal(e.to_string()))?;
+    let history_json = serde_json::to_string(&history)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
 
-        self.connection.send_to_daemon(ClientMessage::SetMetadata {
-            session_filter: session_name.clone(),
-            key: beads::ISSUE_HISTORY.to_string(),
-            value: history_json,
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::SetMetadata {
+    session_filter: session_name.clone(),
+    key: beads::ISSUE_HISTORY.to_string(),
+    value: history_json,
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::MetadataSet { .. } => {} // Ignore success
-            ServerMessage::Error { code, message, .. } => {
-                return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
-            }
-            msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::MetadataSet { .. } => {}
+    ServerMessage::Error { code, message, .. } => {
+    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
+    }
+    msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
 
-        self.connection.send_to_daemon(ClientMessage::SetMetadata {
-            session_filter: session_name.clone(),
-            key: beads::CURRENT_ISSUE.to_string(),
-            value: String::new(),
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::SetMetadata {
+    session_filter: session_name.clone(),
+    key: beads::CURRENT_ISSUE.to_string(),
+    value: String::new(),
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::MetadataSet { .. } => {} // Ignore success
-            ServerMessage::Error { code, message, .. } => {
-                return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
-            }
-            msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::MetadataSet { .. } => {}
+    ServerMessage::Error { code, message, .. } => {
+    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
+    }
+    msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
 
-        self.connection.send_to_daemon(ClientMessage::SetMetadata {
-            session_filter: session_name.clone(),
-            key: beads::ASSIGNED_AT.to_string(),
-            value: String::new(),
-        })
-        .await?;
+    self.connection.send_to_daemon(ClientMessage::SetMetadata {
+    session_filter: session_name.clone(),
+    key: beads::ASSIGNED_AT.to_string(),
+    value: String::new(),
+    })
+    .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::MetadataSet {
-                session_id,
-                session_name,
-                ..
-            } => {
-                let result = serde_json::json!({
-                    "success": true,
-                    "session_id": session_id.to_string(),
-                    "session_name": session_name,
-                    "pane_id": resolved_pane_id.map(|id| id.to_string()),
-                    "released_issue": current_issue,
-                    "outcome": outcome,
-                    "released_at": released_at,
-                });
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::MetadataSet {
+    session_id,
+    session_name,
+    ..
+    } => {
+    let result = serde_json::json!({
+    "success": true,
+    "session_id": session_id.to_string(),
+    "session_name": session_name,
+    "pane_id": resolved_pane_id.map(|id| id.to_string()),
+    "released_issue": current_issue,
+    "outcome": outcome,
+    "released_at": released_at,
+    });
 
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 
     pub async fn tool_beads_find_pane(&mut self, issue_id: &str) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
+    self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
 
-        let sessions = match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::SessionList { sessions } => sessions,
-            ServerMessage::Error { code, message, .. } => {
-                return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
-            }
-            msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        }
-        .into_iter();
-
-        for session in sessions {
-            self.connection.send_to_daemon(ClientMessage::GetMetadata {
-                session_filter: session.id.to_string(),
-                key: Some(beads::CURRENT_ISSUE.to_string()),
-            })
-            .await?;
-
-            if let ServerMessage::MetadataList {
-                session_id,
-                session_name,
-                metadata,
-            } = self.connection.recv_response_from_daemon().await? {
-                if let Some(current_issue) = metadata.get(beads::CURRENT_ISSUE) {
-                    if current_issue == issue_id {
-                        self.connection.send_to_daemon(ClientMessage::ListAllPanes {
-                            session_filter: Some(session_id.to_string()),
-                        })
-                        .await?;
-
-                        let pane_id = match self.connection.recv_response_from_daemon().await? {
-                            ServerMessage::AllPanesList { panes } => {
-                                panes.first().map(|p| p.id)
-                            }
-                            _ => None,
-                        };
-
-                        let result = serde_json::json!({
-                            "found": true,
-                            "session_id": session_id.to_string(),
-                            "session_name": session_name,
-                            "pane_id": pane_id.map(|id| id.to_string()),
-                            "issue_id": issue_id,
-                        });
-
-                        let json = serde_json::to_string_pretty(&result)
-                            .map_err(|e| McpError::Internal(e.to_string()))?;
-                        return Ok(ToolResult::text(json));
-                    }
-                }
-            }
-        }
-
-        let result = serde_json::json!({
-            "found": false,
-            "issue_id": issue_id,
-            "message": "No pane is currently working on this issue",
-        });
-
-        let json = serde_json::to_string_pretty(&result)
-            .map_err(|e| McpError::Internal(e.to_string()))?;
-        Ok(ToolResult::text(json))
+    let sessions = match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::SessionList { sessions } => sessions,
+    ServerMessage::Error { code, message, .. } => {
+    return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
     }
+    msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
+    .into_iter();
 
-    pub async fn tool_beads_pane_history(
-        &mut self,
-        pane_id: Option<Uuid>,
-    ) -> Result<ToolResult, McpError> {
-        let (session_name, resolved_pane_id) = self.resolve_session_for_pane(pane_id).await?;
+    for session in sessions {
+    self.connection.send_to_daemon(ClientMessage::GetMetadata {
+    session_filter: session.id.to_string(),
+    key: Some(beads::CURRENT_ISSUE.to_string()),
+    })
+    .await?;
 
-        self.connection.send_to_daemon(ClientMessage::GetMetadata {
-            session_filter: session_name.clone(),
-            key: Some(beads::ISSUE_HISTORY.to_string()),
+    if let ServerMessage::MetadataList {
+    session_id,
+    session_name,
+    metadata,
+    } = self.connection.recv_response_from_daemon().await? {
+    if let Some(current_issue) = metadata.get(beads::CURRENT_ISSUE) {
+    if current_issue == issue_id {
+        self.connection.send_to_daemon(ClientMessage::ListAllPanes {
+        session_filter: Some(session_id.to_string()),
         })
         .await?;
 
-        match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::MetadataList {
-                session_id,
-                session_name,
-                metadata,
-            } => {
-                let history_json = metadata.get(beads::ISSUE_HISTORY).cloned();
-
-                let history: Vec<serde_json::Value> = history_json
-                    .and_then(|h| serde_json::from_str(&h).ok())
-                    .unwrap_or_default();
-
-                self.connection.send_to_daemon(ClientMessage::GetMetadata {
-                    session_filter: session_id.to_string(),
-                    key: Some(beads::CURRENT_ISSUE.to_string()),
-                })
-                .await?;
-
-                let current_issue = match self.connection.recv_response_from_daemon().await? {
-                    ServerMessage::MetadataList { metadata, .. } => {
-                        metadata
-                            .get(beads::CURRENT_ISSUE)
-                            .cloned()
-                            .filter(|s| !s.is_empty())
-                    }
-                    _ => None,
-                };
-
-                let result = serde_json::json!({
-                    "session_id": session_id.to_string(),
-                    "session_name": session_name,
-                    "pane_id": resolved_pane_id.map(|id| id.to_string()),
-                    "current_issue": current_issue,
-                    "history": history,
-                    "history_count": history.len(),
-                });
-
-                let json = serde_json::to_string_pretty(&result)
-                    .map_err(|e| McpError::Internal(e.to_string()))?;
-                Ok(ToolResult::text(json))
-            }
-            ServerMessage::Error { code, message, .. } => {
-                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-            }
-            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        let pane_id = match self.connection.recv_response_from_daemon().await? {
+        ServerMessage::AllPanesList { panes } => {
+        panes.first().map(|p| p.id)
         }
+        _ => None,
+        };
+
+        let result = serde_json::json!({
+        "found": true,
+        "session_id": session_id.to_string(),
+        "session_name": session_name,
+        "pane_id": pane_id.map(|id| id.to_string()),
+        "issue_id": issue_id,
+        });
+
+        let json = serde_json::to_string_pretty(&result)
+        .map_err(|e| McpError::Internal(e.to_string()))?;
+        return Ok(ToolResult::text(json));
+    }
+    }
+    }
+    }
+
+    let result = serde_json::json!({
+    "found": false,
+    "issue_id": issue_id,
+    "message": "No pane is currently working on this issue",
+    });
+
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+
+    pub async fn tool_beads_pane_history(
+    &mut self,
+    pane_id: Option<Uuid>,
+    ) -> Result<ToolResult, McpError> {
+    let (session_name, resolved_pane_id) = self.resolve_session_for_pane(pane_id).await?;
+
+    self.connection.send_to_daemon(ClientMessage::GetMetadata {
+    session_filter: session_name.clone(),
+    key: Some(beads::ISSUE_HISTORY.to_string()),
+    })
+    .await?;
+
+    match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::MetadataList {
+    session_id,
+    session_name,
+    metadata,
+    } => {
+    let history_json = metadata.get(beads::ISSUE_HISTORY).cloned();
+
+    let history: Vec<serde_json::Value> = history_json
+    .and_then(|h| serde_json::from_str(&h).ok())
+    .unwrap_or_default();
+
+    self.connection.send_to_daemon(ClientMessage::GetMetadata {
+    session_filter: session_id.to_string(),
+    key: Some(beads::CURRENT_ISSUE.to_string()),
+    })
+    .await?;
+
+    let current_issue = match self.connection.recv_response_from_daemon().await? {
+    ServerMessage::MetadataList { metadata, .. } => {
+        metadata
+        .get(beads::CURRENT_ISSUE)
+        .cloned()
+        .filter(|s| !s.is_empty())
+    }
+    _ => None,
+    };
+
+    let result = serde_json::json!({
+    "session_id": session_id.to_string(),
+    "session_name": session_name,
+    "pane_id": resolved_pane_id.map(|id| id.to_string()),
+    "current_issue": current_issue,
+    "history": history,
+    "history_count": history.len(),
+    });
+
+    let json = serde_json::to_string_pretty(&result)
+    .map_err(|e| McpError::Internal(e.to_string()))?;
+    Ok(ToolResult::text(json))
+    }
+    ServerMessage::Error { code, message, .. } => {
+    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+    }
+    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+    }
     }
 }

@@ -520,6 +520,54 @@ impl Pane {
             metadata: self.metadata.clone(),
         }
     }
+
+    /// Check if the pane is stuck or running slowly
+    fn check_stuck_status(&self) -> Option<PaneStuckStatus> {
+        // Only relevant for Claude panes
+        let claude_state = match &self.state {
+            PaneState::Claude(state) => state,
+            _ => return None,
+        };
+
+        let now = SystemTime::now();
+        let duration = now
+            .duration_since(self.state_changed_at)
+            .unwrap_or(Duration::from_secs(0))
+            .as_secs();
+
+        match claude_state.activity {
+            ClaudeActivity::Thinking => {
+                if duration > 120 {
+                    // > 2 minutes thinking
+                    Some(PaneStuckStatus::Stuck {
+                        duration,
+                        reason: "Thinking timeout (2m)".to_string(),
+                    })
+                } else if duration > 60 {
+                    // > 1 minute thinking
+                    Some(PaneStuckStatus::Slow { duration })
+                } else {
+                    None
+                }
+            }
+            ClaudeActivity::ToolUse => {
+                if duration > 300 {
+                    // > 5 minutes tool use
+                    Some(PaneStuckStatus::Stuck {
+                        duration,
+                        reason: "Tool use timeout (5m)".to_string(),
+                    })
+                } else if duration > 120 {
+                    // > 2 minutes tool use
+                    Some(PaneStuckStatus::Slow { duration })
+                } else {
+                    None
+                }
+            }
+            // Other states (Idle, Coding, AwaitingConfirmation) don't have implicit timeouts
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]

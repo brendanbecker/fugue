@@ -1278,7 +1278,7 @@ mod tests {
             name: None,
             title: Some("test".to_string()),
             cwd: None,
-            stuck_status: None,
+            stuck_status: None, metadata: std::collections::HashMap::new(),
         };
         let broadcast_msg = ServerMessage::PaneCreated {
             pane: pane_info,

@@ -74,6 +74,7 @@ mod tests {
     #[test]
     fn test_is_broadcast_message_pane_created() {
         let msg = ServerMessage::PaneCreated {
+            should_focus: false,
             pane: PaneInfo {
                 id: Uuid::new_v4(),
                 window_id: Uuid::new_v4(),
@@ -84,7 +85,7 @@ mod tests {
                 name: None,
                 title: None,
                 cwd: None,
-                stuck_status: None,
+                stuck_status: None, metadata: std::collections::HashMap::new(),
             },
             direction: SplitDirection::Horizontal,
         };
@@ -94,6 +95,7 @@ mod tests {
     #[test]
     fn test_is_broadcast_message_window_created() {
         let msg = ServerMessage::WindowCreated {
+            should_focus: false,
             window: WindowInfo {
                 id: Uuid::new_v4(),
                 session_id: Uuid::new_v4(),
