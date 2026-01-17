@@ -125,11 +125,17 @@ impl AgentDetector for ClaudeAgentDetector {
     }
 
     fn analyze(&mut self, text: &str) -> Option<AgentState> {
-        // Analyze with inner detector
-        let _change = self.inner.analyze(text);
+        // Track whether Claude was already detected before this analyze call
+        let was_active = self.inner.is_claude();
 
-        // Return current state if Claude is detected
-        if self.inner.is_claude() {
+        // Analyze with inner detector (returns Some only on activity state changes)
+        let state_changed = self.inner.analyze(text).is_some();
+
+        // Return state if:
+        // 1. Claude was just detected (transition from not-active to active), OR
+        // 2. Activity state changed (inner detector returned Some)
+        // This prevents excessive PaneStateChanged broadcasts (BUG-048)
+        if (!was_active && self.inner.is_claude()) || state_changed {
             self.state()
         } else {
             None
@@ -245,5 +251,46 @@ mod tests {
         let metadata = detector.extract_metadata("Model: claude-3-opus");
 
         assert!(metadata.contains_key("model"));
+    }
+
+    #[test]
+    fn test_analyze_returns_none_on_repeated_calls_without_change() {
+        // BUG-048: analyze() should return None when no state change occurs
+        // Use zero debounce for accurate testing
+        let mut detector = ClaudeAgentDetector::with_debounce(0);
+
+        // First call detects Claude - should return Some
+        let state = detector.analyze("Welcome to Claude Code v1.0");
+        assert!(state.is_some(), "First detection should return Some");
+
+        // Subsequent calls with no state change should return None
+        let state = detector.analyze("some random text");
+        assert!(state.is_none(), "Repeated call without change should return None");
+
+        let state = detector.analyze("more text");
+        assert!(state.is_none(), "Another call without change should return None");
+    }
+
+    #[test]
+    fn test_analyze_returns_some_only_on_state_transitions() {
+        // BUG-048: analyze() should only return Some when state actually changes
+        // Use zero debounce for accurate testing
+        let mut detector = ClaudeAgentDetector::with_debounce(0);
+
+        // Initial detection
+        let state = detector.analyze("Welcome to Claude Code v1.0");
+        assert!(state.is_some(), "Initial detection should return Some");
+
+        // No change
+        let state = detector.analyze("idle text");
+        assert!(state.is_none(), "No change should return None");
+
+        // Transition to thinking/processing
+        let state = detector.analyze("\r\u{280b} Thinking...");
+        assert!(state.is_some(), "State transition should return Some");
+
+        // Still thinking - no change
+        let state = detector.analyze("\r\u{280b} Thinking...");
+        assert!(state.is_none(), "Same state should return None");
     }
 }
