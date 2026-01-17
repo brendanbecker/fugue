@@ -1,0 +1,31 @@
+{
+  "bug_id": "BUG-052",
+  "title": "Agents inside ccmux panes cannot connect to ccmux MCP server",
+  "component": "mcp-bridge",
+  "severity": "high",
+  "priority": "P1",
+  "status": "new",
+  "reported_date": "2026-01-17",
+  "updated_date": "2026-01-17",
+  "assigned_to": null,
+  "tags": ["orchestration", "mcp-bridge", "pty", "bug"],
+  "affected_versions": [],
+  "environment": "development",
+  "reproducibility": "always",
+  "description": "When an AI agent (e.g., Gemini CLI) is launched inside a ccmux pane, it cannot connect to the ccmux MCP server. This breaks the core orchestration use case where agents inside ccmux should be able to control ccmux (create panes, split windows, orchestrate other agents, etc.).",
+  "steps_to_reproduce": [
+    "Start ccmux with MCP bridge running",
+    "Have an outer agent (Claude Code) connected to ccmux MCP successfully",
+    "Use ccmux MCP to create a session and pane",
+    "Launch Gemini CLI (or another agent with ccmux MCP configured) inside the pane",
+    "Observe Gemini fails to connect to ccmux MCP server"
+  ],
+  "expected_behavior": "Agents running inside ccmux panes should be able to connect to the ccmux MCP server and use ccmux tools to orchestrate (create panes, send input, read output, etc.). This is the core multi-agent orchestration use case.",
+  "actual_behavior": "The nested agent fails to connect with error: 'MCP ERROR (ccmux) Error during discovery for MCP server ccmux: Client is not connected, must connect before interacting with the server. Current state is disconnected'",
+  "evidence": {
+    "error_message": "MCP ERROR (ccmux) Error during discovery for MCP server 'ccmux': Client is not connected, must connect before interacting with the server. Current state is disconnected",
+    "context": "Gemini CLI launched inside ccmux pane"
+  },
+  "root_cause": "Suspected causes: (1) MCP bridge socket path not accessible from PTY environment, (2) MCP bridge only allows single client connection (stdio-based), (3) Configuration path issues - agent inside pane can't find MCP config, (4) Bridge architecture doesn't support multiple concurrent clients",
+  "impact": "Critical - this breaks the primary orchestration use case where agents coordinate through ccmux. Multi-agent workflows requiring agents to spawn and orchestrate other agents via ccmux are completely blocked."
+}

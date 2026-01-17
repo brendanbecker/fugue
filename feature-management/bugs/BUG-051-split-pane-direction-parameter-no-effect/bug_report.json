@@ -1,0 +1,35 @@
+{
+  "bug_id": "BUG-051",
+  "title": "Split pane direction parameter has no effect - always creates horizontal panes",
+  "component": "mcp-handlers",
+  "severity": "medium",
+  "priority": "P1",
+  "status": "new",
+  "reported_date": "2026-01-17",
+  "updated_date": "2026-01-17",
+  "assigned_to": null,
+  "tags": ["mcp", "pty", "layout-engine", "split-pane"],
+  "affected_versions": [],
+  "environment": "development",
+  "reproducibility": "always",
+  "description": "When using ccmux_split_pane with direction: 'vertical' or direction: 'horizontal', both produce the same result - horizontally stacked panes (one above the other). The direction parameter appears to have no effect on the actual layout.",
+  "steps_to_reproduce": [
+    "Create a new session",
+    "Split the pane with direction: 'horizontal'",
+    "Observe panes are stacked horizontally (top/bottom)",
+    "Kill session and recreate",
+    "Split the pane with direction: 'vertical'",
+    "Observe panes are STILL stacked horizontally (top/bottom)"
+  ],
+  "expected_behavior": "The direction parameter should control the split orientation. One direction should create side-by-side panes (left | right) and the other should create stacked panes (top / bottom). The two options should produce visually different layouts.",
+  "actual_behavior": "Both direction values (horizontal and vertical) produce horizontally stacked panes (top/bottom layout). The direction parameter is ignored.",
+  "evidence": {
+    "test_observations": {
+      "direction_horizontal": "Produces top/bottom split",
+      "direction_vertical": "Also produces top/bottom split",
+      "conclusion": "Direction parameter has no effect on layout"
+    }
+  },
+  "root_cause": "The MCP handler or PTY layout system may be ignoring the direction parameter, hardcoding a default split direction, or there may be a parameter mapping issue between the MCP API and the underlying split logic.",
+  "impact": "Core feature not working as documented. Users cannot create side-by-side pane layouts. Limits layout flexibility for agent orchestration workflows."
+}
