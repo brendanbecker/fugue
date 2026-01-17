@@ -424,14 +424,22 @@ impl ConnectionManager {
                 });
             }
 
-            match self.recv_from_daemon_with_timeout(remaining).await? {
-                msg if predicate(&msg) => return Ok(msg),
-                ServerMessage::Error { code, message, .. } => {
-                    // Always return errors immediately unless the predicate specifically wanted them
-                    return Err(McpError::DaemonError(format!("{:?}: {}", code, message)));
-                }
-                _ => continue,
+            // BUG-043: Unwrap Sequenced messages before predicate check
+            // The daemon wraps responses in Sequenced { seq, inner } for persistence tracking,
+            // but predicates expect the unwrapped message types
+            let msg = match self.recv_from_daemon_with_timeout(remaining).await? {
+                ServerMessage::Sequenced { inner, .. } => *inner,
+                other => other,
+            };
+
+            if predicate(&msg) {
+                return Ok(msg);
             }
+            if let ServerMessage::Error { code, message, .. } = msg {
+                // Always return errors immediately unless the predicate specifically wanted them
+                return Err(McpError::DaemonError(format!("{:?}: {}", code, message)));
+            }
+            // Not the message we're looking for, continue waiting
         }
     }
 
