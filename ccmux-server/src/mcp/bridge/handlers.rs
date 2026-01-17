@@ -70,73 +70,70 @@ impl<'a> ToolHandlers<'a> {
     Self { connection }
     }
 
-    pub async fn tool_list_sessions(&mut self) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
-
-    match self.connection.recv_response_from_daemon().await? {
-    ServerMessage::SessionList { sessions } => {
-    let result: Vec<serde_json::Value> = sessions
-    .iter()
-    .map(|s| {
-        serde_json::json!({
-        "id": s.id.to_string(),
-        "name": s.name,
-        "window_count": s.window_count,
-        "attached_clients": s.attached_clients,
-        "created_at": s.created_at,
-        "metadata": s.metadata,
-        })
-    })
-    .collect();
-
-    let json = serde_json::to_string_pretty(&result)
-    .map_err(|e| McpError::Internal(e.to_string()))?;
-    Ok(ToolResult::text(json))
-    }
-    ServerMessage::Error { code, message, .. } => {
-    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-    }
-    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-    }
-    }
-
-    pub async fn tool_list_windows(
-    &mut self,
-    session_filter: Option<String>,
+            pub async fn tool_list_sessions(&mut self) -> Result<ToolResult, McpError> {
+                self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
+        
+                match self.connection.recv_response_from_daemon().await? {
+                    ServerMessage::SessionList { sessions } => {
+                        let result: Vec<serde_json::Value> = sessions
+                            .iter()
+                            .map(|s| {
+                                serde_json::json!({
+                                    "id": s.id.to_string(),
+                                    "name": s.name,
+                                    "window_count": s.window_count,
+                                    "attached_clients": s.attached_clients,
+                                    "created_at": s.created_at,
+                                    "metadata": s.metadata,
+                                })
+                            })
+                            .collect();
+        
+                        let json = serde_json::to_string_pretty(&result)
+                            .map_err(|e| McpError::Internal(e.to_string()))?;
+                        Ok(ToolResult::text(json))
+                    }
+                    ServerMessage::Error { code, message, .. } => {
+                        Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+                    }
+                    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+                }
+            }    pub async fn tool_list_windows(
+        &mut self,
+        session_filter: Option<String>,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::ListWindows { session_filter })
-    .await?;
+        self.connection.send_to_daemon(ClientMessage::ListWindows { session_filter })
+            .await?;
 
-    match self.connection.recv_response_from_daemon().await? {
-    ServerMessage::WindowList {
-    session_name,
-    windows,
-    } => {
-    let result: Vec<serde_json::Value> = windows
-    .iter()
-    .map(|w| {
-        serde_json::json!({
-        "id": w.id.to_string(),
-        "index": w.index,
-        "name": w.name,
-        "pane_count": w.pane_count,
-        "active_pane_id": w.active_pane_id.map(|id| id.to_string()),
-        "session": session_name,
-        })
-    })
-    .collect();
+        match self.connection.recv_response_from_daemon().await? {
+            ServerMessage::WindowList {
+                session_name,
+                windows,
+            } => {
+                let result: Vec<serde_json::Value> = windows
+                    .iter()
+                    .map(|w| {
+                        serde_json::json!({
+                            "id": w.id.to_string(),
+                            "index": w.index,
+                            "name": w.name,
+                            "pane_count": w.pane_count,
+                            "active_pane_id": w.active_pane_id.map(|id| id.to_string()),
+                            "session": session_name,
+                        })
+                    })
+                    .collect();
 
-    let json = serde_json::to_string_pretty(&result)
-    .map_err(|e| McpError::Internal(e.to_string()))?;
-    Ok(ToolResult::text(json))
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message, .. } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
     }
-    ServerMessage::Error { code, message, .. } => {
-    Ok(ToolResult::error(format!("{:?}: {}", code, message)))
-    }
-    msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-    }
-    }
-
     pub async fn tool_list_panes(
     &mut self,
     session_filter: Option<String>,
@@ -340,8 +337,8 @@ impl<'a> ToolHandlers<'a> {
     preset: Option<String>,
     ) -> Result<ToolResult, McpError> {
     let split_direction = match direction.as_deref() {
-    Some("horizontal") | Some("h") => SplitDirection::Vertical,
-    _ => SplitDirection::Horizontal,
+    Some("horizontal") | Some("h") => SplitDirection::Horizontal,
+    _ => SplitDirection::Vertical,
     };
 
     let user_direction = match direction.as_deref() {
@@ -671,8 +668,8 @@ impl<'a> ToolHandlers<'a> {
     select: bool,
     ) -> Result<ToolResult, McpError> {
     let split_direction = match direction.as_deref() {
-    Some("horizontal") | Some("h") => SplitDirection::Vertical,
-    _ => SplitDirection::Horizontal,
+    Some("horizontal") | Some("h") => SplitDirection::Horizontal,
+    _ => SplitDirection::Vertical,
     };
 
     let user_direction = match direction.as_deref() {
