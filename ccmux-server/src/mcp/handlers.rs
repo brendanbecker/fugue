@@ -523,17 +523,18 @@ impl<'a> ToolContext<'a> {
             .get(pane_id)
             .ok_or_else(|| McpError::Pty(format!("No PTY for pane {}", pane_id)))?;
 
-        // Write input to PTY
-        handle
-            .write_all(input.as_bytes())
-            .map_err(|e| McpError::Pty(e.to_string()))?;
-
-        // If submit is true, send carriage return to press Enter
+        // Prepare data - combine input with Enter key if submit is true
+        // This ensures atomic write to avoid race conditions where PTY
+        // might process input and Enter separately
+        let mut data = input.as_bytes().to_vec();
         if submit {
-            handle
-                .write_all(b"\r")
-                .map_err(|e| McpError::Pty(e.to_string()))?;
+            data.push(b'\r');
         }
+
+        // Write atomically to PTY
+        handle
+            .write_all(&data)
+            .map_err(|e| McpError::Pty(e.to_string()))?;
 
         Ok(r#"{"status": "sent"}"#.into())
     }
