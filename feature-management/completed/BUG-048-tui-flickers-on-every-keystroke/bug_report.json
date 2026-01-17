@@ -27,7 +27,7 @@
     "location": "ccmux-server/src/agents/claude/mod.rs",
     "description": "Lines 127-143: analyze() fixed to return state only on changes, but spinner animation in terminal output still triggers rapid activity state transitions"
   },
-  "root_cause": "The spinner animation (braille characters like ⠋⠙⠹) in Claude's terminal output causes the inner detector to report activity state changes on each frame, which then triggers PaneStateChanged broadcasts. Need to debounce or suppress spinner-induced state changes.",
+  "root_cause": "The spinner animation (pulsing snowflake/flower that expands and contracts down to a dot) in Claude's terminal output causes the inner detector to report activity state changes on each frame, which then triggers PaneStateChanged broadcasts. Need to debounce or suppress spinner-induced state changes.",
   "impact": "Reduced from severe to moderate - keystroke flicker fixed, but processing state still has visual noise",
   "related_items": ["FEAT-084", "FEAT-082"],
   "partial_fix": {

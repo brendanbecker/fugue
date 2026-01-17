@@ -1,101 +1,59 @@
 # Bug Reports
 
 **Project**: ccmux
-**Last Updated**: 2026-01-16
+**Last Updated**: 2026-01-17
 
 ## Summary Statistics
-- Total Bugs: 48
-- Open: 5
-- Resolved: 42
+- Total Bugs: 52
+- Open: 4
+- Resolved: 47
 - Deprecated: 1
-
-## CRITICAL: Approach for Complex Bugs
-
-**ULTRATHINK REQUIRED**: Bugs BUG-033, BUG-035, and BUG-036 have interconnected root causes and require deep analysis. When working on these bugs:
-
-1. **ULTRATHINK** before making any code changes - trace the full message flow
-2. **ULTRATHINK** about how previous fixes (BUG-028, BUG-029, BUG-030) may have introduced regressions
-3. **ULTRATHINK** about the dual MCP implementations (standalone vs bridge) and state propagation
-4. **ULTRATHINK** before assuming a simple fix - these bugs reveal systemic architectural issues
 
 ## Active Bugs
 
-| ID | Description | Priority | Status | Component | Link |
-|----|-------------|----------|--------|-----------|------|
-| BUG-049 | send_input with submit: true doesn't reliably submit input | P2 | new | mcp | [Link](BUG-049-send-input-submit-true-unreliable/) |
-| BUG-048 | TUI flickers on every keystroke when Claude Code is detected | P1 | new | tui | [Link](BUG-048-tui-flickers-on-every-keystroke/) |
-| BUG-047 | Clean up compiler warnings across ccmux crates | P3 | new | build | [Link](BUG-047-clean-up-compiler-warnings/) |
-| BUG-045 | Windows rendered as horizontal splits instead of separate tabs/screens | P2 | new | tui | [Link](BUG-045-windows-rendered-as-horizontal-splits/) |
-| BUG-044 | MCP bridge process hangs indefinitely, stops reading stdin | P1 | new | mcp-bridge | [Link](BUG-044-mcp-bridge-hangs-stops-reading-stdin/) |
-| BUG-043 | MCP handlers fail to unwrap Sequenced message wrapper | P1 | new | mcp-bridge | [Link](BUG-043-mcp-handlers-fail-to-unwrap-sequenced-wrapper/) |
-| BUG-042 | Excessive Result Nesting (Ok(Ok(...))) | P3 | new | mcp-bridge | [Link](BUG-042-excessive-result-nesting-code-smell/) |
-| BUG-041 | Claude Code crashes on paste inside ccmux | P1 | new | pty/client | [Link](BUG-041-claude-code-crashes-on-paste-inside-ccmux/) |
-| BUG-038 | create_pane returns wrong response type | P1 | fixed | mcp | [Link](BUG-038-create-pane-returns-wrong-response-type/) |
-| BUG-037 | close_pane returns AbortError | P2 | fixed | mcp-bridge | [Link](BUG-037-close-pane-aborts/) |
-| BUG-032 | MCP handlers missing TUI broadcasts for pane/window/layout ops | P0 | fixed | ccmux-server | [Link](BUG-032-mcp-handlers-missing-tui-broadcasts/) |
-| BUG-031 | Metadata not persisting across restarts | P1 | open | daemon | [Link](BUG-031-metadata-not-persisting-across-restarts/) |
+| ID | Description | Priority | Status | Component |
+|----|-------------|----------|--------|-----------|
+| BUG-052 | Agents inside ccmux panes cannot connect to ccmux MCP server | P1 | new | mcp-bridge |
+| BUG-051 | Split pane direction parameter has no effect - always creates horizontal panes | P1 | new | mcp-handlers |
+| BUG-047 | Clean up compiler warnings across ccmux crates | P3 | partial | build |
+| BUG-042 | Excessive Result Nesting (Ok(Ok(...))) code smell | P3 | new | mcp-bridge |
 
-## Priority Queue (Post-Retrospective)
+## Priority Queue
 
-| Priority | Bug | Risk | Effort | Approach |
-|----------|-----|------|--------|----------|
-| **P1** | BUG-048 | Low | Low | Fix analyze() to only return on state change |
-| **P2** | BUG-049 | Low | Low | Investigate PTY write ordering for submit: true |
-| **P3** | BUG-047 | Low | Low | Clean up compiler warnings (code quality) |
-| **P3** | BUG-042 | Low | Low | Refactor Result nesting (code smell) |
+| Priority | Bug | Risk | Effort | Notes |
+|----------|-----|------|--------|-------|
+| **P1** | BUG-052 | High | High | Blocks multi-agent orchestration use case |
+| **P1** | BUG-051 | Medium | Medium | Core feature broken - direction parameter ignored |
+| **P3** | BUG-047 | Low | Low | Code quality cleanup |
+| **P3** | BUG-042 | Low | Medium | Refactor Result nesting |
 
 ## Recent Activity
 
-- 2026-01-16: Created BUG-049 - send_input with submit: true doesn't reliably submit input
-- 2026-01-16: Created BUG-048 - TUI flickers on every keystroke when Claude Code is detected
-- 2026-01-16: Created BUG-047 - Clean up compiler warnings across ccmux crates
-- 2026-01-16: Created BUG-045 - Windows rendered as horizontal splits instead of separate tabs/screens
-- 2026-01-16: Created BUG-044 - MCP bridge process hangs indefinitely, stops reading stdin
+- 2026-01-17: Created BUG-052 - nested agents cannot connect to ccmux MCP server
+- 2026-01-17: Created BUG-051 - split pane direction parameter has no effect
+- 2026-01-16: Fixed BUG-050 - cwd inheritance, merged to main, archived
+- 2026-01-16: Verified BUG-038 already fixed (commit 99d024e), archived
+- 2026-01-16: Fixed BUG-048, BUG-049, FEAT-093 - merged to main, archived
+- 2026-01-16: Created BUG-050 - pane/session/window cwd inheritance
+- 2026-01-16: Archived BUG-043, BUG-044, BUG-045, BUG-046 (all fixed)
 
-## Bug Status
+## Resolved Bugs (Recent)
 
-### Resolved Bugs
+| ID | Description | Resolution | Commit |
+|----|-------------|------------|--------|
+| BUG-050 | pane/session/window cwd inheritance | Fixed - pass cwd through MCP chain | ca1dcc9 |
+| BUG-038 | create_pane returns wrong response type | Fixed - SessionsChanged broadcast type | 99d024e |
+| BUG-049 | send_input submit: true unreliable | Fixed - PTY write ordering | 937339a |
+| BUG-048 | TUI flickers during spinner | Fixed - debounce state changes | 39ad9fc |
+| BUG-046 | MCP select commands don't control TUI view | Fixed - notify TUI in target session | 1ccf693 |
+| BUG-045 | Windows rendered as horizontal splits | Fixed - render only active window panes | fa137ab |
+| BUG-044 | MCP bridge hangs, stops reading stdin | Fixed - async stdin | 07474c4 |
+| BUG-043 | MCP handlers fail to unwrap Sequenced wrapper | Fixed - unwrap in recv_filtered | d995d55 |
+| BUG-041 | Claude Code crashes on paste | Fixed - bracketed paste handling | 936aba7 |
+| BUG-037 | close_pane returns AbortError | Fixed - unbounded channel | 4be5a93 |
+| BUG-031 | Metadata not persisting | Fixed - log to persistence layer | 2286aab |
 
-| ID | Description | Priority | Resolution |
-|----|-------------|----------|------------|
-| BUG-037 | close_pane returns AbortError | P2 | Fixed - unbounded channel in MCP bridge I/O task |
-| BUG-040 | create_window returns success but doesn't create windows | P1 | Fixed - use active_session_id() instead of first session |
-| BUG-039 | MCP tools hang intermittently through Claude Code | P1 | Fixed - connection recovery on timeout and infinite loop fixes |
-| BUG-036 | Selection tools don't switch TUI view | P0 | Fixed - use global broadcasts for focus changes |
-| BUG-035 | MCP handlers return wrong response types | P1 | Fixed - strict broadcast filtering and connection recovery |
-| BUG-034 | create_window ignores selected session | P2 | Fixed - use active_session_id() instead of first session |
-| BUG-033 | create_layout rejects all layout formats | P1 | Fixed - parse layout strings in bridge handler |
-| BUG-030 | Daemon unresponsive after create_window | P0 | Fixed - wrap serde_json::Value for bincode compatibility |
-| BUG-029 | MCP response synchronization bug | P0 | Fixed - filter broadcast messages in recv_response_from_daemon |
-| BUG-028 | Daemon crashes on `ccmux_create_layout` with nested layout | P0 | Fixed - two-phase pane creation to avoid lock contention |
-| BUG-027 | MCP response routing swapped between handlers | P0 | Fixed - filter broadcast messages in recv_response_from_daemon |
-| BUG-026 | Focus management broken (auto-focus, focus_pane, select_window) | P1 | Fixed - broadcast focus changes to TUI clients |
-| BUG-025 | create_pane direction response mismatch | P2 | Fixed - return user's requested direction |
-| BUG-001 | Client input not captured | P0 | Fixed |
-| BUG-002 | Flaky test (shared temp dir) | P2 | Fixed - used tempfile::TempDir |
-| BUG-003 | Session missing default pane | P0 | Fixed |
-| BUG-004 | Zombie panes hang client on reattach | P1 | Fixed - auto-cleanup on PTY exit |
-| BUG-005 | Sideband parsing not integrated | P0 | Fixed - integrated into PTY output flow |
-| BUG-006 | Viewport not sizing to terminal | P1 | Fixed - client uses terminal size on attach |
-| BUG-007 | Shift+Tab not passed through | P1 | Fixed - added BackTab handler |
-| BUG-008 | Pane/window creation no PTY | P0 | Fixed - spawn PTY on creation |
-| BUG-009 | Flaky persistence tests | P2 | Fixed - test isolation |
-| BUG-010 | MCP pane broadcast not received by TUI | P1 | Fixed |
-| BUG-011 | Large paste crashes session | P2 | Fixed - graceful chunking |
-| BUG-013 | Mouse scroll wheel not working | P2 | Fixed |
-| BUG-014 | Large output buffer overflow | P2 | Fixed (stream-c) |
-| BUG-015 | Layout not recalculated on pane close | P2 | Fixed (stream-b) |
-| BUG-016 | PTY output not routed to pane state | P1 | Fixed - enables Claude detection + MCP read_pane |
-| BUG-017 | MCP send_input doesn't handle Enter key | P1 | Fixed |
-| BUG-018 | TUI pane interaction failure | P1 | Fixed (stream-a) |
-| BUG-019 | Claude detector UTF-8 panic causes TUI hang | P1 | Fixed - char boundary check |
-| BUG-020 | Session reattach creates client without PTY | P1 | Fixed (stream-a) - send scrollback on reattach |
-| BUG-021 | ccmux_rename_session missing from standalone MCP | P1 | Fixed |
-| BUG-022 | Viewport stuck above bottom after subagent | P2 | Fixed - reset scroll position on resize (b567daf) |
-| BUG-023 | ccmux_create_session doesn't spawn shell | P1 | Fixed - added command param + output poller (1ac7e60) |
-| BUG-024 | Runaway pane spawning via sideband | P0 | Fixed - OSC escape sequence format (5da1697) |
-
-### Deprecated Bugs
+## Deprecated Bugs
 
 | ID | Description | Reason |
 |----|-------------|--------|

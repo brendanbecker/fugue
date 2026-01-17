@@ -1,0 +1,31 @@
+{
+  "bug_id": "BUG-050",
+  "title": "New pane/session/window doesn't inherit expected working directory",
+  "component": "mcp, session",
+  "severity": "medium",
+  "priority": "P2",
+  "status": "new",
+  "reported_date": "2026-01-16",
+  "updated_date": "2026-01-16",
+  "assigned_to": null,
+  "tags": ["mcp", "session", "pane", "cwd", "working-directory"],
+  "affected_versions": [],
+  "environment": "All platforms",
+  "reproducibility": "sometimes",
+  "description": "When creating a new pane, session, or window via MCP tools, the new shell does not always launch in the expected working directory. It may launch in home directory, daemon's directory, or other unexpected location.",
+  "steps_to_reproduce": [
+    "Start ccmux in a specific project directory",
+    "Call ccmux_create_pane without explicit cwd parameter",
+    "Observe the new pane's working directory",
+    "Note that it may not match the expected directory"
+  ],
+  "expected_behavior": "New panes should inherit working directory from parent pane or use explicit cwd if provided",
+  "actual_behavior": "New panes sometimes launch in unexpected directories (home, daemon cwd, etc.)",
+  "evidence": {
+    "type": "observation",
+    "description": "Reported during multi-agent workflow testing"
+  },
+  "root_cause": "Unknown - needs investigation. Likely cwd not being passed through MCP → daemon → PTY spawn chain correctly.",
+  "impact": "Affects multi-agent workflows where agents need to work in specific project directories",
+  "related_items": []
+}
