@@ -2242,7 +2242,9 @@ impl App {
             | ServerMessage::MetadataList { .. }
             | ServerMessage::TagsSet { .. }
             | ServerMessage::TagsList { .. }
-            | ServerMessage::ServerStatus { .. } => {
+            | ServerMessage::ServerStatus { .. }
+            | ServerMessage::WorkerStatus { .. }
+            | ServerMessage::MessagesPolled { .. } => {
                 // These messages are for the MCP bridge or observability, not the TUI client
             }
 
