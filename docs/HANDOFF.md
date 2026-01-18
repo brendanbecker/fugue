@@ -8,7 +8,7 @@
 **Current Stage**: Stage 8 (Multi-Agent Orchestration Enhancement)
 **Status**: Production-ready core with new orchestration primitives.
 
-## Current State (2026-01-17)
+## Current State (2026-01-18)
 
 **All P1 Features Complete!** Orchestration primitives fully shipped:
 - `ccmux_expect` - Wait for regex patterns in pane output (FEAT-096)
@@ -19,9 +19,16 @@
 
 **Agent Detection**: Both Claude and Gemini CLI detected (FEAT-098).
 
-### Active Bugs (0)
+### Active Bugs (6)
 
-All bugs resolved.
+| ID | Description | Priority | Component |
+|----|-------------|----------|-----------|
+| BUG-058 | `ccmux_kill_session` causes client hang | P2 | client |
+| BUG-060 | Orchestration MCP tools require session attachment | P2 | mcp |
+| BUG-059 | `ccmux_mirror_pane` tool aborts | P3 | mcp |
+| BUG-057 | Agent detection cross-contamination | P3 | agents |
+| BUG-047 | Compiler warnings cleanup | P3 | build |
+| BUG-042 | Result nesting code smell | P3 | mcp |
 
 ### Active Features (5 backlog)
 
@@ -30,7 +37,41 @@ All bugs resolved.
 | P2 | FEAT-064, FEAT-065 (MCP bridge refactoring) | Backlog |
 | P3 | FEAT-069, FEAT-072, FEAT-087-092 (infra + refactoring) | Backlog |
 
-### Latest Session (2026-01-17, Session 6)
+### Latest Session (2026-01-18, Session 7)
+
+**Multi-Agent Orchestration Demo - Retrospective**
+
+Ran the full `DEMO-MULTI-AGENT.md` script to validate orchestration capabilities.
+
+**What Worked:**
+| Capability | Status | Notes |
+|------------|--------|-------|
+| Session creation/tagging | ✅ | Created 3 worker sessions, tagged by specialty |
+| Agent detection | ✅ | Claude instances detected (`is_claude: true`) |
+| `ccmux_expect` | ✅ | Pattern matching for "Claude Code" startup |
+| `ccmux_run_parallel` | ✅ | 3 commands in ~2.5s with structured results |
+| `ccmux_run_pipeline` | ✅ | Sequential execution, stops on error |
+| `ccmux_list_panes` / `ccmux_get_status` | ✅ | Real-time cognitive state monitoring |
+| Beads integration | ✅ | assign, find_pane, release, pane_history all work |
+
+**What Failed (New Bugs Filed):**
+| Tool | Error | Bug |
+|------|-------|-----|
+| `ccmux_kill_session` | Client hangs (TUI keybindings still work) | BUG-058 |
+| `ccmux_mirror_pane` | AbortError - feature incomplete | BUG-059 |
+| `ccmux_send_orchestration` | "Must be attached to session" | BUG-060 |
+| `ccmux_broadcast` | "Must be attached to session" | BUG-060 |
+| `ccmux_report_status` | "Must be attached to session" | BUG-060 |
+
+**Key Insight:** The orchestration message-passing tools (`send_orchestration`, `broadcast`, `report_status`, `request_help`) require session context that the MCP bridge doesn't have. This blocks the Act 7 message-passing demo entirely. Architecture decision needed.
+
+**Demo Script Assessment:**
+- Acts 1-6: Work fully (session creation, agent spawning, parallel execution, status monitoring, beads tracking)
+- Act 7: Blocked by BUG-060 (message passing)
+- Act 8: Blocked by BUG-059 (mirror panes)
+- Acts 9-10: Work with workaround (pipeline works; cleanup works but causes hang)
+
+### Previous Session (2026-01-17, Session 6)
 
 **Merged remaining work items and cleanup:**
 
@@ -88,22 +129,93 @@ Attempted to launch 3 parallel background agents via Task tool, but:
 
 ## Recommended Work Order
 
-All P1 work complete. Remaining work is optional refactoring:
+Focus on bug fixes to complete the demo, then optional refactoring:
 
 ```
-Phase 1: MCP Refactoring (Optional)
-  1. FEAT-064, 065 (MCP bridge cleanup)
+Phase 1: Demo Blockers (P2 Bugs)
+  1. BUG-058 - kill_session client hang
+  2. BUG-060 - Orchestration session attachment (architecture decision)
+  3. BUG-059 - mirror_pane incomplete
 
-Phase 2: Infrastructure (Optional)
-  2. FEAT-069 (TLS/auth)
-  3. Other P3 items as time permits
+Phase 2: New Capabilities (P2 Features)
+  4. FEAT-100 - OrchestrationContext abstraction
+  5. FEAT-101 - Codex CLI agent detection
+
+Phase 3: Refactoring (Optional)
+  6. FEAT-064, 065 (MCP bridge cleanup)
+  7. Other P3 items as time permits
 ```
+
+## Parallel Workstreams
+
+These workstreams are **fully independent** and can run in separate worktrees:
+
+### Workstream A: Client Stability (BUG-058)
+**Goal**: Fix client hang after `ccmux_kill_session`
+
+| Item | Description | Effort | Files |
+|------|-------------|--------|-------|
+| BUG-058 | kill_session client hang | Medium | `ccmux-client/src/ui/app.rs`, `ccmux-server/src/session/` |
+
+**Root Cause Hypothesis**: Client waiting for events from killed session. Need to properly handle session removal notification.
+
+### Workstream B: MCP Session Context (BUG-060)
+**Goal**: Enable orchestration tools from MCP clients
+
+| Item | Description | Effort | Files |
+|------|-------------|--------|-------|
+| BUG-060 | Orchestration session attachment | Medium | `ccmux-server/src/mcp/bridge/` |
+
+**Architecture Options**:
+1. Auto-attach MCP bridge to spawning session
+2. Add `ccmux_attach_session` tool
+3. Add `from_session` parameter to orchestration tools
+4. Allow MCP-specific "mcp-client" identity
+
+### Workstream C: Mirror Pane Implementation (BUG-059)
+**Goal**: Complete the mirror pane feature for "plate spinning"
+
+| Item | Description | Effort | Files |
+|------|-------------|--------|-------|
+| BUG-059 | mirror_pane abort | Low-Medium | `ccmux-server/src/mcp/bridge/handlers.rs` |
+
+**Note**: Listed as dead code in BUG-047, suggesting incomplete implementation.
+
+### Workstream D: Agent Detection (FEAT-101)
+**Goal**: Detect Codex CLI alongside Claude and Gemini
+
+| Item | Description | Effort | Files |
+|------|-------------|--------|-------|
+| FEAT-101 | Codex CLI detection | Low | `ccmux-server/src/agents/` |
+
+**Note**: Blocked by BUG-053 (Codex requires DSR cursor position). Spec exists at `feature-management/features/FEAT-101-codex-cli-detection/`.
+
+### Workstream E: Code Quality (P3)
+**Goal**: Clean up warnings and code smells
+
+| Item | Description | Effort | Files |
+|------|-------------|--------|-------|
+| BUG-047 | Compiler warnings | Low | Various |
+| BUG-042 | Result nesting | Low | `ccmux-server/src/mcp/bridge/` |
+| BUG-057 | Agent cross-contamination | Low | `ccmux-server/src/agents/` |
+
+### Workstream F: Refactoring (Optional)
+**Goal**: Improve code organization
+
+| Item | Description | Effort | Files |
+|------|-------------|--------|-------|
+| FEAT-064 | Refactor bridge.rs | Medium | `ccmux-server/src/mcp/bridge/` |
+| FEAT-065 | Refactor handlers | Medium | `ccmux-server/src/mcp/bridge/handlers.rs` |
+| FEAT-087-092 | Various refactoring | Medium | Multiple |
 
 ## Backlog Summary
 
-### Bugs (0 open)
+### Bugs (6 open)
 
-All bugs resolved.
+| Priority | Count | IDs |
+|----------|-------|-----|
+| P2 | 2 | BUG-058, BUG-060 |
+| P3 | 4 | BUG-042, BUG-047, BUG-057, BUG-059 |
 
 ### Features (6 backlog)
 
@@ -210,12 +322,12 @@ ccmux is agent-agnostic:
 
 | Metric | Value |
 |--------|-------|
-| Total Bugs | 56 |
-| Open Bugs | 0 |
-| Resolution Rate | 100% |
-| Total Features | 98 |
-| Completed Features | 93 |
-| Completion Rate | 95% |
+| Total Bugs | 60 |
+| Open Bugs | 6 |
+| Resolution Rate | 90% |
+| Total Features | 101 |
+| Completed Features | 90 |
+| Completion Rate | 89% |
 | Test Count | 1,714+ |
 
 ---

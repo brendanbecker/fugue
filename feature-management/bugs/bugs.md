@@ -1,11 +1,11 @@
 # Bug Reports
 
 **Project**: ccmux
-**Last Updated**: 2026-01-17
+**Last Updated**: 2026-01-18
 
 ## Summary Statistics
-- Total Bugs: 57
-- Open: 3
+- Total Bugs: 60
+- Open: 6
 - Resolved: 53
 - Deprecated: 1
 
@@ -13,6 +13,9 @@
 
 | ID | Description | Priority | Status | Component |
 |----|-------------|----------|--------|-----------|
+| BUG-058 | ccmux_kill_session causes client hang | P2 | new | mcp, client |
+| BUG-060 | Orchestration MCP tools require session attachment | P2 | new | mcp, orchestration |
+| BUG-059 | ccmux_mirror_pane tool aborts | P3 | new | mcp |
 | BUG-057 | Agent detection cross-contamination between panes | P3 | new | agents |
 | BUG-047 | Clean up compiler warnings across ccmux crates | P3 | partial | build |
 | BUG-042 | Excessive Result Nesting (Ok(Ok(...))) code smell | P3 | new | mcp-bridge |
@@ -21,12 +24,16 @@
 
 | Priority | Bug | Risk | Effort | Notes |
 |----------|-----|------|--------|-------|
+| **P2** | BUG-058 | Medium | Medium | Client hangs after kill_session |
+| **P2** | BUG-060 | Medium | Medium | Blocks orchestration from MCP |
+| **P3** | BUG-059 | Low | Low | Mirror pane feature incomplete |
 | **P3** | BUG-057 | Low | Low | Agent detection isolation |
 | **P3** | BUG-047 | Low | Low | Code quality cleanup |
 | **P3** | BUG-042 | Low | Medium | Refactor Result nesting |
 
 ## Recent Activity
 
+- 2026-01-18: Filed BUG-058, BUG-059, BUG-060 - Issues from multi-agent orchestration demo
 - 2026-01-18: Fixed BUG-054 - Add 50ms delay before Enter for TUI compatibility (commit 6abb547, Gemini)
 - 2026-01-17: Filed BUG-057 - Agent detection cross-contamination discovered during QA
 - 2026-01-17: Fixed BUG-053 - DSR [6n] cursor position handling (commit cb1839c)
