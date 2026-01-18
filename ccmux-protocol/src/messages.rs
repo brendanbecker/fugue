@@ -417,6 +417,21 @@ pub enum ClientMessage {
         /// Split direction if creating a new pane (default: Vertical)
         direction: Option<SplitDirection>,
     },
+
+    // ==================== FEAT-097: Orchestration Message Receive ====================
+
+    /// Get status of a worker (session)
+    GetWorkerStatus {
+        /// Optional worker ID (session UUID or name)
+        /// If None, returns status of all workers
+        worker_id: Option<String>,
+    },
+
+    /// Poll for messages in a worker's inbox
+    PollMessages {
+        /// Worker ID (session UUID or name)
+        worker_id: String,
+    },
 }
 
 impl ClientMessage {
@@ -472,6 +487,8 @@ impl ClientMessage {
             ClientMessage::GetEventsSince { .. } => "GetEventsSince",
             ClientMessage::RequestWidgetUpdate { .. } => "RequestWidgetUpdate",
             ClientMessage::CreateMirror { .. } => "CreateMirror",
+            ClientMessage::GetWorkerStatus { .. } => "GetWorkerStatus",
+            ClientMessage::PollMessages { .. } => "PollMessages",
         }
     }
 }
@@ -622,6 +639,20 @@ pub enum ServerMessage {
     OrchestrationDelivered {
         /// Number of sessions that received the message
         delivered_count: usize,
+    },
+
+    // ==================== FEAT-097: Orchestration Message Receive ====================
+
+    /// Status of a worker (or all workers)
+    WorkerStatus {
+        /// Status data (JSON)
+        status: crate::types::JsonValue,
+    },
+
+    /// Messages polled from inbox
+    MessagesPolled {
+        /// List of (sender_id, message) tuples
+        messages: Vec<(Uuid, OrchestrationMessage)>,
     },
 
     // ==================== MCP Bridge Response Messages ====================

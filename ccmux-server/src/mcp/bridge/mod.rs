@@ -615,6 +615,17 @@ impl McpBridge {
                     .map_err(|e| McpError::InvalidParams(format!("Invalid run_pipeline parameters: {}", e)))?;
                 handlers.tool_run_pipeline(request).await
             }
+            "ccmux_get_worker_status" => {
+                let worker_id = arguments["worker_id"].as_str().map(String::from);
+                handlers.tool_get_worker_status(worker_id).await
+            }
+            "ccmux_poll_messages" => {
+                let worker_id = arguments["worker_id"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'worker_id' parameter".into()))?
+                    .to_string();
+                handlers.tool_poll_messages(worker_id).await
+            }
             _ => Err(McpError::UnknownTool(name.into())),
         }
     }

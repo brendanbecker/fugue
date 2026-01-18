@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::time::SystemTime;
 use uuid::Uuid;
-use ccmux_protocol::{SessionInfo, WorktreeInfo as ProtocolWorktreeInfo};
+use ccmux_protocol::{SessionInfo, WorktreeInfo as ProtocolWorktreeInfo, OrchestrationMessage};
 
 use super::Window;
 use crate::orchestration::WorktreeInfo;
@@ -31,6 +31,10 @@ pub struct Session {
     environment: HashMap<String, String>,
     /// Arbitrary key-value metadata for application use
     metadata: HashMap<String, String>,
+    /// Inbox for orchestration messages (FEAT-097)
+    inbox: Vec<(Uuid, OrchestrationMessage)>,
+    /// Stored worker status (FEAT-097)
+    status: Option<serde_json::Value>,
 }
 
 impl Session {
@@ -48,6 +52,8 @@ impl Session {
             tags: HashSet::new(),
             environment: HashMap::new(),
             metadata: HashMap::new(),
+            inbox: Vec::new(),
+            status: None,
         }
     }
 
@@ -67,6 +73,8 @@ impl Session {
             tags: HashSet::new(),
             environment: HashMap::new(),
             metadata: HashMap::new(),
+            inbox: Vec::new(),
+            status: None,
         }
     }
 
@@ -91,6 +99,8 @@ impl Session {
             tags: HashSet::new(),
             environment: HashMap::new(),
             metadata,
+            inbox: Vec::new(),
+            status: None,
         }
     }
 
@@ -242,6 +252,26 @@ impl Session {
     /// Get all session metadata
     pub fn all_metadata(&self) -> &HashMap<String, String> {
         &self.metadata
+    }
+
+    /// Push an orchestration message to the inbox
+    pub fn push_message(&mut self, from: Uuid, msg: OrchestrationMessage) {
+        self.inbox.push((from, msg));
+    }
+
+    /// Poll all messages from the inbox, clearing it
+    pub fn poll_messages(&mut self) -> Vec<(Uuid, OrchestrationMessage)> {
+        std::mem::take(&mut self.inbox)
+    }
+
+    /// Set the worker status
+    pub fn set_status(&mut self, status: serde_json::Value) {
+        self.status = Some(status);
+    }
+
+    /// Get the worker status
+    pub fn get_status(&self) -> Option<&serde_json::Value> {
+        self.status.as_ref()
     }
 
     /// Create a new window

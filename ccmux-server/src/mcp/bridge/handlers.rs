@@ -1746,4 +1746,57 @@ impl<'a> ToolHandlers<'a> {
             .map_err(|e| McpError::Internal(e.to_string()))?;
         Ok(ToolResult::text(json))
     }
+
+    // ==================== FEAT-097: Orchestration Message Receive ====================
+
+    pub async fn tool_get_worker_status(
+        &mut self,
+        worker_id: Option<String>,
+    ) -> Result<ToolResult, McpError> {
+        self.connection.send_to_daemon(ClientMessage::GetWorkerStatus { worker_id })
+            .await?;
+
+        match self.connection.recv_response_from_daemon().await? {
+            ServerMessage::WorkerStatus { status } => {
+                let json = serde_json::to_string_pretty(&status.inner())
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message, .. } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
+    pub async fn tool_poll_messages(
+        &mut self,
+        worker_id: String,
+    ) -> Result<ToolResult, McpError> {
+        self.connection.send_to_daemon(ClientMessage::PollMessages { worker_id })
+            .await?;
+
+        match self.connection.recv_response_from_daemon().await? {
+            ServerMessage::MessagesPolled { messages } => {
+                let result: Vec<serde_json::Value> = messages
+                    .into_iter()
+                    .map(|(from_id, msg)| {
+                        serde_json::json!({
+                            "from_session_id": from_id.to_string(),
+                            "type": msg.msg_type,
+                            "payload": msg.payload.inner(),
+                        })
+                    })
+                    .collect();
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message, .. } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
 }

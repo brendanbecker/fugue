@@ -911,6 +911,34 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "required": ["commands"]
             }),
         },
+        // ==================== FEAT-097: Orchestration Message Receive ====================
+        Tool {
+            name: "ccmux_get_worker_status".into(),
+            description: "Retrieves the current status of a specific worker (or all workers if no ID provided).".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "worker_id": {
+                        "type": "string",
+                        "description": "Optional worker ID (session UUID or name)"
+                    }
+                }
+            }),
+        },
+        Tool {
+            name: "ccmux_poll_messages".into(),
+            description: "Allows a worker to check for new messages in its inbox.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "worker_id": {
+                        "type": "string",
+                        "description": "Worker ID (session UUID or name)"
+                    }
+                },
+                "required": ["worker_id"]
+            }),
+        },
     ]
 }
 
@@ -1001,5 +1029,8 @@ mod tests {
         assert!(names.contains(&"ccmux_run_parallel"));
         // FEAT-095: Sequential pipeline execution
         assert!(names.contains(&"ccmux_run_pipeline"));
+        // FEAT-097: Orchestration Message Receive
+        assert!(names.contains(&"ccmux_get_worker_status"));
+        assert!(names.contains(&"ccmux_poll_messages"));
     }
 }

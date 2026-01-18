@@ -1,6 +1,6 @@
 //! Orchestration-related message handlers
 //!
-//! Handles: SendOrchestration
+//! Handles: SendOrchestration, GetWorkerStatus, PollMessages
 
 use tracing::{debug, info};
 
@@ -32,38 +32,56 @@ impl HandlerContext {
             }
         };
 
-        // Get session manager for reading session info
-        let session_manager = self.session_manager.read().await;
+        // Get session manager for reading/writing session info
+        // Need write lock to push to inboxes (FEAT-097)
+        let mut session_manager = self.session_manager.write().await;
+
+        // FEAT-097: Capture status updates and store them in the session
+        if message.msg_type == "status.update" {
+            if let Some(session) = session_manager.get_session_mut(sender_session_id) {
+                session.set_status(message.payload().clone());
+            }
+        }
 
         // Build the message to send to recipients
         let outbound_message = ServerMessage::OrchestrationReceived {
             from_session_id: sender_session_id,
-            message,
+            message: message.clone(),
         };
 
         // Route based on target
         let delivered_count = match target {
             OrchestrationTarget::Tagged(ref tag) => {
-                // Find sessions with the specified tag and send to their clients
+                // Find sessions with the specified tag and send to their clients + inbox
                 let mut total_delivered = 0;
+                
+                // We need to collect IDs first to avoid borrowing issues while iterating
+                let target_ids: Vec<uuid::Uuid> = session_manager.list_sessions()
+                    .iter()
+                    .filter(|s| s.id() != sender_session_id && s.has_tag(tag))
+                    .map(|s| s.id())
+                    .collect();
 
-                for session in session_manager.list_sessions() {
-                    let session_id = session.id();
-                    if session_id == sender_session_id {
-                        continue;
-                    }
-
-                    if session.has_tag(tag) {
-                        let count = self
-                            .registry
-                            .broadcast_to_session(session_id, outbound_message.clone())
-                            .await;
-                        total_delivered += count;
-                    }
+                if target_ids.is_empty() {
+                    debug!("No sessions found with tag '{}'", tag);
                 }
 
-                if total_delivered == 0 {
-                    debug!("No sessions found with tag '{}'", tag);
+                for session_id in target_ids {
+                    // Push to inbox (FEAT-097)
+                    if let Some(session) = session_manager.get_session_mut(session_id) {
+                        session.push_message(sender_session_id, message.clone());
+                    }
+
+                    // Broadcast to connected clients
+                    let count = self
+                        .registry
+                        .broadcast_to_session(session_id, outbound_message.clone())
+                        .await;
+                    
+                    // Count is 1 if either clients received it OR it was put in inbox
+                    // But for consistency with previous behavior, we track actual deliveries + 1 for inbox
+                    // Actually, let's count "sessions reached"
+                    total_delivered += 1;
                 }
 
                 total_delivered
@@ -74,10 +92,16 @@ impl HandlerContext {
                 if session_id == sender_session_id {
                     debug!("Sender targeting own session, skipping");
                     0
-                } else if session_manager.get_session(session_id).is_some() {
+                } else if let Some(session) = session_manager.get_session_mut(session_id) {
+                    // Push to inbox (FEAT-097)
+                    session.push_message(sender_session_id, message.clone());
+
+                    // Broadcast to connected clients
                     self.registry
                         .broadcast_to_session(session_id, outbound_message)
-                        .await
+                        .await;
+                    
+                    1
                 } else {
                     debug!("Target session {} not found", session_id);
                     return HandlerContext::error(
@@ -91,15 +115,24 @@ impl HandlerContext {
                 // Broadcast to all sessions except sender
                 let mut total_delivered = 0;
 
-                for session in session_manager.list_sessions() {
-                    let session_id = session.id();
-                    if session_id != sender_session_id {
-                        let count = self
-                            .registry
-                            .broadcast_to_session(session_id, outbound_message.clone())
-                            .await;
-                        total_delivered += count;
+                let target_ids: Vec<uuid::Uuid> = session_manager.list_sessions()
+                    .iter()
+                    .map(|s| s.id())
+                    .filter(|id| *id != sender_session_id)
+                    .collect();
+
+                for session_id in target_ids {
+                    // Push to inbox (FEAT-097)
+                    if let Some(session) = session_manager.get_session_mut(session_id) {
+                        session.push_message(sender_session_id, message.clone());
                     }
+
+                    // Broadcast to connected clients
+                    self.registry
+                        .broadcast_to_session(session_id, outbound_message.clone())
+                        .await;
+                    
+                    total_delivered += 1;
                 }
 
                 total_delivered
@@ -109,29 +142,32 @@ impl HandlerContext {
                 // Find sessions associated with the given worktree path
                 let mut total_delivered = 0;
 
-                for session in session_manager.list_sessions() {
-                    let session_id = session.id();
-                    if session_id == sender_session_id {
-                        continue;
+                let target_ids: Vec<uuid::Uuid> = session_manager.list_sessions()
+                    .iter()
+                    .filter(|s| s.id() != sender_session_id)
+                    .filter(|s| s.worktree().map_or(false, |w| w.path == worktree_path))
+                    .map(|s| s.id())
+                    .collect();
+
+                for session_id in target_ids {
+                    // Push to inbox (FEAT-097)
+                    if let Some(session) = session_manager.get_session_mut(session_id) {
+                        session.push_message(sender_session_id, message.clone());
                     }
 
-                    // Check if session is associated with this worktree
-                    if let Some(worktree) = session.worktree() {
-                        if worktree.path == worktree_path {
-                            let count = self
-                                .registry
-                                .broadcast_to_session(session_id, outbound_message.clone())
-                                .await;
-                            total_delivered += count;
-                        }
-                    }
+                    // Broadcast to connected clients
+                    self.registry
+                        .broadcast_to_session(session_id, outbound_message.clone())
+                        .await;
+                    
+                    total_delivered += 1;
                 }
 
                 total_delivered
             }
         };
 
-        info!("Orchestration message delivered to {} clients", delivered_count);
+        info!("Orchestration message delivered to {} sessions", delivered_count);
 
         if delivered_count == 0 {
             // No recipients but this isn't necessarily an error - could be no other sessions
@@ -139,6 +175,79 @@ impl HandlerContext {
         }
 
         HandlerResult::Response(ServerMessage::OrchestrationDelivered { delivered_count })
+    }
+
+    /// Handle GetWorkerStatus message (FEAT-097)
+    pub async fn handle_get_worker_status(&self, worker_id: Option<String>) -> HandlerResult {
+        let session_manager = self.session_manager.read().await;
+
+        if let Some(id_str) = worker_id {
+            // Find specific worker (session)
+            let session_id = if let Ok(uuid) = uuid::Uuid::parse_str(&id_str) {
+                uuid
+            } else {
+                // Try by name
+                if let Some(session) = session_manager.get_session_by_name(&id_str) {
+                    session.id()
+                } else {
+                    return HandlerContext::error(
+                        ErrorCode::SessionNotFound,
+                        format!("Worker '{}' not found", id_str),
+                    );
+                }
+            };
+
+            if let Some(session) = session_manager.get_session(session_id) {
+                let status = session.get_status().cloned().unwrap_or(serde_json::Value::Null);
+                HandlerResult::Response(ServerMessage::WorkerStatus {
+                    status: ccmux_protocol::types::JsonValue::new(status),
+                })
+            } else {
+                HandlerContext::error(
+                    ErrorCode::SessionNotFound,
+                    format!("Worker '{}' not found", id_str),
+                )
+            }
+        } else {
+            // Get all workers status
+            // This returns a map of {worker_id: status}
+            let mut all_statuses = serde_json::Map::new();
+            for session in session_manager.list_sessions() {
+                let status = session.get_status().cloned().unwrap_or(serde_json::Value::Null);
+                all_statuses.insert(session.id().to_string(), status);
+            }
+            HandlerResult::Response(ServerMessage::WorkerStatus {
+                status: ccmux_protocol::types::JsonValue::new(serde_json::Value::Object(all_statuses)),
+            })
+        }
+    }
+
+    /// Handle PollMessages message (FEAT-097)
+    pub async fn handle_poll_messages(&self, worker_id: String) -> HandlerResult {
+        let mut session_manager = self.session_manager.write().await;
+
+        let session_id = if let Ok(uuid) = uuid::Uuid::parse_str(&worker_id) {
+            uuid
+        } else {
+            if let Some(session) = session_manager.get_session_by_name(&worker_id) {
+                session.id()
+            } else {
+                return HandlerContext::error(
+                    ErrorCode::SessionNotFound,
+                    format!("Worker '{}' not found", worker_id),
+                );
+            }
+        };
+
+        if let Some(session) = session_manager.get_session_mut(session_id) {
+            let messages = session.poll_messages();
+            HandlerResult::Response(ServerMessage::MessagesPolled { messages })
+        } else {
+            HandlerContext::error(
+                ErrorCode::SessionNotFound,
+                format!("Worker '{}' not found", worker_id),
+            )
+        }
     }
 }
 
