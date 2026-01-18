@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::{ClientType, ErrorCode, ServerMessage, SplitDirection, messages::ErrorDetails};
+use ccmux_protocol::{ErrorCode, ServerMessage, SplitDirection, messages::ErrorDetails};
 
 use crate::arbitration::{Action, Resource};
 use crate::beads::{self, metadata_keys};
@@ -466,7 +466,7 @@ impl HandlerContext {
 
             // Find the pane
             let pane_info = match session_manager.find_pane(source_pane_id) {
-                Some((session, window, pane)) => {
+                Some((session, window, _pane)) => {
                     (session.id(), window.id(), session.name().to_string())
                 }
                 None => {

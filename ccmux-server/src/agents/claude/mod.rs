@@ -45,6 +45,7 @@ impl ClaudeAgentDetector {
     ///
     /// This sets the debounce for both the inner detector and the wrapper-level
     /// broadcast debounce.
+    #[allow(dead_code)] // Used in tests and available for future use
     pub fn with_debounce(debounce_ms: u64) -> Self {
         Self {
             inner: ClaudeDetector::with_debounce(debounce_ms),
@@ -54,11 +55,13 @@ impl ClaudeAgentDetector {
     }
 
     /// Get a reference to the underlying ClaudeDetector
+    #[allow(dead_code)] // API surface for accessing underlying detector
     pub fn inner(&self) -> &ClaudeDetector {
         &self.inner
     }
 
     /// Get a mutable reference to the underlying ClaudeDetector
+    #[allow(dead_code)] // API surface for accessing underlying detector
     pub fn inner_mut(&mut self) -> &mut ClaudeDetector {
         &mut self.inner
     }
@@ -82,7 +85,7 @@ impl AgentDetector for ClaudeAgentDetector {
         self.inner.is_claude()
     }
 
-    fn detect_activity(&self, text: &str) -> Option<AgentActivity> {
+    fn detect_activity(&self, _text: &str) -> Option<AgentActivity> {
         if !self.inner.is_claude() {
             return None;
         }

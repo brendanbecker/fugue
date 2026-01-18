@@ -6,4 +6,4 @@ pub mod http;
 pub mod metrics;
 
 pub use http::run_metrics_server;
-pub use metrics::{GaugeSnapshot, Metrics};
+pub use metrics::Metrics;

@@ -1,5 +1,8 @@
 //! Message routing for cross-session communication
 
+// Scaffolding for multi-session orchestration - not wired up to main server yet
+#![allow(dead_code)]
+
 use std::collections::{HashMap, HashSet};
 use tokio::sync::mpsc;
 use uuid::Uuid;

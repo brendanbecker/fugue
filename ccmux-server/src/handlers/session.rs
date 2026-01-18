@@ -10,7 +10,6 @@ use crate::arbitration::{Action, Resource};
 use crate::pty::{PtyConfig, PtyOutputPoller};
 
 use ccmux_protocol::{
-    ClientType,
     ErrorCode,
     ServerMessage,
     SplitDirection,

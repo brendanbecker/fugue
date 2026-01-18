@@ -3,6 +3,9 @@
 //! The WAL provides durable storage for incremental state changes.
 //! It is used in conjunction with checkpoints for crash recovery.
 
+// Scaffolding for crash recovery feature - not all methods are wired up yet
+#![allow(dead_code)]
+
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;

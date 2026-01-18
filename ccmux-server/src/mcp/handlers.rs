@@ -529,6 +529,7 @@ impl<'a> ToolContext<'a> {
     /// Send input to a pane
     ///
     /// If `submit` is true, appends a carriage return (\r) to press Enter after the input.
+    #[allow(dead_code)] // Legacy method; prefer send_input_with_key (FEAT-093)
     pub fn send_input(&self, pane_id: Uuid, input: &str, submit: bool) -> Result<String, McpError> {
         // Verify pane exists
         let _ = self
@@ -1193,13 +1194,14 @@ impl<'a> ToolContext<'a> {
     // ==================== FEAT-062: Mirror Pane Tool ====================
 
     /// Create a read-only mirror pane that displays another pane's output
+    #[allow(dead_code)] // FEAT-062: Mirror pane functionality for future use
     pub fn mirror_pane(
         &mut self,
         source_pane_id: Uuid,
         direction: Option<&str>,
     ) -> Result<String, McpError> {
         // Parse direction, defaulting to vertical
-        let split_direction = match direction {
+        let _split_direction = match direction {
             Some("horizontal") => ccmux_protocol::SplitDirection::Horizontal,
             _ => ccmux_protocol::SplitDirection::Vertical,
         };

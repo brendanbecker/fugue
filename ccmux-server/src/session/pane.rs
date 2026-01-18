@@ -395,6 +395,7 @@ impl Pane {
     }
 
     /// Update Claude state (deprecated, use set_agent_state instead)
+    #[allow(deprecated)]
     #[deprecated(since = "0.2.0", note = "Use set_agent_state instead")]
     pub fn set_claude_state(&mut self, state: ClaudeState) {
         self.agent_detector.mark_as_active("claude");

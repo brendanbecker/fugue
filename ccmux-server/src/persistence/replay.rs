@@ -3,6 +3,9 @@
 //! Maintains a ring buffer of recent server messages keyed by sequence number.
 //! Used to catch up clients that have disconnected briefly.
 
+// Scaffolding for crash recovery feature - not all methods are wired up yet
+#![allow(dead_code)]
+
 use std::collections::VecDeque;
 use ccmux_protocol::ServerMessage;
 

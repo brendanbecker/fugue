@@ -5,6 +5,9 @@
 //! - WAL entry types for incremental state changes
 //! - Checkpoint format for full state snapshots
 
+// Scaffolding for crash recovery feature - not all types are used yet
+#![allow(dead_code)]
+
 use ccmux_protocol::PaneState;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

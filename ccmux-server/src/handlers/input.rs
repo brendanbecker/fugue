@@ -5,7 +5,7 @@
 use tracing::{debug, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::{ClientType, ErrorCode, ReplyMessage, ServerMessage, messages::ErrorDetails};
+use ccmux_protocol::{ErrorCode, ReplyMessage, ServerMessage};
 
 use super::{HandlerContext, HandlerResult};
 use crate::arbitration::{Action, Resource};

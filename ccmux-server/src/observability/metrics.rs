@@ -137,6 +137,7 @@ impl Metrics {
     }
 
     /// Record a failed replay
+    #[allow(dead_code)] // Symmetrical with record_replay_requested; for future use
     pub fn record_replay_failed(&self) {
         self.events_replay_failed_total.fetch_add(1, Ordering::Relaxed);
     }

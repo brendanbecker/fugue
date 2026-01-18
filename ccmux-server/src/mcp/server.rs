@@ -37,6 +37,7 @@ impl McpServer {
     }
 
     /// Create an MCP server with existing managers
+    #[allow(dead_code)] // Alternative constructor for custom initialization
     pub fn with_managers(session_manager: SessionManager, pty_manager: PtyManager) -> Self {
         Self {
             session_manager,

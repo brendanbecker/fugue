@@ -2,6 +2,9 @@
 //!
 //! Provides utilities for detecting and working with git worktrees.
 
+// Scaffolding for multi-session orchestration - not all methods are used yet
+#![allow(dead_code)]
+
 use std::path::{Path, PathBuf};
 use std::process::Command;
 

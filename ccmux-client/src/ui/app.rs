@@ -2216,7 +2216,7 @@ impl App {
                 );
 
                 // Display a message in the mirror pane
-                if let Some(ui_pane) = self.pane_manager.get_mut(mirror_pane_id) {
+                if let Some(_ui_pane) = self.pane_manager.get_mut(mirror_pane_id) {
                     let msg = format!(
                         "\r\n\x1b[1;33m[Source pane closed{}]\x1b[0m\r\n\x1b[2mPress 'q' or Escape to close this mirror\x1b[0m\r\n",
                         exit_code.map(|c| format!(" with exit code {}", c)).unwrap_or_default()

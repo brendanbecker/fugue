@@ -7,7 +7,7 @@ use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use ccmux_protocol::{
-    ClientType, ErrorCode, PaneListEntry, PaneState, ServerMessage, SplitDirection, WindowInfo, messages::ErrorDetails,
+    ErrorCode, PaneListEntry, ServerMessage, SplitDirection, WindowInfo,
 };
 
 use crate::pty::{PtyConfig, PtyOutputPoller};
@@ -1836,6 +1836,7 @@ impl HandlerContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ccmux_protocol::{ClientType, messages::ErrorDetails};
     use crate::pty::PtyManager;
     use crate::registry::ClientRegistry;
     use crate::session::SessionManager;

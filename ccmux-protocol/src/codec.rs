@@ -4,7 +4,6 @@ use bytes::{Buf, BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
 use crate::messages::{ClientMessage, ServerMessage};
-use crate::types::ClientType;
 
 /// Maximum message size (16 MB)
 const MAX_MESSAGE_SIZE: usize = 16 * 1024 * 1024;

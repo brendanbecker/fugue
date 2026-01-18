@@ -22,6 +22,7 @@ pub struct BeadsDetection {
     /// Path to the .beads/ directory
     pub beads_dir: PathBuf,
     /// Root of the repository (parent of .beads/)
+    #[allow(dead_code)] // Included for completeness; may be used in future features
     pub repo_root: PathBuf,
 }
 
@@ -66,11 +67,13 @@ pub fn detect_beads_root(cwd: &Path) -> Option<BeadsDetection> {
 ///
 /// Convenience function that returns true if the path or any parent
 /// contains a .beads/ directory.
+#[allow(dead_code)] // Utility function available for future use
 pub fn is_beads_tracked(cwd: &Path) -> bool {
     detect_beads_root(cwd).is_some()
 }
 
 /// Beads metadata keys for session storage
+#[allow(dead_code)] // Metadata keys for future beads integration
 pub mod metadata_keys {
     /// The root path of the beads directory
     pub const BEADS_ROOT: &str = "beads.root";
@@ -98,6 +101,7 @@ pub mod metadata_keys {
 
 /// Error type for beads daemon communication
 #[derive(Debug, Error)]
+#[allow(dead_code)] // Error variants for beads daemon communication
 pub enum BeadsError {
     #[error("Daemon socket not found")]
     SocketNotFound,

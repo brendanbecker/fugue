@@ -5,6 +5,9 @@
 //! - Spawning new PTYs for each pane
 //! - Handling failures gracefully with detailed status reporting
 
+// Scaffolding for crash recovery feature - not all methods are wired up yet
+#![allow(dead_code)]
+
 use std::path::Path;
 
 use tracing::{debug, error, info, warn};

@@ -127,6 +127,7 @@ pub fn get_key_sequence(key_name: &str) -> Option<&'static [u8]> {
 }
 
 /// Get a list of all supported key names
+#[allow(dead_code)] // Utility function for key sequence discovery
 pub fn supported_keys() -> Vec<&'static str> {
     let mut keys: Vec<_> = KEY_SEQUENCES.keys().copied().collect();
     keys.sort();

@@ -3,6 +3,9 @@
 //! Handles capturing, compressing, and restoring scrollback buffer contents.
 //! Supports multiple compression methods for efficient storage.
 
+// Scaffolding for crash recovery feature - not all methods are wired up yet
+#![allow(dead_code)]
+
 use tracing::{debug, warn};
 
 use ccmux_utils::{CcmuxError, Result};

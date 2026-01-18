@@ -78,6 +78,7 @@ pub enum HandlerResult {
         broadcast: ServerMessage,
     },
     /// Broadcast to all clients without response to sender
+    #[allow(dead_code)] // Handler result variant for future use
     GlobalBroadcast(ServerMessage),
     /// No response needed (for fire-and-forget messages like Input)
     NoResponse,
@@ -157,6 +158,7 @@ impl HandlerContext {
     }
 
     /// Resolve the current pane for the client within a window (FEAT-078)
+    #[allow(dead_code)] // API surface consistent with resolve_active_session/window
     pub fn resolve_active_pane(&self, window: &Window) -> Option<Uuid> {
         self.registry
             .get_client_focus(self.client_id)

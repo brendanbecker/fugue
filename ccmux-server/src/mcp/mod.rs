@@ -20,5 +20,4 @@ mod server;
 mod tools;
 
 pub use bridge::McpBridge;
-pub use error::McpError;
 pub use server::McpServer;

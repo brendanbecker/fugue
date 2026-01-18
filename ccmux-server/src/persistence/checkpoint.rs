@@ -3,6 +3,9 @@
 //! Checkpoints provide a complete snapshot of session state at a point in time.
 //! They are used as the base for recovery, with WAL entries replayed on top.
 
+// Scaffolding for crash recovery feature - not all methods are wired up yet
+#![allow(dead_code)]
+
 use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
