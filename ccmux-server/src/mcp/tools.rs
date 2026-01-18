@@ -773,6 +773,56 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "required": ["source_pane_id"]
             }),
         },
+        // ==================== FEAT-094: Parallel Command Execution ====================
+        Tool {
+            name: "ccmux_run_parallel".into(),
+            description: "Execute commands in parallel across separate panes and return aggregated results. Creates panes, runs commands with exit code tracking, polls for completion, and optionally cleans up.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "commands": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "command": {
+                                    "type": "string",
+                                    "description": "Command to execute"
+                                },
+                                "cwd": {
+                                    "type": "string",
+                                    "description": "Working directory (optional)"
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "description": "Task name for identification"
+                                }
+                            },
+                            "required": ["command"]
+                        },
+                        "maxItems": 10,
+                        "description": "Commands to execute (max 10)"
+                    },
+                    "layout": {
+                        "type": "string",
+                        "enum": ["tiled", "hidden"],
+                        "default": "hidden",
+                        "description": "tiled=visible splits, hidden=__orchestration__ session"
+                    },
+                    "timeout_ms": {
+                        "type": "integer",
+                        "default": 300000,
+                        "description": "Timeout in milliseconds (default 5 minutes)"
+                    },
+                    "cleanup": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Close panes after completion"
+                    }
+                },
+                "required": ["commands"]
+            }),
+        },
     ]
 }
 
@@ -857,5 +907,7 @@ mod tests {
         assert!(names.contains(&"ccmux_beads_pane_history"));
         // FEAT-060: Connection status tool
         assert!(names.contains(&"ccmux_connection_status"));
+        // FEAT-094: Parallel command execution
+        assert!(names.contains(&"ccmux_run_parallel"));
     }
 }

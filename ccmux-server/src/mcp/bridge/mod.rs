@@ -5,6 +5,7 @@
 
 pub mod connection;
 pub mod handlers;
+pub mod orchestration;
 pub mod types;
 
 #[cfg(test)]
@@ -591,6 +592,11 @@ impl McpBridge {
                 let source_pane_id = parse_uuid(arguments, "source_pane_id")?;
                 let direction = arguments["direction"].as_str();
                 handlers.tool_mirror_pane(source_pane_id, direction).await
+            }
+            "ccmux_run_parallel" => {
+                let request: orchestration::RunParallelRequest = serde_json::from_value(arguments.clone())
+                    .map_err(|e| McpError::InvalidParams(format!("Invalid run_parallel parameters: {}", e)))?;
+                orchestration::run_parallel(handlers.connection, request).await
             }
             _ => Err(McpError::UnknownTool(name.into())),
         }
