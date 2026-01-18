@@ -6,8 +6,8 @@
 ## Summary Statistics
 
 - **Total Features**: 97
-- **Completed**: 89
-- **Backlog**: 8
+- **Completed**: 90
+- **Backlog**: 7
 
 ## Current Status
 
@@ -22,7 +22,7 @@ Core terminal multiplexer fully functional with MCP integration, multi-agent orc
 | FEAT-094 | ccmux_run_parallel - Parallel Command Execution | ccmux-server/mcp | P1 | done |
 | FEAT-095 | ccmux_run_pipeline - Sequential Command Pipeline | ccmux-server/mcp | P1 | done |
 | FEAT-096 | ccmux_expect - Pattern-Based Wait | ccmux-server/mcp | P1 | done |
-| FEAT-097 | ccmux_get_worker_status / ccmux_poll_messages | ccmux-server/mcp | P1 | new |
+| FEAT-097 | ccmux_get_worker_status / ccmux_poll_messages | ccmux-server/mcp | P1 | done |
 
 ### Medium Priority - Refactoring (P2)
 
@@ -47,7 +47,7 @@ Core terminal multiplexer fully functional with MCP integration, multi-agent orc
 ## Recommended Work Order
 
 ### Phase 1: Complete Orchestration (Next)
-1. **FEAT-097** (ccmux_get_worker_status) - Orchestrator message polling
+1. **FEAT-097** (ccmux_get_worker_status) - Orchestrator message polling (Completed)
 
 ### Phase 2: Refactoring (Optional)
 2. FEAT-064, FEAT-065 - MCP bridge cleanup
@@ -57,6 +57,7 @@ Core terminal multiplexer fully functional with MCP integration, multi-agent orc
 - **FEAT-096** (ccmux_expect) - Foundation primitive ✓
 - **FEAT-094** (ccmux_run_parallel) - Parallel execution ✓
 - **FEAT-095** (ccmux_run_pipeline) - Sequential pipelines ✓
+- **FEAT-097** (ccmux_get_worker_status) - Message polling ✓
 
 These tools reduce orchestrator context consumption by 70-90%.
 
@@ -65,7 +66,7 @@ These tools reduce orchestrator context consumption by 70-90%.
 These have no interdependencies:
 
 **Workstream A - Orchestration Completion:**
-- FEAT-097 (message polling - the only remaining P1)
+- Orchestration tooling complete.
 
 **Workstream B - MCP Bridge Refactoring:**
 - FEAT-064, FEAT-065, FEAT-088, FEAT-091
@@ -84,6 +85,7 @@ These have no interdependencies:
 | ID | Title | Commit |
 |----|-------|--------|
 | BUG-051 | Split pane direction parameter | e3d83f0 |
+| FEAT-097 | Orchestration message receive | 8e4ed1d |
 
 ## Recent Completions (2026-01-16)
 
