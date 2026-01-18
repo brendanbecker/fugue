@@ -526,8 +526,10 @@ impl HandlerContext {
             mirror_pane_info.id, source_pane_id
         );
 
-        // Broadcast mirror creation
-        let broadcast = ServerMessage::MirrorCreated {
+        // Send response to requesting client AND broadcast to all others
+        // Using RespondWithBroadcast ensures the MCP bridge receives the response
+        // (BroadcastToSession only broadcasts to others, not the sender - BUG-059)
+        let response = ServerMessage::MirrorCreated {
             mirror_pane: mirror_pane_info.clone(),
             source_pane_id,
             session_id,
@@ -537,7 +539,11 @@ impl HandlerContext {
             should_focus: false,
         };
 
-        HandlerResult::BroadcastToSession { session_id, broadcast }
+        HandlerResult::ResponseWithBroadcast {
+            response: response.clone(),
+            session_id,
+            broadcast: response,
+        }
     }
 }
 
