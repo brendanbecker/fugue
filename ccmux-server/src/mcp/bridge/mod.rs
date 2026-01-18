@@ -610,6 +610,11 @@ impl McpBridge {
                     .map_err(|e| McpError::InvalidParams(format!("Invalid run_parallel parameters: {}", e)))?;
                 orchestration::run_parallel(handlers.connection, request).await
             }
+            "ccmux_run_pipeline" => {
+                let request: orchestration::RunPipelineRequest = serde_json::from_value(arguments.clone())
+                    .map_err(|e| McpError::InvalidParams(format!("Invalid run_pipeline parameters: {}", e)))?;
+                handlers.tool_run_pipeline(request).await
+            }
             _ => Err(McpError::UnknownTool(name.into())),
         }
     }

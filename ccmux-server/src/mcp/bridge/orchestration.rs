@@ -608,6 +608,196 @@ async fn close_pane(connection: &mut ConnectionManager, pane_id: Uuid) -> Result
     }
 }
 
+// ============================================================================
+// FEAT-095: ccmux_run_pipeline
+// ============================================================================
+
+#[derive(Debug, Deserialize)]
+pub struct PipelineStepRequest {
+    pub command: String,
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RunPipelineRequest {
+    pub commands: Vec<PipelineStepRequest>,
+    pub cwd: Option<String>,
+    pub stop_on_error: Option<bool>,
+    pub timeout_ms: Option<u64>,
+    pub cleanup: Option<bool>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PipelineStepResult {
+    pub name: String,
+    pub command: String,
+    pub exit_code: i32,
+    pub duration_ms: u64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RunPipelineResponse {
+    pub status: String,
+    pub pane_id: Uuid,
+    pub steps: Vec<PipelineStepResult>,
+    pub failed_at: Option<String>,
+    pub total_duration_ms: u64,
+}
+
+pub struct PipelineRunner<'a> {
+    connection: &'a mut ConnectionManager,
+}
+
+impl<'a> PipelineRunner<'a> {
+    pub fn new(connection: &'a mut ConnectionManager) -> Self {
+        Self { connection }
+    }
+
+    pub async fn run(&mut self, request: RunPipelineRequest) -> Result<RunPipelineResponse, McpError> {
+        let start_time = Instant::now();
+        let timeout = Duration::from_millis(request.timeout_ms.unwrap_or(600000));
+        let stop_on_error = request.stop_on_error.unwrap_or(true);
+
+        // 1. Create pane
+        self.connection.send_to_daemon(ClientMessage::CreatePaneWithOptions {
+            session_filter: None,
+            window_filter: None,
+            direction: SplitDirection::Vertical,
+            command: None, // Default shell
+            cwd: request.cwd.clone(),
+            select: false,
+            name: Some("pipeline-runner".to_string()),
+            claude_model: None,
+            claude_config: None,
+            preset: None,
+        }).await?;
+
+        let pane_id = match self.connection.recv_response_from_daemon().await? {
+            ServerMessage::PaneCreatedWithDetails { pane_id, .. } => pane_id,
+            ServerMessage::Error { code, message, .. } => {
+                return Err(McpError::Internal(format!("Failed to create pane: {:?}: {}", code, message)));
+            }
+            msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        };
+
+        info!(pane_id = %pane_id, "Created pipeline pane");
+
+        let mut steps_results = Vec::new();
+        let mut failed_at = None;
+        let mut status = "completed".to_string();
+
+        for (index, step) in request.commands.iter().enumerate() {
+            // Check timeout
+            if start_time.elapsed() > timeout {
+                status = "timeout".to_string();
+                break;
+            }
+
+            let step_name = step.name.clone().unwrap_or_else(|| format!("step-{}", index + 1));
+            let step_start = Instant::now();
+
+            // 2. Wrap command with exit marker using unique UUID
+            let marker_uuid = Uuid::new_v4().simple().to_string();
+            let marker_end = format!("__CCMUX_EXIT_{}_", marker_uuid);
+
+            let wrapped_command = format!(
+                "{{ {}; }} ; echo \"{}{}_\"",
+                step.command, marker_end, "$?"
+            );
+
+            debug!(step_name = %step_name, command = %step.command, "Running pipeline step");
+
+            // Send input
+            let mut data = wrapped_command.as_bytes().to_vec();
+            data.push(b'\r'); // Enter
+            self.connection.send_to_daemon(ClientMessage::Input { pane_id, data }).await?;
+
+            // Poll for completion
+            let mut exit_code = None;
+            let poll_interval = Duration::from_millis(POLL_INTERVAL_MS);
+
+            loop {
+                if start_time.elapsed() > timeout {
+                    status = "timeout".to_string();
+                    break;
+                }
+
+                self.connection.send_to_daemon(ClientMessage::ReadPane { pane_id, lines: 1000 }).await?;
+
+                let content = match self.connection.recv_response_from_daemon().await? {
+                    ServerMessage::PaneContent { content, .. } => content,
+                    ServerMessage::Error { code, message, .. } => {
+                        warn!(step_name = %step_name, code = ?code, message = %message, "Error reading pane during pipeline");
+                        String::new()
+                    }
+                    _ => String::new(),
+                };
+
+                // Check for exit marker: __CCMUX_EXIT_{uuid}_{code}_
+                let end_marker_pattern = &marker_end;
+                if let Some(idx) = content.rfind(end_marker_pattern) {
+                    let rest = &content[idx + end_marker_pattern.len()..];
+                    if let Some(end_idx) = rest.find('_') {
+                        let code_str = &rest[..end_idx];
+                        if let Ok(code) = code_str.trim().parse::<i32>() {
+                            exit_code = Some(code);
+                            break;
+                        }
+                    }
+                }
+
+                tokio::time::sleep(poll_interval).await;
+            }
+
+            if status == "timeout" {
+                break;
+            }
+
+            let code = exit_code.unwrap_or(-1);
+            let duration = step_start.elapsed().as_millis() as u64;
+
+            steps_results.push(PipelineStepResult {
+                name: step_name.clone(),
+                command: step.command.clone(),
+                exit_code: code,
+                duration_ms: duration,
+            });
+
+            if code != 0 {
+                status = "failed".to_string();
+                failed_at = Some(step_name);
+                if stop_on_error {
+                    break;
+                }
+            }
+        }
+
+        let total_duration = start_time.elapsed().as_millis() as u64;
+
+        // Cleanup if requested
+        if request.cleanup.unwrap_or(false) {
+            if let Err(e) = close_pane(self.connection, pane_id).await {
+                warn!(pane_id = %pane_id, error = %e, "Failed to close pipeline pane during cleanup");
+            }
+        }
+
+        info!(
+            status = %status,
+            total_duration_ms = total_duration,
+            steps_count = steps_results.len(),
+            "Pipeline execution completed"
+        );
+
+        Ok(RunPipelineResponse {
+            status,
+            pane_id,
+            steps: steps_results,
+            failed_at,
+            total_duration_ms: total_duration,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -863,6 +863,54 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "required": ["commands"]
             }),
         },
+        // FEAT-095: Sequential pipeline execution
+        Tool {
+            name: "ccmux_run_pipeline".into(),
+            description: "Execute commands sequentially in a single pane. Supports stopping on error and returning structured results with exit codes for each step.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "commands": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "command": {
+                                    "type": "string",
+                                    "description": "Command to execute"
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "description": "Step name for identification"
+                                }
+                            },
+                            "required": ["command"]
+                        },
+                        "description": "Commands to execute in sequence"
+                    },
+                    "cwd": {
+                        "type": "string",
+                        "description": "Working directory for all commands"
+                    },
+                    "stop_on_error": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Stop pipeline on first non-zero exit"
+                    },
+                    "timeout_ms": {
+                        "type": "integer",
+                        "default": 600000,
+                        "description": "Total timeout in milliseconds (default 10 minutes)"
+                    },
+                    "cleanup": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Close pane after completion"
+                    }
+                },
+                "required": ["commands"]
+            }),
+        },
     ]
 }
 
@@ -951,5 +999,7 @@ mod tests {
         assert!(names.contains(&"ccmux_expect"));
         // FEAT-094: Parallel command execution
         assert!(names.contains(&"ccmux_run_parallel"));
+        // FEAT-095: Sequential pipeline execution
+        assert!(names.contains(&"ccmux_run_pipeline"));
     }
 }

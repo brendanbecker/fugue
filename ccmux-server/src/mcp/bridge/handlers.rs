@@ -12,7 +12,7 @@ use crate::mcp::protocol::ToolResult;
 use super::connection::ConnectionManager;
 use crate::beads::metadata_keys as beads;
 use super::types::{ConnectionState, MAX_RECONNECT_ATTEMPTS};
-use super::orchestration::{run_expect, ExpectAction};
+use super::orchestration::{run_expect, ExpectAction, PipelineRunner, RunPipelineRequest};
 
 /// Parse a UUID from arguments
 pub fn parse_uuid(arguments: &serde_json::Value, field: &str) -> Result<Uuid, McpError> {
@@ -1731,5 +1731,19 @@ impl<'a> ToolHandlers<'a> {
             lines,
         )
         .await
+    }
+
+    // ==================== FEAT-095: Pipeline Tool ====================
+
+    pub async fn tool_run_pipeline(
+        &mut self,
+        request: RunPipelineRequest,
+    ) -> Result<ToolResult, McpError> {
+        let mut runner = PipelineRunner::new(self.connection);
+        let response = runner.run(request).await?;
+
+        let json = serde_json::to_string_pretty(&response)
+            .map_err(|e| McpError::Internal(e.to_string()))?;
+        Ok(ToolResult::text(json))
     }
 }
