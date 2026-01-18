@@ -4,17 +4,15 @@
 **Last Updated**: 2026-01-17
 
 ## Summary Statistics
-- Total Bugs: 54
-- Open: 4
-- Resolved: 49
+- Total Bugs: 56
+- Open: 2
+- Resolved: 53
 - Deprecated: 1
 
 ## Active Bugs
 
 | ID | Description | Priority | Status | Component |
 |----|-------------|----------|--------|-----------|
-| BUG-053 | Codex CLI fails with cursor position error inside ccmux pane | P1 | new | pty |
-| BUG-054 | send_input submit:true doesn't trigger Enter in Gemini CLI | P2 | new | mcp |
 | BUG-047 | Clean up compiler warnings across ccmux crates | P3 | partial | build |
 | BUG-042 | Excessive Result Nesting (Ok(Ok(...))) code smell | P3 | new | mcp-bridge |
 
@@ -22,15 +20,13 @@
 
 | Priority | Bug | Risk | Effort | Notes |
 |----------|-----|------|--------|-------|
-| **P1** | BUG-053 | High | Medium | Blocks Codex CLI usage - DSR escape sequence not handled |
-| **P2** | BUG-054 | Medium | Low | submit:true doesn't work with TUI apps, workaround exists |
 | **P3** | BUG-047 | Low | Low | Code quality cleanup |
 | **P3** | BUG-042 | Low | Medium | Refactor Result nesting |
 
 ## Recent Activity
 
-- 2026-01-17: Created BUG-054 - submit:true doesn't trigger Enter in TUI apps
-- 2026-01-17: Created BUG-053 - Codex CLI cursor position error (DSR [6n not handled)
+- 2026-01-17: Fixed BUG-053 - DSR [6n] cursor position handling (commit cb1839c)
+- 2026-01-17: Fixed BUG-054 - TUI Enter handling fix (commit 3ce77dc)
 - 2026-01-17: Resolved BUG-052 - tested and confirmed working (Gemini connects to ccmux MCP)
 - 2026-01-17: Archived BUG-051 - fixed direction mapping (commit e3d83f0)
 - 2026-01-16: Fixed BUG-050 - cwd inheritance, merged to main, archived
@@ -41,6 +37,8 @@
 
 | ID | Description | Resolution | Commit |
 |----|-------------|------------|--------|
+| BUG-054 | send_input submit:true doesn't trigger Enter in TUI | Fixed - send input and enter separately | 3ce77dc |
+| BUG-053 | Codex CLI cursor position error (DSR [6n]) | Fixed - handle DSR escape sequence in PTY | cb1839c |
 | BUG-052 | Nested agents cannot connect to MCP | Verified working - no longer reproduces | N/A |
 | BUG-051 | Split pane direction parameter has no effect | Fixed - direction mapping in handlers | e3d83f0 |
 | BUG-050 | pane/session/window cwd inheritance | Fixed - pass cwd through MCP chain | ca1dcc9 |
