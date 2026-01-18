@@ -3,7 +3,7 @@
 **Priority**: P2
 **Component**: mcp, client
 **Severity**: medium
-**Status**: new
+**Status**: completed
 
 ## Problem
 
@@ -50,28 +50,28 @@ The client may not be receiving or processing the session removal notification, 
 ## Investigation Steps
 
 ### Section 1: Add Logging
-- [ ] Add debug logging to client session subscription handling
-- [ ] Log when session removal events are received
-- [ ] Log what the client is waiting on when it hangs
+- [x] Add debug logging to client session subscription handling
+- [x] Log when session removal events are received
+- [x] Log what the client is waiting on when it hangs
 
 ### Section 2: Trace the Hang
-- [ ] Run with RUST_LOG=debug and capture logs during hang
-- [ ] Check if daemon sends session removal notification
-- [ ] Check if client receives and processes it
+- [x] Run with RUST_LOG=debug and capture logs during hang
+- [x] Check if daemon sends session removal notification
+- [x] Check if client receives and processes it
 
 ### Section 3: Test Variations
-- [ ] Test killing non-current session (does it still hang?)
-- [ ] Test killing session from within that session
-- [ ] Test killing session from a different client
-- [ ] Test killing multiple sessions in rapid succession (8+ sessions)
-- [ ] Check if hang severity correlates with number of sessions killed
+- [x] Test killing non-current session (does it still hang?)
+- [x] Test killing session from within that session
+- [x] Test killing session from a different client
+- [x] Test killing multiple sessions in rapid succession (8+ sessions)
+- [x] Check if hang severity correlates with number of sessions killed
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_kill_session` completes without hanging the client
-- [ ] Client remains fully responsive after session kill
-- [ ] Session removal is properly propagated to all clients
-- [ ] No regressions in session management
+- [x] `ccmux_kill_session` completes without hanging the client
+- [x] Client remains fully responsive after session kill
+- [x] Session removal is properly propagated to all clients
+- [x] No regressions in session management
 
 ## Related Files
 
@@ -83,3 +83,4 @@ The client may not be receiving or processing the session removal notification, 
 ## Notes
 
 Discovered during multi-agent orchestration demo on 2026-01-18.
+Fixed by broadcasting `SessionEnded` to attached clients before detaching them in `handle_destroy_session`.

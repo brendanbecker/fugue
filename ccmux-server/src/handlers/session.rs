@@ -380,6 +380,13 @@ impl HandlerContext {
             }
         }
 
+        // Notify clients that the session is ending
+        // This ensures TUI clients exit the session view cleanly (BUG-058)
+        self.registry.broadcast_to_session(
+            session_id,
+            ServerMessage::SessionEnded { session_id }
+        ).await;
+
         // Detach any clients attached to this session
         self.registry.detach_session_clients(session_id);
 
@@ -1212,6 +1219,42 @@ mod tests {
     }
 
     // ==================== Rename Session Tests ====================
+
+    #[tokio::test]
+    async fn test_handle_destroy_session_broadcasts_ended() {
+        let ctx = create_test_context();
+        let session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            session_manager.create_session("test").unwrap().id()
+        };
+
+        // Create a TUI client and attach it to the session
+        let (tui_tx, mut tui_rx) = mpsc::channel(10);
+        let tui_client_id = ctx.registry.register_client(tui_tx);
+        ctx.registry.attach_to_session(tui_client_id, session_id);
+
+        // Verify attachment
+        assert_eq!(ctx.registry.session_client_count(session_id), 1);
+
+        // Destroy the session
+        ctx.handle_destroy_session(session_id).await;
+
+        // Check if TUI client received SessionEnded
+        // We expect:
+        // 1. SessionEnded (missing currently)
+        // 2. SessionsChanged (broadcast to all)
+        
+        let mut received_ended = false;
+        while let Ok(msg) = tui_rx.try_recv() {
+            if let ServerMessage::SessionEnded { session_id: sid } = msg {
+                if sid == session_id {
+                    received_ended = true;
+                }
+            }
+        }
+        
+        assert!(received_ended, "TUI client should receive SessionEnded message");
+    }
 
     #[tokio::test]
     async fn test_handle_rename_session_by_name() {
