@@ -12,6 +12,7 @@ use crate::mcp::protocol::ToolResult;
 use super::connection::ConnectionManager;
 use crate::beads::metadata_keys as beads;
 use super::types::{ConnectionState, MAX_RECONNECT_ATTEMPTS};
+use super::orchestration::{run_expect, ExpectAction};
 
 /// Parse a UUID from arguments
 pub fn parse_uuid(arguments: &serde_json::Value, field: &str) -> Result<Uuid, McpError> {
@@ -1705,5 +1706,30 @@ impl<'a> ToolHandlers<'a> {
             }
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
         }
+    }
+
+    // ==================== FEAT-096: Expect Tool ====================
+
+    pub async fn tool_expect(
+        &mut self,
+        pane_id: Uuid,
+        pattern: &str,
+        timeout_ms: u64,
+        action: &str,
+        poll_interval_ms: u64,
+        lines: usize,
+    ) -> Result<ToolResult, McpError> {
+        let expect_action: ExpectAction = action.parse()?;
+        
+        run_expect(
+            self.connection,
+            pane_id,
+            pattern,
+            timeout_ms,
+            expect_action,
+            poll_interval_ms,
+            lines,
+        )
+        .await
     }
 }
