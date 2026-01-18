@@ -403,20 +403,36 @@ impl<'a> ToolHandlers<'a> {
         submit: bool,
     ) -> Result<ToolResult, McpError> {
         // Determine data to send based on input or key parameter
-        let data = match (input, key) {
+        match (input, key) {
             (Some(text), None) => {
-                // Regular text input
-                let mut data = text.as_bytes().to_vec();
+                // Regular text input - send input and Enter key separately if submit is true
+                // This avoids issues with TUI apps that expect Enter as a separate event
+                // (BUG-054)
+                let data = text.as_bytes().to_vec();
+                self.connection
+                    .send_to_daemon(ClientMessage::Input { pane_id, data })
+                    .await?;
+
                 if submit {
-                    data.push(b'\r');
+                    let enter_data = b"\r".to_vec();
+                    self.connection
+                        .send_to_daemon(ClientMessage::Input {
+                            pane_id,
+                            data: enter_data,
+                        })
+                        .await?;
                 }
-                data
             }
             (None, Some(key_name)) => {
                 // Special key lookup
                 use crate::mcp::keys::get_key_sequence;
                 match get_key_sequence(&key_name) {
-                    Some(sequence) => sequence.to_vec(),
+                    Some(sequence) => {
+                        let data = sequence.to_vec();
+                        self.connection
+                            .send_to_daemon(ClientMessage::Input { pane_id, data })
+                            .await?;
+                    }
                     None => {
                         // Return error with helpful message listing some valid keys
                         return Ok(ToolResult::error(format!(
@@ -441,11 +457,7 @@ impl<'a> ToolHandlers<'a> {
                     "Either 'input' or 'key' parameter is required".into(),
                 ));
             }
-        };
-
-        self.connection
-            .send_to_daemon(ClientMessage::Input { pane_id, data })
-            .await?;
+        }
 
         Ok(ToolResult::text(r#"{"status": "sent"}"#.to_string()))
     }

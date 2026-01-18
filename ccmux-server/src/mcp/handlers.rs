@@ -542,18 +542,19 @@ impl<'a> ToolContext<'a> {
             .get(pane_id)
             .ok_or_else(|| McpError::Pty(format!("No PTY for pane {}", pane_id)))?;
 
-        // Prepare data - combine input with Enter key if submit is true
-        // This ensures atomic write to avoid race conditions where PTY
-        // might process input and Enter separately
-        let mut data = input.as_bytes().to_vec();
-        if submit {
-            data.push(b'\r');
-        }
-
-        // Write atomically to PTY
+        // Prepare data - send input and Enter key separately if submit is true
+        // This avoids issues with TUI apps that expect Enter as a separate event
+        // (BUG-054)
+        let data = input.as_bytes();
         handle
-            .write_all(&data)
+            .write_all(data)
             .map_err(|e| McpError::Pty(e.to_string()))?;
+
+        if submit {
+            handle
+                .write_all(b"\r")
+                .map_err(|e| McpError::Pty(e.to_string()))?;
+        }
 
         Ok(r#"{"status": "sent"}"#.into())
     }
@@ -586,16 +587,19 @@ impl<'a> ToolContext<'a> {
         // Determine data to send based on input or key parameter
         match (input, key) {
             (Some(text), None) => {
-                // Regular text input - combine with Enter key if submit is true
-                // This ensures atomic write to avoid race conditions where PTY
-                // might process input and Enter separately
-                let mut data = text.as_bytes().to_vec();
-                if submit {
-                    data.push(b'\r');
-                }
+                // Regular text input - send input and Enter key separately if submit is true
+                // This avoids issues with TUI apps that expect Enter as a separate event
+                // (BUG-054)
+                let data = text.as_bytes();
                 handle
-                    .write_all(&data)
+                    .write_all(data)
                     .map_err(|e| McpError::Pty(e.to_string()))?;
+
+                if submit {
+                    handle
+                        .write_all(b"\r")
+                        .map_err(|e| McpError::Pty(e.to_string()))?;
+                }
             }
             (None, Some(key_name)) => {
                 // Special key lookup
