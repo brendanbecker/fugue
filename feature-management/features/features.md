@@ -1,24 +1,39 @@
 # Feature Tracking
 
 **Project**: ccmux
-**Last Updated**: 2026-01-16
+**Last Updated**: 2026-01-17
 
 ## Summary Statistics
 
-- **Total Features**: 93
+- **Total Features**: 96
 - **Completed**: 86
-- **Backlog**: 7
+- **Backlog**: 10
 
 ## Current Status
 
-Core terminal multiplexer fully functional with MCP integration, multi-agent orchestration, remote access, and observability. Eight features remain in backlog, primarily code refactoring tasks.
+Core terminal multiplexer fully functional with MCP integration, multi-agent orchestration, remote access, and observability. Ten features remain in backlog: 3 new high-level orchestration tools (P1), refactoring tasks, and infrastructure improvements.
 
 ## Active Backlog
+
+### High Priority - Orchestration Tools (P1)
+
+| ID | Title | Component | Priority | Status |
+|----|-------|-----------|----------|--------|
+| FEAT-094 | ccmux_run_parallel - Parallel Command Execution | ccmux-server/mcp | P1 | new |
+| FEAT-095 | ccmux_run_pipeline - Sequential Command Pipeline | ccmux-server/mcp | P1 | new |
+| FEAT-096 | ccmux_expect - Pattern-Based Wait | ccmux-server/mcp | P1 | new |
+
+### Medium Priority - Refactoring (P2)
 
 | ID | Title | Component | Priority | Status |
 |----|-------|-----------|----------|--------|
 | FEAT-064 | Refactor MCP bridge.rs into modular components | ccmux-server | P2 | ready |
 | FEAT-065 | Refactor handlers in MCP bridge modules | ccmux-server | P2 | ready |
+
+### Lower Priority (P3)
+
+| ID | Title | Component | Priority | Status |
+|----|-------|-----------|----------|--------|
 | FEAT-069 | TLS/auth for direct TCP connections | ccmux-server | P3 | backlog |
 | FEAT-072 | Per-pane MCP mode control | ccmux-server | P3 | backlog |
 | FEAT-087 | Refactor client app.rs | ccmux-client | P3 | ready |
@@ -28,21 +43,46 @@ Core terminal multiplexer fully functional with MCP integration, multi-agent orc
 | FEAT-091 | Refactor mcp_handlers.rs | ccmux-server | P3 | ready |
 | FEAT-092 | Refactor protocol messages.rs | ccmux-protocol | P3 | ready |
 
+## Recommended Work Order
+
+### Phase 1: Orchestration Foundation (Next)
+1. **FEAT-096** (ccmux_expect) - Foundation primitive for other tools
+2. **FEAT-094** (ccmux_run_parallel) - Parallel execution
+3. **FEAT-095** (ccmux_run_pipeline) - Sequential pipelines
+
+These tools reduce orchestrator context consumption by 70-90%.
+
+### Phase 2: Critical Bug Fix
+4. **BUG-052** (Nested agents cannot connect) - Blocks multi-agent use case
+
+### Phase 3: Refactoring (Optional)
+5. FEAT-064, FEAT-065 - MCP bridge cleanup
+6. Other P3 refactoring as time permits
+
 ## Parallel Workstream Candidates
 
 These have no interdependencies:
 
-**Workstream A - MCP Bridge Refactoring:**
+**Workstream A - Orchestration Tools:**
+- FEAT-094, FEAT-095, FEAT-096 (build FEAT-096 first as foundation)
+
+**Workstream B - MCP Bridge Refactoring:**
 - FEAT-064, FEAT-065, FEAT-088, FEAT-091
 
-**Workstream B - Protocol Refactoring:**
+**Workstream C - Protocol Refactoring:**
 - FEAT-089, FEAT-092
 
-**Workstream C - Client Refactoring:**
+**Workstream D - Client Refactoring:**
 - FEAT-087, FEAT-090
 
-**Workstream D - New Capabilities:**
+**Workstream E - New Capabilities:**
 - FEAT-072 (per-pane MCP mode)
+
+## Recent Completions (2026-01-17)
+
+| ID | Title | Commit |
+|----|-------|--------|
+| BUG-051 | Split pane direction parameter | e3d83f0 |
 
 ## Recent Completions (2026-01-16)
 
