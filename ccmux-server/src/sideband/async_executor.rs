@@ -114,6 +114,13 @@ impl AsyncCommandExecutor {
         &self.registry
     }
 
+    /// Get a reference to the PTY manager
+    ///
+    /// Used by PtyOutputPoller to write DSR responses back to the PTY.
+    pub fn pty_manager(&self) -> &Arc<RwLock<PtyManager>> {
+        &self.pty_manager
+    }
+
     /// Execute a sideband command
     ///
     /// # Arguments

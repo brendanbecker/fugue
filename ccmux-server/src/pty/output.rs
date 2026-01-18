@@ -532,12 +532,25 @@ impl PtyOutputPoller {
         !self.buffer.is_empty() && self.last_data_time.elapsed() >= self.config.flush_timeout
     }
 
+    /// Check if data contains DSR CPR (Cursor Position Report) request
+    ///
+    /// DSR [6n] is ESC [ 6 n (0x1b, 0x5b, 0x36, 0x6e)
+    /// This is a Device Status Report requesting cursor position.
+    /// BUG-053: Codex CLI requires this response to start.
+    fn contains_dsr_cpr(data: &[u8]) -> bool {
+        // Look for ESC[6n sequence
+        // ESC = 0x1b, [ = 0x5b, 6 = 0x36, n = 0x6e
+        const DSR_CPR: &[u8] = b"\x1b[6n";
+        data.windows(DSR_CPR.len()).any(|w| w == DSR_CPR)
+    }
+
     /// Flush the buffer by broadcasting to session clients and routing to pane state
     ///
     /// This method:
     /// 1. Routes output to pane.process() for scrollback and agent detection (FEAT-084)
-    /// 2. Broadcasts PaneStateChanged if agent state changed
-    /// 3. Broadcasts Output to all session clients
+    /// 2. Handles DSR [6n] cursor position requests (BUG-053)
+    /// 3. Broadcasts PaneStateChanged if agent state changed
+    /// 4. Broadcasts Output to all session clients
     async fn flush(&mut self) {
         if self.buffer.is_empty() {
             return;
@@ -554,13 +567,83 @@ impl PtyOutputPoller {
         );
 
         // Route output to pane state for scrollback and agent detection (FEAT-084)
-        // This populates the scrollback buffer and triggers agent detection
+        // Also handle DSR [6n] cursor position requests (BUG-053)
         let state_change_msg = if let Some(executor) = &self.command_executor {
             let session_manager = executor.session_manager();
             let mut manager = session_manager.write().await;
             if let Some(pane) = manager.find_pane_mut(self.pane_id) {
                 // Process returns Some(AgentState) if state changed (FEAT-084)
-                if let Some(agent_state) = pane.process(&data) {
+                let state_changed = pane.process(&data);
+
+                // BUG-053: Handle DSR [6n] cursor position request
+                // Check if the output contains ESC[6n (cursor position query)
+                // The terminal should respond with ESC[row;colR
+                if Self::contains_dsr_cpr(&data) {
+                    if let Some(screen) = pane.screen() {
+                        let (row, col) = screen.cursor_position();
+                        // vt100 uses 0-based indexing, DSR response uses 1-based
+                        let response = format!("\x1b[{};{}R", row + 1, col + 1);
+                        trace!(
+                            pane_id = %self.pane_id,
+                            row = row + 1,
+                            col = col + 1,
+                            "Responding to DSR [6n] cursor position request"
+                        );
+
+                        // Write response to PTY (must release session manager lock first)
+                        drop(manager);
+
+                        // Write DSR response to PTY
+                        let pty_manager = executor.pty_manager();
+                        let pty_mgr = pty_manager.read().await;
+                        if let Some(handle) = pty_mgr.get(self.pane_id) {
+                            if let Err(e) = handle.write_all(response.as_bytes()) {
+                                warn!(
+                                    pane_id = %self.pane_id,
+                                    error = %e,
+                                    "Failed to write DSR cursor position response"
+                                );
+                            }
+                        }
+
+                        // Re-acquire lock to check state change
+                        let manager = session_manager.read().await;
+                        if let Some(agent_state) = state_changed {
+                            if let Some((_, _, pane)) = manager.find_pane(self.pane_id) {
+                                debug!(
+                                    pane_id = %self.pane_id,
+                                    agent_type = %agent_state.agent_type,
+                                    activity = ?agent_state.activity,
+                                    "Agent state changed from PTY output"
+                                );
+                                Some(ServerMessage::PaneStateChanged {
+                                    pane_id: self.pane_id,
+                                    state: pane.state().clone(),
+                                })
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    } else {
+                        // No screen available, still handle state change
+                        if let Some(agent_state) = state_changed {
+                            debug!(
+                                pane_id = %self.pane_id,
+                                agent_type = %agent_state.agent_type,
+                                activity = ?agent_state.activity,
+                                "Agent state changed from PTY output"
+                            );
+                            Some(ServerMessage::PaneStateChanged {
+                                pane_id: self.pane_id,
+                                state: pane.state().clone(),
+                            })
+                        } else {
+                            None
+                        }
+                    }
+                } else if let Some(agent_state) = state_changed {
                     debug!(
                         pane_id = %self.pane_id,
                         agent_type = %agent_state.agent_type,
@@ -1356,5 +1439,45 @@ mod tests {
         let manager = session_manager.read().await;
         let (_, _, pane) = manager.find_pane(pane_id).expect("Pane should exist");
         assert_eq!(pane.scrollback().len(), 1, "Scrollback should have 1 line");
+    }
+
+    // ==================== DSR [6n] Tests (BUG-053) ====================
+
+    #[test]
+    fn test_contains_dsr_cpr_basic() {
+        // Basic DSR CPR sequence
+        assert!(PtyOutputPoller::contains_dsr_cpr(b"\x1b[6n"));
+
+        // Embedded in other data
+        assert!(PtyOutputPoller::contains_dsr_cpr(b"hello\x1b[6nworld"));
+        assert!(PtyOutputPoller::contains_dsr_cpr(b"\x1b[?2004h\x1b[6n"));
+
+        // At end
+        assert!(PtyOutputPoller::contains_dsr_cpr(b"test\x1b[6n"));
+    }
+
+    #[test]
+    fn test_contains_dsr_cpr_negative() {
+        // No DSR sequence
+        assert!(!PtyOutputPoller::contains_dsr_cpr(b"hello world"));
+
+        // Similar but not DSR CPR
+        assert!(!PtyOutputPoller::contains_dsr_cpr(b"\x1b[5n")); // DSR operating status
+        assert!(!PtyOutputPoller::contains_dsr_cpr(b"\x1b[6m")); // Not DSR at all
+        assert!(!PtyOutputPoller::contains_dsr_cpr(b"\x1b6n"));  // Missing [
+
+        // Partial sequence
+        assert!(!PtyOutputPoller::contains_dsr_cpr(b"\x1b[6"));
+        assert!(!PtyOutputPoller::contains_dsr_cpr(b"\x1b["));
+
+        // Empty
+        assert!(!PtyOutputPoller::contains_dsr_cpr(b""));
+    }
+
+    #[test]
+    fn test_contains_dsr_cpr_with_codex_startup_sequence() {
+        // Typical Codex CLI startup sequence
+        let codex_startup = b"\x1b[?2004h\x1b[>7u\x1b[?1004h\x1b[6n";
+        assert!(PtyOutputPoller::contains_dsr_cpr(codex_startup));
     }
 }
