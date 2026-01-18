@@ -773,6 +773,46 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "required": ["source_pane_id"]
             }),
         },
+        // ==================== FEAT-096: Expect Tool ====================
+        Tool {
+            name: "ccmux_expect".into(),
+            description: "Wait for regex pattern in pane output".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "pane_id": {
+                        "type": "string",
+                        "description": "UUID of the pane to monitor"
+                    },
+                    "pattern": {
+                        "type": "string",
+                        "description": "Regex pattern to match"
+                    },
+                    "timeout_ms": {
+                        "type": "integer",
+                        "default": 60000,
+                        "description": "Timeout in milliseconds (default 1 minute)"
+                    },
+                    "action": {
+                        "type": "string",
+                        "enum": ["notify", "close_pane", "return_output"],
+                        "default": "notify",
+                        "description": "Action to take on pattern match"
+                    },
+                    "poll_interval_ms": {
+                        "type": "integer",
+                        "default": 200,
+                        "description": "Polling interval (default 200ms)"
+                    },
+                    "lines": {
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Number of lines to check from end of output"
+                    }
+                },
+                "required": ["pane_id", "pattern"]
+            }),
+        },
     ]
 }
 
@@ -857,5 +897,7 @@ mod tests {
         assert!(names.contains(&"ccmux_beads_pane_history"));
         // FEAT-060: Connection status tool
         assert!(names.contains(&"ccmux_connection_status"));
+        // FEAT-096: Expect tool
+        assert!(names.contains(&"ccmux_expect"));
     }
 }

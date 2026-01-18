@@ -5,6 +5,7 @@
 
 pub mod connection;
 pub mod handlers;
+pub mod orchestration;
 pub mod types;
 
 #[cfg(test)]
@@ -591,6 +592,18 @@ impl McpBridge {
                 let source_pane_id = parse_uuid(arguments, "source_pane_id")?;
                 let direction = arguments["direction"].as_str();
                 handlers.tool_mirror_pane(source_pane_id, direction).await
+            }
+            "ccmux_expect" => {
+                let pane_id = parse_uuid(arguments, "pane_id")?;
+                let pattern = arguments["pattern"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'pattern' parameter".into()))?;
+                let timeout_ms = arguments["timeout_ms"].as_u64().unwrap_or(60000);
+                let action = arguments["action"].as_str().unwrap_or("notify");
+                let poll_interval_ms = arguments["poll_interval_ms"].as_u64().unwrap_or(200);
+                let lines = arguments["lines"].as_u64().unwrap_or(100) as usize;
+                
+                handlers.tool_expect(pane_id, pattern, timeout_ms, action, poll_interval_ms, lines).await
             }
             _ => Err(McpError::UnknownTool(name.into())),
         }
