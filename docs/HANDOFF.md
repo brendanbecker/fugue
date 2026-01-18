@@ -15,22 +15,50 @@
 - `ccmux_run_parallel` - Execute commands in parallel across panes (FEAT-094)
 - `ccmux_run_pipeline` - Execute commands sequentially in a single pane (FEAT-095)
 
+**New**: FEAT-098 Gemini Agent Detection shipped - ccmux now detects both Claude and Gemini CLI.
+
 ### Active Bugs (2)
 
-| Bug | Priority | Description |
-|-----|----------|-------------|
-| BUG-047 | P3 | 51+ compiler warnings need cleanup |
-| BUG-042 | P3 | Excessive Result nesting (Ok(Ok(...))) code smell |
+| Bug | Priority | Description | Status |
+|-----|----------|-------------|--------|
+| BUG-047 | P3 | 51+ compiler warnings need cleanup | Agent working |
+| BUG-042 | P3 | Excessive Result nesting (Ok(Ok(...))) | ✅ Ready for merge |
 
 ### Active Features (7)
 
-| Priority | Features |
-|----------|----------|
-| **P1** | FEAT-097 (message receive) |
-| P2 | FEAT-064, FEAT-065 (MCP bridge refactoring) |
-| P3 | FEAT-069, FEAT-072, FEAT-087-092 (infra + refactoring) |
+| Priority | Features | Status |
+|----------|----------|--------|
+| **P1** | FEAT-097 (message receive) | Agent working |
+| P1 | FEAT-098 (Gemini detection) | ✅ Merged |
+| P2 | FEAT-064, FEAT-065 (MCP bridge refactoring) | Backlog |
+| P3 | FEAT-069, FEAT-072, FEAT-087-092 (infra + refactoring) | Backlog |
 
-### Latest Session (2026-01-17, Session 4)
+### Latest Session (2026-01-17, Session 5)
+
+**Multi-Agent Orchestration via ccmux:**
+
+Successfully running 8 parallel agents across ccmux sessions:
+
+| Session | Agent | Task | Status |
+|---------|-------|------|--------|
+| session-0 | Claude | Orchestrator | Active |
+| feat-094-parallel | Claude | PR creation | Working |
+| feat-095-pipeline | Gemini | Pipeline tool | Working |
+| feat-096-expect | Gemini | Expect tool | Working |
+| feat-097-gemini | Gemini | Message receive (FEAT-097) | Working |
+| bug-042-gemini | Gemini | Result nesting fix | ✅ Complete |
+| bug-047-claude | Claude | Compiler warnings | Working |
+| bug-053-codex | Claude | Testing | Working |
+| bug-054-tui | Gemini | TUI fix | ✅ Complete |
+
+**Completed This Session:**
+- **FEAT-098**: Gemini Agent Detection (`d684034`) - GeminiAgentDetector implementing AgentDetector trait
+- **BUG-042**: Result nesting fix - regression test added, branch ready for merge
+- **BUG-054**: TUI fix - already committed (`3ce77dc`)
+
+**Key Discovery:** Gemini CLI menus require sending digit keys ("1", "2") rather than Enter to select options. Enter cycles through menu items.
+
+### Previous Session (2026-01-17, Session 4)
 
 **Background Agent Experiment - Aborted:**
 
@@ -123,6 +151,7 @@ Poll `read_pane` for exit marker to detect command completion.
 
 | Component | Location |
 |-----------|----------|
+| Agent detection | `ccmux-server/src/agents/` (Claude, Gemini) |
 | Orchestration tools | `ccmux-server/src/mcp/bridge/orchestration.rs` |
 | MCP bridge handlers | `ccmux-server/src/mcp/bridge/handlers.rs` |
 | MCP tool schemas | `ccmux-server/src/mcp/tools.rs` |
@@ -138,6 +167,12 @@ ccmux is agent-agnostic:
 - See: `docs/adr/ADR-001-dumb-pipe-strategy.md`
 
 ## Recent Completions
+
+### 2026-01-17 (Session 5)
+| ID | Description | Commit |
+|----|-------------|--------|
+| FEAT-098 | Gemini Agent Detection | d684034 |
+| BUG-042 | Result nesting regression test | (branch ready) |
 
 ### 2026-01-17 (Session 3)
 | ID | Description | Commit |
@@ -181,12 +216,12 @@ ccmux is agent-agnostic:
 | Metric | Value |
 |--------|-------|
 | Total Bugs | 56 |
-| Open Bugs | 2 |
-| Resolution Rate | 96% |
-| Total Features | 97 |
-| Completed Features | 89 |
+| Open Bugs | 1 |
+| Resolution Rate | 98% |
+| Total Features | 98 |
+| Completed Features | 90 |
 | Completion Rate | 92% |
-| Test Count | 1,714 |
+| Test Count | 1,714+ |
 
 ---
 
