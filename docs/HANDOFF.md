@@ -19,6 +19,8 @@
 
 **Agent Detection**: Both Claude and Gemini CLI detected (FEAT-098).
 
+**All Refactoring Complete!** (Session 9)
+
 ### Active Bugs (6)
 
 | ID | Description | Priority | Component |
@@ -30,26 +32,19 @@
 | BUG-047 | Compiler warnings cleanup | P3 | build |
 | BUG-042 | Result nesting code smell | P3 | mcp |
 
-### Active Features
+### Refactoring Complete
 
-**Parallel Refactoring (Session 8) - 2 Merged, 3 In Progress:**
+**All 5 refactor features merged in Session 9:**
 
-| Session | Branch | Feature | Status |
-|---------|--------|---------|--------|
-| `feat-088-gemini` | `feat/feat-088-refactor-mcp-bridge-handlers` | FEAT-088: Refactor handlers/mcp_bridge.rs | ✅ **Merged** |
-| `feat-089-gemini` | `feat/feat-089-refactor-protocol-types` | FEAT-089: Refactor protocol types.rs | ✅ **Merged** |
-| `feat-065-codex-review` | `feat/feat-065-refactor-handlers` | FEAT-065: Refactor MCP handlers | Codex Reviewing |
-| `feat-064-codex-review` | `feat/feat-064-refactor-bridge` | FEAT-064: Refactor MCP bridge.rs | Codex Reviewing |
-| `feat-087-gemini` | `feat/feat-087-refactor-client-app` | FEAT-087: Refactor client app.rs | In Progress |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| FEAT-064 | Refactor MCP bridge.rs - extracted `health.rs`, slimmed `connection.rs` | ✅ **Merged** |
+| FEAT-065 | Refactor MCP handlers - added `*_tools.rs` modules | ✅ **Merged** |
+| FEAT-087 | Refactor client app.rs - split into `render.rs` + `state.rs` | ✅ **Merged** |
+| FEAT-088 | Refactor handlers/mcp_bridge.rs - split into 9 modules | ✅ **Merged** |
+| FEAT-089 | Refactor protocol types.rs - split into 6 modules | ✅ **Merged** |
 
-**Active Worktrees:**
-```
-../ccmux-feat-064  (Codex reviewing)
-../ccmux-feat-065  (Codex reviewing)
-../ccmux-feat-087  (Gemini in progress)
-```
-
-**Workflow:** Gemini commits → Codex reviews → Merge to main.
+**All worktrees and feature branches cleaned up.**
 
 **Remaining Backlog:**
 
@@ -58,7 +53,29 @@
 | P2 | FEAT-102 (Agent Status Pane), FEAT-100, FEAT-101 | Backlog |
 | P3 | FEAT-069, FEAT-072, FEAT-090-092 (infra + remaining refactoring) | Backlog |
 
-### Latest Session (2026-01-18, Session 8)
+### Latest Session (2026-01-18, Session 9)
+
+**Completed All Refactoring**
+
+Merged remaining 3 refactor features, resolved merge conflict, cleaned up all worktrees and sessions.
+
+**Merged this session:**
+| ID | Description | Changes |
+|----|-------------|---------|
+| FEAT-064 | Refactor MCP bridge.rs | Extracted `health.rs`, slimmed `connection.rs`, deleted `types.rs` |
+| FEAT-065 | Refactor MCP handlers | Added `*_tools.rs` modules (layout, pane, session, window) |
+| FEAT-087 | Refactor client app.rs | Split into `render.rs` + `state.rs` (3123→2249 lines) |
+
+**Merge conflict resolved:** FEAT-065 conflicted with FEAT-088 (both touched `mcp_bridge.rs`). Updated `mod.rs` to include all modules.
+
+**Cleanup performed:**
+- Removed 5 worktrees (feat-064, 065, 087, 088, 089)
+- Killed 10 sessions (5 gemini workers + 5 codex reviewers)
+- Deleted 5 merged feature branches
+
+**Bug updated:** BUG-058 - added observations about rapid successive kills causing worse hangs
+
+### Previous Session (2026-01-18, Session 8)
 
 **Parallel Refactoring with Gemini + Codex Review**
 
@@ -69,10 +86,6 @@ Continuing multi-agent refactoring from Session 7.
 |----|-------------|---------|
 | FEAT-088 | Refactor handlers/mcp_bridge.rs | Split into 9 modules (pane, session, window, layout, etc.) |
 | FEAT-089 | Refactor protocol types.rs | Split into 6 modules (agent, common, pane, session, widget, window) |
-
-**Still in progress:**
-- FEAT-064, FEAT-065: Codex reviewing
-- FEAT-087: Gemini working
 
 **Other updates:**
 - Added cross-device link workaround docs to AGENTS.md
@@ -240,14 +253,11 @@ These workstreams are **fully independent** and can run in separate worktrees:
 | BUG-042 | Result nesting | Low | `ccmux-server/src/mcp/bridge/` |
 | BUG-057 | Agent cross-contamination | Low | `ccmux-server/src/agents/` |
 
-### Workstream F: Refactoring (Optional)
+### Workstream F: Refactoring ✅ COMPLETE
 **Goal**: Improve code organization
 
-| Item | Description | Effort | Files |
-|------|-------------|--------|-------|
-| FEAT-064 | Refactor bridge.rs | Medium | `ccmux-server/src/mcp/bridge/` |
-| FEAT-065 | Refactor handlers | Medium | `ccmux-server/src/mcp/bridge/handlers.rs` |
-| FEAT-087-092 | Various refactoring | Medium | Multiple |
+All refactoring features merged in Session 9:
+- FEAT-064, FEAT-065, FEAT-087, FEAT-088, FEAT-089
 
 ## Backlog Summary
 
@@ -258,16 +268,15 @@ These workstreams are **fully independent** and can run in separate worktrees:
 | P2 | 2 | BUG-058, BUG-060 |
 | P3 | 4 | BUG-042, BUG-047, BUG-057, BUG-059 |
 
-### Features (6 backlog)
+### Features (3 backlog)
 
 | Priority | ID | Title | Effort |
 |----------|----|-------|--------|
-| P2 | FEAT-064 | Refactor MCP bridge.rs | Medium |
-| P2 | FEAT-065 | Refactor handlers in MCP bridge | Medium |
+| P2 | FEAT-100 | OrchestrationContext abstraction | Medium |
+| P2 | FEAT-101 | Codex CLI agent detection | Low |
+| P2 | FEAT-102 | Agent Status Pane | Medium |
 | P3 | FEAT-069 | TLS/auth for TCP connections | Large |
 | P3 | FEAT-072 | Per-pane MCP mode control | Small |
-| P3 | FEAT-087 | Refactor client app.rs | Medium |
-| P3 | FEAT-088-092 | Various refactoring tasks | Medium |
 
 ## Architecture Notes
 
@@ -309,6 +318,13 @@ ccmux is agent-agnostic:
 - See: `docs/adr/ADR-001-dumb-pipe-strategy.md`
 
 ## Recent Completions
+
+### 2026-01-18 (Session 9)
+| ID | Description | Commit |
+|----|-------------|--------|
+| FEAT-064 | Refactor MCP bridge.rs | 562a9da |
+| FEAT-065 | Refactor MCP handlers | 33623f5 |
+| FEAT-087 | Refactor client app.rs | b0a689d |
 
 ### 2026-01-18 (Session 8)
 | ID | Description | Commit |
@@ -373,8 +389,8 @@ ccmux is agent-agnostic:
 | Open Bugs | 6 |
 | Resolution Rate | 90% |
 | Total Features | 102 |
-| Completed Features | 92 |
-| Completion Rate | 90% |
+| Completed Features | 97 |
+| Completion Rate | 95% |
 | Test Count | 1,714+ |
 
 ---
