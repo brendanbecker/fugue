@@ -42,7 +42,7 @@ Core terminal multiplexer fully functional with MCP integration, multi-agent orc
 | FEAT-072 | Per-pane MCP mode control | ccmux-server | P3 | backlog |
 | FEAT-087 | Refactor client app.rs | ccmux-client | P3 | ready |
 | FEAT-088 | Refactor handlers/mcp_bridge.rs | ccmux-server | P3 | ready |
-| FEAT-089 | Refactor protocol types.rs | ccmux-protocol | P3 | ready |
+| FEAT-089 | Refactor protocol types.rs | ccmux-protocol | P3 | done |
 | FEAT-090 | Refactor server main.rs | ccmux-server | P3 | ready |
 | FEAT-091 | Refactor mcp_handlers.rs | ccmux-server | P3 | ready |
 | FEAT-092 | Refactor protocol messages.rs | ccmux-protocol | P3 | ready |
@@ -82,6 +82,12 @@ These have no interdependencies:
 
 **Workstream E - New Capabilities:**
 - FEAT-072 (per-pane MCP mode)
+
+## Recent Completions (2026-01-18)
+
+| ID | Title | Commit |
+|----|-------|--------|
+| FEAT-089 | Refactor protocol types.rs | 2d4f1db |
 
 ## Recent Completions (2026-01-17)
 
