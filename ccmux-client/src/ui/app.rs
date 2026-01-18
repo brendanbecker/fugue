@@ -47,229 +47,69 @@ use crate::input::{ClientCommand, InputAction, InputHandler, InputMode};
 use super::event::{AppEvent, EventHandler, InputEvent};
 use super::layout::{LayoutManager, LayoutPolicy, SplitDirection as LayoutSplitDirection};
 use super::pane::{render_pane, FocusState, PaneManager};
+use super::state::{AppState, ClientState, MailboxMessage, ViewMode};
 use super::terminal::Terminal;
-
-/// Application state
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AppState {
-    /// Initial state, not connected
-    Disconnected,
-    /// Connecting to server
-    Connecting,
-    /// Connected, selecting session
-    SessionSelect,
-    /// Attached to a session
-    Attached,
-    /// Shutting down
-    Quitting,
-}
-
-/// View mode within Attached state
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ViewMode {
-    /// Normal pane view
-    Panes,
-    /// System-wide dashboard
-    Dashboard,
-}
-
-/// Message in the mailbox widget
-#[derive(Debug, Clone)]
-pub struct MailboxMessage {
-    pub pane_id: Uuid,
-    pub timestamp: std::time::SystemTime,
-    pub priority: MailPriority,
-    pub summary: String,
-}
 
 /// Main application
 pub struct App {
-    /// Current application state
-    state: AppState,
-    /// Current view mode
-    view_mode: ViewMode,
-    /// Client ID
-    client_id: Uuid,
+    /// Client state
+    pub state: ClientState,
     /// Server connection
     connection: Connection,
     /// Event handler
     events: EventHandler,
     /// Input handler with prefix key state machine
     input_handler: InputHandler,
-    /// Current session info
-    session: Option<SessionInfo>,
-    /// Windows in current session
-    windows: HashMap<Uuid, WindowInfo>,
-    /// Panes in current session
-    panes: HashMap<Uuid, PaneInfo>,
-    /// Mailbox messages (FEAT-073)
-    mailbox: Vec<MailboxMessage>,
-    /// List state for mailbox UI
-    mailbox_state: ListState,
-    /// Active pane ID
-    active_pane_id: Option<Uuid>,
-    /// Last (previously active) pane ID for Ctrl-b ; (tmux last-pane)
-    last_pane_id: Option<Uuid>,
-    /// Last (previously active) window ID for Ctrl-b l (tmux last-window)
-    last_window_id: Option<Uuid>,
-    /// Available sessions (when in SessionSelect state)
-    available_sessions: Vec<SessionInfo>,
-    /// Selected session index in session list
-    session_list_index: usize,
-    /// Terminal size (cols, rows)
-    terminal_size: (u16, u16),
-    /// Animation tick counter
-    tick_count: u64,
-    /// Status message to display
-    status_message: Option<String>,
-    /// UI pane manager for terminal rendering
-    pane_manager: PaneManager,
-    /// Layout manager for pane arrangement
-    layout: Option<LayoutManager>,
-    /// Pending split direction for next pane creation
-    pending_split_direction: Option<SplitDirection>,
-    /// Custom command to run in new sessions (from CLI args)
-    session_command: Option<String>,
-    /// Previous input mode for tracking mode transitions (FEAT-056)
-    /// Used to detect when user exits command mode
-    previous_input_mode: InputMode,
-    /// Last tick when beads status was requested (FEAT-058)
-    last_beads_request_tick: u64,
-    /// Whether current pane is in a beads-tracked repo (FEAT-057)
-    is_beads_tracked: bool,
-    /// Beads ready task count (FEAT-058): None = unavailable, Some(n) = n tasks ready
-    beads_ready_count: Option<usize>,
-    /// Expiry time for human control lock (FEAT-077)
-    human_control_lock_expiry: Option<Instant>,
-    /// Last seen commit sequence number (FEAT-075)
-    last_seen_commit_seq: u64,
-    /// Whether a full screen redraw is requested
-    needs_redraw: bool,
 }
 
 impl App {
     /// Create a new application instance
     pub fn new() -> Result<Self> {
         let events = EventHandler::new(Duration::from_millis(100));
+        let client_id = Uuid::new_v4();
 
         Ok(Self {
-            state: AppState::Disconnected,
-            view_mode: ViewMode::Panes,
-            client_id: Uuid::new_v4(),
+            state: ClientState::new(client_id),
             connection: Connection::new(),
             events,
             input_handler: InputHandler::new(),
-            session: None,
-            windows: HashMap::new(),
-            panes: HashMap::new(),
-            mailbox: Vec::new(),
-            mailbox_state: ListState::default(),
-            active_pane_id: None,
-            last_pane_id: None,
-            last_window_id: None,
-            available_sessions: Vec::new(),
-            session_list_index: 0,
-            terminal_size: (80, 24),
-            tick_count: 0,
-            status_message: None,
-            pane_manager: PaneManager::new(),
-            layout: None,
-            pending_split_direction: None,
-            session_command: None,
-            previous_input_mode: InputMode::Normal,
-            last_beads_request_tick: 0,
-            is_beads_tracked: false,
-            beads_ready_count: None,
-            human_control_lock_expiry: None,
-            last_seen_commit_seq: 0,
-            needs_redraw: false,
         })
     }
 
     /// Create a new application instance with a custom connection address
     pub fn with_addr(addr: String) -> Result<Self> {
         let events = EventHandler::new(Duration::from_millis(100));
+        let client_id = Uuid::new_v4();
 
         Ok(Self {
-            state: AppState::Disconnected,
-            view_mode: ViewMode::Panes,
-            client_id: Uuid::new_v4(),
+            state: ClientState::new(client_id),
             connection: Connection::with_addr(addr),
             events,
             input_handler: InputHandler::new(),
-            session: None,
-            windows: HashMap::new(),
-            panes: HashMap::new(),
-            mailbox: Vec::new(),
-            mailbox_state: ListState::default(),
-            active_pane_id: None,
-            last_pane_id: None,
-            last_window_id: None,
-            available_sessions: Vec::new(),
-            session_list_index: 0,
-            terminal_size: (80, 24),
-            tick_count: 0,
-            status_message: None,
-            pane_manager: PaneManager::new(),
-            layout: None,
-            pending_split_direction: None,
-            session_command: None,
-            previous_input_mode: InputMode::Normal,
-            last_beads_request_tick: 0,
-            is_beads_tracked: false,
-            beads_ready_count: None,
-            human_control_lock_expiry: None,
-            last_seen_commit_seq: 0,
-            needs_redraw: false,
         })
     }
 
     /// Create a new application instance with a custom socket path
     pub fn with_socket_path(socket_path: std::path::PathBuf) -> Result<Self> {
         let events = EventHandler::new(Duration::from_millis(100));
+        let client_id = Uuid::new_v4();
 
         Ok(Self {
-            state: AppState::Disconnected,
-            view_mode: ViewMode::Panes,
-            client_id: Uuid::new_v4(),
+            state: ClientState::new(client_id),
             connection: Connection::with_socket_path(socket_path),
             events,
             input_handler: InputHandler::new(),
-            session: None,
-            windows: HashMap::new(),
-            panes: HashMap::new(),
-            mailbox: Vec::new(),
-            mailbox_state: ListState::default(),
-            active_pane_id: None,
-            last_pane_id: None,
-            last_window_id: None,
-            available_sessions: Vec::new(),
-            session_list_index: 0,
-            terminal_size: (80, 24),
-            tick_count: 0,
-            status_message: None,
-            pane_manager: PaneManager::new(),
-            layout: None,
-            pending_split_direction: None,
-            session_command: None,
-            previous_input_mode: InputMode::Normal,
-            last_beads_request_tick: 0,
-            is_beads_tracked: false,
-            beads_ready_count: None,
-            human_control_lock_expiry: None,
-            last_seen_commit_seq: 0,
-            needs_redraw: false,
         })
     }
 
     /// Set the command to run in new sessions
     pub fn set_session_command(&mut self, command: Option<String>) {
-        self.session_command = command;
+        self.state.session_command = command;
     }
 
     /// Get current application state
     pub fn state(&self) -> AppState {
-        self.state
+        self.state.state
     }
 
     /// Set quick navigation keybindings
@@ -279,14 +119,14 @@ impl App {
 
     /// Check if application should quit
     pub fn should_quit(&self) -> bool {
-        self.state == AppState::Quitting
+        self.state.should_quit()
     }
 
     /// Run the main application loop
     pub async fn run(&mut self) -> Result<()> {
         // Initialize terminal
         let mut terminal = Terminal::new()?;
-        self.terminal_size = terminal.size()?;
+        self.state.terminal_size = terminal.size()?;
 
         // Start input polling
         self.events.start_input_polling();
@@ -300,14 +140,14 @@ impl App {
         // Main event loop
         while !self.should_quit() {
             // Draw UI
-            if self.needs_redraw {
+            if self.state.needs_redraw {
                 // NOTE: Commented out to fix flicker on session completion.
                 // PaneStateChanged/ClaudeStateChanged set needs_redraw=true, which
                 // triggered terminal.clear() causing visible flash. Ratatui's
                 // differential rendering should handle layout changes without clearing.
                 // If visual artifacts appear, uncomment this line.
                 // terminal.clear()?;
-                self.needs_redraw = false;
+                self.state.needs_redraw = false;
             }
             self.draw(&mut terminal)?;
 
@@ -322,15 +162,15 @@ impl App {
 
     /// Connect to the ccmux server
     async fn connect(&mut self) -> Result<()> {
-        self.state = AppState::Connecting;
-        self.status_message = Some("Connecting to server...".to_string());
+        self.state.state = AppState::Connecting;
+        self.state.status_message = Some("Connecting to server...".to_string());
 
         match self.connection.connect().await {
             Ok(()) => {
                 // Send handshake
                 self.connection
                     .send(ClientMessage::Connect {
-                        client_id: self.client_id,
+                        client_id: self.state.client_id,
                         protocol_version: ccmux_protocol::PROTOCOL_VERSION,
                         client_type: ClientType::Tui,
                     })
@@ -338,8 +178,8 @@ impl App {
                 Ok(())
             }
             Err(e) => {
-                self.state = AppState::Disconnected;
-                self.status_message = Some(format!("Failed to connect: {}", e));
+                self.state.state = AppState::Disconnected;
+                self.state.status_message = Some(format!("Failed to connect: {}", e));
                 Err(e)
             }
         }
@@ -358,15 +198,15 @@ impl App {
             AppEvent::Input(input) => self.handle_input(input).await?,
             AppEvent::Server(msg) => self.handle_server_message(msg).await?,
             AppEvent::Resize { cols, rows } => {
-                self.terminal_size = (cols, rows);
+                self.state.terminal_size = (cols, rows);
 
                 // Update layout and resize all panes
-                if self.state == AppState::Attached {
+                if self.state.state == AppState::Attached {
                     // Calculate pane area (minus status bar)
                     let pane_area = Rect::new(0, 0, cols, rows.saturating_sub(1));
 
-                    if let Some(ref layout) = self.layout {
-                        let weights = self.calculate_pane_weights();
+                    if let Some(ref layout) = self.state.layout {
+                        let weights = self.state.calculate_pane_weights();
                         let pane_rects = layout.calculate_rects(pane_area, &weights);
 
                         // Resize each pane and notify server
@@ -376,7 +216,7 @@ impl App {
                             let inner_height = rect.height.saturating_sub(2);
 
                             // Resize UI pane
-                            self.pane_manager.resize_pane(*pane_id, inner_height, inner_width);
+                            self.state.pane_manager.resize_pane(*pane_id, inner_height, inner_width);
 
                             // Notify server of resize for each pane
                             self.connection
@@ -387,11 +227,11 @@ impl App {
                                 })
                                 .await?;
                         }
-                    } else if let Some(pane_id) = self.active_pane_id {
+                    } else if let Some(pane_id) = self.state.active_pane_id {
                         // Fallback: single pane, no layout
                         let pane_rows = rows.saturating_sub(3);
                         let pane_cols = cols.saturating_sub(2);
-                        self.pane_manager.resize_pane(pane_id, pane_rows, pane_cols);
+                        self.state.pane_manager.resize_pane(pane_id, pane_rows, pane_cols);
                         self.connection
                             .send(ClientMessage::Resize {
                                 pane_id,
@@ -403,13 +243,13 @@ impl App {
                 }
             }
             AppEvent::Tick => {
-                self.tick_count = self.tick_count.wrapping_add(1);
+                self.state.tick_count = self.state.tick_count.wrapping_add(1);
                 // Poll for server messages
                 self.poll_server_messages().await?;
 
                 // FEAT-058: Periodic beads status refresh when attached
-                if self.state == AppState::Attached {
-                    let since_last_request = self.tick_count.saturating_sub(self.last_beads_request_tick);
+                if self.state.state == AppState::Attached {
+                    let since_last_request = self.state.tick_count.saturating_sub(self.state.last_beads_request_tick);
                     if since_last_request >= BEADS_REFRESH_INTERVAL_TICKS {
                         self.request_beads_status().await?;
                     }
@@ -456,13 +296,13 @@ impl App {
     /// from the beads daemon for the active pane's working directory.
     async fn request_beads_status(&mut self) -> Result<()> {
         // Only request if we have an active pane and beads tracking is enabled
-        if let Some(pane_id) = self.active_pane_id {
-            if self.is_beads_tracked {
+        if let Some(pane_id) = self.state.active_pane_id {
+            if self.state.is_beads_tracked {
                 tracing::trace!(pane_id = %pane_id, "Requesting beads status");
                 self.connection
                     .send(ClientMessage::RequestBeadsStatus { pane_id })
                     .await?;
-                self.last_beads_request_tick = self.tick_count;
+                self.state.last_beads_request_tick = self.state.tick_count;
             }
         }
         Ok(())
@@ -471,18 +311,18 @@ impl App {
     /// Handle input events
     async fn handle_input(&mut self, input: InputEvent) -> Result<()> {
         // Update input handler with current active pane
-        self.input_handler.set_active_pane(self.active_pane_id);
+        self.input_handler.set_active_pane(self.state.active_pane_id);
 
         // Convert InputEvent to crossterm Event for the input handler
         let event = match input {
             InputEvent::Key(key) => {
                 // In session select mode, handle keys directly without the prefix system
-                if self.state == AppState::SessionSelect {
+                if self.state.state == AppState::SessionSelect {
                     return self.handle_session_select_input(key).await;
                 }
                 
                 // In Dashboard mode, handle keys directly if not a prefix combo
-                if self.state == AppState::Attached && self.view_mode == ViewMode::Dashboard {
+                if self.state.state == AppState::Attached && self.state.view_mode == ViewMode::Dashboard {
                     if !self.input_handler.is_prefix_key(&key) && self.input_handler.mode() == InputMode::Normal {
                         return self.handle_dashboard_input(key).await;
                     }
@@ -497,7 +337,7 @@ impl App {
         };
 
         // Only use input handler when attached to a session
-        if self.state == AppState::Attached {
+        if self.state.state == AppState::Attached {
             // FEAT-056: Track mode before processing
             let mode_before = self.input_handler.mode();
 
@@ -506,7 +346,7 @@ impl App {
 
             // FEAT-056: Check if we exited PrefixPending mode
             let mode_after = self.input_handler.mode();
-            if self.previous_input_mode == InputMode::PrefixPending
+            if self.state.previous_input_mode == InputMode::PrefixPending
                 && mode_after != InputMode::PrefixPending
             {
                 // User command mode exited (command completed, timed out, or cancelled)
@@ -515,7 +355,7 @@ impl App {
                     .await?;
                 tracing::debug!("Sent UserCommandModeExited (mode: {:?} -> {:?})", mode_before, mode_after);
             }
-            self.previous_input_mode = mode_after;
+            self.state.previous_input_mode = mode_after;
         }
 
         Ok(())
@@ -525,22 +365,22 @@ impl App {
     async fn handle_dashboard_input(&mut self, key: crossterm::event::KeyEvent) -> Result<()> {
         match key.code {
             KeyCode::Up | KeyCode::Char('k') => {
-                let i = match self.mailbox_state.selected() {
+                let i = match self.state.mailbox_state.selected() {
                     Some(i) => {
                         if i == 0 {
-                            self.mailbox.len().saturating_sub(1)
+                            self.state.mailbox.len().saturating_sub(1)
                         } else {
                             i - 1
                         }
                     }
                     None => 0,
                 };
-                self.mailbox_state.select(Some(i));
+                self.state.mailbox_state.select(Some(i));
             }
             KeyCode::Down | KeyCode::Char('j') => {
-                let i = match self.mailbox_state.selected() {
+                let i = match self.state.mailbox_state.selected() {
                     Some(i) => {
-                        if i >= self.mailbox.len().saturating_sub(1) {
+                        if i >= self.state.mailbox.len().saturating_sub(1) {
                             0
                         } else {
                             i + 1
@@ -548,20 +388,20 @@ impl App {
                     }
                     None => 0,
                 };
-                self.mailbox_state.select(Some(i));
+                self.state.mailbox_state.select(Some(i));
             }
             KeyCode::Enter => {
                 // Jump to pane associated with the mailbox message
-                if let Some(i) = self.mailbox_state.selected() {
+                if let Some(i) = self.state.mailbox_state.selected() {
                     // mailbox is rev() in draw, so index is reversed
-                    let actual_idx = self.mailbox.len().saturating_sub(1).saturating_sub(i);
-                    if let Some(msg) = self.mailbox.get(actual_idx) {
-                        self.active_pane_id = Some(msg.pane_id);
-                        self.pane_manager.set_active(msg.pane_id);
-                        if let Some(ref mut layout) = self.layout {
+                    let actual_idx = self.state.mailbox.len().saturating_sub(1).saturating_sub(i);
+                    if let Some(msg) = self.state.mailbox.get(actual_idx) {
+                        self.state.active_pane_id = Some(msg.pane_id);
+                        self.state.pane_manager.set_active(msg.pane_id);
+                        if let Some(ref mut layout) = self.state.layout {
                             layout.set_active_pane(msg.pane_id);
                         }
-                        self.view_mode = ViewMode::Panes;
+                        self.state.view_mode = ViewMode::Panes;
                         self.connection
                             .send(ClientMessage::SelectPane { pane_id: msg.pane_id })
                             .await?;
@@ -579,14 +419,14 @@ impl App {
             InputAction::None => {}
 
             InputAction::SendToPane(data) => {
-                if let Some(pane_id) = self.active_pane_id {
+                if let Some(pane_id) = self.state.active_pane_id {
                     // FEAT-062: Don't send input to mirror panes (read-only)
-                    if self.pane_manager.get(pane_id).map(|p| p.is_mirror()).unwrap_or(false) {
+                    if self.state.pane_manager.get(pane_id).map(|p| p.is_mirror()).unwrap_or(false) {
                         // Mirror panes are read-only - ignore input
                         tracing::trace!("Ignoring input for mirror pane {}", pane_id);
                     } else {
                         // FEAT-077: Update local human control lock
-                        self.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(2000));
+                        self.state.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(2000));
 
                         // Small input - send directly
                         self.connection
@@ -597,21 +437,21 @@ impl App {
             }
 
             InputAction::PasteToPane(data) => {
-                if let Some(pane_id) = self.active_pane_id {
+                if let Some(pane_id) = self.state.active_pane_id {
                     // FEAT-062: Don't paste to mirror panes (read-only)
-                    if self.pane_manager.get(pane_id).map(|p| p.is_mirror()).unwrap_or(false) {
+                    if self.state.pane_manager.get(pane_id).map(|p| p.is_mirror()).unwrap_or(false) {
                         tracing::trace!("Ignoring paste for mirror pane {}", pane_id);
                         return Ok(());
                     }
 
                     // FEAT-077: Update local human control lock
-                    self.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(2000));
+                    self.state.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(2000));
 
                     // BUG-041 FIX: Check if bracketed paste mode is enabled for this pane.
                     // If enabled, we wrap the ENTIRE paste client-side BEFORE chunking.
                     // This prevents the server from wrapping each chunk separately, which
                     // would send multiple bracketed paste sequences and crash Claude Code.
-                    let use_bracketed = self.pane_manager
+                    let use_bracketed = self.state.pane_manager
                         .get(pane_id)
                         .map(|p| p.is_bracketed_paste_enabled())
                         .unwrap_or(false);
@@ -637,7 +477,7 @@ impl App {
                     // Reject extremely large pastes to prevent memory issues
                     if data_len > MAX_PASTE_SIZE {
                         let size_mb = data_len as f64 / (1024.0 * 1024.0);
-                        self.status_message = Some(format!(
+                        self.state.status_message = Some(format!(
                             "Paste too large ({:.1}MB). Maximum is {}MB.",
                             size_mb,
                             MAX_PASTE_SIZE / (1024 * 1024)
@@ -663,7 +503,7 @@ impl App {
                         // Show feedback for large pastes
                         if data_len > 1024 * 1024 {
                             let size_mb = data_len as f64 / (1024.0 * 1024.0);
-                            self.status_message = Some(format!(
+                            self.state.status_message = Some(format!(
                                 "Pasting {:.1}MB in {} chunks...",
                                 size_mb,
                                 num_chunks
@@ -694,11 +534,11 @@ impl App {
 
             InputAction::FocusPane { x, y } => {
                 // Find pane at coordinates and focus it
-                let (cols, rows) = self.terminal_size;
+                let (cols, rows) = self.state.terminal_size;
                 let pane_area = Rect::new(0, 0, cols, rows.saturating_sub(1));
 
-                if let Some(ref layout) = self.layout {
-                    let weights = self.calculate_pane_weights();
+                if let Some(ref layout) = self.state.layout {
+                    let weights = self.state.calculate_pane_weights();
                     let pane_rects = layout.calculate_rects(pane_area, &weights);
 
                     // Find which pane contains the click point
@@ -706,9 +546,9 @@ impl App {
                         x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height
                     }) {
                         // Focus this pane (same logic as ClientCommand::FocusPane)
-                        self.active_pane_id = Some(*pane_id);
-                        self.pane_manager.set_active(*pane_id);
-                        if let Some(ref mut layout) = self.layout {
+                        self.state.active_pane_id = Some(*pane_id);
+                        self.state.pane_manager.set_active(*pane_id);
+                        if let Some(ref mut layout) = self.state.layout {
                             layout.set_active_pane(*pane_id);
                         }
                         self.connection
@@ -719,15 +559,14 @@ impl App {
             }
 
             InputAction::ScrollUp { lines } => {
-                if let Some(pane_id) = self.active_pane_id {
+                if let Some(pane_id) = self.state.active_pane_id {
                     // Update LOCAL UI pane for immediate visual feedback
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
                         pane.scroll_up(lines);
                     }
 
                     // Get updated scroll offset and sync with server
-                    let new_offset = self
-                        .pane_manager
+                    let new_offset = self.state.pane_manager
                         .get(pane_id)
                         .map(|p| p.scroll_offset())
                         .unwrap_or(0);
@@ -741,15 +580,14 @@ impl App {
             }
 
             InputAction::ScrollDown { lines } => {
-                if let Some(pane_id) = self.active_pane_id {
+                if let Some(pane_id) = self.state.active_pane_id {
                     // Update LOCAL UI pane for immediate visual feedback
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
                         pane.scroll_down(lines);
                     }
 
                     // Get updated scroll offset and sync with server
-                    let new_offset = self
-                        .pane_manager
+                    let new_offset = self.state.pane_manager
                         .get(pane_id)
                         .map(|p| p.scroll_offset())
                         .unwrap_or(0);
@@ -772,15 +610,15 @@ impl App {
 
             InputAction::Resize { cols, rows } => {
                 // FEAT-077: Update local human control lock (layout change)
-                self.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(5000));
+                self.state.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(5000));
 
-                self.terminal_size = (cols, rows);
+                self.state.terminal_size = (cols, rows);
 
                 // Calculate pane area (minus status bar)
                 let pane_area = Rect::new(0, 0, cols, rows.saturating_sub(1));
 
-                if let Some(ref layout) = self.layout {
-                    let weights = self.calculate_pane_weights();
+                if let Some(ref layout) = self.state.layout {
+                    let weights = self.state.calculate_pane_weights();
                     let pane_rects = layout.calculate_rects(pane_area, &weights);
 
                     // Resize each pane and notify server
@@ -790,7 +628,7 @@ impl App {
                         let inner_height = rect.height.saturating_sub(2);
 
                         // Resize UI pane
-                        self.pane_manager.resize_pane(*pane_id, inner_height, inner_width);
+                        self.state.pane_manager.resize_pane(*pane_id, inner_height, inner_width);
 
                         // Notify server of resize
                         self.connection
@@ -801,11 +639,11 @@ impl App {
                             })
                             .await?;
                     }
-                } else if let Some(pane_id) = self.active_pane_id {
+                } else if let Some(pane_id) = self.state.active_pane_id {
                     // Fallback: single pane, no layout
                     let pane_rows = rows.saturating_sub(3);
                     let pane_cols = cols.saturating_sub(2);
-                    self.pane_manager.resize_pane(pane_id, pane_rows, pane_cols);
+                    self.state.pane_manager.resize_pane(pane_id, pane_rows, pane_cols);
                     self.connection
                         .send(ClientMessage::Resize {
                             pane_id,
@@ -818,22 +656,22 @@ impl App {
 
             InputAction::Detach => {
                 self.connection.send(ClientMessage::Detach).await?;
-                self.state = AppState::SessionSelect;
-                self.session = None;
-                self.windows.clear();
-                self.panes.clear();
-                self.pane_manager = PaneManager::new();
-                self.active_pane_id = None;
-                self.last_pane_id = None;
-                self.last_window_id = None;
-                self.layout = None;
-                self.pending_split_direction = None;
-                self.status_message = Some("Detached from session".to_string());
+                self.state.state = AppState::SessionSelect;
+                self.state.session = None;
+                self.state.windows.clear();
+                self.state.panes.clear();
+                self.state.pane_manager = PaneManager::new();
+                self.state.active_pane_id = None;
+                self.state.last_pane_id = None;
+                self.state.last_window_id = None;
+                self.state.layout = None;
+                self.state.pending_split_direction = None;
+                self.state.status_message = Some("Detached from session".to_string());
                 self.connection.send(ClientMessage::ListSessions).await?;
             }
 
             InputAction::Quit => {
-                self.state = AppState::Quitting;
+                self.state.state = AppState::Quitting;
             }
 
             InputAction::EnterUserCommandMode { timeout_ms } => {
@@ -857,14 +695,14 @@ impl App {
             | ClientCommand::SplitHorizontal
             | ClientCommand::CreateSession(_)
             | ClientCommand::CreateWindow => {
-                self.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(5000));
+                self.state.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(5000));
             }
             _ => {}
         }
 
         match cmd {
             ClientCommand::CreatePane => {
-                if let Some(window) = self.windows.values().next() {
+                if let Some(window) = self.state.windows.values().next() {
                     self.connection
                         .send(ClientMessage::CreatePane {
                             window_id: window.id,
@@ -875,7 +713,7 @@ impl App {
             }
 
             ClientCommand::ClosePane => {
-                if let Some(pane_id) = self.active_pane_id {
+                if let Some(pane_id) = self.state.active_pane_id {
                     self.connection
                         .send(ClientMessage::ClosePane { pane_id })
                         .await?;
@@ -883,9 +721,9 @@ impl App {
             }
 
             ClientCommand::SplitVertical => {
-                if let Some(window) = self.windows.values().next() {
+                if let Some(window) = self.state.windows.values().next() {
                     // Store direction for layout update when PaneCreated is received
-                    self.pending_split_direction = Some(SplitDirection::Vertical);
+                    self.state.pending_split_direction = Some(SplitDirection::Vertical);
                     self.connection
                         .send(ClientMessage::CreatePane {
                             window_id: window.id,
@@ -896,9 +734,9 @@ impl App {
             }
 
             ClientCommand::SplitHorizontal => {
-                if let Some(window) = self.windows.values().next() {
+                if let Some(window) = self.state.windows.values().next() {
                     // Store direction for layout update when PaneCreated is received
-                    self.pending_split_direction = Some(SplitDirection::Horizontal);
+                    self.state.pending_split_direction = Some(SplitDirection::Horizontal);
                     self.connection
                         .send(ClientMessage::CreatePane {
                             window_id: window.id,
@@ -910,11 +748,11 @@ impl App {
 
             ClientCommand::NextPane => {
                 // Use layout manager for navigation if available
-                if let Some(ref mut layout) = self.layout {
+                if let Some(ref mut layout) = self.state.layout {
                     layout.next_pane();
                     if let Some(new_active) = layout.active_pane_id() {
-                        self.active_pane_id = Some(new_active);
-                        self.pane_manager.set_active(new_active);
+                        self.state.active_pane_id = Some(new_active);
+                        self.state.pane_manager.set_active(new_active);
                     }
                 } else {
                     self.cycle_pane(1);
@@ -923,11 +761,11 @@ impl App {
 
             ClientCommand::PreviousPane => {
                 // Use layout manager for navigation if available
-                if let Some(ref mut layout) = self.layout {
+                if let Some(ref mut layout) = self.state.layout {
                     layout.prev_pane();
                     if let Some(new_active) = layout.active_pane_id() {
-                        self.active_pane_id = Some(new_active);
-                        self.pane_manager.set_active(new_active);
+                        self.state.active_pane_id = Some(new_active);
+                        self.state.pane_manager.set_active(new_active);
                     }
                 } else {
                     self.cycle_pane(-1);
@@ -944,16 +782,16 @@ impl App {
             }
 
             ClientCommand::FocusPane(index) => {
-                if let Some(pane) = self.panes.values().find(|p| p.index == index) {
+                if let Some(pane) = self.state.panes.values().find(|p| p.index == index) {
                     let pane_id = pane.id;
                     // Track last pane before switching (only if actually changing)
-                    if self.active_pane_id != Some(pane_id) {
-                        self.last_pane_id = self.active_pane_id;
+                    if self.state.active_pane_id != Some(pane_id) {
+                        self.state.last_pane_id = self.state.active_pane_id;
                     }
-                    self.active_pane_id = Some(pane_id);
-                    self.pane_manager.set_active(pane_id);
+                    self.state.active_pane_id = Some(pane_id);
+                    self.state.pane_manager.set_active(pane_id);
                     // Sync with layout manager
-                    if let Some(ref mut layout) = self.layout {
+                    if let Some(ref mut layout) = self.state.layout {
                         layout.set_active_pane(pane_id);
                     }
                     self.connection
@@ -963,7 +801,7 @@ impl App {
             }
 
             ClientCommand::ListSessions => {
-                self.state = AppState::SessionSelect;
+                self.state.state = AppState::SessionSelect;
                 self.connection.send(ClientMessage::ListSessions).await?;
             }
 
@@ -974,7 +812,7 @@ impl App {
                 self.connection
                     .send(ClientMessage::CreateSessionWithOptions {
                         name,
-                        command: self.session_command.take(),
+                        command: self.state.session_command.take(),
                         cwd,
                         claude_model: None,
                         claude_config: None,
@@ -985,12 +823,12 @@ impl App {
 
             ClientCommand::ListWindows => {
                 // Show window list in status
-                let window_names: Vec<_> = self.windows.values().map(|w| w.name.clone()).collect();
-                self.status_message = Some(format!("Windows: {}", window_names.join(", ")));
+                let window_names: Vec<_> = self.state.windows.values().map(|w| w.name.clone()).collect();
+                self.state.status_message = Some(format!("Windows: {}", window_names.join(", ")));
             }
 
             ClientCommand::CreateWindow => {
-                if let Some(session) = &self.session {
+                if let Some(session) = &self.state.session {
                     self.connection
                         .send(ClientMessage::CreateWindow {
                             session_id: session.id,
@@ -1001,72 +839,72 @@ impl App {
             }
 
             ClientCommand::EnterCopyMode => {
-                if let Some(pane_id) = self.active_pane_id {
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                if let Some(pane_id) = self.state.active_pane_id {
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
                         pane.enter_copy_mode();
                     }
                 }
-                self.status_message = Some("Copy mode - v: visual, V: line, hjkl: move, y: yank, q: exit".to_string());
+                self.state.status_message = Some("Copy mode - v: visual, V: line, hjkl: move, y: yank, q: exit".to_string());
             }
 
             ClientCommand::ExitCopyMode => {
-                if let Some(pane_id) = self.active_pane_id {
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                if let Some(pane_id) = self.state.active_pane_id {
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
                         pane.exit_copy_mode();
                     }
                     self.connection
                         .send(ClientMessage::JumpToBottom { pane_id })
                         .await?;
                 }
-                self.status_message = None;
+                self.state.status_message = None;
             }
 
             ClientCommand::StartVisualMode => {
-                if let Some(pane_id) = self.active_pane_id {
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                if let Some(pane_id) = self.state.active_pane_id {
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
                         pane.start_visual_selection();
                     }
                 }
-                self.status_message = Some("-- VISUAL --".to_string());
+                self.state.status_message = Some("-- VISUAL --".to_string());
             }
 
             ClientCommand::StartVisualLineMode => {
-                if let Some(pane_id) = self.active_pane_id {
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                if let Some(pane_id) = self.state.active_pane_id {
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
                         pane.start_visual_line_selection();
                     }
                 }
-                self.status_message = Some("-- VISUAL LINE --".to_string());
+                self.state.status_message = Some("-- VISUAL LINE --".to_string());
             }
 
             ClientCommand::YankSelection => {
-                if let Some(pane_id) = self.active_pane_id {
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                if let Some(pane_id) = self.state.active_pane_id {
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
                         if let Some(text) = pane.yank_selection() {
                             let len = text.len();
                             pane.exit_copy_mode();
-                            self.status_message = Some(format!("Yanked {} bytes to clipboard", len));
+                            self.state.status_message = Some(format!("Yanked {} bytes to clipboard", len));
                         } else {
                             // BUG-039 FIX: Always exit copy mode when yank is triggered,
                             // even if there's no selection. The input handler has already
                             // set its mode to Normal, so the pane must match.
                             pane.exit_copy_mode();
-                            self.status_message = Some("No selection to yank".to_string());
+                            self.state.status_message = Some("No selection to yank".to_string());
                         }
                     }
                 }
             }
 
             ClientCommand::MoveCopyCursor { row_delta, col_delta } => {
-                if let Some(pane_id) = self.active_pane_id {
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                if let Some(pane_id) = self.state.active_pane_id {
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
                         pane.move_copy_cursor(row_delta, col_delta);
                         // Update status with cursor position
                         if let Some(cursor) = pane.copy_mode_cursor() {
                             if let Some(indicator) = pane.visual_mode_indicator() {
-                                self.status_message = Some(format!("{} ({}, {})", indicator, cursor.row, cursor.col));
+                                self.state.status_message = Some(format!("{} ({}, {})", indicator, cursor.row, cursor.col));
                             } else {
-                                self.status_message = Some(format!("Copy mode ({}, {})", cursor.row, cursor.col));
+                                self.state.status_message = Some(format!("Copy mode ({}, {})", cursor.row, cursor.col));
                             }
                         }
                     }
@@ -1074,21 +912,21 @@ impl App {
             }
 
             ClientCommand::CancelSelection => {
-                if let Some(pane_id) = self.active_pane_id {
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                if let Some(pane_id) = self.state.active_pane_id {
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
                         pane.cancel_selection();
                     }
                 }
-                self.status_message = Some("Selection cancelled".to_string());
+                self.state.status_message = Some("Selection cancelled".to_string());
             }
 
             ClientCommand::MouseSelectionStart { x, y } => {
                 // Translate terminal coordinates to pane-relative coordinates
-                if let Some(pane_id) = self.active_pane_id {
-                    let weights = self.calculate_pane_weights();
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
+                if let Some(pane_id) = self.state.active_pane_id {
+                    let weights = self.state.calculate_pane_weights();
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
                         // Get pane rect from layout to translate coordinates
-                        if let Some(ref layout) = self.layout {
+                        if let Some(ref layout) = self.state.layout {
                             let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
                             let pane_area = ratatui::layout::Rect::new(0, 0, cols, rows.saturating_sub(1));
                             if let Some(rect) = layout.get_pane_rect(pane_area, pane_id, &weights) {
@@ -1096,7 +934,7 @@ impl App {
                                 let pane_x = x.saturating_sub(rect.x + 1) as usize;
                                 let pane_y = y.saturating_sub(rect.y + 1) as usize;
                                 pane.mouse_selection_start(pane_y, pane_x);
-                                self.status_message = Some("-- VISUAL --".to_string());
+                                self.state.status_message = Some("-- VISUAL --".to_string());
                             }
                         }
                     }
@@ -1104,10 +942,10 @@ impl App {
             }
 
             ClientCommand::MouseSelectionUpdate { x, y } => {
-                if let Some(pane_id) = self.active_pane_id {
-                    let weights = self.calculate_pane_weights();
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
-                        if let Some(ref layout) = self.layout {
+                if let Some(pane_id) = self.state.active_pane_id {
+                    let weights = self.state.calculate_pane_weights();
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
+                        if let Some(ref layout) = self.state.layout {
                             let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
                             let pane_area = ratatui::layout::Rect::new(0, 0, cols, rows.saturating_sub(1));
                             if let Some(rect) = layout.get_pane_rect(pane_area, pane_id, &weights) {
@@ -1121,17 +959,17 @@ impl App {
             }
 
             ClientCommand::MouseSelectionEnd { x, y } => {
-                if let Some(pane_id) = self.active_pane_id {
-                    let weights = self.calculate_pane_weights();
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
-                        if let Some(ref layout) = self.layout {
+                if let Some(pane_id) = self.state.active_pane_id {
+                    let weights = self.state.calculate_pane_weights();
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
+                        if let Some(ref layout) = self.state.layout {
                             let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
                             let pane_area = ratatui::layout::Rect::new(0, 0, cols, rows.saturating_sub(1));
                             if let Some(rect) = layout.get_pane_rect(pane_area, pane_id, &weights) {
                                 let pane_x = x.saturating_sub(rect.x + 1) as usize;
                                 let pane_y = y.saturating_sub(rect.y + 1) as usize;
                                 pane.mouse_selection_end(pane_y, pane_x);
-                                self.status_message = Some("Selection complete - press 'y' to yank".to_string());
+                                self.state.status_message = Some("Selection complete - press 'y' to yank".to_string());
                             }
                         }
                     }
@@ -1139,17 +977,17 @@ impl App {
             }
 
             ClientCommand::SelectWord { x, y } => {
-                if let Some(pane_id) = self.active_pane_id {
-                    let weights = self.calculate_pane_weights();
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
-                        if let Some(ref layout) = self.layout {
+                if let Some(pane_id) = self.state.active_pane_id {
+                    let weights = self.state.calculate_pane_weights();
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
+                        if let Some(ref layout) = self.state.layout {
                             let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
                             let pane_area = ratatui::layout::Rect::new(0, 0, cols, rows.saturating_sub(1));
                             if let Some(rect) = layout.get_pane_rect(pane_area, pane_id, &weights) {
                                 let pane_x = x.saturating_sub(rect.x + 1) as usize;
                                 let pane_y = y.saturating_sub(rect.y + 1) as usize;
                                 pane.select_word_at(pane_y, pane_x);
-                                self.status_message = Some("Word selected - press 'y' to yank".to_string());
+                                self.state.status_message = Some("Word selected - press 'y' to yank".to_string());
                             }
                         }
                     }
@@ -1157,16 +995,16 @@ impl App {
             }
 
             ClientCommand::SelectLine { x: _, y } => {
-                if let Some(pane_id) = self.active_pane_id {
-                    let weights = self.calculate_pane_weights();
-                    if let Some(pane) = self.pane_manager.get_mut(pane_id) {
-                        if let Some(ref layout) = self.layout {
+                if let Some(pane_id) = self.state.active_pane_id {
+                    let weights = self.state.calculate_pane_weights();
+                    if let Some(pane) = self.state.pane_manager.get_mut(pane_id) {
+                        if let Some(ref layout) = self.state.layout {
                             let (cols, rows) = crossterm::terminal::size().unwrap_or((80, 24));
                             let pane_area = ratatui::layout::Rect::new(0, 0, cols, rows.saturating_sub(1));
                             if let Some(rect) = layout.get_pane_rect(pane_area, pane_id, &weights) {
                                 let pane_y = y.saturating_sub(rect.y + 1) as usize;
                                 pane.select_line_at(pane_y);
-                                self.status_message = Some("Line selected - press 'y' to yank".to_string());
+                                self.state.status_message = Some("Line selected - press 'y' to yank".to_string());
                             }
                         }
                     }
@@ -1174,39 +1012,39 @@ impl App {
             }
 
             ClientCommand::ToggleZoom => {
-                self.status_message = Some("Zoom toggle not yet implemented".to_string());
+                self.state.status_message = Some("Zoom toggle not yet implemented".to_string());
             }
 
             ClientCommand::CycleLayoutPolicy => {
-                if let Some(ref mut layout) = self.layout {
+                if let Some(ref mut layout) = self.state.layout {
                     let next_policy = match layout.policy() {
                         LayoutPolicy::Fixed => LayoutPolicy::Balanced,
                         LayoutPolicy::Balanced => LayoutPolicy::Adaptive,
                         LayoutPolicy::Adaptive => LayoutPolicy::Fixed,
                     };
                     layout.set_policy(next_policy);
-                    self.status_message = Some(format!("Layout policy: {:?}", next_policy));
-                    self.needs_redraw = true;
+                    self.state.status_message = Some(format!("Layout policy: {:?}", next_policy));
+                    self.state.needs_redraw = true;
                 }
             }
 
             ClientCommand::ToggleDashboard => {
-                self.view_mode = if self.view_mode == ViewMode::Panes {
+                self.state.view_mode = if self.state.view_mode == ViewMode::Panes {
                     ViewMode::Dashboard
                 } else {
                     ViewMode::Panes
                 };
-                self.status_message = Some(format!("View mode: {:?}", self.view_mode));
+                self.state.status_message = Some(format!("View mode: {:?}", self.state.view_mode));
             }
 
             ClientCommand::ShowHelp => {
-                self.status_message =
+                self.state.status_message =
                     Some("Ctrl+B: prefix | c: new pane | x: close | n/p: next/prev".to_string());
             }
 
             ClientCommand::Redraw => {
-                self.needs_redraw = true;
-                self.status_message = Some("Screen redrawn".to_string());
+                self.state.needs_redraw = true;
+                self.state.status_message = Some("Screen redrawn".to_string());
                 // Also notify server to signal child PTYs
                 self.connection.send(ClientMessage::Redraw { pane_id: None }).await?;
             }
@@ -1220,44 +1058,43 @@ impl App {
             }
 
             ClientCommand::LastWindow => {
-                if let Some(last_id) = self.last_window_id {
+                if let Some(last_id) = self.state.last_window_id {
                     // Get current window ID before switching
-                    let current_window_id = self
-                        .active_pane_id
-                        .and_then(|pid| self.panes.get(&pid))
+                    let current_window_id = self.state.active_pane_id
+                        .and_then(|pid| self.state.panes.get(&pid))
                         .map(|p| p.window_id);
 
                     // Focus first pane in the last window
                     if let Some(pane_id) = self.first_pane_in_window(last_id) {
                         // Update last_window_id to current before switching
-                        self.last_window_id = current_window_id;
-                        self.active_pane_id = Some(pane_id);
-                        self.pane_manager.set_active(pane_id);
+                        self.state.last_window_id = current_window_id;
+                        self.state.active_pane_id = Some(pane_id);
+                        self.state.pane_manager.set_active(pane_id);
                         // BUG-045: Rebuild layout to show only the new window's panes
                         self.rebuild_layout_for_active_window();
                     }
                 } else {
-                    self.status_message = Some("No last window".to_string());
+                    self.state.status_message = Some("No last window".to_string());
                 }
             }
 
             ClientCommand::LastPane => {
-                if let Some(last_id) = self.last_pane_id {
-                    if self.panes.contains_key(&last_id) {
+                if let Some(last_id) = self.state.last_pane_id {
+                    if self.state.panes.contains_key(&last_id) {
                         // Save current as last before switching
-                        let current = self.active_pane_id;
-                        self.last_pane_id = current;
-                        self.active_pane_id = Some(last_id);
-                        self.pane_manager.set_active(last_id);
-                        if let Some(ref mut layout) = self.layout {
+                        let current = self.state.active_pane_id;
+                        self.state.last_pane_id = current;
+                        self.state.active_pane_id = Some(last_id);
+                        self.state.pane_manager.set_active(last_id);
+                        if let Some(ref mut layout) = self.state.layout {
                             layout.set_active_pane(last_id);
                         }
                     } else {
-                        self.status_message = Some("Last pane no longer exists".to_string());
-                        self.last_pane_id = None;
+                        self.state.status_message = Some("Last pane no longer exists".to_string());
+                        self.state.last_pane_id = None;
                     }
                 } else {
-                    self.status_message = Some("No last pane".to_string());
+                    self.state.status_message = Some("No last pane".to_string());
                 }
             }
 
@@ -1265,12 +1102,11 @@ impl App {
                 // Show pane numbers as a status message
                 // In tmux, this shows an overlay with pane numbers that can be selected
                 // For now, show a simple status with pane indices
-                let pane_info: Vec<String> = self
-                    .panes
+                let pane_info: Vec<String> = self.state.panes
                     .values()
                     .map(|p| format!("{}", p.index))
                     .collect();
-                self.status_message = Some(format!(
+                self.state.status_message = Some(format!(
                     "Pane numbers: {} (use Ctrl-b 0-9 to select)",
                     pane_info.join(", ")
                 ));
@@ -1278,34 +1114,33 @@ impl App {
 
             ClientCommand::SelectWindow(index) => {
                 // Find window by index (sorted order)
-                let mut window_ids: Vec<Uuid> = self.windows.keys().copied().collect();
+                let mut window_ids: Vec<Uuid> = self.state.windows.keys().copied().collect();
                 window_ids.sort();
 
                 if let Some(&window_id) = window_ids.get(index) {
                     // Track current window as last before switching
-                    let current_window_id = self
-                        .active_pane_id
-                        .and_then(|pid| self.panes.get(&pid))
+                    let current_window_id = self.state.active_pane_id
+                        .and_then(|pid| self.state.panes.get(&pid))
                         .map(|p| p.window_id);
 
                     let switching_windows = current_window_id != Some(window_id);
                     if switching_windows {
-                        self.last_window_id = current_window_id;
+                        self.state.last_window_id = current_window_id;
                     }
 
                     // Focus first pane in the window
                     if let Some(pane_id) = self.first_pane_in_window(window_id) {
-                        self.active_pane_id = Some(pane_id);
-                        self.pane_manager.set_active(pane_id);
+                        self.state.active_pane_id = Some(pane_id);
+                        self.state.pane_manager.set_active(pane_id);
                         // BUG-045: Rebuild layout to show only the new window's panes
                         if switching_windows {
                             self.rebuild_layout_for_active_window();
-                        } else if let Some(ref mut layout) = self.layout {
+                        } else if let Some(ref mut layout) = self.state.layout {
                             layout.set_active_pane(pane_id);
                         }
                     }
                 } else {
-                    self.status_message = Some(format!("No window at index {}", index));
+                    self.state.status_message = Some(format!("No window at index {}", index));
                 }
             }
 
@@ -1318,7 +1153,7 @@ impl App {
             | ClientCommand::ResizePane { .. }
             | ClientCommand::ReloadConfig
             | ClientCommand::ShowClock => {
-                self.status_message = Some(format!("Command not yet implemented: {:?}", cmd));
+                self.state.status_message = Some(format!("Command not yet implemented: {:?}", cmd));
             }
         }
         Ok(())
@@ -1326,13 +1161,12 @@ impl App {
 
     /// Cycle through panes by offset (positive = forward, negative = backward)
     fn cycle_pane(&mut self, offset: i32) {
-        if self.panes.is_empty() {
+        if self.state.panes.is_empty() {
             return;
         }
 
-        let pane_ids: Vec<Uuid> = self.panes.keys().copied().collect();
-        let current_index = self
-            .active_pane_id
+        let pane_ids: Vec<Uuid> = self.state.panes.keys().copied().collect();
+        let current_index = self.state.active_pane_id
             .and_then(|id| pane_ids.iter().position(|&p| p == id))
             .unwrap_or(0);
 
@@ -1346,32 +1180,31 @@ impl App {
         let new_pane_id = pane_ids[new_index];
 
         // Track last pane before switching (only if actually changing)
-        if self.active_pane_id != Some(new_pane_id) {
-            self.last_pane_id = self.active_pane_id;
+        if self.state.active_pane_id != Some(new_pane_id) {
+            self.state.last_pane_id = self.state.active_pane_id;
         }
 
-        self.active_pane_id = Some(new_pane_id);
-        self.pane_manager.set_active(new_pane_id);
+        self.state.active_pane_id = Some(new_pane_id);
+        self.state.pane_manager.set_active(new_pane_id);
         // Sync with layout manager
-        if let Some(ref mut layout) = self.layout {
+        if let Some(ref mut layout) = self.state.layout {
             layout.set_active_pane(new_pane_id);
         }
     }
 
     /// Cycle through windows by offset (positive = forward, negative = backward)
     fn cycle_window(&mut self, offset: i32) {
-        if self.windows.is_empty() {
+        if self.state.windows.is_empty() {
             return;
         }
 
         // Get current window ID from active pane
-        let current_window_id = self
-            .active_pane_id
-            .and_then(|pid| self.panes.get(&pid))
+        let current_window_id = self.state.active_pane_id
+            .and_then(|pid| self.state.panes.get(&pid))
             .map(|p| p.window_id);
 
         // Get sorted list of window IDs for consistent ordering
-        let mut window_ids: Vec<Uuid> = self.windows.keys().copied().collect();
+        let mut window_ids: Vec<Uuid> = self.state.windows.keys().copied().collect();
         window_ids.sort(); // Consistent ordering
 
         let current_index = current_window_id
@@ -1389,13 +1222,13 @@ impl App {
 
         // Track last window before switching (only if actually changing)
         if current_window_id != Some(new_window_id) {
-            self.last_window_id = current_window_id;
+            self.state.last_window_id = current_window_id;
         }
 
         // Focus first pane in the new window
         if let Some(pane_id) = self.first_pane_in_window(new_window_id) {
-            self.active_pane_id = Some(pane_id);
-            self.pane_manager.set_active(pane_id);
+            self.state.active_pane_id = Some(pane_id);
+            self.state.pane_manager.set_active(pane_id);
         }
 
         // BUG-045: Rebuild layout to show only the new window's panes
@@ -1406,7 +1239,7 @@ impl App {
 
     /// Get the first pane in a window (by index)
     fn first_pane_in_window(&self, window_id: Uuid) -> Option<Uuid> {
-        self.panes
+        self.state.panes
             .values()
             .filter(|p| p.window_id == window_id)
             .min_by_key(|p| p.index)
@@ -1415,8 +1248,8 @@ impl App {
 
     /// Get the active window ID (from the active pane)
     fn active_window_id(&self) -> Option<Uuid> {
-        self.active_pane_id
-            .and_then(|pid| self.panes.get(&pid))
+        self.state.active_pane_id
+            .and_then(|pid| self.state.panes.get(&pid))
             .map(|p| p.window_id)
     }
 
@@ -1427,26 +1260,25 @@ impl App {
             Some(id) => id,
             None => {
                 // No active window - clear layout
-                self.layout = None;
+                self.state.layout = None;
                 return;
             }
         };
 
         // Filter panes to only those in the active window
-        let mut pane_ids: Vec<Uuid> = self
-            .panes
+        let mut pane_ids: Vec<Uuid> = self.state.panes
             .values()
             .filter(|p| p.window_id == active_window_id)
             .map(|p| p.id)
             .collect();
 
         if pane_ids.is_empty() {
-            self.layout = None;
+            self.state.layout = None;
             return;
         }
 
         // Sort by index for consistent layout ordering
-        pane_ids.sort_by_key(|id| self.panes.get(id).map(|p| p.index).unwrap_or(0));
+        pane_ids.sort_by_key(|id| self.state.panes.get(id).map(|p| p.index).unwrap_or(0));
 
         // Build a new layout manager with only the active window's panes
         let first_pane_id = pane_ids[0];
@@ -1462,43 +1294,11 @@ impl App {
             );
         }
 
-        layout_manager.set_active_pane(self.active_pane_id.unwrap_or(first_pane_id));
-        self.layout = Some(layout_manager);
+        layout_manager.set_active_pane(self.state.active_pane_id.unwrap_or(first_pane_id));
+        self.state.layout = Some(layout_manager);
     }
 
-    /// Calculate weights for all panes based on activity and focus
-    fn calculate_pane_weights(&self) -> HashMap<Uuid, f32> {
-        let mut weights = HashMap::new();
-        for (id, pane) in self.pane_manager.iter() {
-            let mut weight = 1.0;
 
-            // Focus bonus
-            if pane.is_focused() {
-                weight *= 1.2;
-            }
-
-            // Claude activity bonus
-            if let Some(activity) = pane.claude_activity() {
-                match activity {
-                    ClaudeActivity::Thinking | ClaudeActivity::Coding | ClaudeActivity::ToolUse => {
-                        weight *= 1.5;
-                    }
-                    ClaudeActivity::AwaitingConfirmation => {
-                        weight *= 1.3;
-                    }
-                    ClaudeActivity::Idle => {}
-                }
-            }
-
-            // Exited penalty
-            if let PaneState::Exited { .. } = pane.pane_state() {
-                weight *= 0.7;
-            }
-
-            weights.insert(*id, weight);
-        }
-        weights
-    }
 
     /// Handle input in session select state
     async fn handle_session_select_input(
@@ -1509,24 +1309,24 @@ impl App {
             // Quit handlers
             (KeyCode::Char('c'), KeyModifiers::CONTROL)
             | (KeyCode::Char('q'), KeyModifiers::CONTROL) => {
-                self.state = AppState::Quitting;
+                self.state.state = AppState::Quitting;
             }
             (KeyCode::Char('q'), KeyModifiers::NONE) | (KeyCode::Esc, _) => {
-                self.state = AppState::Quitting;
+                self.state.state = AppState::Quitting;
             }
             // Navigation
             (KeyCode::Up, _) | (KeyCode::Char('k'), KeyModifiers::NONE) => {
-                if self.session_list_index > 0 {
-                    self.session_list_index -= 1;
+                if self.state.session_list_index > 0 {
+                    self.state.session_list_index -= 1;
                 }
             }
             (KeyCode::Down, _) | (KeyCode::Char('j'), KeyModifiers::NONE) => {
-                if self.session_list_index < self.available_sessions.len().saturating_sub(1) {
-                    self.session_list_index += 1;
+                if self.state.session_list_index < self.state.available_sessions.len().saturating_sub(1) {
+                    self.state.session_list_index += 1;
                 }
             }
             (KeyCode::Enter, _) => {
-                if let Some(session) = self.available_sessions.get(self.session_list_index) {
+                if let Some(session) = self.state.available_sessions.get(self.state.session_list_index) {
                     self.connection
                         .send(ClientMessage::AttachSession {
                             session_id: session.id,
@@ -1541,7 +1341,7 @@ impl App {
                 self.connection
                     .send(ClientMessage::CreateSessionWithOptions {
                         name: None,
-                        command: self.session_command.take(),
+                        command: self.state.session_command.take(),
                         cwd,
                         claude_model: None,
                         claude_config: None,
@@ -1555,17 +1355,17 @@ impl App {
             }
             (KeyCode::Char('d'), KeyModifiers::CONTROL) => {
                 // Delete/destroy selected session
-                if let Some(session) = self.available_sessions.get(self.session_list_index) {
+                if let Some(session) = self.state.available_sessions.get(self.state.session_list_index) {
                     let session_id = session.id;
                     self.connection
                         .send(ClientMessage::DestroySession { session_id })
                         .await?;
                     // Server will broadcast updated session list
                     // Adjust selection index if needed
-                    if self.session_list_index > 0
-                        && self.session_list_index >= self.available_sessions.len().saturating_sub(1)
+                    if self.state.session_list_index > 0
+                        && self.state.session_list_index >= self.state.available_sessions.len().saturating_sub(1)
                     {
-                        self.session_list_index = self.session_list_index.saturating_sub(1);
+                        self.state.session_list_index = self.state.session_list_index.saturating_sub(1);
                     }
                 }
             }
@@ -1585,22 +1385,22 @@ impl App {
             match msg {
                 // FEAT-075: Sequence tracking and resync
                 ServerMessage::Sequenced { seq, inner } => {
-                    if self.last_seen_commit_seq > 0 && seq > self.last_seen_commit_seq + 1 {
+                    if self.state.last_seen_commit_seq > 0 && seq > self.state.last_seen_commit_seq + 1 {
                         tracing::warn!(
                             "Gap detected: last_seen={}, got {}. Requesting resync.",
-                            self.last_seen_commit_seq,
+                            self.state.last_seen_commit_seq,
                             seq
                         );
                         self.connection
                             .send(ClientMessage::GetEventsSince {
-                                last_commit_seq: self.last_seen_commit_seq,
+                                last_commit_seq: self.state.last_seen_commit_seq,
                             })
                             .await?;
                         // Drop this message as we'll get it during replay
                         return Ok(());
                     }
-                    if seq > self.last_seen_commit_seq {
-                        self.last_seen_commit_seq = seq;
+                    if seq > self.state.last_seen_commit_seq {
+                        self.state.last_seen_commit_seq = seq;
                     }
 
                     // Process inner message
@@ -1612,20 +1412,20 @@ impl App {
                     server_version,
                     protocol_version: _,
                 } => {
-                    self.status_message = Some(format!("Connected to server v{}", server_version));
+                    self.state.status_message = Some(format!("Connected to server v{}", server_version));
                     // Request session list
                     self.connection.send(ClientMessage::ListSessions).await?;
-                    self.state = AppState::SessionSelect;
+                    self.state.state = AppState::SessionSelect;
                 }
                 ServerMessage::SessionList { sessions } => {
 
-                self.available_sessions = sessions;
-                self.session_list_index = 0;
+                self.state.available_sessions = sessions;
+                self.state.session_list_index = 0;
             }
             // BUG-038 FIX: Handle session list change broadcasts
             // This updates the session list when sessions are created/destroyed by others
             ServerMessage::SessionsChanged { sessions } => {
-                self.available_sessions = sessions;
+                self.state.available_sessions = sessions;
                 // Don't reset session_list_index to preserve user's scroll position
             }
             ServerMessage::SessionCreated { session, should_focus } => {
@@ -1644,18 +1444,18 @@ impl App {
                 panes,
                 commit_seq,
             } => {
-                self.last_seen_commit_seq = commit_seq;
-                self.session = Some(session);
-                self.windows = windows.into_iter().map(|w| (w.id, w)).collect();
-                self.panes = panes.into_iter().map(|p| (p.id, p)).collect();
-                self.active_pane_id = self.panes.keys().next().copied();
-                self.state = AppState::Attached;
-                self.status_message = Some("Attached to session".to_string());
+                self.state.last_seen_commit_seq = commit_seq;
+                self.state.session = Some(session);
+                self.state.windows = windows.into_iter().map(|w| (w.id, w)).collect();
+                self.state.panes = panes.into_iter().map(|p| (p.id, p)).collect();
+                self.state.active_pane_id = self.state.panes.keys().next().copied();
+                self.state.state = AppState::Attached;
+                self.state.status_message = Some("Attached to session".to_string());
 
                 // BUG-006 FIX: Use client's terminal size, not server-reported size
                 // The server's pane dimensions are from when the session was created,
                 // which may differ from this client's terminal size.
-                let (term_cols, term_rows) = self.terminal_size;
+                let (term_cols, term_rows) = self.state.terminal_size;
                 let pane_rows = term_rows.saturating_sub(3); // Account for borders and status bar
                 let pane_cols = term_cols.saturating_sub(2); // Account for side borders
 
@@ -1664,9 +1464,9 @@ impl App {
                 self.rebuild_layout_for_active_window();
 
                 // Create UI panes with CLIENT's terminal dimensions
-                for pane_info in self.panes.values() {
-                    self.pane_manager.add_pane(pane_info.id, pane_rows, pane_cols);
-                    if let Some(ui_pane) = self.pane_manager.get_mut(pane_info.id) {
+                for pane_info in self.state.panes.values() {
+                    self.state.pane_manager.add_pane(pane_info.id, pane_rows, pane_cols);
+                    if let Some(ui_pane) = self.state.pane_manager.get_mut(pane_info.id) {
                         ui_pane.set_title(pane_info.title.clone());
                         ui_pane.set_cwd(pane_info.cwd.clone());
                         ui_pane.set_pane_state(pane_info.state.clone());
@@ -1674,7 +1474,7 @@ impl App {
                 }
 
                 // Send resize messages to server for all panes to sync PTY dimensions
-                for pane_id in self.pane_manager.pane_ids() {
+                for pane_id in self.state.pane_manager.pane_ids() {
                     self.connection
                         .send(ClientMessage::Resize {
                             pane_id,
@@ -1685,21 +1485,20 @@ impl App {
                 }
 
                 // Set active UI pane with focus state
-                if let Some(active_id) = self.active_pane_id {
-                    self.pane_manager.set_active(active_id);
+                if let Some(active_id) = self.state.active_pane_id {
+                    self.state.pane_manager.set_active(active_id);
                 }
 
                 // FEAT-057/058: Check if session is in a beads-tracked repo
-                self.is_beads_tracked = self
-                    .session
+                self.state.is_beads_tracked = self.state.session
                     .as_ref()
                     .map(|s| s.metadata.contains_key("beads.root"))
                     .unwrap_or(false);
 
                 // FEAT-058: Trigger immediate beads status request on attach
-                self.last_beads_request_tick = 0;
+                self.state.last_beads_request_tick = 0;
                 // Clear any stale beads count
-                self.beads_ready_count = None;
+                self.state.beads_ready_count = None;
             }
             ServerMessage::StateSnapshot {
                 commit_seq,
@@ -1708,16 +1507,16 @@ impl App {
                 panes,
             } => {
                 tracing::info!("Received StateSnapshot (seq={})", commit_seq);
-                self.last_seen_commit_seq = commit_seq;
-                self.session = Some(session);
-                self.windows = windows.into_iter().map(|w| (w.id, w)).collect();
-                self.panes = panes.into_iter().map(|p| (p.id, p)).collect();
-                self.active_pane_id = self.panes.keys().next().copied();
-                self.state = AppState::Attached;
-                self.status_message = Some("State resynchronized".to_string());
+                self.state.last_seen_commit_seq = commit_seq;
+                self.state.session = Some(session);
+                self.state.windows = windows.into_iter().map(|w| (w.id, w)).collect();
+                self.state.panes = panes.into_iter().map(|p| (p.id, p)).collect();
+                self.state.active_pane_id = self.state.panes.keys().next().copied();
+                self.state.state = AppState::Attached;
+                self.state.status_message = Some("State resynchronized".to_string());
 
                 // BUG-006 FIX: Use client's terminal size, not server-reported size
-                let (term_cols, term_rows) = self.terminal_size;
+                let (term_cols, term_rows) = self.state.terminal_size;
                 let pane_rows = term_rows.saturating_sub(3);
                 let pane_cols = term_cols.saturating_sub(2);
 
@@ -1729,12 +1528,12 @@ impl App {
                 // Note: We might be replacing existing panes, so we clear/recreate or update?
                 // PaneManager::add_pane overwrites if exists? No, check impl.
                 // Assuming it resets or we should clear first.
-                // But we just updated self.panes.
+                // But we just updated self.state.panes.
                 // Let's clear pane_manager to be safe?
-                self.pane_manager = PaneManager::new(); // Reset UI state
-                for pane_info in self.panes.values() {
-                    self.pane_manager.add_pane(pane_info.id, pane_rows, pane_cols);
-                    if let Some(ui_pane) = self.pane_manager.get_mut(pane_info.id) {
+                self.state.pane_manager = PaneManager::new(); // Reset UI state
+                for pane_info in self.state.panes.values() {
+                    self.state.pane_manager.add_pane(pane_info.id, pane_rows, pane_cols);
+                    if let Some(ui_pane) = self.state.pane_manager.get_mut(pane_info.id) {
                         ui_pane.set_title(pane_info.title.clone());
                         ui_pane.set_cwd(pane_info.cwd.clone());
                         ui_pane.set_pane_state(pane_info.state.clone());
@@ -1742,7 +1541,7 @@ impl App {
                 }
 
                 // Send resize messages to server
-                for pane_id in self.pane_manager.pane_ids() {
+                for pane_id in self.state.pane_manager.pane_ids() {
                     self.connection
                         .send(ClientMessage::Resize {
                             pane_id,
@@ -1753,22 +1552,21 @@ impl App {
                 }
 
                 // Set active UI pane
-                if let Some(active_id) = self.active_pane_id {
-                    self.pane_manager.set_active(active_id);
+                if let Some(active_id) = self.state.active_pane_id {
+                    self.state.pane_manager.set_active(active_id);
                 }
 
                 // Update beads tracking
-                self.is_beads_tracked = self
-                    .session
+                self.state.is_beads_tracked = self.state.session
                     .as_ref()
                     .map(|s| s.metadata.contains_key("beads.root"))
                     .unwrap_or(false);
 
-                self.last_beads_request_tick = 0;
-                self.beads_ready_count = None;
+                self.state.last_beads_request_tick = 0;
+                self.state.beads_ready_count = None;
             }
             ServerMessage::WindowCreated { window, should_focus: _ } => {
-                self.windows.insert(window.id, window);
+                self.state.windows.insert(window.id, window);
             }
             ServerMessage::PaneCreated { pane, direction, should_focus } => {
                 tracing::info!(
@@ -1782,12 +1580,12 @@ impl App {
 
                 // Use direction from the message (set by MCP or TUI command)
                 // Clear pending_split_direction if it was set by TUI
-                let _ = self.pending_split_direction.take();
+                let _ = self.state.pending_split_direction.take();
                 let layout_direction = LayoutSplitDirection::from(direction);
 
                 // Create UI pane for terminal rendering (always do this)
-                self.pane_manager.add_pane(pane.id, pane.rows, pane.cols);
-                if let Some(ui_pane) = self.pane_manager.get_mut(pane.id) {
+                self.state.pane_manager.add_pane(pane.id, pane.rows, pane.cols);
+                if let Some(ui_pane) = self.state.pane_manager.get_mut(pane.id) {
                     ui_pane.set_title(pane.title.clone());
                     ui_pane.set_cwd(pane.cwd.clone());
                     ui_pane.set_pane_state(pane.state.clone());
@@ -1795,7 +1593,7 @@ impl App {
 
                 // Store pane info (always)
                 let pane_window_id = pane.window_id;
-                self.panes.insert(pane.id, pane.clone());
+                self.state.panes.insert(pane.id, pane.clone());
 
                 // BUG-045: Determine if this pane is in the active window
                 let active_window_id = self.active_window_id();
@@ -1803,9 +1601,9 @@ impl App {
 
                 if pane_in_active_window {
                     // Add new pane to layout (only if in active window)
-                    if let Some(ref mut layout) = self.layout {
+                    if let Some(ref mut layout) = self.state.layout {
                         // Split the active pane to add the new one
-                        if let Some(active_id) = self.active_pane_id {
+                        if let Some(active_id) = self.state.active_pane_id {
                             layout.root_mut().add_pane(active_id, pane.id, layout_direction);
                         } else {
                             // No active pane - this is the first pane, initialize layout
@@ -1813,36 +1611,36 @@ impl App {
                         }
                     } else {
                         // Layout not initialized - create with this pane
-                        self.layout = Some(LayoutManager::new(pane.id));
+                        self.state.layout = Some(LayoutManager::new(pane.id));
                     }
                 }
 
                 // Switch focus to the new pane if requested
                 if should_focus {
-                    self.active_pane_id = Some(pane.id);
-                    self.pane_manager.set_active(pane.id);
+                    self.state.active_pane_id = Some(pane.id);
+                    self.state.pane_manager.set_active(pane.id);
 
                     // If the pane is in a different window, rebuild layout for that window
                     if !pane_in_active_window {
                         self.rebuild_layout_for_active_window();
-                    } else if let Some(ref mut layout) = self.layout {
+                    } else if let Some(ref mut layout) = self.state.layout {
                         layout.set_active_pane(pane.id);
                     }
                 }
 
                 // Resize all panes after layout change
-                let (cols, rows) = self.terminal_size;
+                let (cols, rows) = self.state.terminal_size;
                 let pane_area = Rect::new(0, 0, cols, rows.saturating_sub(1));
 
-                if let Some(ref layout) = self.layout {
-                    let weights = self.calculate_pane_weights();
+                if let Some(ref layout) = self.state.layout {
+                    let weights = self.state.calculate_pane_weights();
                     let pane_rects = layout.calculate_rects(pane_area, &weights);
 
                     for (pane_id, rect) in &pane_rects {
                         let inner_width = rect.width.saturating_sub(2);
                         let inner_height = rect.height.saturating_sub(2);
 
-                        self.pane_manager.resize_pane(*pane_id, inner_height, inner_width);
+                        self.state.pane_manager.resize_pane(*pane_id, inner_height, inner_width);
 
                         self.connection
                             .send(ClientMessage::Resize {
@@ -1856,11 +1654,10 @@ impl App {
             }
             ServerMessage::Output { pane_id, data } => {
                 // Process output through the UI pane's terminal emulator
-                self.pane_manager.process_output(pane_id, &data);
+                self.state.pane_manager.process_output(pane_id, &data);
 
                 // FEAT-062: Forward output to any mirror panes of this source
-                let mirror_ids: Vec<Uuid> = self
-                    .panes
+                let mirror_ids: Vec<Uuid> = self.state.panes
                     .iter()
                     .filter_map(|(id, info)| {
                         if info.mirror_source == Some(pane_id) {
@@ -1872,49 +1669,48 @@ impl App {
                     .collect();
 
                 for mirror_id in mirror_ids {
-                    self.pane_manager.process_output(mirror_id, &data);
+                    self.state.pane_manager.process_output(mirror_id, &data);
                 }
             }
             ServerMessage::PaneStateChanged { pane_id, state } => {
-                if let Some(pane) = self.panes.get_mut(&pane_id) {
+                if let Some(pane) = self.state.panes.get_mut(&pane_id) {
                     pane.state = state.clone();
                 }
                 // Sync state with UI pane
-                self.pane_manager.update_pane_state(pane_id, state);
-                self.needs_redraw = true;
+                self.state.pane_manager.update_pane_state(pane_id, state);
+                self.state.needs_redraw = true;
             }
             ServerMessage::ClaudeStateChanged { pane_id, state } => {
                 // Convert ClaudeState to AgentState
                 let pane_state = PaneState::Agent(state.into());
-                if let Some(pane) = self.panes.get_mut(&pane_id) {
+                if let Some(pane) = self.state.panes.get_mut(&pane_id) {
                     pane.state = pane_state.clone();
                 }
                 // Sync state with UI pane
-                self.pane_manager.update_pane_state(pane_id, pane_state);
-                self.needs_redraw = true;
+                self.state.pane_manager.update_pane_state(pane_id, pane_state);
+                self.state.needs_redraw = true;
             }
             ServerMessage::PaneClosed { pane_id, .. } => {
-                self.panes.remove(&pane_id);
-                self.pane_manager.remove_pane(pane_id);
+                self.state.panes.remove(&pane_id);
+                self.state.pane_manager.remove_pane(pane_id);
 
                 // Remove from layout (which also prunes single-child splits)
-                if let Some(ref mut layout) = self.layout {
+                if let Some(ref mut layout) = self.state.layout {
                     layout.remove_pane(pane_id);
                 }
 
-                if self.active_pane_id == Some(pane_id) {
+                if self.state.active_pane_id == Some(pane_id) {
                     // Get new active pane from layout or fallback to panes
-                    let new_active = self
-                        .layout
+                    let new_active = self.state.layout
                         .as_ref()
                         .and_then(|l| l.active_pane_id())
-                        .or_else(|| self.panes.keys().next().copied());
+                        .or_else(|| self.state.panes.keys().next().copied());
 
-                    self.active_pane_id = new_active;
+                    self.state.active_pane_id = new_active;
                     // Update active UI pane and layout
                     if let Some(id) = new_active {
-                        self.pane_manager.set_active(id);
-                        if let Some(ref mut layout) = self.layout {
+                        self.state.pane_manager.set_active(id);
+                        if let Some(ref mut layout) = self.state.layout {
                             layout.set_active_pane(id);
                         }
                     }
@@ -1922,12 +1718,12 @@ impl App {
 
                 // BUG-015 FIX: Recalculate layout and resize remaining panes
                 // After removing a pane, remaining panes should expand to fill available space
-                if !self.panes.is_empty() {
-                    let (cols, rows) = self.terminal_size;
+                if !self.state.panes.is_empty() {
+                    let (cols, rows) = self.state.terminal_size;
                     let pane_area = Rect::new(0, 0, cols, rows.saturating_sub(1));
 
-                    if let Some(ref layout) = self.layout {
-                        let weights = self.calculate_pane_weights();
+                    if let Some(ref layout) = self.state.layout {
+                        let weights = self.state.calculate_pane_weights();
                         let pane_rects = layout.calculate_rects(pane_area, &weights);
 
                         for (remaining_pane_id, rect) in &pane_rects {
@@ -1935,7 +1731,7 @@ impl App {
                             let inner_height = rect.height.saturating_sub(2);
 
                             // Resize UI pane to new dimensions
-                            self.pane_manager
+                            self.state.pane_manager
                                 .resize_pane(*remaining_pane_id, inner_height, inner_width);
 
                             // Notify server of new size so PTY gets resize signal
@@ -1951,38 +1747,38 @@ impl App {
                 }
 
                 // If no panes left, go back to session selection
-                if self.panes.is_empty() {
-                    self.session = None;
-                    self.windows.clear();
-                    self.active_pane_id = None;
-                    self.layout = None;
-                    self.state = AppState::SessionSelect;
-                    self.status_message = Some("Session has no active panes".to_string());
+                if self.state.panes.is_empty() {
+                    self.state.session = None;
+                    self.state.windows.clear();
+                    self.state.active_pane_id = None;
+                    self.state.layout = None;
+                    self.state.state = AppState::SessionSelect;
+                    self.state.status_message = Some("Session has no active panes".to_string());
                 }
             }
             ServerMessage::WindowClosed { window_id } => {
-                self.windows.remove(&window_id);
+                self.state.windows.remove(&window_id);
             }
             ServerMessage::SessionEnded { .. } => {
-                self.session = None;
-                self.windows.clear();
-                self.panes.clear();
-                self.pane_manager = PaneManager::new();
-                self.active_pane_id = None;
-                self.last_pane_id = None;
-                self.last_window_id = None;
-                self.layout = None;
-                self.pending_split_direction = None;
-                self.state = AppState::SessionSelect;
-                self.status_message = Some("Session ended".to_string());
+                self.state.session = None;
+                self.state.windows.clear();
+                self.state.panes.clear();
+                self.state.pane_manager = PaneManager::new();
+                self.state.active_pane_id = None;
+                self.state.last_pane_id = None;
+                self.state.last_window_id = None;
+                self.state.layout = None;
+                self.state.pending_split_direction = None;
+                self.state.state = AppState::SessionSelect;
+                self.state.status_message = Some("Session ended".to_string());
                 // Refresh session list
                 self.connection.send(ClientMessage::ListSessions).await?;
             }
             ServerMessage::Error { code, message, details } => {
-                self.status_message = Some(format!("Error ({:?}): {}", code, message));
+                self.state.status_message = Some(format!("Error ({:?}): {}", code, message));
                 
                 if let Some(ccmux_protocol::messages::ErrorDetails::HumanControl { remaining_ms }) = details {
-                    self.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(remaining_ms));
+                    self.state.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(remaining_ms));
                 }
             }
             ServerMessage::Pong => {
@@ -1994,7 +1790,7 @@ impl App {
             }
             ServerMessage::ReplyDelivered { result } => {
                 // Reply was successfully delivered to pane
-                self.status_message = Some(format!(
+                self.state.status_message = Some(format!(
                     "Reply delivered ({} bytes)",
                     result.bytes_written
                 ));
@@ -2011,20 +1807,20 @@ impl App {
                     priority,
                     summary,
                 };
-                self.mailbox.push(msg);
+                self.state.mailbox.push(msg);
                 // Keep mailbox size reasonable (e.g., last 100 messages)
-                if self.mailbox.len() > 100 {
-                    self.mailbox.remove(0);
+                if self.state.mailbox.len() > 100 {
+                    self.state.mailbox.remove(0);
                 }
                 
                 // If we are in Dashboard view, ensure selection is valid
-                if self.view_mode == ViewMode::Dashboard && self.mailbox_state.selected().is_none() {
-                    self.mailbox_state.select(Some(0));
+                if self.state.view_mode == ViewMode::Dashboard && self.state.mailbox_state.selected().is_none() {
+                    self.state.mailbox_state.select(Some(0));
                 }
             }
             ServerMessage::OrchestrationDelivered { delivered_count } => {
                 // Orchestration message was delivered to other sessions
-                self.status_message = Some(format!(
+                self.state.status_message = Some(format!(
                     "Message delivered to {} session(s)",
                     delivered_count
                 ));
@@ -2032,7 +1828,7 @@ impl App {
             // BUG-026 FIX: Focus change broadcasts from MCP commands
             // BUG-036 FIX: Switch sessions when focusing pane in different session
             ServerMessage::PaneFocused { session_id, window_id, pane_id } => {
-                let should_switch = match &self.session {
+                let should_switch = match &self.state.session {
                     Some(current) => current.id != session_id,
                     None => true,
                 };
@@ -2044,11 +1840,11 @@ impl App {
                         .await?;
                 } else {
                     // Update active pane if we know about this pane
-                    if self.panes.contains_key(&pane_id) {
-                        self.active_pane_id = Some(pane_id);
+                    if self.state.panes.contains_key(&pane_id) {
+                        self.state.active_pane_id = Some(pane_id);
                         tracing::debug!("Focus changed to pane {} (via MCP)", pane_id);
                         // If the window is known, ensure it's the active window display
-                        if let Some(window) = self.windows.get_mut(&window_id) {
+                        if let Some(window) = self.state.windows.get_mut(&window_id) {
                             window.active_pane_id = Some(pane_id);
                         }
                     }
@@ -2056,7 +1852,7 @@ impl App {
             }
             ServerMessage::WindowFocused { session_id, window_id } => {
                 // BUG-036 FIX: Switch to the session if different from current
-                let should_switch = match &self.session {
+                let should_switch = match &self.state.session {
                     Some(current) => current.id != session_id,
                     None => true,
                 };
@@ -2072,23 +1868,23 @@ impl App {
                     let switching_windows = current_window_id != Some(window_id);
 
                     // Update active window - focus its active pane
-                    if let Some(window) = self.windows.get(&window_id) {
+                    if let Some(window) = self.state.windows.get(&window_id) {
                         if let Some(active_pane) = window.active_pane_id {
-                            self.active_pane_id = Some(active_pane);
+                            self.state.active_pane_id = Some(active_pane);
                             tracing::debug!("Window {} focused, now focusing pane {} (via MCP)", window_id, active_pane);
                         }
                     }
 
                     // BUG-045: Rebuild layout to show only the new window's panes
                     if switching_windows {
-                        self.last_window_id = current_window_id;
+                        self.state.last_window_id = current_window_id;
                         self.rebuild_layout_for_active_window();
                     }
                 }
             }
             ServerMessage::SessionFocused { session_id } => {
                 // BUG-036 FIX: Switch to the focused session if different from current
-                let should_switch = match &self.session {
+                let should_switch = match &self.state.session {
                     Some(current) => current.id != session_id,
                     None => true,
                 };
@@ -2104,7 +1900,7 @@ impl App {
             }
 
             ServerMessage::SessionRenamed { session_id, new_name, .. } => {
-                if let Some(session) = &mut self.session {
+                if let Some(session) = &mut self.state.session {
                     if session.id == session_id {
                         session.name = new_name;
                     }
@@ -2112,28 +1908,28 @@ impl App {
             }
 
             ServerMessage::WindowRenamed { window_id, new_name, .. } => {
-                if let Some(window) = self.windows.get_mut(&window_id) {
+                if let Some(window) = self.state.windows.get_mut(&window_id) {
                     window.name = new_name;
                 }
             }
 
             ServerMessage::PaneRenamed { pane_id, new_name, .. } => {
-                if let Some(pane) = self.panes.get_mut(&pane_id) {
+                if let Some(pane) = self.state.panes.get_mut(&pane_id) {
                     pane.name = Some(new_name.clone());
                 }
-                if let Some(ui_pane) = self.pane_manager.get_mut(pane_id) {
+                if let Some(ui_pane) = self.state.pane_manager.get_mut(pane_id) {
                     ui_pane.set_title(Some(new_name));
                 }
             }
 
             ServerMessage::PaneResized { pane_id, new_cols, new_rows } => {
                 // Update local pane dimensions
-                if let Some(pane) = self.panes.get_mut(&pane_id) {
+                if let Some(pane) = self.state.panes.get_mut(&pane_id) {
                     pane.cols = new_cols;
                     pane.rows = new_rows;
                 }
                 // Resize the UI pane
-                self.pane_manager.resize_pane(pane_id, new_rows, new_cols);
+                self.state.pane_manager.resize_pane(pane_id, new_rows, new_cols);
                 
                 // Trigger a full layout recalculation on next draw
             }
@@ -2166,8 +1962,8 @@ impl App {
                 let layout_direction = LayoutSplitDirection::from(direction);
 
                 // Create UI pane for the mirror
-                self.pane_manager.add_pane(mirror_pane.id, mirror_pane.rows, mirror_pane.cols);
-                if let Some(ui_pane) = self.pane_manager.get_mut(mirror_pane.id) {
+                self.state.pane_manager.add_pane(mirror_pane.id, mirror_pane.rows, mirror_pane.cols);
+                if let Some(ui_pane) = self.state.pane_manager.get_mut(mirror_pane.id) {
                     // Set title to indicate this is a mirror
                     let title = format!("[MIRROR: {}]", source_pane_id.to_string().split('-').next().unwrap_or("?"));
                     ui_pane.set_title(Some(title));
@@ -2177,16 +1973,16 @@ impl App {
 
                 // Store pane info
                 let pane_window_id = mirror_pane.window_id;
-                self.panes.insert(mirror_pane.id, mirror_pane.clone());
+                self.state.panes.insert(mirror_pane.id, mirror_pane.clone());
 
                 // Add to layout if in active window
                 let active_window_id = self.active_window_id();
                 let pane_in_active_window = active_window_id == Some(pane_window_id);
 
                 if pane_in_active_window {
-                    if let Some(ref mut layout) = self.layout {
+                    if let Some(ref mut layout) = self.state.layout {
                         // Find a suitable reference pane for the split
-                        let ref_pane = self.active_pane_id.or_else(|| {
+                        let ref_pane = self.state.active_pane_id.or_else(|| {
                             layout.root().pane_ids().first().copied()
                         });
 
@@ -2199,7 +1995,7 @@ impl App {
                 // Note: Mirror will receive output via forwarding as source produces it
                 // Initial content sync could be added later if needed
 
-                self.needs_redraw = true;
+                self.state.needs_redraw = true;
             }
 
             // FEAT-062: Mirror source closed
@@ -2216,15 +2012,15 @@ impl App {
                 );
 
                 // Display a message in the mirror pane
-                if let Some(_ui_pane) = self.pane_manager.get_mut(mirror_pane_id) {
+                if let Some(_ui_pane) = self.state.pane_manager.get_mut(mirror_pane_id) {
                     let msg = format!(
                         "\r\n\x1b[1;33m[Source pane closed{}]\x1b[0m\r\n\x1b[2mPress 'q' or Escape to close this mirror\x1b[0m\r\n",
                         exit_code.map(|c| format!(" with exit code {}", c)).unwrap_or_default()
                     );
-                    self.pane_manager.process_output(mirror_pane_id, msg.as_bytes());
+                    self.state.pane_manager.process_output(mirror_pane_id, msg.as_bytes());
                 }
 
-                self.needs_redraw = true;
+                self.state.needs_redraw = true;
             }
 
             // MCP bridge messages - not used by TUI client
@@ -2251,12 +2047,12 @@ impl App {
             // FEAT-058: Beads status updates
             ServerMessage::BeadsStatusUpdate { pane_id, status } => {
                 // Update status bar if this is the active pane
-                if Some(pane_id) == self.active_pane_id {
+                if Some(pane_id) == self.state.active_pane_id {
                     if status.daemon_available {
-                        self.beads_ready_count = Some(status.ready_count);
+                        self.state.beads_ready_count = Some(status.ready_count);
                     } else {
                         // Daemon not available - clear count so we fall back to basic "beads" indicator
-                        self.beads_ready_count = None;
+                        self.state.beads_ready_count = None;
                     }
                 }
             }
@@ -2272,13 +2068,13 @@ impl App {
                 // For backward compatibility, beads.status updates are processed
                 // the same way as BeadsStatusUpdate
                 if update.update_type == "beads.status" {
-                    if Some(pane_id) == self.active_pane_id {
+                    if Some(pane_id) == self.state.active_pane_id {
                         if update.metadata()["daemon_available"].as_bool().unwrap_or(false) {
                             if let Some(count) = update.metadata()["ready_count"].as_u64() {
-                                self.beads_ready_count = Some(count as usize);
+                                self.state.beads_ready_count = Some(count as usize);
                             }
                         } else {
-                            self.beads_ready_count = None;
+                            self.state.beads_ready_count = None;
                         }
                     }
                 }
@@ -2291,453 +2087,22 @@ impl App {
 }    /// Draw the UI
     fn draw(&mut self, terminal: &mut Terminal) -> Result<()> {
         // For attached state, update pane layout before drawing
-        if self.state == AppState::Attached {
-            self.update_pane_layout(terminal.size()?);
+        if self.state.state == AppState::Attached {
+            self.state.update_pane_layout(terminal.size()?);
         }
-
-        terminal.terminal_mut().draw(|frame| {
-            let area = frame.area();
-
-            match self.state {
-                AppState::Disconnected => self.draw_disconnected(frame, area),
-                AppState::Connecting => self.draw_connecting(frame, area),
-                AppState::SessionSelect => self.draw_session_select(frame, area),
-                AppState::Attached => self.draw_attached(frame, area),
-                AppState::Quitting => {} 
-            }
-        })?;
-        Ok(())
-    }
-
-    /// Update pane layout and sizes based on current terminal size
-    fn update_pane_layout(&mut self, terminal_size: (u16, u16)) {
-        let (term_cols, term_rows) = terminal_size;
-
-        // Calculate pane area (minus status bar)
-        let pane_area = Rect::new(0, 0, term_cols, term_rows.saturating_sub(1));
-
-        if let Some(ref layout) = self.layout {
-            let weights = self.calculate_pane_weights();
-            let pane_rects = layout.calculate_rects(pane_area, &weights);
-
-            for (pane_id, rect) in &pane_rects {
-                // Account for border (1 cell on each side)
-                let inner_width = rect.width.saturating_sub(2);
-                let inner_height = rect.height.saturating_sub(2);
-
-                // Resize the UI pane to match the calculated layout
-                self.pane_manager.resize_pane(*pane_id, inner_height, inner_width);
-
-                // Update focus state
-                let is_active = Some(*pane_id) == self.active_pane_id;
-                if let Some(ui_pane) = self.pane_manager.get_mut(*pane_id) {
-                    ui_pane.set_focus_state(if is_active {
-                        FocusState::Focused
-                    } else {
-                        FocusState::Unfocused
-                    });
-                }
-            }
-        }
-    }
-
-    /// Draw disconnected state
-    fn draw_disconnected(&self, frame: &mut ratatui::Frame, area: Rect) {
-        let message = self.status_message.as_deref().unwrap_or("Disconnected");
-        let paragraph = Paragraph::new(message)
-            .style(Style::default().fg(Color::Red))
-            .block(Block::default().borders(Borders::ALL).title("ccmux"));
-        frame.render_widget(paragraph, area);
-    }
-
-    /// Draw connecting state
-    fn draw_connecting(&self, frame: &mut ratatui::Frame, area: Rect) {
-        let dots = ".".repeat(((self.tick_count / 5) % 4) as usize);
-        let message = format!("Connecting{}", dots);
-        let paragraph = Paragraph::new(message)
-            .style(Style::default().fg(Color::Yellow))
-            .block(Block::default().borders(Borders::ALL).title("ccmux"));
-        frame.render_widget(paragraph, area);
-    }
-
-    /// Draw session select state
-    fn draw_session_select(&mut self, frame: &mut ratatui::Frame, area: Rect) {
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Min(5), Constraint::Length(3)])
-            .split(area);
-
-        if self.available_sessions.is_empty() {
-            // Show empty state message
-            let empty_msg = Paragraph::new("No sessions available. Press 'n' to create one.")
-                .style(Style::default().fg(Color::DarkGray))
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title("Select Session")
-                        .border_style(Style::default().fg(Color::Cyan)),
-                );
-            frame.render_widget(empty_msg, chunks[0]);
-        } else {
-            // Build list items with session metadata
-            let items: Vec<ListItem> = self
-                .available_sessions
-                .iter()
-                .map(|session| {
-                    let worktree_info = session
-                        .worktree
-                        .as_ref()
-                        .map(|w| format!(" [{}]", w.path))
-                        .unwrap_or_default();
-                    let orchestrator_badge = if session.has_tag("orchestrator") { " ★" } else { "" };
-                    ListItem::new(format!(
-                        "{}{} ({} windows, {} clients){}",
-                        session.name,
-                        orchestrator_badge,
-                        session.window_count,
-                        session.attached_clients,
-                        worktree_info
-                    ))
-                })
-                .collect();
-
-            let list = List::new(items)
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title("Select Session")
-                        .border_style(Style::default().fg(Color::Cyan)),
-                )
-                .highlight_style(
-                    Style::default()
-                        .fg(Color::Black)
-                        .bg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD),
-                )
-                .highlight_symbol("> ");
-
-            // Create ListState with current selection
-            let mut list_state = ListState::default();
-            list_state.select(Some(self.session_list_index));
-
-            frame.render_stateful_widget(list, chunks[0], &mut list_state);
-        }
-
-        // Help line with j/k mentioned
-        let help = Paragraph::new("↑/k ↓/j: navigate | Enter: attach | n: new | r: refresh | Ctrl+D: delete | q: quit")
-            .style(Style::default().fg(Color::DarkGray))
-            .block(Block::default().borders(Borders::ALL).title("Help"));
-        frame.render_widget(help, chunks[1]);
-    }
-
-    /// Draw attached state (main pane view)
-    fn draw_attached(&mut self, frame: &mut ratatui::Frame, area: Rect) {
-        match self.view_mode {
-            ViewMode::Panes => self.draw_panes(frame, area),
-            ViewMode::Dashboard => self.draw_dashboard(frame, area),
-        }
-    }
-
-    /// Draw the normal pane view
-    fn draw_panes(&mut self, frame: &mut ratatui::Frame, area: Rect) {
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Min(3), Constraint::Length(1)])
-            .split(area);
-
-        // Main pane area
-        let pane_area = chunks[0];
-
-        // Render all panes using layout manager
-        if let Some(ref layout) = self.layout {
-            let weights = self.calculate_pane_weights();
-            let pane_rects = layout.calculate_rects(pane_area, &weights);
-
-            // Render each pane
-            for (pane_id, rect) in &pane_rects {
-                if let Some(ui_pane) = self.pane_manager.get(*pane_id) {
-                    render_pane(ui_pane, *rect, frame.buffer_mut(), self.tick_count);
-                } else {
-                    // Fallback if UI pane not found
-                    let pane_block = Block::default()
-                        .borders(Borders::ALL)
-                        .title("Pane (no terminal)")
-                        .border_style(Style::default().fg(Color::Red));
-                    let pane_widget = Paragraph::new("Terminal not initialized")
-                        .block(pane_block);
-                    frame.render_widget(pane_widget, *rect);
-                }
-            }
-        } else if let Some(pane_id) = self.active_pane_id {
-            // Fallback: no layout, render single active pane
-            if let Some(ui_pane) = self.pane_manager.get(pane_id) {
-                render_pane(ui_pane, pane_area, frame.buffer_mut(), self.tick_count);
-            } else {
-                let pane_block = Block::default()
-                    .borders(Borders::ALL)
-                    .title("Pane (no terminal)")
-                    .border_style(Style::default().fg(Color::Red));
-                let pane_widget = Paragraph::new("Terminal not initialized")
-                    .block(pane_block);
-                frame.render_widget(pane_widget, pane_area);
-            }
-        } else {
-            // No active pane
-            let pane_block = Block::default()
-                .borders(Borders::ALL)
-                .title("No Pane")
-                .border_style(Style::default().fg(Color::DarkGray));
-            let pane_widget = Paragraph::new("No active pane").block(pane_block);
-            frame.render_widget(pane_widget, pane_area);
-        }
-
-        // Status bar
-        let status = self.build_status_bar();
-        let status_widget = Paragraph::new(status).style(Style::default().bg(Color::DarkGray));
-        frame.render_widget(status_widget, chunks[1]);
-    }
-
-    /// Draw the visibility dashboard
-    fn draw_dashboard(&mut self, frame: &mut ratatui::Frame, area: Rect) {
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Min(3), Constraint::Length(1)])
-            .split(area);
-
-        let dashboard_area = chunks[0];
         
-        let dashboard_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(dashboard_area);
-
-        // Mailbox widget (Left)
-        self.draw_mailbox(frame, dashboard_chunks[0]);
-
-        // System Graph (Right)
-        self.draw_system_graph(frame, dashboard_chunks[1]);
-
-        // Status bar
-        let status = self.build_status_bar();
-        let status_widget = Paragraph::new(status).style(Style::default().bg(Color::DarkGray));
-        frame.render_widget(status_widget, chunks[1]);
-    }
-
-    /// Draw the system graph widget
-    fn draw_system_graph(&self, frame: &mut ratatui::Frame, area: Rect) {
-        let canvas = Canvas::default()
-            .block(Block::default().borders(Borders::ALL).title("System Graph"))
-            .x_bounds([0.0, 100.0])
-            .y_bounds([0.0, 100.0])
-            .paint(|ctx| {
-                // Draw nodes for each pane
-                let panes: Vec<_> = self.panes.values().collect();
-                let num_panes = panes.len();
-                
-                if num_panes == 0 {
-                    ctx.print(40.0, 50.0, "No active panes");
-                    return;
-                }
-
-                // Simple grid layout for nodes
-                let cols = (num_panes as f64).sqrt().ceil() as usize;
-                let rows = (num_panes as f64 / cols as f64).ceil() as usize;
-                
-                let cell_width = 100.0 / cols as f64;
-                let cell_height = 100.0 / rows as f64;
-
-                for (i, pane) in panes.iter().enumerate() {
-                    let r = i / cols;
-                    let c = i % cols;
-
-                    let x = c as f64 * cell_width + cell_width / 2.0;
-                    let y = 100.0 - (r as f64 * cell_height + cell_height / 2.0);
-
-                    let color = match &pane.stuck_status {
-                        Some(PaneStuckStatus::Stuck { .. }) => Color::Red,
-                        Some(PaneStuckStatus::Slow { .. }) => Color::Yellow,
-                        _ => match &pane.state {
-                            PaneState::Normal => Color::Green,
-                            PaneState::Agent(agent_state) => {
-                                if matches!(agent_state.activity, ccmux_protocol::AgentActivity::Idle) {
-                                    Color::Blue
-                                } else {
-                                    Color::Cyan
-                                }
-                            }
-                            PaneState::Exited { .. } => Color::Gray,
-                        }
-                    };
-
-                    // Draw node as a rectangle
-                    ctx.draw(&Rectangle {
-                        x: x - 5.0,
-                        y: y - 5.0,
-                        width: 10.0,
-                        height: 10.0,
-                        color,
-                    });
-
-                    // Print pane label
-                    let label = pane.name.as_deref().unwrap_or_else(|| {
-                        pane.title.as_deref().unwrap_or("?")
-                    });
-                    let short_label = if label.len() > 8 { &label[0..8] } else { label };
-                    ctx.print(x - 4.0, y - 2.0, short_label.to_string());
-                }
-            });
-
-        frame.render_widget(canvas, area);
-    }
-
-    /// Draw the mailbox widget
-    fn draw_mailbox(&mut self, frame: &mut ratatui::Frame, area: Rect) {
-        let items: Vec<ListItem> = self.mailbox.iter().rev().map(|msg| {
-            let priority_style = match msg.priority {
-                MailPriority::Info => Style::default().fg(Color::Cyan),
-                MailPriority::Warning => Style::default().fg(Color::Yellow),
-                MailPriority::Error => Style::default().fg(Color::Red),
-            };
-
-            let pane_name = self.panes.get(&msg.pane_id)
-                .and_then(|p| p.name.as_ref())
-                .cloned()
-                .unwrap_or_else(|| format!("Pane {}", self.panes.get(&msg.pane_id).map(|p| p.index).unwrap_or(0)));
-
-            ListItem::new(format!("[{}] {}", pane_name, msg.summary)).style(priority_style)
-        }).collect();
-
-        let list = List::new(items)
-            .block(Block::default().borders(Borders::ALL).title("Mailbox"))
-            .highlight_style(Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD))
-            .highlight_symbol("> ");
-
-        frame.render_stateful_widget(list, area, &mut self.mailbox_state);
-    }
-
-    /// Get title for active pane
-    fn active_pane_title(&self) -> String {
-        if let Some(pane_id) = self.active_pane_id {
-            if let Some(pane) = self.panes.get(&pane_id) {
-                return pane.title.clone().unwrap_or_else(|| format!("Pane {}", pane.index));
-            }
-        }
-        "Pane".to_string()
-    }
-
-    /// Format pane info for display
-    fn format_pane_info(&self, pane: &PaneInfo) -> String {
-        let state_info = match &pane.state {
-            PaneState::Normal => "Normal".to_string(),
-            PaneState::Agent(agent_state) => {
-                format!("{}: {:?}", agent_state.agent_type, agent_state.activity)
-            }
-            PaneState::Exited { code } => {
-                format!("Exited: {:?}", code)
-            }
-        };
-
-        let stuck_info = match &pane.stuck_status {
-            Some(PaneStuckStatus::Stuck { duration, .. }) => format!("\nStuck: {}s", duration),
-            Some(PaneStuckStatus::Slow { duration }) => format!("\nSlow: {}s", duration),
-            _ => "".to_string(),
-        };
-
-        format!(
-            "Size: {}x{}\nState: {}\nCWD: {}{}",
-            pane.cols,
-            pane.rows,
-            state_info,
-            pane.cwd.as_deref().unwrap_or("unknown"),
-            stuck_info
-        )
-    }
-
-    /// Build status bar content
-    fn build_status_bar(&self) -> String {
-        let session_name = self
-            .session
-            .as_ref()
-            .map(|s| s.name.as_str())
-            .unwrap_or("No session");
-
-        // Show input mode indicator
-        let mode_indicator = match self.input_handler.mode() {
+        // Construct input status string
+        let input_status = match self.input_handler.mode() {
             InputMode::Normal => "".to_string(),
             InputMode::PrefixPending => " [PREFIX]".to_string(),
             InputMode::Command => format!(" :{}", self.input_handler.command_buffer()),
             InputMode::Copy => format!(" [COPY +{}]", self.input_handler.scroll_offset()),
         };
 
-        #[allow(deprecated)]
-        let pane_info = if let Some(pane_id) = self.active_pane_id {
-            if let Some(pane) = self.panes.get(&pane_id) {
-                // Check stuck status first (overrides normal indicator)
-                if let Some(stuck) = &pane.stuck_status {
-                    match stuck {
-                        PaneStuckStatus::Stuck { duration, .. } => {
-                            format!("[STUCK {}s]", duration)
-                        }
-                        PaneStuckStatus::Slow { duration } => {
-                            format!("[SLOW {}s]", duration)
-                        }
-                        PaneStuckStatus::None => match &pane.state {
-                            PaneState::Normal => "[ ]".to_string(),
-                            PaneState::Agent(agent_state) => {
-                                format_agent_indicator(&agent_state.agent_type, &agent_state.activity, self.tick_count)
-                            }
-                            PaneState::Exited { code } => format!("[Exit:{}]", code.unwrap_or(-1)),
-                        },
-                    }
-                } else {
-                    match &pane.state {
-                        PaneState::Normal => "[ ]".to_string(),
-                        PaneState::Agent(agent_state) => {
-                            format_agent_indicator(&agent_state.agent_type, &agent_state.activity, self.tick_count)
-                        }
-                        PaneState::Exited { code } => format!("[Exit:{}]", code.unwrap_or(-1)),
-                    }
-                }
-            } else {
-                "".to_string()
-            }
-        } else {
-            "".to_string()
-        };
-
-        // FEAT-057/058: Beads indicator with ready count
-        let beads_indicator = if self.is_beads_tracked {
-            match self.beads_ready_count {
-                Some(0) => " | bd:0".to_string(),
-                Some(count) => format!(" | bd:{}", count),
-                None => " | beads".to_string(),
-            }
-        } else {
-            "".to_string()
-        };
-
-        // FEAT-077: Human control indicator
-        let human_control_indicator = if let Some(expiry) = self.human_control_lock_expiry {
-            let now = Instant::now();
-            if expiry > now {
-                let remaining = expiry.duration_since(now).as_secs_f32();
-                format!(" [LOCKED: {:.1}s]", remaining)
-            } else {
-                "".to_string()
-            }
-        } else {
-            "".to_string()
-        };
-
-        format!(
-            " {} | {} panes {}{}{}{}",
-            session_name,
-            self.panes.len(),
-            pane_info,
-            beads_indicator,
-            mode_indicator,
-            human_control_indicator
-        )
+        terminal.terminal_mut().draw(|frame| {
+             super::render::draw(&mut self.state, frame, &input_status);
+        })?;
+        Ok(())
     }
 }
 
@@ -2747,170 +2112,6 @@ impl Default for App {
     }
 }
 
-/// Format Claude activity indicator with animation
-fn format_claude_indicator(activity: &ClaudeActivity, tick: u64) -> String {
-    match activity {
-        ClaudeActivity::Idle => "[ ]".to_string(),
-        ClaudeActivity::Thinking => {
-            let frames = ["[.  ]", "[.. ]", "[... ]", "[ ..]", "[  .]", "[   ]"];
-            frames[(tick / 3) as usize % frames.len()].to_string()
-        }
-        ClaudeActivity::Coding => ">[ ]".to_string(),
-        ClaudeActivity::ToolUse => "[*]".to_string(),
-        ClaudeActivity::AwaitingConfirmation => "[?]".to_string(),
-    }
-}
-
-/// Format agent activity indicator with animation (FEAT-084)
-fn format_agent_indicator(agent_type: &str, activity: &ccmux_protocol::AgentActivity, tick: u64) -> String {
-    let prefix = agent_type.chars().next().unwrap_or('A').to_uppercase().to_string();
-    match activity {
-        ccmux_protocol::AgentActivity::Idle => format!("[{}]", prefix),
-        ccmux_protocol::AgentActivity::Processing => {
-            let frames = ["[.  ]", "[.. ]", "[... ]", "[ ..]", "[  .]", "[   ]"];
-            format!("{}{}", prefix, frames[(tick / 3) as usize % frames.len()])
-        }
-        ccmux_protocol::AgentActivity::Generating => format!(">[{}]", prefix),
-        ccmux_protocol::AgentActivity::ToolUse => format!("[{}*]", prefix),
-        ccmux_protocol::AgentActivity::AwaitingConfirmation => format!("[{}?]", prefix),
-        ccmux_protocol::AgentActivity::Custom(name) => format!("[{}:{}]", prefix, &name[..name.len().min(3)]),
-    }
-}
-
-/// Convert key event to byte sequence for terminal input
-fn key_to_bytes(key: &crossterm::event::KeyEvent) -> Vec<u8> {
-    let mut bytes = Vec::new();
-
-    // Calculate modifier parameter for CSI sequences (xterm style)
-    // 1 = none, 2 = Shift, 3 = Alt, 4 = Shift+Alt, 5 = Ctrl, 6 = Shift+Ctrl, 7 = Alt+Ctrl, 8 = all
-    let modifier_param = {
-        let mut m = 1u8;
-        if key.modifiers.contains(KeyModifiers::SHIFT) {
-            m += 1;
-        }
-        if key.modifiers.contains(KeyModifiers::ALT) {
-            m += 2;
-        }
-        if key.modifiers.contains(KeyModifiers::CONTROL) {
-            m += 4;
-        }
-        m
-    };
-
-    match key.code {
-        KeyCode::Char(c) => {
-            if key.modifiers.contains(KeyModifiers::CONTROL) {
-                // Control characters
-                if c.is_ascii_lowercase() {
-                    bytes.push(c as u8 - b'a' + 1);
-                } else if c.is_ascii_uppercase() {
-                    bytes.push(c as u8 - b'A' + 1);
-                }
-            } else if key.modifiers.contains(KeyModifiers::ALT) {
-                // Alt/Meta sends ESC prefix
-                bytes.push(0x1b);
-                let mut buf = [0u8; 4];
-                let s = c.encode_utf8(&mut buf);
-                bytes.extend_from_slice(s.as_bytes());
-            } else {
-                let mut buf = [0u8; 4];
-                let s = c.encode_utf8(&mut buf);
-                bytes.extend_from_slice(s.as_bytes());
-            }
-        }
-        KeyCode::Enter => bytes.push(b'\r'),
-        KeyCode::Tab => {
-            if key.modifiers.contains(KeyModifiers::SHIFT) {
-                bytes.extend_from_slice(b"\x1b[Z"); // CSI Z - backtab
-            } else {
-                bytes.push(b'\t');
-            }
-        }
-        KeyCode::Backspace => {
-            if key.modifiers.contains(KeyModifiers::ALT) {
-                bytes.extend_from_slice(b"\x1b\x7f"); // Alt+Backspace - delete word
-            } else {
-                bytes.push(0x7f);
-            }
-        }
-        KeyCode::Esc => bytes.push(0x1b),
-        KeyCode::Up => {
-            if modifier_param > 1 {
-                bytes.extend_from_slice(format!("\x1b[1;{}A", modifier_param).as_bytes());
-            } else {
-                bytes.extend_from_slice(b"\x1b[A");
-            }
-        }
-        KeyCode::Down => {
-            if modifier_param > 1 {
-                bytes.extend_from_slice(format!("\x1b[1;{}B", modifier_param).as_bytes());
-            } else {
-                bytes.extend_from_slice(b"\x1b[B");
-            }
-        }
-        KeyCode::Right => {
-            if modifier_param > 1 {
-                bytes.extend_from_slice(format!("\x1b[1;{}C", modifier_param).as_bytes());
-            } else {
-                bytes.extend_from_slice(b"\x1b[C");
-            }
-        }
-        KeyCode::Left => {
-            if modifier_param > 1 {
-                bytes.extend_from_slice(format!("\x1b[1;{}D", modifier_param).as_bytes());
-            } else {
-                bytes.extend_from_slice(b"\x1b[D");
-            }
-        }
-        KeyCode::Home => {
-            if modifier_param > 1 {
-                bytes.extend_from_slice(format!("\x1b[1;{}H", modifier_param).as_bytes());
-            } else {
-                bytes.extend_from_slice(b"\x1b[H");
-            }
-        }
-        KeyCode::End => {
-            if modifier_param > 1 {
-                bytes.extend_from_slice(format!("\x1b[1;{}F", modifier_param).as_bytes());
-            } else {
-                bytes.extend_from_slice(b"\x1b[F");
-            }
-        }
-        KeyCode::PageUp => bytes.extend_from_slice(b"\x1b[5~"),
-        KeyCode::PageDown => bytes.extend_from_slice(b"\x1b[6~"),
-        KeyCode::Insert => bytes.extend_from_slice(b"\x1b[2~"),
-        KeyCode::Delete => {
-            if key.modifiers.contains(KeyModifiers::ALT) {
-                bytes.extend_from_slice(b"\x1b[3;3~"); // Alt+Delete
-            } else {
-                bytes.extend_from_slice(b"\x1b[3~");
-            }
-        }
-        KeyCode::F(n) => {
-            let seq = match n {
-                1 => b"\x1bOP".as_slice(),
-                2 => b"\x1bOQ",
-                3 => b"\x1bOR",
-                4 => b"\x1bOS",
-                5 => b"\x1b[15~",
-                6 => b"\x1b[17~",
-                7 => b"\x1b[18~",
-                8 => b"\x1b[19~",
-                9 => b"\x1b[20~",
-                10 => b"\x1b[21~",
-                11 => b"\x1b[23~",
-                12 => b"\x1b[24~",
-                _ => return bytes,
-            };
-            bytes.extend_from_slice(seq);
-        }
-        _ => {} 
-    }
-
-    bytes
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -2918,76 +2119,6 @@ mod tests {
     fn test_app_state_default() {
         // Note: Can't actually test App::new() in unit tests as it needs terminal
         assert_eq!(AppState::Disconnected, AppState::Disconnected);
-    }
-
-    #[test]
-    fn test_claude_indicator_idle() {
-        let result = format_claude_indicator(&ClaudeActivity::Idle, 0);
-        assert_eq!(result, "[ ]");
-    }
-
-    #[test]
-    fn test_claude_indicator_thinking_animation() {
-        // Different ticks should produce different frames
-        let frames: Vec<String> = (0..6)
-            .map(|i| format_claude_indicator(&ClaudeActivity::Thinking, i * 3))
-            .collect();
-
-        // Should cycle through animation frames
-        assert!(frames.iter().any(|f| f.contains(".")));
-    }
-
-    #[test]
-    fn test_claude_indicator_coding() {
-        let result = format_claude_indicator(&ClaudeActivity::Coding, 0);
-        assert_eq!(result, ">[ ]");
-    }
-
-    #[test]
-    fn test_claude_indicator_tool_use() {
-        let result = format_claude_indicator(&ClaudeActivity::ToolUse, 0);
-        assert_eq!(result, "[*]");
-    }
-
-    #[test]
-    fn test_claude_indicator_awaiting() {
-        let result = format_claude_indicator(&ClaudeActivity::AwaitingConfirmation, 0);
-        assert_eq!(result, "[?]");
-    }
-
-    #[test]
-    fn test_key_to_bytes_char() {
-        let key = crossterm::event::KeyEvent::new(KeyCode::Char('a'), KeyModifiers::empty());
-        let bytes = key_to_bytes(&key);
-        assert_eq!(bytes, vec![b'a']);
-    }
-
-    #[test]
-    fn test_key_to_bytes_enter() {
-        let key = crossterm::event::KeyEvent::new(KeyCode::Enter, KeyModifiers::empty());
-        let bytes = key_to_bytes(&key);
-        assert_eq!(bytes, vec![b'\r']);
-    }
-
-    #[test]
-    fn test_key_to_bytes_arrow_up() {
-        let key = crossterm::event::KeyEvent::new(KeyCode::Up, KeyModifiers::empty());
-        let bytes = key_to_bytes(&key);
-        assert_eq!(bytes, b"\x1b[A");
-    }
-
-    #[test]
-    fn test_key_to_bytes_ctrl_c() {
-        let key = crossterm::event::KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
-        let bytes = key_to_bytes(&key);
-        assert_eq!(bytes, vec![3]); // ETX
-    }
-
-    #[test]
-    fn test_key_to_bytes_f1() {
-        let key = crossterm::event::KeyEvent::new(KeyCode::F(1), KeyModifiers::empty());
-        let bytes = key_to_bytes(&key);
-        assert_eq!(bytes, b"\x1bOP");
     }
 
     // ==================== BUG-011 Tests: Large Paste Handling ====================

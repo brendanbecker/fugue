@@ -8,11 +8,14 @@ mod borders;
 mod event;
 mod layout;
 mod pane;
+mod render;
 mod resize;
+mod state;
 mod status;
 mod terminal;
 
 pub use app::App;
+pub use state::AppState;
 
 // Border types are part of the public API
 #[allow(unused_imports)]
