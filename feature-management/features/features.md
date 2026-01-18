@@ -1,17 +1,17 @@
 # Feature Tracking
 
 **Project**: ccmux
-**Last Updated**: 2026-01-17
+**Last Updated**: 2026-01-18
 
 ## Summary Statistics
 
-- **Total Features**: 99
+- **Total Features**: 101
 - **Completed**: 90
-- **Backlog**: 9
+- **Backlog**: 11
 
 ## Current Status
 
-Core terminal multiplexer fully functional with MCP integration, multi-agent orchestration, remote access, and observability. Eight features remain in backlog: 1 orchestration tool (P1), refactoring tasks, and infrastructure improvements.
+Core terminal multiplexer fully functional with MCP integration, multi-agent orchestration, remote access, and observability. Agent detection supports Claude and Gemini; Codex detection (FEAT-101) is next. Eleven features remain in backlog: agent detection, orchestration improvements, and refactoring tasks.
 
 ## Active Backlog
 
@@ -28,6 +28,7 @@ Core terminal multiplexer fully functional with MCP integration, multi-agent orc
 
 | ID | Title | Component | Priority | Status |
 |----|-------|-----------|----------|--------|
+| FEAT-101 | Codex CLI agent detection | ccmux-server/agents | P2 | new |
 | FEAT-100 | OrchestrationContext abstraction | ccmux-server/mcp | P2 | new |
 | FEAT-099 | Dynamic orchestration session naming | ccmux-server/mcp | P2 | blocked (FEAT-100) |
 | FEAT-064 | Refactor MCP bridge.rs into modular components | ccmux-server | P2 | ready |
