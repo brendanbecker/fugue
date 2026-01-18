@@ -1,17 +1,15 @@
 use std::time::Instant;
 
-use crossterm::event::KeyModifiers;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::canvas::{Canvas, Rectangle};
 use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
 
 use ccmux_protocol::{
-    ClaudeActivity, MailPriority, PaneInfo, PaneState, PaneStuckStatus,
+    MailPriority, PaneState, PaneStuckStatus,
 };
 
-use crate::input::InputMode;
-use super::pane::{render_pane, FocusState};
+use super::pane::render_pane;
 use super::state::{AppState, ClientState, ViewMode};
 
 /// Draw the UI

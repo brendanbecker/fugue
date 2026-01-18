@@ -41,6 +41,7 @@ pub enum ViewMode {
 #[derive(Debug, Clone)]
 pub struct MailboxMessage {
     pub pane_id: Uuid,
+    #[allow(dead_code)]
     pub timestamp: std::time::SystemTime,
     pub priority: MailPriority,
     pub summary: String,

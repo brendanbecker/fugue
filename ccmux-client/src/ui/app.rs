@@ -5,7 +5,6 @@
 // Allow unused code that's part of the public API for future features
 #![allow(dead_code)]
 
-use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 /// Maximum size for a single input chunk sent to the server.
@@ -29,15 +28,12 @@ const MAX_MESSAGES_PER_TICK: usize = 50;
 const BEADS_REFRESH_INTERVAL_TICKS: u64 = 300;
 
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::widgets::canvas::{Canvas, Rectangle};
-use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
+use ratatui::layout::Rect;
 use uuid::Uuid;
 
 use ccmux_protocol::{
-    ClaudeActivity, ClientMessage, ClientType, MailPriority, PaneInfo, PaneState, PaneStuckStatus,
-    ServerMessage, SessionInfo, SplitDirection, WindowInfo,
+    ClientMessage, ClientType, PaneState,
+    ServerMessage, SplitDirection,
 };
 use ccmux_utils::Result;
 
@@ -46,7 +42,7 @@ use crate::input::{ClientCommand, InputAction, InputHandler, InputMode};
 
 use super::event::{AppEvent, EventHandler, InputEvent};
 use super::layout::{LayoutManager, LayoutPolicy, SplitDirection as LayoutSplitDirection};
-use super::pane::{render_pane, FocusState, PaneManager};
+use super::pane::PaneManager;
 use super::state::{AppState, ClientState, MailboxMessage, ViewMode};
 use super::terminal::Terminal;
 
@@ -2113,7 +2109,7 @@ impl Default for App {
 }
 
 mod tests {
-    use super::*;
+    
 
     #[test]
     fn test_app_state_default() {

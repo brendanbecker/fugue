@@ -15,7 +15,6 @@ mod status;
 mod terminal;
 
 pub use app::App;
-pub use state::AppState;
 
 // Border types are part of the public API
 #[allow(unused_imports)]
