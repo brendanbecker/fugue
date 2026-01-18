@@ -284,6 +284,29 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    pub async fn tool_attach_session(&mut self, session_id: Uuid) -> Result<ToolResult, McpError> {
+        self.connection.send_to_daemon(ClientMessage::AttachSession { session_id }).await?;
+
+        match self.connection.recv_response_from_daemon().await? {
+            ServerMessage::Attached { session, .. } => {
+                let result = serde_json::json!({
+                    "success": true,
+                    "session_id": session.id.to_string(),
+                    "session_name": session.name,
+                    "status": "attached"
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message, .. } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
     pub async fn tool_create_window(
     &mut self,
     session_filter: Option<String>,

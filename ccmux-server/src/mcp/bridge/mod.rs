@@ -340,6 +340,10 @@ impl McpBridge {
                 let preset = arguments["preset"].as_str().map(String::from);
                 handlers.tool_create_session(name, command, cwd, model, config, preset).await
             }
+            "ccmux_attach_session" => {
+                let session_id = parse_uuid(arguments, "session_id")?;
+                handlers.tool_attach_session(session_id).await
+            }
             "ccmux_create_window" => {
                 let session = arguments["session"].as_str().map(String::from);
                 let name = arguments["name"].as_str().map(String::from);

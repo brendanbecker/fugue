@@ -121,6 +121,14 @@ impl ConnectionManager {
                     result = stream.next() => {
                         match result {
                             Some(Ok(msg)) => {
+                                // FEAT-060: Filter out broadcast messages here to prevent
+                                // channel flooding when attached to a session.
+                                // The MCP bridge uses a request-response model and doesn't
+                                // process unsolicited broadcasts.
+                                if ConnectionManager::is_broadcast_message(&msg) {
+                                    continue;
+                                }
+
                                 // BUG-037 FIX: Non-blocking send with unbounded channel
                                 if incoming_tx.send(msg).is_err() {
                                     break; // Receiver dropped
