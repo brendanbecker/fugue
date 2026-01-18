@@ -602,8 +602,13 @@ impl McpBridge {
                 let action = arguments["action"].as_str().unwrap_or("notify");
                 let poll_interval_ms = arguments["poll_interval_ms"].as_u64().unwrap_or(200);
                 let lines = arguments["lines"].as_u64().unwrap_or(100) as usize;
-                
+
                 handlers.tool_expect(pane_id, pattern, timeout_ms, action, poll_interval_ms, lines).await
+            }
+            "ccmux_run_parallel" => {
+                let request: orchestration::RunParallelRequest = serde_json::from_value(arguments.clone())
+                    .map_err(|e| McpError::InvalidParams(format!("Invalid run_parallel parameters: {}", e)))?;
+                orchestration::run_parallel(handlers.connection, request).await
             }
             _ => Err(McpError::UnknownTool(name.into())),
         }
