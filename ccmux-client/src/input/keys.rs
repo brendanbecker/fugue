@@ -56,7 +56,7 @@ impl KeyBinding {
         match (&self.code, &event.code) {
             (KeyCode::Char(a), KeyCode::Char(b)) => {
                 // For character comparison, normalize case
-                a.to_ascii_lowercase() == b.to_ascii_lowercase()
+                a.eq_ignore_ascii_case(b)
                     && self.modifiers == event.modifiers
             }
             _ => self.code == event.code && self.modifiers == event.modifiers,

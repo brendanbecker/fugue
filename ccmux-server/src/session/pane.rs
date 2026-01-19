@@ -149,14 +149,11 @@ impl Pane {
         #[allow(deprecated)]
         let mut claude_detector = ClaudeDetector::new();
 
-        match &state {
-            PaneState::Agent(agent_state) => {
-                agent_detector.mark_as_active(&agent_state.agent_type);
-                if agent_state.is_claude() {
-                    claude_detector.mark_as_claude();
-                }
+        if let PaneState::Agent(agent_state) = &state {
+            agent_detector.mark_as_active(&agent_state.agent_type);
+            if agent_state.is_claude() {
+                claude_detector.mark_as_claude();
             }
-            _ => {}
         }
 
         Self {

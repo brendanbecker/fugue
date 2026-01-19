@@ -796,8 +796,8 @@ pub fn render_pane(pane: &Pane, area: Rect, buf: &mut Buffer, tick_count: u64) {
         // Debug: Check for size mismatch between VT100 screen and render area
         // Only log every ~1 second (tick_count is ~10/sec) to avoid spam
         let (screen_rows, screen_cols) = pane.size();
-        if screen_rows != inner.height || screen_cols != inner.width {
-            if tick_count % 10 == 0 {
+        if (screen_rows != inner.height || screen_cols != inner.width)
+            && tick_count.is_multiple_of(10) {
                 tracing::warn!(
                     screen_rows, screen_cols,
                     render_height = inner.height, render_width = inner.width,
@@ -805,7 +805,6 @@ pub fn render_pane(pane: &Pane, area: Rect, buf: &mut Buffer, tick_count: u64) {
                     "VT100 screen size mismatch with render area"
                 );
             }
-        }
 
         let pseudo_term = PseudoTerminal::new(pane.screen())
             .style(Style::default().fg(Color::White).bg(Color::Black));

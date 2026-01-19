@@ -347,6 +347,7 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn tool_create_pane(
     &mut self,
     session: Option<String>,

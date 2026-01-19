@@ -116,6 +116,7 @@ impl HandlerContext {
     }
 
     /// Handle CreatePaneWithOptions - create a pane with full control
+    #[allow(clippy::too_many_arguments)]
     pub async fn handle_create_pane_with_options(
         &self,
         session_filter: Option<String>,
@@ -664,8 +665,8 @@ impl HandlerContext {
         // Delta is a fraction: positive grows, negative shrinks
         // We'll apply delta to both dimensions proportionally
         let scale = 1.0 + delta;
-        let new_cols = ((current_cols as f32) * scale).max(10.0).min(500.0) as u16;
-        let new_rows = ((current_rows as f32) * scale).max(5.0).min(200.0) as u16;
+        let new_cols = ((current_cols as f32) * scale).clamp(10.0, 500.0) as u16;
+        let new_rows = ((current_rows as f32) * scale).clamp(5.0, 200.0) as u16;
 
         // Update pane dimensions
         let mut session_manager = self.session_manager.write().await;

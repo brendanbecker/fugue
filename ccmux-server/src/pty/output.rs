@@ -461,7 +461,7 @@ impl PtyOutputPoller {
 
                 match executor.execute_spawn_command(
                     self.pane_id,
-                    direction.clone(),
+                    *direction,
                     command.clone(),
                     cwd.clone(),
                     config.clone(),
@@ -707,6 +707,7 @@ enum ReadResult {
 ///
 /// Provides a central place to track, start, and stop output pollers.
 /// Use this to ensure pollers are properly cleaned up when panes close.
+#[derive(Default)]
 pub struct PollerManager {
     /// Active pollers by pane ID
     handles: std::collections::HashMap<Uuid, PollerHandle>,
@@ -714,14 +715,6 @@ pub struct PollerManager {
     pane_closed_tx: Option<mpsc::Sender<PaneClosedNotification>>,
 }
 
-impl Default for PollerManager {
-    fn default() -> Self {
-        Self {
-            handles: std::collections::HashMap::new(),
-            pane_closed_tx: None,
-        }
-    }
-}
 
 impl PollerManager {
     /// Create a new empty poller manager
