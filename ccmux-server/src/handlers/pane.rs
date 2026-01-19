@@ -447,6 +447,10 @@ impl HandlerContext {
     // ==================== Mirror Pane Handler (FEAT-062) ====================
 
     /// Handle CreateMirror message - create a read-only mirror of another pane
+    ///
+    /// BUG-063: The mirror pane is created in the CALLER's attached session,
+    /// not the source pane's session. This enables cross-session "plate spinning"
+    /// visibility where an orchestrator can mirror worker panes into their own session.
     pub async fn handle_create_mirror(
         &self,
         source_pane_id: Uuid,
@@ -460,38 +464,58 @@ impl HandlerContext {
 
         let direction = direction.unwrap_or(SplitDirection::Vertical);
 
-        // Get the source pane information
-        let (session_id, window_id, session_name) = {
-            let session_manager = self.session_manager.read().await;
-
-            // Find the pane
-            let pane_info = match session_manager.find_pane(source_pane_id) {
-                Some((session, window, _pane)) => {
-                    (session.id(), window.id(), session.name().to_string())
-                }
-                None => {
-                    return HandlerContext::error(
-                        ErrorCode::PaneNotFound,
-                        format!("Source pane '{}' not found", source_pane_id),
-                    );
-                }
-            };
-
-            pane_info
+        // BUG-063: Get the caller's attached session - this is where the mirror will be created
+        let attached_session_id = match self.registry.get_client_session(self.client_id) {
+            Some(id) => id,
+            None => {
+                return HandlerContext::error(
+                    ErrorCode::InvalidOperation,
+                    "Must be attached to a session to create mirror panes. Call ccmux_attach_session first.".to_string(),
+                );
+            }
         };
 
-        // Create the mirror pane
-        let mirror_pane_info = {
+        // Verify the source pane exists
+        {
+            let session_manager = self.session_manager.read().await;
+            if session_manager.find_pane(source_pane_id).is_none() {
+                return HandlerContext::error(
+                    ErrorCode::PaneNotFound,
+                    format!("Source pane '{}' not found", source_pane_id),
+                );
+            }
+        }
+
+        // Create the mirror pane in the CALLER's attached session (not the source pane's session)
+        let (mirror_pane_info, target_session_id, target_window_id, target_session_name) = {
             let mut session_manager = self.session_manager.write().await;
 
-            let session = match session_manager.get_session_mut(session_id) {
+            let session = match session_manager.get_session_mut(attached_session_id) {
                 Some(s) => s,
                 None => {
                     return HandlerContext::error(
                         ErrorCode::SessionNotFound,
-                        "Session not found for mirror creation".to_string(),
+                        "Attached session not found".to_string(),
                     );
                 }
+            };
+
+            let session_name = session.name().to_string();
+            let session_id = session.id();
+
+            // Get the active window ID or first window ID in the attached session
+            let window_id = session.active_window_id()
+                .or_else(|| session.window_ids().first().copied())
+                .ok_or_else(|| {
+                    HandlerContext::error(
+                        ErrorCode::WindowNotFound,
+                        "No window available in attached session for mirror creation".to_string(),
+                    )
+                });
+
+            let window_id = match window_id {
+                Ok(id) => id,
+                Err(result) => return result,
             };
 
             let window = match session.get_window_mut(window_id) {
@@ -499,7 +523,7 @@ impl HandlerContext {
                 None => {
                     return HandlerContext::error(
                         ErrorCode::WindowNotFound,
-                        "Window not found for mirror creation".to_string(),
+                        "Window not found in attached session".to_string(),
                     );
                 }
             };
@@ -512,7 +536,7 @@ impl HandlerContext {
             // Add the pane to the window
             window.add_pane(mirror_pane);
 
-            mirror_info
+            (mirror_info, session_id, window_id, session_name)
         };
 
         // Register the mirror relationship
@@ -522,26 +546,26 @@ impl HandlerContext {
         }
 
         info!(
-            "Mirror pane {} created for source pane {}",
-            mirror_pane_info.id, source_pane_id
+            "Mirror pane {} created in session {} for source pane {}",
+            mirror_pane_info.id, target_session_name, source_pane_id
         );
 
-        // Send response to requesting client AND broadcast to all others
+        // Send response to requesting client AND broadcast to the TARGET session
         // Using RespondWithBroadcast ensures the MCP bridge receives the response
         // (BroadcastToSession only broadcasts to others, not the sender - BUG-059)
         let response = ServerMessage::MirrorCreated {
             mirror_pane: mirror_pane_info.clone(),
             source_pane_id,
-            session_id,
-            session_name,
-            window_id,
+            session_id: target_session_id,
+            session_name: target_session_name,
+            window_id: target_window_id,
             direction,
             should_focus: false,
         };
 
         HandlerResult::ResponseWithBroadcast {
             response: response.clone(),
-            session_id,
+            session_id: target_session_id,
             broadcast: response,
         }
     }
