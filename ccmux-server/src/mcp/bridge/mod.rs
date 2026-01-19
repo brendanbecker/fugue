@@ -500,12 +500,22 @@ impl McpBridge {
                 handlers.tool_get_metadata(session, key).await
             }
             "ccmux_send_orchestration" => {
-                let target = &arguments["target"];
+                let raw_target = arguments["target"].clone();
+                // BUG-061: Handle target as JSON string (some MCP clients serialize nested objects)
+                let target = match &raw_target {
+                    serde_json::Value::String(s) => {
+                        debug!("Parsing target from JSON string");
+                        serde_json::from_str(s).map_err(|e| {
+                            McpError::InvalidParams(format!("Invalid target JSON string: {}", e))
+                        })?
+                    }
+                    other => other.clone(),
+                };
                 let msg_type = arguments["msg_type"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'msg_type' parameter".into()))?;
                 let payload = arguments["payload"].clone();
-                handlers.tool_send_orchestration(target, msg_type, payload).await
+                handlers.tool_send_orchestration(&target, msg_type, payload).await
             }
             "ccmux_set_tags" => {
                 let session = arguments["session"].as_str().map(String::from);
