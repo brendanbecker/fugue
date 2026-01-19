@@ -18,12 +18,14 @@
 - `ccmux_poll_messages` - Poll messages from worker inbox (FEAT-097)
 - `ccmux_attach_session` - Attach MCP client to session for orchestration (BUG-060 fix)
 - `ccmux_create_status_pane` - Create agent status monitoring pane (FEAT-102)
+- `ccmux_watchdog_start/stop/status` - Native watchdog timer (FEAT-104)
+- `/orchestrate` skill - Multi-agent orchestration commands (FEAT-104)
 
 **Agent Detection**: Claude, Gemini CLI, and Codex CLI detected (FEAT-098, FEAT-101).
 
 **All Refactoring Complete!** (Session 9)
 
-**Session 14**: QA complete, BUG-065 + BUG-066 fixed, FEAT-104 designed.
+**Session 15**: FEAT-104 implemented via delegated worker, FEAT-105 spec created.
 
 ### Active Bugs (0)
 
@@ -33,11 +35,45 @@
 
 | Priority | ID | Description | Status |
 |----------|----|-------------|--------|
-| P1 | FEAT-104 | Watchdog Orchestration Skill | new |
+| P1 | FEAT-105 | Universal Agent Presets | new |
 | P1 | FEAT-103 | Visualization Architecture Review | new |
 | P3 | FEAT-069, FEAT-072 | TLS/auth, per-pane MCP mode | backlog |
 
-### Latest Session (2026-01-19, Session 14)
+### Latest Session (2026-01-19, Session 15)
+
+**FEAT-104 Implementation + FEAT-105 Spec - Delegated Worker Pattern**
+
+First session using the ccmux work delegation pattern systematically.
+
+**Workflow Pattern Established:**
+- Updated global `~/.claude/CLAUDE.md` with work delegation instructions
+- Orchestrator spawns workers in worktrees via ccmux MCP tools
+- Monitor with `ccmux_get_status`, `ccmux_read_pane`, `ccmux_expect`
+- Approve permissions via `ccmux_send_input`
+- Merge completed work, cleanup worktree/session
+
+**FEAT-104 Implemented** (via delegated worker):
+- Worker session: `feat-104-worker` in worktree `ccmux-feat-104`
+- Duration: ~20 minutes, 133k tokens
+- Permission approvals: ~6 prompts approved remotely
+
+**Deliverables:**
+| Component | Description |
+|-----------|-------------|
+| `.claude/skills/orchestrate.md` | `/orchestrate spawn\|status\|monitor\|kill\|collect` |
+| `ccmux-server/src/watchdog.rs` | Native timer with tokio interval |
+| MCP tools | `ccmux_watchdog_start`, `ccmux_watchdog_stop`, `ccmux_watchdog_status` |
+| Protocol | `WatchdogStart`, `WatchdogStop`, `WatchdogStatus` messages |
+
+**FEAT-105 Created:**
+- Universal Agent Presets - extend preset system to support any harness (claude, gemini, codex, shell, custom)
+- Enables configurable watchdog model via presets instead of hardcoded CLI flags
+
+**Commits:**
+- `f19363b`: feat: add watchdog timer and orchestrate skill (FEAT-104)
+- `10ec0f0`: feat: add FEAT-105 universal agent presets spec
+
+### Previous Session (2026-01-19, Session 14)
 
 **QA + Bug Fixes + Feature Design - ZERO BUGS ACHIEVED**
 
@@ -344,16 +380,13 @@ Attempted to launch 3 parallel background agents via Task tool, but:
 
 ## Recommended Work Order
 
-**P1 Bug requires attention:**
-
 ```
-Phase 1: Critical Bug Fix
-  1. BUG-065 - Parallel MCP request response mismatch (P1)
-     - Option A: Add request IDs to protocol (proper fix)
-     - Option B: Serialize MCP requests via mutex (quick fix)
+Phase 1: P1 Features
+  1. FEAT-105 - Universal Agent Presets (enables configurable watchdog/worker models)
+  2. FEAT-103 - Visualization Architecture Review (screen rendering artifacts)
 
 Phase 2: P3 Backlog
-  2. FEAT-069, FEAT-072, FEAT-090-092 (infra + remaining refactoring)
+  3. FEAT-069, FEAT-072 (TLS/auth, per-pane MCP mode)
 ```
 
 ## Parallel Workstreams
@@ -412,7 +445,7 @@ All bugs resolved! 66 total (65 fixed, 1 deprecated).
 
 | Priority | ID | Title | Effort |
 |----------|----|-------|--------|
-| P1 | FEAT-104 | Watchdog Orchestration Skill | Medium |
+| P1 | FEAT-105 | Universal Agent Presets | Medium |
 | P1 | FEAT-103 | Visualization Architecture Review | Large |
 | P3 | FEAT-069 | TLS/auth for TCP connections | Large |
 | P3 | FEAT-072 | Per-pane MCP mode control | Small |
@@ -458,6 +491,12 @@ ccmux is agent-agnostic:
 - See: `docs/adr/ADR-001-dumb-pipe-strategy.md`
 
 ## Recent Completions
+
+### 2026-01-19 (Session 15)
+| ID | Description | Commit |
+|----|-------------|--------|
+| FEAT-104 | Watchdog timer + orchestrate skill | f19363b |
+| FEAT-105 | Universal agent presets spec | 10ec0f0 |
 
 ### 2026-01-19 (Session 12)
 | ID | Description | Commit |
@@ -542,8 +581,8 @@ ccmux is agent-agnostic:
 | Total Bugs | 66 |
 | Open Bugs | 0 |
 | Resolution Rate | 100% |
-| Total Features | 104 |
-| Completed Features | 102 |
+| Total Features | 105 |
+| Completed Features | 103 |
 | Completion Rate | 98% |
 | Test Count | 1,714+ |
 
