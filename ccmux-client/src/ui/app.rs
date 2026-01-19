@@ -2074,6 +2074,11 @@ impl App {
                     }
                 // Other widget types can be handled here in the future
             }
+
+            // FEAT-104: Watchdog timer responses (only handled by MCP bridge)
+            ServerMessage::WatchdogStarted { .. } => {}
+            ServerMessage::WatchdogStopped => {}
+            ServerMessage::WatchdogStatusResponse { .. } => {}
         }
         break;
     }

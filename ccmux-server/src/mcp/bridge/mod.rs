@@ -657,6 +657,15 @@ impl McpBridge {
                 )
                 .await
             }
+            // FEAT-104: Watchdog Timer
+            "ccmux_watchdog_start" => {
+                let pane_id = parse_uuid(arguments, "pane_id")?;
+                let interval_secs = arguments["interval_secs"].as_u64();
+                let message = arguments["message"].as_str().map(String::from);
+                handlers.tool_watchdog_start(pane_id, interval_secs, message).await
+            }
+            "ccmux_watchdog_stop" => handlers.tool_watchdog_stop().await,
+            "ccmux_watchdog_status" => handlers.tool_watchdog_status().await,
             _ => Err(McpError::UnknownTool(name.into())),
         }
     }

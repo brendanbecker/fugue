@@ -35,6 +35,7 @@ mod reply;
 mod session;
 pub mod sideband;
 mod tcp;
+mod watchdog;
 
 pub use arbitration::Arbitrator;
 pub use registry::{ClientId, ClientRegistry};
@@ -73,6 +74,8 @@ pub struct SharedState {
     pub arbitrator: Arc<Arbitrator>,
     /// Persistence manager for state logging (optional)
     pub persistence: Option<Arc<RwLock<PersistenceManager>>>,
+    /// Watchdog timer manager (FEAT-104)
+    pub watchdog: Arc<watchdog::WatchdogManager>,
 }
 
 impl SharedState {
@@ -591,6 +594,7 @@ where
         Arc::clone(&shared_state.command_executor),
         Arc::clone(&shared_state.arbitrator),
         shared_state.persistence.clone(),
+        Arc::clone(&shared_state.watchdog),
     );
 
     // Message pump loop
@@ -855,6 +859,7 @@ async fn run_daemon(tcp_override: Option<String>) -> Result<()> {
         command_executor,
         arbitrator: Arc::new(Arbitrator::new()),
         persistence: server.persistence.clone(),
+        watchdog: Arc::new(watchdog::WatchdogManager::new()),
     };
 
     // Store references back in server for persistence operations
@@ -1317,6 +1322,7 @@ mod tests {
             command_executor,
             arbitrator: Arc::new(Arbitrator::new()),
             persistence: None,
+            watchdog: Arc::new(watchdog::WatchdogManager::new()),
         }
     }
 
@@ -1710,6 +1716,7 @@ mod tests {
             shared_state.command_executor,
             shared_state.arbitrator,
             None,
+            shared_state.watchdog,
         )
     }
 

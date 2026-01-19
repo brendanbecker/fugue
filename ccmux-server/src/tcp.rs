@@ -80,6 +80,7 @@ mod tests {
             command_executor,
             arbitrator: Arc::new(Arbitrator::new()),
             persistence: None,
+            watchdog: Arc::new(crate::watchdog::WatchdogManager::new()),
         };
 
         // Pick a random high port

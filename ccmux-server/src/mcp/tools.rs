@@ -989,6 +989,47 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 }
             }),
         },
+        // ==================== FEAT-104: Watchdog Timer ====================
+        Tool {
+            name: "ccmux_watchdog_start".into(),
+            description: "Start a native watchdog timer that sends periodic messages to a pane. Used for monitoring worker agents.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "pane_id": {
+                        "type": "string",
+                        "description": "UUID of the target pane to send messages to (typically the watchdog agent)"
+                    },
+                    "interval_secs": {
+                        "type": "integer",
+                        "default": 90,
+                        "description": "Interval between messages in seconds (default: 90)"
+                    },
+                    "message": {
+                        "type": "string",
+                        "default": "check",
+                        "description": "Message to send to the pane (default: 'check')"
+                    }
+                },
+                "required": ["pane_id"]
+            }),
+        },
+        Tool {
+            name: "ccmux_watchdog_stop".into(),
+            description: "Stop the currently running watchdog timer.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {}
+            }),
+        },
+        Tool {
+            name: "ccmux_watchdog_status".into(),
+            description: "Get the current status of the watchdog timer.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {}
+            }),
+        },
     ]
 }
 
@@ -1082,5 +1123,9 @@ mod tests {
         // FEAT-097: Orchestration Message Receive
         assert!(names.contains(&"ccmux_get_worker_status"));
         assert!(names.contains(&"ccmux_poll_messages"));
+        // FEAT-104: Watchdog timer
+        assert!(names.contains(&"ccmux_watchdog_start"));
+        assert!(names.contains(&"ccmux_watchdog_stop"));
+        assert!(names.contains(&"ccmux_watchdog_status"));
     }
 }

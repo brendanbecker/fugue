@@ -230,6 +230,7 @@ mod tests {
             Arc::clone(&pty_manager),
             Arc::clone(&registry),
         ));
+        let watchdog = Arc::new(crate::watchdog::WatchdogManager::new());
 
         let (tx, _rx) = mpsc::channel(10);
         let client_id = registry.register_client(tx);
@@ -245,6 +246,7 @@ mod tests {
             command_executor,
             arbitrator,
             None,
+            watchdog,
         )
     }
 

@@ -256,6 +256,7 @@ mod tests {
     use crate::registry::ClientRegistry;
     use crate::session::SessionManager;
     use crate::arbitration::Arbitrator;
+    use crate::watchdog::WatchdogManager;
     use serde_json::json;
     use std::sync::Arc;
     use tokio::sync::{mpsc, RwLock};
@@ -272,6 +273,7 @@ mod tests {
             Arc::clone(&pty_manager),
             Arc::clone(&registry),
         ));
+        let watchdog = Arc::new(WatchdogManager::new());
 
         let (tx, _rx) = mpsc::channel(10);
         let client_id = registry.register_client(tx);
@@ -289,6 +291,7 @@ mod tests {
             command_executor,
             arbitrator,
             None,
+            watchdog,
         )
     }
 

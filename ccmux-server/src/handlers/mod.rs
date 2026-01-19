@@ -24,6 +24,7 @@ use crate::pty::{PaneClosedNotification, PtyManager};
 use crate::registry::{ClientId, ClientRegistry};
 use crate::session::{Session, SessionManager, Window};
 use crate::sideband::AsyncCommandExecutor;
+use crate::watchdog::WatchdogManager;
 
 /// Context for message handlers
 ///
@@ -47,6 +48,8 @@ pub struct HandlerContext {
     pub arbitrator: Arc<Arbitrator>,
     /// Persistence manager for state logging (optional)
     pub persistence: Option<Arc<RwLock<PersistenceManager>>>,
+    /// Watchdog timer manager (FEAT-104)
+    pub watchdog: Arc<WatchdogManager>,
 }
 
 /// Result of handling a message
@@ -97,6 +100,7 @@ impl HandlerContext {
         command_executor: Arc<AsyncCommandExecutor>,
         arbitrator: Arc<Arbitrator>,
         persistence: Option<Arc<RwLock<PersistenceManager>>>,
+        watchdog: Arc<WatchdogManager>,
     ) -> Self {
         Self {
             session_manager,
@@ -108,6 +112,7 @@ impl HandlerContext {
             command_executor,
             arbitrator,
             persistence,
+            watchdog,
         }
     }
 
@@ -460,6 +465,20 @@ impl HandlerContext {
                 )
                 .await
             }
+
+            // FEAT-104: Watchdog Timer
+            ClientMessage::WatchdogStart {
+                pane_id,
+                interval_secs,
+                message,
+            } => {
+                self.handle_watchdog_start(pane_id, interval_secs, message)
+                    .await
+            }
+
+            ClientMessage::WatchdogStop => self.handle_watchdog_stop().await,
+
+            ClientMessage::WatchdogStatus => self.handle_watchdog_status().await,
         }
     }
 
@@ -475,6 +494,50 @@ impl HandlerContext {
     fn handle_user_command_mode_exited(&self) -> HandlerResult {
         self.arbitrator.release_lock(self.client_id);
         HandlerResult::NoResponse
+    }
+
+    // ==================== Watchdog Timer Handlers (FEAT-104) ====================
+
+    /// Handle watchdog start request
+    async fn handle_watchdog_start(
+        &self,
+        pane_id: Uuid,
+        interval_secs: u64,
+        message: Option<String>,
+    ) -> HandlerResult {
+        let state = self
+            .watchdog
+            .start(
+                pane_id,
+                interval_secs,
+                message,
+                Arc::clone(&self.pty_manager),
+            )
+            .await;
+
+        HandlerResult::Response(ServerMessage::WatchdogStarted {
+            pane_id: state.pane_id,
+            interval_secs: state.interval_secs,
+            message: state.message,
+        })
+    }
+
+    /// Handle watchdog stop request
+    async fn handle_watchdog_stop(&self) -> HandlerResult {
+        self.watchdog.stop().await;
+        HandlerResult::Response(ServerMessage::WatchdogStopped)
+    }
+
+    /// Handle watchdog status request
+    async fn handle_watchdog_status(&self) -> HandlerResult {
+        let status = self.watchdog.status().await;
+
+        HandlerResult::Response(ServerMessage::WatchdogStatusResponse {
+            is_running: status.is_some(),
+            pane_id: status.as_ref().map(|s| s.pane_id),
+            interval_secs: status.as_ref().map(|s| s.interval_secs),
+            message: status.map(|s| s.message),
+        })
     }
 
     // ==================== Beads Query Handlers (FEAT-058) ====================
@@ -698,6 +761,7 @@ mod tests {
             Arc::clone(&registry),
         ));
         let arbitrator = Arc::new(Arbitrator::new());
+        let watchdog = Arc::new(WatchdogManager::new());
 
         // Register a test client
         let (tx, _rx) = mpsc::channel(10);
@@ -716,6 +780,7 @@ mod tests {
             command_executor,
             arbitrator,
             None,
+            watchdog,
         )
     }
 

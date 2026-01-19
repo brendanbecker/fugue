@@ -1,10 +1,10 @@
-use super::*;
 use ccmux_protocol::{ClientType, messages::ErrorDetails, ServerMessage, ErrorCode, SplitDirection};
 use crate::pty::PtyManager;
 use crate::registry::ClientRegistry;
 use crate::session::SessionManager;
 use crate::arbitration::{Arbitrator, Resource, Action};
 use crate::handlers::{HandlerContext, HandlerResult};
+use crate::watchdog::WatchdogManager;
 use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 use uuid::Uuid;
@@ -20,6 +20,7 @@ fn create_test_context() -> HandlerContext {
         Arc::clone(&pty_manager),
         Arc::clone(&registry),
     ));
+    let watchdog = Arc::new(WatchdogManager::new());
 
     let (tx, _rx) = mpsc::channel(10);
     let client_id = registry.register_client(tx);
@@ -35,6 +36,7 @@ fn create_test_context() -> HandlerContext {
         command_executor,
         arbitrator,
         None,
+        watchdog,
     )
 }
 
@@ -365,6 +367,7 @@ async fn test_mcp_pane_creation_broadcasts_to_tui() {
     assert!(registry.get_client_session(mcp_client_id).is_none(), "MCP should not be attached");
 
     // Create handler context for MCP client
+    let watchdog = Arc::new(WatchdogManager::new());
     let mcp_ctx = HandlerContext::new(
         Arc::clone(&session_manager),
         Arc::clone(&pty_manager),
@@ -375,6 +378,7 @@ async fn test_mcp_pane_creation_broadcasts_to_tui() {
         Arc::clone(&command_executor),
         Arc::clone(&arbitrator),
         None,
+        watchdog,
     );
 
     // MCP creates a pane (uses first session since no filter provided)
@@ -471,6 +475,7 @@ async fn test_mcp_broadcast_fails_with_session_mismatch() {
     let mcp_client_id = registry.register_client(mcp_tx);
 
     // Create MCP handler context
+    let watchdog = Arc::new(WatchdogManager::new());
     let mcp_ctx = HandlerContext::new(
         Arc::clone(&session_manager),
         Arc::clone(&pty_manager),
@@ -481,6 +486,7 @@ async fn test_mcp_broadcast_fails_with_session_mismatch() {
         Arc::clone(&command_executor),
         Arc::clone(&arbitrator),
         None,
+        watchdog,
     );
 
     // MCP creates a pane, explicitly targeting session A
@@ -572,6 +578,7 @@ async fn test_mcp_split_pane_broadcasts_to_tui() {
     let mcp_client_id = registry.register_client(mcp_tx);
 
     // Create handler context for MCP client
+    let watchdog = Arc::new(WatchdogManager::new());
     let mcp_ctx = HandlerContext::new(
         Arc::clone(&session_manager),
         Arc::clone(&pty_manager),
@@ -582,6 +589,7 @@ async fn test_mcp_split_pane_broadcasts_to_tui() {
         Arc::clone(&command_executor),
         Arc::clone(&arbitrator),
         None,
+        watchdog,
     );
 
     // MCP splits the pane
@@ -663,6 +671,7 @@ async fn test_mcp_resize_pane_broadcasts_to_tui() {
     let mcp_client_id = registry.register_client(mcp_tx);
 
     // Create handler context for MCP client
+    let watchdog = Arc::new(WatchdogManager::new());
     let mcp_ctx = HandlerContext::new(
         Arc::clone(&session_manager),
         Arc::clone(&pty_manager),
@@ -673,6 +682,7 @@ async fn test_mcp_resize_pane_broadcasts_to_tui() {
         Arc::clone(&command_executor),
         Arc::clone(&arbitrator),
         None,
+        watchdog,
     );
 
     // MCP resizes the pane

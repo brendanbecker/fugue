@@ -1765,5 +1765,88 @@ impl<'a> ToolHandlers<'a> {
                         msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
                     }
                 }
+
+    // ==================== FEAT-104: Watchdog Timer ====================
+
+    /// Start the watchdog timer
+    pub async fn tool_watchdog_start(
+        &mut self,
+        pane_id: Uuid,
+        interval_secs: Option<u64>,
+        message: Option<String>,
+    ) -> Result<ToolResult, McpError> {
+        match self.connection.send_and_recv(ClientMessage::WatchdogStart {
+            pane_id,
+            interval_secs: interval_secs.unwrap_or(90),
+            message,
+        }).await? {
+            ServerMessage::WatchdogStarted {
+                pane_id,
+                interval_secs,
+                message,
+            } => {
+                let result = serde_json::json!({
+                    "status": "started",
+                    "pane_id": pane_id.to_string(),
+                    "interval_secs": interval_secs,
+                    "message": message
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message, .. } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
+    /// Stop the watchdog timer
+    pub async fn tool_watchdog_stop(&mut self) -> Result<ToolResult, McpError> {
+        match self.connection.send_and_recv(ClientMessage::WatchdogStop).await? {
+            ServerMessage::WatchdogStopped => {
+                let result = serde_json::json!({
+                    "status": "stopped"
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message, .. } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
+
+    /// Get watchdog timer status
+    pub async fn tool_watchdog_status(&mut self) -> Result<ToolResult, McpError> {
+        match self.connection.send_and_recv(ClientMessage::WatchdogStatus).await? {
+            ServerMessage::WatchdogStatusResponse {
+                is_running,
+                pane_id,
+                interval_secs,
+                message,
+            } => {
+                let result = serde_json::json!({
+                    "is_running": is_running,
+                    "pane_id": pane_id.map(|id| id.to_string()),
+                    "interval_secs": interval_secs,
+                    "message": message
+                });
+
+                let json = serde_json::to_string_pretty(&result)
+                    .map_err(|e| McpError::Internal(e.to_string()))?;
+                Ok(ToolResult::text(json))
+            }
+            ServerMessage::Error { code, message, .. } => {
+                Ok(ToolResult::error(format!("{:?}: {}", code, message)))
+            }
+            msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
+        }
+    }
             }
             

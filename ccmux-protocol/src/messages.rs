@@ -448,6 +448,24 @@ pub enum ClientMessage {
         /// Filter tags
         filter_tags: Option<Vec<String>>,
     },
+
+    // ==================== FEAT-104: Watchdog Timer ====================
+
+    /// Start the watchdog timer that sends periodic messages to a pane
+    WatchdogStart {
+        /// Target pane to send messages to
+        pane_id: Uuid,
+        /// Interval between messages in seconds
+        interval_secs: u64,
+        /// Message to send (default: "check")
+        message: Option<String>,
+    },
+
+    /// Stop the watchdog timer
+    WatchdogStop,
+
+    /// Get current watchdog status
+    WatchdogStatus,
 }
 
 impl ClientMessage {
@@ -506,6 +524,9 @@ impl ClientMessage {
             ClientMessage::GetWorkerStatus { .. } => "GetWorkerStatus",
             ClientMessage::PollMessages { .. } => "PollMessages",
             ClientMessage::CreateStatusPane { .. } => "CreateStatusPane",
+            ClientMessage::WatchdogStart { .. } => "WatchdogStart",
+            ClientMessage::WatchdogStop => "WatchdogStop",
+            ClientMessage::WatchdogStatus => "WatchdogStatus",
         }
     }
 }
@@ -927,6 +948,33 @@ pub enum ServerMessage {
         source_pane_id: Uuid,
         /// Exit code of the source pane (if available)
         exit_code: Option<i32>,
+    },
+
+    // ==================== FEAT-104: Watchdog Timer ====================
+
+    /// Watchdog timer started successfully
+    WatchdogStarted {
+        /// Target pane receiving the periodic messages
+        pane_id: Uuid,
+        /// Interval between messages in seconds
+        interval_secs: u64,
+        /// Message being sent
+        message: String,
+    },
+
+    /// Watchdog timer stopped
+    WatchdogStopped,
+
+    /// Current watchdog status
+    WatchdogStatusResponse {
+        /// Whether a watchdog timer is currently running
+        is_running: bool,
+        /// Target pane (if running)
+        pane_id: Option<Uuid>,
+        /// Interval in seconds (if running)
+        interval_secs: Option<u64>,
+        /// Message being sent (if running)
+        message: Option<String>,
     },
 }
 
