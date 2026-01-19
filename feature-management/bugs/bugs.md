@@ -5,24 +5,21 @@
 
 ## Summary Statistics
 - Total Bugs: 66
-- Open: 1
-- Resolved: 64
+- Open: 0
+- Resolved: 65
 - Deprecated: 1
 
 ## Active Bugs
 
-| ID | Description | Priority | Status | Component |
-|----|-------------|----------|--------|-----------|
-| BUG-066 | Mirror panes don't forward output across sessions | P2 | new | session/mirror |
+None! All bugs resolved.
 
 ## Priority Queue
 
-| Priority | Bug | Risk | Effort | Notes |
-|----------|-----|------|--------|-------|
-| **P2** | BUG-066 | Medium | Medium | Cross-session mirror output broken |
+Empty - all bugs fixed.
 
 ## Recent Activity
 
+- 2026-01-19: Fixed BUG-066 - Mirror pane cross-session output forwarding (commit 5fa9ee7)
 - 2026-01-19: Fixed BUG-065 - Parallel MCP request serialization (commit a358bf1) - verified after rebuild
 - 2026-01-19: Filed BUG-066 - Mirror panes don't forward output across sessions
 - 2026-01-19: Filed BUG-065 - Parallel MCP requests cause response mismatches (discovered during QA)
@@ -49,6 +46,7 @@
 
 | ID | Description | Resolution | Commit |
 |----|-------------|------------|--------|
+| BUG-066 | Mirror panes don't forward output across sessions | Fixed - forward output + copy scrollback | 5fa9ee7 |
 | BUG-065 | Parallel MCP requests cause response mismatches | Fixed - request_lock mutex serialization | a358bf1 |
 | BUG-064 | MCP response off-by-one after timeout | Fixed - drain pending messages after timeout | a6a3563 |
 | BUG-063 | Mirror panes can't view other sessions | Fixed - create mirror in caller's attached session | 93f5c87 |
