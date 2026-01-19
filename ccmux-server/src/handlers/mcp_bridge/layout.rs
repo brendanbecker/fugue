@@ -194,6 +194,7 @@ impl HandlerContext {
     /// This is a synchronous function that creates panes and collects PTY configs.
     /// It does NOT spawn PTYs - that happens in Phase 2 after the lock is released.
     /// BUG-032: Also collects PaneInfo for TUI broadcast.
+    #[allow(clippy::too_many_arguments)]
     fn create_layout_panes(
         session_manager: &mut SessionManager,
         session_id: Uuid,

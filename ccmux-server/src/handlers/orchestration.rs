@@ -73,7 +73,7 @@ impl HandlerContext {
                     }
 
                     // Broadcast to connected clients
-                    let count = self
+                    let _count = self
                         .registry
                         .broadcast_to_session(session_id, outbound_message.clone())
                         .await;
@@ -145,7 +145,7 @@ impl HandlerContext {
                 let target_ids: Vec<uuid::Uuid> = session_manager.list_sessions()
                     .iter()
                     .filter(|s| s.id() != sender_session_id)
-                    .filter(|s| s.worktree().map_or(false, |w| w.path == worktree_path))
+                    .filter(|s| s.worktree().is_some_and(|w| w.path == worktree_path))
                     .map(|s| s.id())
                     .collect();
 
@@ -228,15 +228,13 @@ impl HandlerContext {
 
         let session_id = if let Ok(uuid) = uuid::Uuid::parse_str(&worker_id) {
             uuid
+        } else if let Some(session) = session_manager.get_session_by_name(&worker_id) {
+            session.id()
         } else {
-            if let Some(session) = session_manager.get_session_by_name(&worker_id) {
-                session.id()
-            } else {
-                return HandlerContext::error(
-                    ErrorCode::SessionNotFound,
-                    format!("Worker '{}' not found", worker_id),
-                );
-            }
+            return HandlerContext::error(
+                ErrorCode::SessionNotFound,
+                format!("Worker '{}' not found", worker_id),
+            );
         };
 
         if let Some(session) = session_manager.get_session_mut(session_id) {

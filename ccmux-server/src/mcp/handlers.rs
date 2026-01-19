@@ -122,6 +122,7 @@ impl<'a> ToolContext<'a> {
     /// If not specified, uses the first available session/window.
     /// If select is true, the new pane will be focused after creation.
     /// If name is provided, it will be set as the pane's user-assigned name (FEAT-036).
+    #[allow(clippy::too_many_arguments)]
     pub fn create_pane(
         &mut self,
         session_filter: Option<&str>,
@@ -1236,14 +1237,14 @@ impl<'a> ToolContext<'a> {
             .mirror_registry_mut()
             .register(source_pane_id, mirror_id);
 
-        Ok(serde_json::to_string_pretty(&serde_json::json!({
+        serde_json::to_string_pretty(&serde_json::json!({
             "mirror_pane_id": mirror_id.to_string(),
             "source_pane_id": source_pane_id.to_string(),
             "session_name": session_name,
             "direction": direction.unwrap_or("vertical"),
             "status": "created"
         }))
-        .map_err(|e| McpError::Internal(e.to_string()))?)
+        .map_err(|e| McpError::Internal(e.to_string()))
     }
 }
 

@@ -128,10 +128,7 @@ pub async fn check_server_available() -> bool {
     }
 
     // Try to connect briefly
-    match tokio::net::UnixStream::connect(&path).await {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    (tokio::net::UnixStream::connect(&path).await).is_ok()
 }
 
 /// Wait for server to become available with retries

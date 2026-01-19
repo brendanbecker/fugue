@@ -828,11 +828,7 @@ impl HandlerContext {
             .list_sessions()
             .iter()
             .find_map(|s| {
-                if let Some(w) = s.windows().find(|w| w.id() == window_id) {
-                    Some((s.id(), w.active_pane_id()))
-                } else {
-                    None
-                }
+                s.windows().find(|w| w.id() == window_id).map(|w| (s.id(), w.active_pane_id()))
             });
 
         match result {

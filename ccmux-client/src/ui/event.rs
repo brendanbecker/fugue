@@ -20,7 +20,7 @@ pub enum AppEvent {
     /// Terminal input event
     Input(InputEvent),
     /// Server message received
-    Server(ServerMessage),
+    Server(Box<ServerMessage>),
     /// Terminal resize
     Resize { cols: u16, rows: u16 },
     /// Tick for animations and periodic updates
@@ -139,7 +139,7 @@ impl EventHandler {
     /// Forward a server message as an event
     pub fn send_server_message(&self, msg: ServerMessage) -> Result<()> {
         self.tx
-            .send(AppEvent::Server(msg))
+            .send(AppEvent::Server(Box::new(msg)))
             .map_err(|_| ccmux_utils::CcmuxError::connection("Event channel closed"))
     }
 }
@@ -174,6 +174,9 @@ mod tests {
             .unwrap();
 
         let event = handler.try_next();
-        assert!(matches!(event, Some(AppEvent::Server(ServerMessage::Pong))));
+        match event {
+            Some(AppEvent::Server(msg)) => assert_eq!(*msg, ServerMessage::Pong),
+            _ => panic!("Expected Server message"),
+        }
     }
 }

@@ -48,6 +48,7 @@ impl GeminiAgentDetector {
     }
 
     /// Create a detector with custom debounce duration
+    #[allow(dead_code)]
     pub fn with_debounce(debounce_ms: u64) -> Self {
         Self {
             is_active: false,

@@ -101,10 +101,10 @@ async fn handle_request(
 /// Serve the metrics endpoint
 async fn serve_metrics(state: Arc<SharedState>) -> Response<Full<Bytes>> {
     // Collect gauge values
-    let mut gauges = GaugeSnapshot::default();
-
-    // Get connection count from registry
-    gauges.active_connections = state.registry.client_count() as u64;
+    let mut gauges = GaugeSnapshot {
+        active_connections: state.registry.client_count() as u64,
+        ..Default::default()
+    };
 
     // Get session and pane counts
     {

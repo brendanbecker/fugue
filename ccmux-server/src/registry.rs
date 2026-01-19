@@ -221,7 +221,7 @@ impl ClientRegistry {
         // Add to session's client set
         self.session_clients
             .entry(session_id)
-            .or_insert_with(HashSet::new)
+            .or_default()
             .insert(client_id);
 
         debug!("Client {} attached to session {}", client_id, session_id);
@@ -564,11 +564,10 @@ impl ClientRegistry {
         let mut success_count = 0;
 
         for client_id in client_ids {
-            if client_id != except_client {
-                if self.try_send_to_client(client_id, message.clone()) {
+            if client_id != except_client
+                && self.try_send_to_client(client_id, message.clone()) {
                     success_count += 1;
                 }
-            }
         }
 
         success_count

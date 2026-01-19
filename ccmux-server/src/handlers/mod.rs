@@ -128,6 +128,7 @@ impl HandlerContext {
     }
 
     /// Check if the current actor is allowed to perform an action on a resource
+    #[allow(clippy::result_large_err)]
     pub fn check_arbitration(&self, resource: Resource, action: Action) -> Result<(), HandlerResult> {
         match self.arbitrator.check_access(self.actor(), resource, action) {
             crate::arbitration::ArbitrationResult::Allowed => Ok(()),
@@ -169,7 +170,7 @@ impl HandlerContext {
     /// Route a message to the appropriate handler
     pub async fn route_message(&self, msg: ClientMessage) -> HandlerResult {
         // FEAT-074: Record request metric by message type
-        Metrics::global().record_request(&msg.type_name());
+        Metrics::global().record_request(msg.type_name());
 
         match msg {
             // Connection handlers

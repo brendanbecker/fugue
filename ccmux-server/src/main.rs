@@ -836,10 +836,7 @@ async fn run_daemon(tcp_override: Option<String>) -> Result<()> {
         &mut server.pty_manager,
         PtyManager::new(),
     )));
-    let registry = Arc::new(std::mem::replace(
-        &mut server.client_registry,
-        ClientRegistry::new(),
-    ));
+    let registry = Arc::new(std::mem::take(&mut server.client_registry));
 
     // Create the sideband command executor
     let command_executor = Arc::new(AsyncCommandExecutor::new(

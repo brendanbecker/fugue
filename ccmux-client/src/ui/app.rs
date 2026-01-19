@@ -192,7 +192,7 @@ impl App {
     async fn handle_event(&mut self, event: AppEvent) -> Result<()> {
         match event {
             AppEvent::Input(input) => self.handle_input(input).await?,
-            AppEvent::Server(msg) => self.handle_server_message(msg).await?,
+            AppEvent::Server(msg) => self.handle_server_message(*msg).await?,
             AppEvent::Resize { cols, rows } => {
                 self.state.terminal_size = (cols, rows);
 
@@ -318,11 +318,10 @@ impl App {
                 }
                 
                 // In Dashboard mode, handle keys directly if not a prefix combo
-                if self.state.state == AppState::Attached && self.state.view_mode == ViewMode::Dashboard {
-                    if !self.input_handler.is_prefix_key(&key) && self.input_handler.mode() == InputMode::Normal {
+                if self.state.state == AppState::Attached && self.state.view_mode == ViewMode::Dashboard
+                    && !self.input_handler.is_prefix_key(&key) && self.input_handler.mode() == InputMode::Normal {
                         return self.handle_dashboard_input(key).await;
                     }
-                }
                 
                 CrosstermEvent::Key(key)
             }
@@ -489,7 +488,7 @@ impl App {
                     // Chunk large inputs to avoid protocol message size limits
                     // BUG-041 FIX: Send as Input since wrapping is already done client-side
                     if data_len > MAX_INPUT_CHUNK_SIZE {
-                        let num_chunks = (data_len + MAX_INPUT_CHUNK_SIZE - 1) / MAX_INPUT_CHUNK_SIZE;
+                        let num_chunks = data_len.div_ceil(MAX_INPUT_CHUNK_SIZE);
                         tracing::debug!(
                             "Chunking large paste ({} bytes) into {} chunks",
                             data_len,
@@ -1983,7 +1982,7 @@ impl App {
                         });
 
                         if let Some(ref_id) = ref_pane {
-                            layout.root_mut().add_pane(ref_id, mirror_pane.id, layout_direction.into());
+                            layout.root_mut().add_pane(ref_id, mirror_pane.id, layout_direction);
                         }
                     }
                 }
@@ -2063,8 +2062,8 @@ impl App {
                 // Handle widget updates based on type
                 // For backward compatibility, beads.status updates are processed
                 // the same way as BeadsStatusUpdate
-                if update.update_type == "beads.status" {
-                    if Some(pane_id) == self.state.active_pane_id {
+                if update.update_type == "beads.status"
+                    && Some(pane_id) == self.state.active_pane_id {
                         if update.metadata()["daemon_available"].as_bool().unwrap_or(false) {
                             if let Some(count) = update.metadata()["ready_count"].as_u64() {
                                 self.state.beads_ready_count = Some(count as usize);
@@ -2073,7 +2072,6 @@ impl App {
                             self.state.beads_ready_count = None;
                         }
                     }
-                }
                 // Other widget types can be handled here in the future
             }
         }
@@ -2109,7 +2107,7 @@ impl Default for App {
 }
 
 mod tests {
-    
+    use super::*;
 
     #[test]
     fn test_app_state_default() {
