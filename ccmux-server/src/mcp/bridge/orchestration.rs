@@ -11,15 +11,16 @@ use uuid::Uuid;
 use regex::Regex;
 use serde_json::json;
 
-use ccmux_protocol::{ClientMessage, ServerMessage, SplitDirection};
+use ccmux_protocol::{ClientMessage, ServerMessage};
 
 use super::connection::ConnectionManager;
+use super::orchestration_context::{OrchestrationContext, OrchestrationConfig, CreatePaneOptions};
 use crate::mcp::error::McpError;
 use crate::mcp::protocol::ToolResult;
 
-// ============================================================================
+// ============================================================================ 
 // FEAT-096: ccmux_expect
-// ============================================================================
+// ============================================================================ 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExpectAction {
@@ -127,9 +128,9 @@ pub async fn run_expect(
     }
 }
 
-// ============================================================================
+// ============================================================================ 
 // FEAT-094: ccmux_run_parallel
-// ============================================================================
+// ============================================================================ 
 
 /// Maximum number of parallel commands allowed
 pub const MAX_PARALLEL_COMMANDS: usize = 10;
@@ -145,9 +146,6 @@ const EXIT_MARKER_PREFIX: &str = "___CCMUX_EXIT_";
 
 /// Exit code marker suffix
 const EXIT_MARKER_SUFFIX: &str = "___";
-
-/// Name of the hidden orchestration session
-const ORCHESTRATION_SESSION_NAME: &str = "__orchestration__";
 
 /// A single command to execute in parallel
 #[derive(Debug, Clone, Deserialize)]
@@ -170,6 +168,10 @@ pub struct RunParallelRequest {
     /// Layout mode: "tiled" for visible splits, "hidden" for orchestration session
     #[serde(default = "default_layout")]
     pub layout: String,
+    /// Named session to use/create (None = auto-generate)
+    pub session: Option<String>,
+    /// Global working directory
+    pub cwd: Option<String>,
     /// Timeout in milliseconds
     #[serde(default = "default_timeout")]
     pub timeout_ms: u64,
@@ -247,7 +249,6 @@ pub async fn run_parallel(
 
     let total_start = Instant::now();
     let timeout = Duration::from_millis(request.timeout_ms);
-    let is_hidden = request.layout == "hidden";
 
     info!(
         commands_count = request.commands.len(),
@@ -257,13 +258,14 @@ pub async fn run_parallel(
         "Starting parallel command execution"
     );
 
-    // Get or create the session for running commands
-    let session_id = if is_hidden {
-        get_or_create_orchestration_session(connection).await?
-    } else {
-        // For tiled layout, use the first available session
-        get_first_session(connection).await?
-    };
+    let mut ctx = OrchestrationContext::new(OrchestrationConfig {
+        session: request.session,
+        layout: request.layout.into(),
+        cwd: request.cwd,
+    });
+
+    // Ensure session exists
+    let _session_id = ctx.get_session(connection).await?;
 
     // Spawn panes for each command
     let mut running_tasks = Vec::with_capacity(request.commands.len());
@@ -278,15 +280,6 @@ pub async fn run_parallel(
             "Creating pane for task"
         );
 
-        // Create pane for this task
-        let pane_id = create_task_pane(
-            connection,
-            &session_id.to_string(),
-            &task_name,
-            cmd.cwd.as_deref(),
-            is_hidden,
-        ).await?;
-
         // Wrap command with exit code marker
         let wrapped_command = format!(
             "{{ {} ; }} ; echo \"{}$?{}\"",
@@ -295,7 +288,14 @@ pub async fn run_parallel(
             EXIT_MARKER_SUFFIX
         );
 
-        // Send command to pane
+        // Create pane for this task
+        let pane_id = ctx.create_pane(connection, CreatePaneOptions {
+            name: Some(task_name.clone()),
+            command: None, // Default shell
+            cwd: cmd.cwd.clone(),
+        }).await?;
+
+        // Send command to pane (using existing helper)
         send_command_to_pane(connection, pane_id, &wrapped_command).await?;
 
         running_tasks.push(RunningTask {
@@ -377,16 +377,7 @@ pub async fn run_parallel(
 
     // Cleanup panes if requested
     if request.cleanup {
-        for task in &running_tasks {
-            if let Err(e) = close_pane(connection, task.pane_id).await {
-                warn!(
-                    task_name = %task.name,
-                    pane_id = %task.pane_id,
-                    error = %e,
-                    "Failed to close pane during cleanup"
-                );
-            }
-        }
+        ctx.cleanup(connection, true, true).await?;
     }
 
     let total_duration_ms = total_start.elapsed().as_millis() as u64;
@@ -417,115 +408,6 @@ pub async fn run_parallel(
     Ok(ToolResult::text(json))
 }
 
-/// Get or create the hidden orchestration session
-async fn get_or_create_orchestration_session(
-    connection: &mut ConnectionManager,
-) -> Result<Uuid, McpError> {
-    // List sessions to find existing orchestration session
-    connection.send_to_daemon(ClientMessage::ListSessions).await?;
-
-    match connection.recv_response_from_daemon().await? {
-        ServerMessage::SessionList { sessions } => {
-            // Look for existing orchestration session
-            for session in &sessions {
-                if session.name == ORCHESTRATION_SESSION_NAME {
-                    debug!(
-                        session_id = %session.id,
-                        "Found existing orchestration session"
-                    );
-                    return Ok(session.id);
-                }
-            }
-
-            // Create new orchestration session
-            debug!("Creating new orchestration session");
-            connection.send_to_daemon(ClientMessage::CreateSessionWithOptions {
-                name: Some(ORCHESTRATION_SESSION_NAME.to_string()),
-                command: None,
-                cwd: None,
-                claude_model: None,
-                claude_config: None,
-                preset: None,
-            }).await?;
-
-            match connection.recv_response_from_daemon().await? {
-                ServerMessage::SessionCreatedWithDetails { session_id, .. } => {
-                    info!(
-                        session_id = %session_id,
-                        "Created orchestration session"
-                    );
-                    Ok(session_id)
-                }
-                ServerMessage::Error { code, message, .. } => {
-                    Err(McpError::DaemonError(format!("{:?}: {}", code, message)))
-                }
-                msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-            }
-        }
-        ServerMessage::Error { code, message, .. } => {
-            Err(McpError::DaemonError(format!("{:?}: {}", code, message)))
-        }
-        msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-    }
-}
-
-/// Get the first available session for tiled layout
-async fn get_first_session(connection: &mut ConnectionManager) -> Result<Uuid, McpError> {
-    connection.send_to_daemon(ClientMessage::ListSessions).await?;
-
-    match connection.recv_response_from_daemon().await? {
-        ServerMessage::SessionList { sessions } => {
-            // Prefer a non-orchestration session
-            for session in &sessions {
-                if session.name != ORCHESTRATION_SESSION_NAME {
-                    return Ok(session.id);
-                }
-            }
-            // Fall back to any session
-            sessions
-                .first()
-                .map(|s| s.id)
-                .ok_or_else(|| McpError::InvalidParams("No sessions available".into()))
-        }
-        ServerMessage::Error { code, message, .. } => {
-            Err(McpError::DaemonError(format!("{:?}: {}", code, message)))
-        }
-        msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-    }
-}
-
-/// Create a pane for running a task
-async fn create_task_pane(
-    connection: &mut ConnectionManager,
-    session_filter: &str,
-    name: &str,
-    cwd: Option<&str>,
-    _is_hidden: bool,
-) -> Result<Uuid, McpError> {
-    connection.send_to_daemon(ClientMessage::CreatePaneWithOptions {
-        session_filter: Some(session_filter.to_string()),
-        window_filter: None,
-        direction: SplitDirection::Vertical,
-        command: None,  // Default shell
-        cwd: cwd.map(String::from),
-        select: false,
-        name: Some(name.to_string()),
-        claude_model: None,
-        claude_config: None,
-        preset: None,
-    }).await?;
-
-    match connection.recv_response_from_daemon().await? {
-        ServerMessage::PaneCreatedWithDetails { pane_id, .. } => {
-            debug!(pane_id = %pane_id, name = %name, "Created task pane");
-            Ok(pane_id)
-        }
-        ServerMessage::Error { code, message, .. } => {
-            Err(McpError::DaemonError(format!("{:?}: {}", code, message)))
-        }
-        msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-    }
-}
 
 /// Send a command to a pane
 async fn send_command_to_pane(
@@ -581,36 +463,11 @@ pub fn parse_exit_marker(line: &str) -> Option<i32> {
     }
 }
 
-/// Close a pane
-async fn close_pane(connection: &mut ConnectionManager, pane_id: Uuid) -> Result<(), McpError> {
-    connection.send_to_daemon(ClientMessage::ClosePane { pane_id }).await?;
 
-    // Wait for close confirmation with timeout
-    let timeout = Duration::from_secs(5);
-    match connection.recv_from_daemon_with_timeout(timeout).await {
-        Ok(ServerMessage::PaneClosed { pane_id: closed_id, .. }) if closed_id == pane_id => {
-            debug!(pane_id = %pane_id, "Pane closed");
-            Ok(())
-        }
-        Ok(ServerMessage::Error { code, message, .. }) => {
-            Err(McpError::DaemonError(format!("{:?}: {}", code, message)))
-        }
-        Ok(_) => {
-            // Got some other message, pane might still be closing
-            debug!(pane_id = %pane_id, "Close confirmation not received, assuming closed");
-            Ok(())
-        }
-        Err(McpError::ResponseTimeout { .. }) => {
-            debug!(pane_id = %pane_id, "Timeout waiting for close confirmation");
-            Ok(())
-        }
-        Err(e) => Err(e),
-    }
-}
 
-// ============================================================================
+// ============================================================================ 
 // FEAT-095: ccmux_run_pipeline
-// ============================================================================
+// ============================================================================ 
 
 #[derive(Debug, Deserialize)]
 pub struct PipelineStepRequest {
@@ -622,6 +479,8 @@ pub struct PipelineStepRequest {
 pub struct RunPipelineRequest {
     pub commands: Vec<PipelineStepRequest>,
     pub cwd: Option<String>,
+    pub session: Option<String>,
+    pub layout: Option<String>,
     pub stop_on_error: Option<bool>,
     pub timeout_ms: Option<u64>,
     pub cleanup: Option<bool>,
@@ -658,27 +517,18 @@ impl<'a> PipelineRunner<'a> {
         let timeout = Duration::from_millis(request.timeout_ms.unwrap_or(600000));
         let stop_on_error = request.stop_on_error.unwrap_or(true);
 
-        // 1. Create pane
-        self.connection.send_to_daemon(ClientMessage::CreatePaneWithOptions {
-            session_filter: None,
-            window_filter: None,
-            direction: SplitDirection::Vertical,
-            command: None, // Default shell
+        let mut ctx = OrchestrationContext::new(OrchestrationConfig {
+            session: request.session,
+            layout: request.layout.unwrap_or_default().into(),
             cwd: request.cwd.clone(),
-            select: false,
-            name: Some("pipeline-runner".to_string()),
-            claude_model: None,
-            claude_config: None,
-            preset: None,
-        }).await?;
+        });
 
-        let pane_id = match self.connection.recv_response_from_daemon().await? {
-            ServerMessage::PaneCreatedWithDetails { pane_id, .. } => pane_id,
-            ServerMessage::Error { code, message, .. } => {
-                return Err(McpError::Internal(format!("Failed to create pane: {:?}: {}", code, message)));
-            }
-            msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
-        };
+        // 1. Create pane using OrchestrationContext
+        let pane_id = ctx.create_pane(self.connection, CreatePaneOptions {
+            name: Some("pipeline-runner".to_string()),
+            command: None, // Default shell
+            cwd: None, // Will use context's CWD
+        }).await?;
 
         info!(pane_id = %pane_id, "Created pipeline pane");
 
@@ -776,9 +626,7 @@ impl<'a> PipelineRunner<'a> {
 
         // Cleanup if requested
         if request.cleanup.unwrap_or(false) {
-            if let Err(e) = close_pane(self.connection, pane_id).await {
-                warn!(pane_id = %pane_id, error = %e, "Failed to close pipeline pane during cleanup");
-            }
+            ctx.cleanup(self.connection, true, false).await?;
         }
 
         info!(
@@ -840,7 +688,8 @@ mod tests {
     #[test]
     fn test_parse_exit_marker_with_whitespace() {
         assert_eq!(parse_exit_marker("  ___CCMUX_EXIT_0___  "), Some(0));
-        assert_eq!(parse_exit_marker("\t___CCMUX_EXIT_42___\n"), Some(42));
+        assert_eq!(parse_exit_marker("\t___CCMUX_EXIT_42___
+"), Some(42));
     }
 
     #[test]
