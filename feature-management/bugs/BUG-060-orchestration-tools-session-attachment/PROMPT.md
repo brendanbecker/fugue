@@ -3,7 +3,7 @@
 **Priority**: P2
 **Component**: mcp, orchestration
 **Severity**: medium
-**Status**: new
+**Status**: completed
 
 ## Problem
 
@@ -58,28 +58,31 @@ Allow MCP clients to send messages with a special "mcp-client" identity rather t
 ## Investigation Steps
 
 ### Section 1: Understand Current Architecture
-- [ ] Review how MCP bridge connects to daemon
-- [ ] Check if session context is available but not used
-- [ ] Review orchestration message routing requirements
+- [x] Review how MCP bridge connects to daemon
+- [x] Check if session context is available but not used
+- [x] Review orchestration message routing requirements
 
 ### Section 2: Evaluate Options
-- [ ] Determine which option best fits the architecture
-- [ ] Consider security implications (can MCP client impersonate sessions?)
-- [ ] Check if session info is available from connection context
+- [x] Determine which option best fits the architecture
+  - Selected Option B: Explicit Attachment via `ccmux_attach_session`
+- [x] Consider security implications (can MCP client impersonate sessions?)
+- [x] Check if session info is available from connection context
 
 ### Section 3: Implement Fix
-- [ ] Implement chosen solution
-- [ ] Update MCP tool documentation
-- [ ] Add tests for orchestration from MCP
+- [x] Implement chosen solution
+  - Added `ccmux_attach_session` tool
+  - Modified `ConnectionManager` to filter broadcasts to prevent channel flooding
+- [x] Update MCP tool documentation
+- [x] Add tests for orchestration from MCP
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_report_status` works from MCP client
-- [ ] `ccmux_send_orchestration` works from MCP client
-- [ ] `ccmux_broadcast` works from MCP client
-- [ ] `ccmux_request_help` works from MCP client
-- [ ] Messages properly identify the sender
-- [ ] Documentation updated to explain usage
+- [x] `ccmux_report_status` works from MCP client
+- [x] `ccmux_send_orchestration` works from MCP client
+- [x] `ccmux_broadcast` works from MCP client
+- [x] `ccmux_request_help` works from MCP client
+- [x] Messages properly identify the sender
+- [x] Documentation updated to explain usage
 
 ## Related Files
 

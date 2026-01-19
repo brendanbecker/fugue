@@ -229,6 +229,20 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
+            name: "ccmux_attach_session".into(),
+            description: "Attach the MCP client to a session. Required for sending orchestration messages.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "session_id": {
+                        "type": "string",
+                        "description": "UUID of the session to attach to"
+                    }
+                },
+                "required": ["session_id"]
+            }),
+        },
+        Tool {
             name: "ccmux_create_window".into(),
             description: "Create a new window in a session".into(),
             input_schema: serde_json::json!({
