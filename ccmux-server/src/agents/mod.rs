@@ -114,21 +114,31 @@ impl DetectorRegistry {
     ///
     /// This method iterates through all registered detectors and returns
     /// the state from the first one that detects an active agent.
+    ///
+    /// BUG-057: Once an agent is detected in a pane, we exclusively use that
+    /// detector until it becomes inactive. This prevents cross-contamination
+    /// where text patterns (e.g., "Gemini" appearing in a Claude conversation)
+    /// could cause a different detector to "steal" detection from the active one.
     pub fn analyze(&mut self, text: &str) -> Option<AgentState> {
-        // If we already have an active detector, use it
+        // If we already have an active detector, use it exclusively
         if let Some(idx) = self.active_detector {
             if let Some(detector) = self.detectors.get_mut(idx) {
                 if let Some(state) = detector.analyze(text) {
                     return Some(state);
                 }
                 // Check if still active
-                if !detector.is_active() {
-                    self.active_detector = None;
+                if detector.is_active() {
+                    // BUG-057: Detector is still active but no state change.
+                    // Return None without trying other detectors to prevent
+                    // cross-contamination from patterns that might match other agents.
+                    return None;
                 }
+                // Detector became inactive, clear it and try others
+                self.active_detector = None;
             }
         }
 
-        // No active detector, try to find one
+        // No active detector (or it became inactive), try to find one
         for (idx, detector) in self.detectors.iter_mut().enumerate() {
             if let Some(state) = detector.analyze(text) {
                 self.active_detector = Some(idx);
@@ -297,6 +307,78 @@ mod tests {
         assert!(registry.mark_as_active("gemini"));
         assert!(registry.is_agent_active());
         assert_eq!(registry.active_agent_type(), Some("gemini"));
+        assert!(!registry.is_claude());
+    }
+
+    // BUG-057: Test that active agent detection cannot be stolen by another detector
+    #[test]
+    fn test_bug_057_active_detector_not_hijacked() {
+        let mut registry = DetectorRegistry::with_defaults();
+
+        // First detect Claude
+        let state = registry.analyze("Welcome to Claude Code v1.0");
+        assert!(state.is_some());
+        assert_eq!(state.unwrap().agent_type, "claude");
+        assert!(registry.is_claude());
+
+        // Now send text that contains "Gemini" - this should NOT switch to Gemini
+        // because Claude is already the active detector
+        let state = registry.analyze("Let me help you understand Gemini CLI.");
+        assert!(state.is_none()); // No state change expected
+        assert!(registry.is_claude()); // Should STILL be Claude
+        assert_eq!(registry.active_agent_type(), Some("claude"));
+
+        // More text with Gemini references should still not switch
+        let state = registry.analyze("The Gemini model is different from Claude.");
+        assert!(state.is_none());
+        assert!(registry.is_claude());
+
+        // Text with Gemini spinners (braille) should also not switch
+        let state = registry.analyze("⠋ Processing with Gemini");
+        assert!(state.is_none());
+        assert!(registry.is_claude());
+    }
+
+    // BUG-057: Test the reverse case - Gemini should not be hijacked by Claude patterns
+    #[test]
+    fn test_bug_057_gemini_not_hijacked_by_claude() {
+        let mut registry = DetectorRegistry::with_defaults();
+
+        // First detect Gemini
+        let state = registry.analyze("Welcome to Gemini CLI");
+        assert!(state.is_some());
+        assert_eq!(state.unwrap().agent_type, "gemini");
+        assert!(!registry.is_claude());
+
+        // Text mentioning Claude should NOT switch detection
+        let state = registry.analyze("Let me explain how Claude Code works.");
+        assert!(state.is_none());
+        assert!(!registry.is_claude());
+        assert_eq!(registry.active_agent_type(), Some("gemini"));
+
+        // Claude session patterns should also not switch
+        let state = registry.analyze("Claude Code session started with session ID abc-123");
+        assert!(state.is_none());
+        assert_eq!(registry.active_agent_type(), Some("gemini"));
+    }
+
+    // BUG-057: Test that detection can switch after reset
+    #[test]
+    fn test_bug_057_detection_switches_after_reset() {
+        let mut registry = DetectorRegistry::with_defaults();
+
+        // Detect Claude
+        registry.analyze("Welcome to Claude Code v1.0");
+        assert!(registry.is_claude());
+
+        // Reset the registry (simulating process exit/restart)
+        registry.reset();
+        assert!(!registry.is_agent_active());
+
+        // Now Gemini can be detected
+        let state = registry.analyze("Welcome to Gemini CLI");
+        assert!(state.is_some());
+        assert_eq!(state.unwrap().agent_type, "gemini");
         assert!(!registry.is_claude());
     }
 }
