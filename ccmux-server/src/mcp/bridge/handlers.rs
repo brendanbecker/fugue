@@ -72,10 +72,9 @@ impl<'a> ToolHandlers<'a> {
     Self { connection }
     }
 
+            // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
             pub async fn tool_list_sessions(&mut self) -> Result<ToolResult, McpError> {
-                self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
-        
-                match self.connection.recv_response_from_daemon().await? {
+                match self.connection.send_and_recv(ClientMessage::ListSessions).await? {
                     ServerMessage::SessionList { sessions } => {
                         let result: Vec<serde_json::Value> = sessions
                             .iter()
@@ -100,14 +99,12 @@ impl<'a> ToolHandlers<'a> {
                     }
                     msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
                 }
-            }    pub async fn tool_list_windows(
+            }    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
+    pub async fn tool_list_windows(
         &mut self,
         session_filter: Option<String>,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::ListWindows { session_filter })
-            .await?;
-
-        match self.connection.recv_response_from_daemon().await? {
+        match self.connection.send_and_recv(ClientMessage::ListWindows { session_filter }).await? {
             ServerMessage::WindowList {
                 session_name,
                 windows,
@@ -136,14 +133,12 @@ impl<'a> ToolHandlers<'a> {
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
         }
     }
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_list_panes(
     &mut self,
     session_filter: Option<String>,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::ListAllPanes { session_filter })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    match self.connection.send_and_recv(ClientMessage::ListAllPanes { session_filter }).await? {
     ServerMessage::AllPanesList { panes } => {
     let result = format_pane_list(&panes);
     let json = serde_json::to_string_pretty(&result)
@@ -157,15 +152,13 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_read_pane(
     &mut self,
     pane_id: Uuid,
     lines: usize,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::ReadPane { pane_id, lines })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    match self.connection.send_and_recv(ClientMessage::ReadPane { pane_id, lines }).await? {
     ServerMessage::PaneContent { content, .. } => Ok(ToolResult::text(content)),
     ServerMessage::Error { code, message, .. } => {
     Ok(ToolResult::error(format!("{:?}: {}", code, message)))
@@ -174,11 +167,9 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_get_status(&mut self, pane_id: Uuid) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::GetPaneStatus { pane_id })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    match self.connection.send_and_recv(ClientMessage::GetPaneStatus { pane_id }).await? {
     ServerMessage::PaneStatus {
     pane_id,
     session_name,
@@ -240,6 +231,7 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_create_session(
     &mut self,
     name: Option<String>,
@@ -249,17 +241,14 @@ impl<'a> ToolHandlers<'a> {
     claude_config: Option<serde_json::Value>,
     preset: Option<String>,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::CreateSessionWithOptions {
+    match self.connection.send_and_recv(ClientMessage::CreateSessionWithOptions {
     name,
     command,
     cwd,
     claude_model,
     claude_config: claude_config.map(Into::into),
     preset,
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
             ServerMessage::SessionCreatedWithDetails {
                 session_id,
                 session_name,
@@ -286,10 +275,9 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_attach_session(&mut self, session_id: Uuid) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::AttachSession { session_id }).await?;
-
-        match self.connection.recv_response_from_daemon().await? {
+        match self.connection.send_and_recv(ClientMessage::AttachSession { session_id }).await? {
             ServerMessage::Attached { session, .. } => {
                 let result = serde_json::json!({
                     "success": true,
@@ -309,6 +297,7 @@ impl<'a> ToolHandlers<'a> {
         }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_create_window(
     &mut self,
     session_filter: Option<String>,
@@ -316,15 +305,12 @@ impl<'a> ToolHandlers<'a> {
     command: Option<String>,
     cwd: Option<String>,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::CreateWindowWithOptions {
+    match self.connection.send_and_recv(ClientMessage::CreateWindowWithOptions {
     session_filter,
     name,
     command,
     cwd,
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
             ServerMessage::WindowCreatedWithDetails {
                 window_id,
                 pane_id,
@@ -349,6 +335,7 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     #[allow(clippy::too_many_arguments)]
     pub async fn tool_create_pane(
     &mut self,
@@ -373,7 +360,7 @@ impl<'a> ToolHandlers<'a> {
     _ => "vertical",
     };
 
-    self.connection.send_to_daemon(ClientMessage::CreatePaneWithOptions {
+    match self.connection.send_and_recv(ClientMessage::CreatePaneWithOptions {
     session_filter: session,
     window_filter: window,
     direction: split_direction,
@@ -384,10 +371,7 @@ impl<'a> ToolHandlers<'a> {
     claude_model,
     claude_config: claude_config.map(Into::into),
     preset,
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
             ServerMessage::PaneCreatedWithDetails {
                 pane_id,
                 session_id,
@@ -493,13 +477,14 @@ impl<'a> ToolHandlers<'a> {
         Ok(ToolResult::text(r#"{"status": "sent"}"#.to_string()))
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv_filtered to prevent response mismatches
     pub async fn tool_close_pane(&mut self, pane_id: Uuid) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::ClosePane { pane_id })
-    .await?;
-
     match self.connection
-    .recv_filtered(|msg| matches!(msg, ServerMessage::PaneClosed { pane_id: id, .. } if *id == pane_id))
-    .await? 
+    .send_and_recv_filtered(
+        ClientMessage::ClosePane { pane_id },
+        |msg| matches!(msg, ServerMessage::PaneClosed { pane_id: id, .. } if *id == pane_id),
+    )
+    .await?
     {
     ServerMessage::PaneClosed { pane_id: closed_id, .. } if closed_id == pane_id => {
     let result = serde_json::json!({
@@ -518,13 +503,14 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv_filtered to prevent response mismatches
     pub async fn tool_focus_pane(&mut self, pane_id: Uuid) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::SelectPane { pane_id })
-    .await?;
-
     match self.connection
-    .recv_filtered(|msg| matches!(msg, ServerMessage::PaneFocused { pane_id: id, .. } if *id == pane_id))
-    .await? 
+    .send_and_recv_filtered(
+        ClientMessage::SelectPane { pane_id },
+        |msg| matches!(msg, ServerMessage::PaneFocused { pane_id: id, .. } if *id == pane_id),
+    )
+    .await?
     {
     ServerMessage::PaneFocused { pane_id: focused_id, session_id, window_id } if focused_id == pane_id => {
     let result = serde_json::json!({
@@ -545,13 +531,14 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv_filtered to prevent response mismatches
     pub async fn tool_select_window(&mut self, window_id: Uuid) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::SelectWindow { window_id })
-    .await?;
-
     match self.connection
-    .recv_filtered(|msg| matches!(msg, ServerMessage::WindowFocused { window_id: id, .. } if *id == window_id))
-    .await? 
+    .send_and_recv_filtered(
+        ClientMessage::SelectWindow { window_id },
+        |msg| matches!(msg, ServerMessage::WindowFocused { window_id: id, .. } if *id == window_id),
+    )
+    .await?
     {
     ServerMessage::WindowFocused { window_id: focused_id, session_id } if focused_id == window_id => {
     let result = serde_json::json!({
@@ -571,13 +558,14 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv_filtered to prevent response mismatches
     pub async fn tool_select_session(&mut self, session_id: Uuid) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::SelectSession { session_id })
-    .await?;
-
     match self.connection
-    .recv_filtered(|msg| matches!(msg, ServerMessage::SessionFocused { session_id: id } if *id == session_id))
-    .await? 
+    .send_and_recv_filtered(
+        ClientMessage::SelectSession { session_id },
+        |msg| matches!(msg, ServerMessage::SessionFocused { session_id: id } if *id == session_id),
+    )
+    .await?
     {
     ServerMessage::SessionFocused { session_id: focused_id } if focused_id == session_id => {
     let result = serde_json::json!({
@@ -596,18 +584,16 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_rename_session(
     &mut self,
     session_filter: &str,
     new_name: &str,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::RenameSession {
+    match self.connection.send_and_recv(ClientMessage::RenameSession {
     session_filter: session_filter.to_string(),
     new_name: new_name.to_string(),
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::SessionRenamed {
     session_id,
     previous_name,
@@ -631,18 +617,16 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_rename_pane(
     &mut self,
     pane_id: Uuid,
     new_name: &str,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::RenamPane {
+    match self.connection.send_and_recv(ClientMessage::RenamPane {
     pane_id,
     new_name: new_name.to_string(),
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::PaneRenamed {
     pane_id,
     previous_name,
@@ -666,18 +650,16 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_rename_window(
     &mut self,
     window_id: Uuid,
     new_name: &str,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::RenameWindow {
+    match self.connection.send_and_recv(ClientMessage::RenameWindow {
     window_id,
     new_name: new_name.to_string(),
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::WindowRenamed {
     window_id,
     previous_name,
@@ -701,6 +683,7 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_split_pane(
     &mut self,
     pane_id: Uuid,
@@ -720,17 +703,14 @@ impl<'a> ToolHandlers<'a> {
     _ => "vertical",
     };
 
-    self.connection.send_to_daemon(ClientMessage::SplitPane {
+    match self.connection.send_and_recv(ClientMessage::SplitPane {
     pane_id,
     direction: split_direction,
     ratio,
     command,
     cwd,
     select,
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
             ServerMessage::PaneSplit {
                 new_pane_id,
                 original_pane_id,
@@ -760,15 +740,13 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_resize_pane(
     &mut self,
     pane_id: Uuid,
     delta: f32,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::ResizePaneDelta { pane_id, delta })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    match self.connection.send_and_recv(ClientMessage::ResizePaneDelta { pane_id, delta }).await? {
     ServerMessage::PaneResized {
     pane_id,
     new_cols,
@@ -791,20 +769,18 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_create_layout(
     &mut self,
     session: Option<String>,
     window: Option<String>,
     layout: serde_json::Value,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::CreateLayout {
+    match self.connection.send_and_recv(ClientMessage::CreateLayout {
     session_filter: session,
     window_filter: window,
     layout: layout.into(),
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::LayoutCreated {
     session_id,
     session_name,
@@ -830,12 +806,12 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_kill_session(&mut self, session_filter: &str) -> Result<ToolResult, McpError> {
     let session_id = if let Ok(uuid) = Uuid::parse_str(session_filter) {
     uuid
     } else {
-    self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
-    match self.connection.recv_response_from_daemon().await? {
+    match self.connection.send_and_recv(ClientMessage::ListSessions).await? {
     ServerMessage::SessionList { sessions } => {
     sessions
         .iter()
@@ -855,10 +831,7 @@ impl<'a> ToolHandlers<'a> {
     }
     };
 
-    self.connection.send_to_daemon(ClientMessage::DestroySession { session_id })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    match self.connection.send_and_recv(ClientMessage::DestroySession { session_id }).await? {
     ServerMessage::SessionDestroyed {
     session_id,
     session_name,
@@ -881,20 +854,18 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_set_environment(
     &mut self,
     session_filter: &str,
     key: &str,
     value: &str,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::SetEnvironment {
+    match self.connection.send_and_recv(ClientMessage::SetEnvironment {
     session_filter: session_filter.to_string(),
     key: key.to_string(),
     value: value.to_string(),
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::EnvironmentSet {
     session_id,
     session_name,
@@ -920,18 +891,16 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_get_environment(
     &mut self,
     session_filter: &str,
     key: Option<String>,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::GetEnvironment {
+    match self.connection.send_and_recv(ClientMessage::GetEnvironment {
     session_filter: session_filter.to_string(),
     key,
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::EnvironmentList {
     session_id,
     session_name,
@@ -954,20 +923,18 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_set_metadata(
     &mut self,
     session_filter: &str,
     key: &str,
     value: &str,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::SetMetadata {
+    match self.connection.send_and_recv(ClientMessage::SetMetadata {
     session_filter: session_filter.to_string(),
     key: key.to_string(),
     value: value.to_string(),
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::MetadataSet {
     session_id,
     session_name,
@@ -993,18 +960,16 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_get_metadata(
     &mut self,
     session_filter: &str,
     key: Option<String>,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::GetMetadata {
+    match self.connection.send_and_recv(ClientMessage::GetMetadata {
     session_filter: session_filter.to_string(),
     key,
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::MetadataList {
     session_id,
     session_name,
@@ -1051,13 +1016,11 @@ impl<'a> ToolHandlers<'a> {
 
     let message = OrchestrationMessage::new(msg_type, payload);
 
-    self.connection.send_to_daemon(ClientMessage::SendOrchestration {
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
+    match self.connection.send_and_recv(ClientMessage::SendOrchestration {
     target: orchestration_target,
     message,
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::OrchestrationDelivered { delivered_count } => {
     let result = serde_json::json!({
     "success": true,
@@ -1075,20 +1038,18 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_set_tags(
     &mut self,
     session_filter: Option<String>,
     add: Vec<String>,
     remove: Vec<String>,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::SetTags {
+    match self.connection.send_and_recv(ClientMessage::SetTags {
     session_filter,
     add,
     remove,
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::TagsSet {
     session_id,
     session_name,
@@ -1112,14 +1073,12 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_get_tags(
     &mut self,
     session_filter: Option<String>,
     ) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::GetTags { session_filter })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    match self.connection.send_and_recv(ClientMessage::GetTags { session_filter }).await? {
     ServerMessage::TagsList {
     session_id,
     session_name,
@@ -1142,6 +1101,7 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_report_status(
     &mut self,
     status: &str,
@@ -1157,13 +1117,10 @@ impl<'a> ToolHandlers<'a> {
     });
     let msg = OrchestrationMessage::new("status.update", payload);
 
-    self.connection.send_to_daemon(ClientMessage::SendOrchestration {
+    match self.connection.send_and_recv(ClientMessage::SendOrchestration {
     target,
     message: msg,
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::OrchestrationDelivered { delivered_count } => {
     let result = serde_json::json!({
     "success": true,
@@ -1183,12 +1140,9 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     async fn get_current_issue_id(&mut self) -> Option<String> {
-    if self.connection.send_to_daemon(ClientMessage::ListSessions).await.is_err() {
-    return None;
-    }
-
-    let sessions = match self.connection.recv_response_from_daemon().await {
+    let sessions = match self.connection.send_and_recv(ClientMessage::ListSessions).await {
     Ok(ServerMessage::SessionList { sessions }) => sessions,
     _ => return None,
     };
@@ -1199,18 +1153,10 @@ impl<'a> ToolHandlers<'a> {
 
     let session_name = &sessions[0].name;
 
-    if self.connection
-    .send_to_daemon(ClientMessage::GetMetadata {
+    match self.connection.send_and_recv(ClientMessage::GetMetadata {
     session_filter: session_name.clone(),
     key: Some(beads::CURRENT_ISSUE.to_string()),
-    })
-    .await
-    .is_err()
-    {
-    return None;
-    }
-
-    match self.connection.recv_response_from_daemon().await {
+    }).await {
     Ok(ServerMessage::MetadataList { metadata, .. }) => {
     metadata
     .get(beads::CURRENT_ISSUE)
@@ -1221,6 +1167,7 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_request_help(&mut self, context: &str) -> Result<ToolResult, McpError> {
     let target = OrchestrationTarget::Tagged("orchestrator".to_string());
     let payload = serde_json::json!({
@@ -1228,13 +1175,10 @@ impl<'a> ToolHandlers<'a> {
     });
     let msg = OrchestrationMessage::new("help.request", payload);
 
-    self.connection.send_to_daemon(ClientMessage::SendOrchestration {
+    match self.connection.send_and_recv(ClientMessage::SendOrchestration {
     target,
     message: msg,
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::OrchestrationDelivered { delivered_count } => {
     let result = serde_json::json!({
     "success": true,
@@ -1253,6 +1197,7 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_broadcast(
     &mut self,
     msg_type: &str,
@@ -1261,13 +1206,10 @@ impl<'a> ToolHandlers<'a> {
     let target = OrchestrationTarget::Broadcast;
     let msg = OrchestrationMessage::new(msg_type, payload);
 
-    self.connection.send_to_daemon(ClientMessage::SendOrchestration {
+    match self.connection.send_and_recv(ClientMessage::SendOrchestration {
     target,
     message: msg,
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::OrchestrationDelivered { delivered_count } => {
     let result = serde_json::json!({
     "success": true,
@@ -1314,16 +1256,14 @@ impl<'a> ToolHandlers<'a> {
     Ok(ToolResult::text(json))
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     async fn resolve_session_for_pane(
     &mut self,
     pane_id: Option<Uuid>,
     ) -> Result<(String, Option<Uuid>), McpError> {
     match pane_id {
     Some(id) => {
-    self.connection.send_to_daemon(ClientMessage::GetPaneStatus { pane_id: id })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    match self.connection.send_and_recv(ClientMessage::GetPaneStatus { pane_id: id }).await? {
     ServerMessage::PaneStatus {
         pane_id,
         session_name,
@@ -1336,9 +1276,7 @@ impl<'a> ToolHandlers<'a> {
     }
     }
     None => {
-    self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    match self.connection.send_and_recv(ClientMessage::ListSessions).await? {
     ServerMessage::SessionList { sessions } => {
         if sessions.is_empty() {
         Err(McpError::InvalidParams("No sessions available".into()))
@@ -1355,6 +1293,7 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_beads_assign(
     &mut self,
     issue_id: &str,
@@ -1370,14 +1309,11 @@ impl<'a> ToolHandlers<'a> {
     format!("{}", duration.as_secs())
     };
 
-    self.connection.send_to_daemon(ClientMessage::SetMetadata {
+    match self.connection.send_and_recv(ClientMessage::SetMetadata {
     session_filter: session_name.clone(),
     key: beads::CURRENT_ISSUE.to_string(),
     value: issue_id.to_string(),
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::MetadataSet { .. } => {}
     ServerMessage::Error { code, message, .. } => {
     return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
@@ -1385,14 +1321,11 @@ impl<'a> ToolHandlers<'a> {
     msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
     }
 
-    self.connection.send_to_daemon(ClientMessage::SetMetadata {
+    match self.connection.send_and_recv(ClientMessage::SetMetadata {
     session_filter: session_name.clone(),
     key: beads::ASSIGNED_AT.to_string(),
     value: timestamp.clone(),
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::MetadataSet {
     session_id,
     session_name,
@@ -1418,6 +1351,7 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_beads_release(
     &mut self,
     pane_id: Option<Uuid>,
@@ -1426,13 +1360,10 @@ impl<'a> ToolHandlers<'a> {
     let (session_name, resolved_pane_id) = self.resolve_session_for_pane(pane_id).await?;
     let outcome = outcome.unwrap_or_else(|| "completed".to_string());
 
-    self.connection.send_to_daemon(ClientMessage::GetMetadata {
+    let current_issue = match self.connection.send_and_recv(ClientMessage::GetMetadata {
     session_filter: session_name.clone(),
     key: Some(beads::CURRENT_ISSUE.to_string()),
-    })
-    .await?;
-
-    let current_issue = match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::MetadataList { metadata, .. } => {
     metadata.get(beads::CURRENT_ISSUE).cloned()
     }
@@ -1449,13 +1380,10 @@ impl<'a> ToolHandlers<'a> {
     }
     };
 
-    self.connection.send_to_daemon(ClientMessage::GetMetadata {
+    let assigned_at = match self.connection.send_and_recv(ClientMessage::GetMetadata {
     session_filter: session_name.clone(),
     key: Some(beads::ASSIGNED_AT.to_string()),
-    })
-    .await?;
-
-    let assigned_at = match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::MetadataList { metadata, .. } => {
     metadata.get(beads::ASSIGNED_AT).cloned().unwrap_or_default()
     }
@@ -1463,13 +1391,10 @@ impl<'a> ToolHandlers<'a> {
     _ => String::new(),
     };
 
-    self.connection.send_to_daemon(ClientMessage::GetMetadata {
+    let existing_history = match self.connection.send_and_recv(ClientMessage::GetMetadata {
     session_filter: session_name.clone(),
     key: Some(beads::ISSUE_HISTORY.to_string()),
-    })
-    .await?;
-
-    let existing_history = match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::MetadataList { metadata, .. } => {
     metadata.get(beads::ISSUE_HISTORY).cloned()
     }
@@ -1498,14 +1423,11 @@ impl<'a> ToolHandlers<'a> {
     let history_json = serde_json::to_string(&history)
     .map_err(|e| McpError::Internal(e.to_string()))?;
 
-    self.connection.send_to_daemon(ClientMessage::SetMetadata {
+    match self.connection.send_and_recv(ClientMessage::SetMetadata {
     session_filter: session_name.clone(),
     key: beads::ISSUE_HISTORY.to_string(),
     value: history_json,
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::MetadataSet { .. } => {}
     ServerMessage::Error { code, message, .. } => {
     return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
@@ -1513,14 +1435,11 @@ impl<'a> ToolHandlers<'a> {
     msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
     }
 
-    self.connection.send_to_daemon(ClientMessage::SetMetadata {
+    match self.connection.send_and_recv(ClientMessage::SetMetadata {
     session_filter: session_name.clone(),
     key: beads::CURRENT_ISSUE.to_string(),
     value: String::new(),
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::MetadataSet { .. } => {}
     ServerMessage::Error { code, message, .. } => {
     return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
@@ -1528,14 +1447,11 @@ impl<'a> ToolHandlers<'a> {
     msg => return Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
     }
 
-    self.connection.send_to_daemon(ClientMessage::SetMetadata {
+    match self.connection.send_and_recv(ClientMessage::SetMetadata {
     session_filter: session_name.clone(),
     key: beads::ASSIGNED_AT.to_string(),
     value: String::new(),
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::MetadataSet {
     session_id,
     session_name,
@@ -1562,10 +1478,9 @@ impl<'a> ToolHandlers<'a> {
     }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_beads_find_pane(&mut self, issue_id: &str) -> Result<ToolResult, McpError> {
-    self.connection.send_to_daemon(ClientMessage::ListSessions).await?;
-
-    let sessions = match self.connection.recv_response_from_daemon().await? {
+    let sessions = match self.connection.send_and_recv(ClientMessage::ListSessions).await? {
     ServerMessage::SessionList { sessions } => sessions,
     ServerMessage::Error { code, message, .. } => {
     return Ok(ToolResult::error(format!("{:?}: {}", code, message)));
@@ -1575,25 +1490,19 @@ impl<'a> ToolHandlers<'a> {
     .into_iter();
 
     for session in sessions {
-    self.connection.send_to_daemon(ClientMessage::GetMetadata {
-    session_filter: session.id.to_string(),
-    key: Some(beads::CURRENT_ISSUE.to_string()),
-    })
-    .await?;
-
     if let ServerMessage::MetadataList {
     session_id,
     session_name,
     metadata,
-    } = self.connection.recv_response_from_daemon().await? {
+    } = self.connection.send_and_recv(ClientMessage::GetMetadata {
+    session_filter: session.id.to_string(),
+    key: Some(beads::CURRENT_ISSUE.to_string()),
+    }).await? {
     if let Some(current_issue) = metadata.get(beads::CURRENT_ISSUE) {
     if current_issue == issue_id {
-        self.connection.send_to_daemon(ClientMessage::ListAllPanes {
+        let pane_id = match self.connection.send_and_recv(ClientMessage::ListAllPanes {
         session_filter: Some(session_id.to_string()),
-        })
-        .await?;
-
-        let pane_id = match self.connection.recv_response_from_daemon().await? {
+        }).await? {
         ServerMessage::AllPanesList { panes } => {
         panes.first().map(|p| p.id)
         }
@@ -1627,19 +1536,17 @@ impl<'a> ToolHandlers<'a> {
     Ok(ToolResult::text(json))
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_beads_pane_history(
     &mut self,
     pane_id: Option<Uuid>,
     ) -> Result<ToolResult, McpError> {
     let (session_name, resolved_pane_id) = self.resolve_session_for_pane(pane_id).await?;
 
-    self.connection.send_to_daemon(ClientMessage::GetMetadata {
+    match self.connection.send_and_recv(ClientMessage::GetMetadata {
     session_filter: session_name.clone(),
     key: Some(beads::ISSUE_HISTORY.to_string()),
-    })
-    .await?;
-
-    match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::MetadataList {
     session_id,
     session_name,
@@ -1651,13 +1558,10 @@ impl<'a> ToolHandlers<'a> {
     .and_then(|h| serde_json::from_str(&h).ok())
     .unwrap_or_default();
 
-    self.connection.send_to_daemon(ClientMessage::GetMetadata {
+    let current_issue = match self.connection.send_and_recv(ClientMessage::GetMetadata {
     session_filter: session_id.to_string(),
     key: Some(beads::CURRENT_ISSUE.to_string()),
-    })
-    .await?;
-
-    let current_issue = match self.connection.recv_response_from_daemon().await? {
+    }).await? {
     ServerMessage::MetadataList { metadata, .. } => {
         metadata
         .get(beads::CURRENT_ISSUE)
@@ -1700,16 +1604,16 @@ impl<'a> ToolHandlers<'a> {
             _ => SplitDirection::Vertical,
         };
 
-        self.connection
-            .send_to_daemon(ClientMessage::CreateMirror {
-                source_pane_id,
-                target_pane_id: None,
-                direction: Some(split_direction),
-            })
-            .await?;
-
+        // BUG-065 FIX: Use atomic send_and_recv_filtered to prevent response mismatches
         match self.connection
-            .recv_filtered(|msg| matches!(msg, ServerMessage::MirrorCreated { source_pane_id: src_id, .. } if *src_id == source_pane_id))
+            .send_and_recv_filtered(
+                ClientMessage::CreateMirror {
+                    source_pane_id,
+                    target_pane_id: None,
+                    direction: Some(split_direction),
+                },
+                |msg| matches!(msg, ServerMessage::MirrorCreated { source_pane_id: src_id, .. } if *src_id == source_pane_id),
+            )
             .await?
         {
             ServerMessage::MirrorCreated {
@@ -1779,14 +1683,12 @@ impl<'a> ToolHandlers<'a> {
 
     // ==================== FEAT-097: Orchestration Message Receive ====================
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_get_worker_status(
         &mut self,
         worker_id: Option<String>,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::GetWorkerStatus { worker_id })
-            .await?;
-
-        match self.connection.recv_response_from_daemon().await? {
+        match self.connection.send_and_recv(ClientMessage::GetWorkerStatus { worker_id }).await? {
             ServerMessage::WorkerStatus { status } => {
                 let json = serde_json::to_string_pretty(&status.inner())
                     .map_err(|e| McpError::Internal(e.to_string()))?;
@@ -1799,14 +1701,12 @@ impl<'a> ToolHandlers<'a> {
         }
     }
 
+    // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
     pub async fn tool_poll_messages(
         &mut self,
         worker_id: String,
     ) -> Result<ToolResult, McpError> {
-        self.connection.send_to_daemon(ClientMessage::PollMessages { worker_id })
-            .await?;
-
-        match self.connection.recv_response_from_daemon().await? {
+        match self.connection.send_and_recv(ClientMessage::PollMessages { worker_id }).await? {
             ServerMessage::MessagesPolled { messages } => {
                 let result: Vec<serde_json::Value> = messages
                     .into_iter()
@@ -1830,6 +1730,7 @@ impl<'a> ToolHandlers<'a> {
                     }
                 }
             
+                // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
                 pub async fn tool_create_status_pane(
                     &mut self,
                     position: Option<String>,
@@ -1838,16 +1739,13 @@ impl<'a> ToolHandlers<'a> {
                     show_output_preview: bool,
                     filter_tags: Option<Vec<String>>,
                 ) -> Result<ToolResult, McpError> {
-                    self.connection.send_to_daemon(ClientMessage::CreateStatusPane {
+                    match self.connection.send_and_recv(ClientMessage::CreateStatusPane {
                         position,
                         width_percent,
                         show_activity_feed,
                         show_output_preview,
                         filter_tags,
-                    })
-                    .await?;
-            
-                    match self.connection.recv_response_from_daemon().await? {
+                    }).await? {
                         ServerMessage::PaneCreated { pane, direction, .. } => {
                             let result = serde_json::json!({
                                 "pane_id": pane.id.to_string(),

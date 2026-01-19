@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 
 use futures::{SinkExt, StreamExt};
 use tokio::net::UnixStream;
-use tokio::sync::{mpsc, watch, RwLock};
+use tokio::sync::{mpsc, watch, Mutex, RwLock};
 use tokio::task::JoinHandle;
 use tokio_util::codec::Framed;
 use tracing::{debug, error, info, warn};
@@ -45,6 +45,13 @@ pub struct ConnectionManager {
     /// Handle to health monitor task (for cleanup)
     #[allow(dead_code)]
     health_monitor_handle: Option<JoinHandle<()>>,
+    /// BUG-065 FIX: Mutex to serialize daemon requests.
+    /// The internal daemon protocol lacks request IDs, so concurrent requests
+    /// can cause responses to be delivered to wrong callers. This mutex ensures
+    /// only one request-response cycle is in-flight at a time.
+    /// Note: Arc<Mutex<()>> is used to avoid borrow conflicts between the guard
+    /// and the mutable methods that need to be called while holding the lock.
+    request_lock: Arc<Mutex<()>>,
 }
 
 impl ConnectionManager {
@@ -59,6 +66,7 @@ impl ConnectionManager {
             state_tx,
             state_rx,
             health_monitor_handle: None,
+            request_lock: Arc::new(Mutex::new(())),
         }
     }
 
@@ -470,5 +478,63 @@ impl ConnectionManager {
             | ServerMessage::BeadsStatusUpdate { .. }
             | ServerMessage::BeadsReadyList { .. }
         )
+    }
+
+    // ==================== BUG-065 FIX: Atomic send+recv methods ====================
+    //
+    // These methods acquire the request_lock to ensure only one request-response
+    // cycle is in-flight at a time. This prevents response mismatches when multiple
+    // MCP requests are processed concurrently.
+
+    /// Send a message to the daemon and wait for a response atomically.
+    ///
+    /// BUG-065 FIX: This method holds the request_lock while sending and receiving,
+    /// ensuring no other request can interleave and steal our response.
+    pub async fn send_and_recv(
+        &mut self,
+        msg: ClientMessage,
+    ) -> Result<ServerMessage, McpError> {
+        // Clone the Arc to avoid borrowing self when locking
+        let lock = self.request_lock.clone();
+        // Acquire the lock to ensure exclusive access to the send/recv cycle
+        let _guard = lock.lock().await;
+        debug!("BUG-065: Acquired request lock for send_and_recv");
+
+        // Send the message
+        self.send_to_daemon(msg).await?;
+
+        // Receive the response
+        let result = self.recv_response_from_daemon().await;
+
+        debug!("BUG-065: Releasing request lock after send_and_recv");
+        result
+    }
+
+    /// Send a message to the daemon and wait for a response matching a predicate atomically.
+    ///
+    /// BUG-065 FIX: This method holds the request_lock while sending and receiving,
+    /// ensuring no other request can interleave and steal our response.
+    pub async fn send_and_recv_filtered<F>(
+        &mut self,
+        msg: ClientMessage,
+        predicate: F,
+    ) -> Result<ServerMessage, McpError>
+    where
+        F: FnMut(&ServerMessage) -> bool,
+    {
+        // Clone the Arc to avoid borrowing self when locking
+        let lock = self.request_lock.clone();
+        // Acquire the lock to ensure exclusive access to the send/recv cycle
+        let _guard = lock.lock().await;
+        debug!("BUG-065: Acquired request lock for send_and_recv_filtered");
+
+        // Send the message
+        self.send_to_daemon(msg).await?;
+
+        // Receive the filtered response
+        let result = self.recv_filtered(predicate).await;
+
+        debug!("BUG-065: Releasing request lock after send_and_recv_filtered");
+        result
     }
 }
