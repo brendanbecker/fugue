@@ -5,26 +5,25 @@
 
 ## Summary Statistics
 - Total Bugs: 66
-- Open: 2
-- Resolved: 63
+- Open: 1
+- Resolved: 64
 - Deprecated: 1
 
 ## Active Bugs
 
 | ID | Description | Priority | Status | Component |
 |----|-------------|----------|--------|-----------|
-| BUG-065 | Parallel MCP requests cause response mismatches | P1 | new | mcp/bridge |
 | BUG-066 | Mirror panes don't forward output across sessions | P2 | new | session/mirror |
 
 ## Priority Queue
 
 | Priority | Bug | Risk | Effort | Notes |
 |----------|-----|------|--------|-------|
-| **P1** | BUG-065 | High | Medium | Parallel MCP calls fail - Claude Code pattern |
 | **P2** | BUG-066 | Medium | Medium | Cross-session mirror output broken |
 
 ## Recent Activity
 
+- 2026-01-19: Fixed BUG-065 - Parallel MCP request serialization (commit a358bf1) - verified after rebuild
 - 2026-01-19: Filed BUG-066 - Mirror panes don't forward output across sessions
 - 2026-01-19: Filed BUG-065 - Parallel MCP requests cause response mismatches (discovered during QA)
 - 2026-01-19: Fixed BUG-064 - MCP response off-by-one (drain pending after timeout) (commit a6a3563)
@@ -50,6 +49,7 @@
 
 | ID | Description | Resolution | Commit |
 |----|-------------|------------|--------|
+| BUG-065 | Parallel MCP requests cause response mismatches | Fixed - request_lock mutex serialization | a358bf1 |
 | BUG-064 | MCP response off-by-one after timeout | Fixed - drain pending messages after timeout | a6a3563 |
 | BUG-063 | Mirror panes can't view other sessions | Fixed - create mirror in caller's attached session | 93f5c87 |
 | BUG-062 | ccmux_close_pane times out for mirror panes | Fixed - RespondWithBroadcast for mirror close | 3b22ce0 |
