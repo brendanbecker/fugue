@@ -411,8 +411,10 @@ impl ConnectionManager {
             | ServerMessage::SessionCreated { .. }
             // Simple pane created (broadcast from other clients, not the WithDetails response)
             | ServerMessage::PaneCreated { .. }
-            // Pane closed notifications (broadcast)
-            | ServerMessage::PaneClosed { .. }
+            // NOTE: PaneClosed is NOT filtered here because it's used as a direct response
+            // to ClosePane requests. The tool_close_pane handler uses recv_filtered with a
+            // predicate that checks for the specific pane_id, so spurious broadcasts are
+            // ignored. Filtering PaneClosed here causes tool_close_pane to timeout (BUG-062).
             // Simple window created (broadcast from other clients)
             | ServerMessage::WindowCreated { .. }
             // Window closed notifications
