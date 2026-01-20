@@ -674,6 +674,8 @@ impl McpBridge {
             }
             "ccmux_watchdog_stop" => handlers.tool_watchdog_stop().await,
             "ccmux_watchdog_status" => handlers.tool_watchdog_status().await,
+            // FEAT-109: Drain Messages Tool
+            "ccmux_drain_messages" => handlers.tool_drain_messages(),
             _ => Err(McpError::UnknownTool(name.into())),
         }
     }

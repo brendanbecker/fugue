@@ -387,6 +387,37 @@ impl ConnectionManager {
         }
     }
 
+    /// Drain pending messages and return diagnostic information (FEAT-109)
+    ///
+    /// Used by the `ccmux_drain_messages` MCP tool to clear stale broadcast
+    /// messages and provide visibility into what was discarded.
+    ///
+    /// Returns a tuple of (total_count, message_types) where message_types
+    /// is a map of type names to counts.
+    pub fn drain_with_diagnostics(&mut self) -> (usize, std::collections::HashMap<String, usize>) {
+        let mut type_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+
+        if let Some(rx) = self.daemon_rx.as_mut() {
+            // Use try_recv for non-blocking checks
+            while let Ok(msg) = rx.try_recv() {
+                let type_name = msg.type_name().to_string();
+                *type_counts.entry(type_name).or_insert(0) += 1;
+            }
+        }
+
+        let total = type_counts.values().sum();
+
+        if total > 0 {
+            info!(
+                total = total,
+                types = ?type_counts,
+                "Drained messages with diagnostics (FEAT-109)"
+            );
+        }
+
+        (total, type_counts)
+    }
+
     /// Receive a response from the daemon, filtering based on a predicate
     pub async fn recv_filtered<F>(&mut self, mut predicate: F) -> Result<ServerMessage, McpError>
     where

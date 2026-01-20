@@ -1035,6 +1035,15 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "properties": {}
             }),
         },
+        // ==================== FEAT-109: Drain Messages Tool ====================
+        Tool {
+            name: "ccmux_drain_messages".into(),
+            description: "Clear stale broadcast messages from the response channel. Use this to recover from stuck states after timeouts or heavy broadcast traffic. Returns diagnostic info about what was drained.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {}
+            }),
+        },
         // ==================== FEAT-105: Universal Agent Presets ====================
         Tool {
             name: "ccmux_select_worker".into(),
@@ -1163,5 +1172,7 @@ mod tests {
         assert!(names.contains(&"ccmux_watchdog_start"));
         assert!(names.contains(&"ccmux_watchdog_stop"));
         assert!(names.contains(&"ccmux_watchdog_status"));
+        // FEAT-109: Drain messages tool
+        assert!(names.contains(&"ccmux_drain_messages"));
     }
 }

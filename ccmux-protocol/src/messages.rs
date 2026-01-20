@@ -978,6 +978,70 @@ pub enum ServerMessage {
     },
 }
 
+impl ServerMessage {
+    /// Return the message type name for metrics and logging (FEAT-074/FEAT-109)
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            ServerMessage::Connected { .. } => "Connected",
+            ServerMessage::ServerStatus { .. } => "ServerStatus",
+            ServerMessage::Sequenced { .. } => "Sequenced",
+            ServerMessage::StateSnapshot { .. } => "StateSnapshot",
+            ServerMessage::SessionList { .. } => "SessionList",
+            ServerMessage::SessionCreated { .. } => "SessionCreated",
+            ServerMessage::Attached { .. } => "Attached",
+            ServerMessage::WindowCreated { .. } => "WindowCreated",
+            ServerMessage::PaneCreated { .. } => "PaneCreated",
+            ServerMessage::Output { .. } => "Output",
+            ServerMessage::PaneStateChanged { .. } => "PaneStateChanged",
+            ServerMessage::ClaudeStateChanged { .. } => "ClaudeStateChanged",
+            ServerMessage::PaneClosed { .. } => "PaneClosed",
+            ServerMessage::WindowClosed { .. } => "WindowClosed",
+            ServerMessage::SessionEnded { .. } => "SessionEnded",
+            ServerMessage::SessionsChanged { .. } => "SessionsChanged",
+            ServerMessage::Error { .. } => "Error",
+            ServerMessage::Pong => "Pong",
+            ServerMessage::ViewportUpdated { .. } => "ViewportUpdated",
+            ServerMessage::ReplyDelivered { .. } => "ReplyDelivered",
+            ServerMessage::OrchestrationReceived { .. } => "OrchestrationReceived",
+            ServerMessage::MailReceived { .. } => "MailReceived",
+            ServerMessage::OrchestrationDelivered { .. } => "OrchestrationDelivered",
+            ServerMessage::WorkerStatus { .. } => "WorkerStatus",
+            ServerMessage::MessagesPolled { .. } => "MessagesPolled",
+            ServerMessage::AllPanesList { .. } => "AllPanesList",
+            ServerMessage::WindowList { .. } => "WindowList",
+            ServerMessage::PaneContent { .. } => "PaneContent",
+            ServerMessage::PaneStatus { .. } => "PaneStatus",
+            ServerMessage::PaneCreatedWithDetails { .. } => "PaneCreatedWithDetails",
+            ServerMessage::SessionCreatedWithDetails { .. } => "SessionCreatedWithDetails",
+            ServerMessage::WindowCreatedWithDetails { .. } => "WindowCreatedWithDetails",
+            ServerMessage::SessionRenamed { .. } => "SessionRenamed",
+            ServerMessage::PaneRenamed { .. } => "PaneRenamed",
+            ServerMessage::WindowRenamed { .. } => "WindowRenamed",
+            ServerMessage::PaneSplit { .. } => "PaneSplit",
+            ServerMessage::PaneResized { .. } => "PaneResized",
+            ServerMessage::LayoutCreated { .. } => "LayoutCreated",
+            ServerMessage::SessionDestroyed { .. } => "SessionDestroyed",
+            ServerMessage::EnvironmentSet { .. } => "EnvironmentSet",
+            ServerMessage::EnvironmentList { .. } => "EnvironmentList",
+            ServerMessage::MetadataSet { .. } => "MetadataSet",
+            ServerMessage::MetadataList { .. } => "MetadataList",
+            ServerMessage::TagsSet { .. } => "TagsSet",
+            ServerMessage::TagsList { .. } => "TagsList",
+            ServerMessage::PaneFocused { .. } => "PaneFocused",
+            ServerMessage::WindowFocused { .. } => "WindowFocused",
+            ServerMessage::SessionFocused { .. } => "SessionFocused",
+            ServerMessage::BeadsStatusUpdate { .. } => "BeadsStatusUpdate",
+            ServerMessage::BeadsReadyList { .. } => "BeadsReadyList",
+            ServerMessage::WidgetUpdate { .. } => "WidgetUpdate",
+            ServerMessage::MirrorCreated { .. } => "MirrorCreated",
+            ServerMessage::MirrorSourceClosed { .. } => "MirrorSourceClosed",
+            ServerMessage::WatchdogStarted { .. } => "WatchdogStarted",
+            ServerMessage::WatchdogStopped => "WatchdogStopped",
+            ServerMessage::WatchdogStatusResponse { .. } => "WatchdogStatusResponse",
+        }
+    }
+}
+
 /// Entry in the pane list (for MCP bridge)
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PaneListEntry {

@@ -1870,5 +1870,26 @@ impl<'a> ToolHandlers<'a> {
             msg => Err(McpError::UnexpectedResponse(format!("{:?}", msg))),
         }
     }
+
+    // ==================== FEAT-109: Drain Messages Tool ====================
+
+    /// Drain stale broadcast messages from the response channel
+    ///
+    /// This tool clears any pending messages that may have accumulated in the
+    /// response channel due to broadcasts or stale responses from prior timeouts.
+    /// It returns diagnostic information about what was drained.
+    pub fn tool_drain_messages(&mut self) -> Result<ToolResult, McpError> {
+        let (total, type_counts) = self.connection.drain_with_diagnostics();
+
+        let result = serde_json::json!({
+            "drained_count": total,
+            "message_types": type_counts,
+            "status": if total > 0 { "cleared" } else { "empty" }
+        });
+
+        let json = serde_json::to_string_pretty(&result)
+            .map_err(|e| McpError::Internal(e.to_string()))?;
+        Ok(ToolResult::text(json))
+    }
             }
             
