@@ -2111,6 +2111,7 @@ impl Default for App {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
