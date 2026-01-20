@@ -68,12 +68,11 @@ impl WatchdogManager {
         *self.state.lock().await = Some(state.clone());
         *self.cancel_tx.lock().await = Some(cancel_tx);
 
-        // Spawn the timer task
-        let message_to_send = format!("{}\n", message); // Add newline like Enter key
+        // Spawn the timer task (message without carriage return - added separately with delay)
         tokio::spawn(watchdog_timer_task(
             pane_id,
             interval_secs,
-            message_to_send,
+            message.clone(),
             pty_manager,
             cancel_rx,
         ));
@@ -140,9 +139,11 @@ async fn watchdog_timer_task(
         tokio::select! {
             // Wait for the interval
             _ = tokio::time::sleep(interval) => {
-                // Send the message to the pane
+                // Send the message to the pane, then carriage return separately
+                // (TUI apps like Claude Code expect Enter as a separate event - BUG-054)
                 let pty_mgr = pty_manager.read().await;
                 if let Some(handle) = pty_mgr.get(pane_id) {
+                    // Send the message text
                     if let Err(e) = handle.write_all(message.as_bytes()) {
                         tracing::warn!(
                             pane_id = %pane_id,
@@ -151,10 +152,26 @@ async fn watchdog_timer_task(
                         );
                         // Continue trying - the pane might recover
                     } else {
-                        tracing::debug!(
-                            pane_id = %pane_id,
-                            "Sent watchdog message"
-                        );
+                        // Small delay so TUI sees Enter as separate event
+                        drop(pty_mgr); // Release lock during sleep
+                        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+                        // Send carriage return to submit
+                        let pty_mgr = pty_manager.read().await;
+                        if let Some(handle) = pty_mgr.get(pane_id) {
+                            if let Err(e) = handle.write_all(b"\r") {
+                                tracing::warn!(
+                                    pane_id = %pane_id,
+                                    error = %e,
+                                    "Failed to send watchdog submit to pane"
+                                );
+                            } else {
+                                tracing::debug!(
+                                    pane_id = %pane_id,
+                                    "Sent watchdog message"
+                                );
+                            }
+                        }
                     }
                 } else {
                     tracing::warn!(
