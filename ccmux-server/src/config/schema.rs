@@ -17,8 +17,9 @@ pub struct AppConfig {
     pub persistence: PersistenceConfig,
     pub session_logging: SessionLoggingConfig,
     pub beads: BeadsConfig,
-    /// Claude configuration presets (FEAT-071)
-    pub presets: HashMap<String, ClaudePreset>,
+    /// Claude configuration presets (FEAT-071) - Deprecated, use generic AgentPreset
+    #[serde(default)] // Allow missing presets
+    pub presets: HashMap<String, AgentPreset>,
     /// Prometheus metrics endpoint configuration (FEAT-074)
     pub metrics: MetricsConfig,
 }
@@ -42,14 +43,119 @@ impl Default for MetricsConfig {
     }
 }
 
-/// Claude configuration preset (FEAT-071)
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ClaudePreset {
-    pub model: Option<String>,
-    pub context_limit: Option<usize>,
+/// Universal agent preset (FEAT-105)
+#[derive(Debug, Clone, Serialize)]
+pub struct AgentPreset {
+    /// Harness type: "claude", "gemini", "codex", "shell", "custom"
+    pub harness: String,
+
+    /// Human-readable description
     pub description: Option<String>,
-    #[serde(flatten)]
-    pub extra: HashMap<String, serde_json::Value>,
+
+    /// Harness-specific configuration
+    pub config: HarnessConfig,
+}
+
+impl<'de> Deserialize<'de> for AgentPreset {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        
+        // Check if it's the new format (has "harness" field)
+        if let Some(harness_val) = value.get("harness") {
+            let harness = harness_val.as_str().ok_or_else(|| serde::de::Error::custom("harness must be a string"))?.to_string();
+            let description = value.get("description").and_then(|v| v.as_str()).map(String::from);
+            
+            let config_val = value.get("config").cloned().unwrap_or(serde_json::json!({}));
+            
+            let config = match harness.as_str() {
+                "claude" => HarnessConfig::Claude(serde_json::from_value(config_val).map_err(serde::de::Error::custom)?),
+                "gemini" => HarnessConfig::Gemini(serde_json::from_value(config_val).map_err(serde::de::Error::custom)?),
+                "codex" => HarnessConfig::Codex(serde_json::from_value(config_val).map_err(serde::de::Error::custom)?),
+                "shell" => HarnessConfig::Shell(serde_json::from_value(config_val).map_err(serde::de::Error::custom)?),
+                "custom" => HarnessConfig::Custom(serde_json::from_value(config_val).map_err(serde::de::Error::custom)?),
+                _ => return Err(serde::de::Error::custom(format!("Unknown harness: {}", harness))),
+            };
+
+            Ok(AgentPreset {
+                harness,
+                description,
+                config,
+            })
+        } else {
+            // Legacy format - treat as Claude config
+            let description = value.get("description").and_then(|v| v.as_str()).map(String::from);
+            
+            let model = value.get("model").and_then(|v| v.as_str()).map(String::from);
+            let context_limit = value.get("context_limit").and_then(|v| v.as_u64()).map(|v| v as usize);
+            
+            let claude_config = ClaudeHarnessConfig {
+                model,
+                context_limit,
+                ..Default::default()
+            };
+            
+            Ok(AgentPreset {
+                harness: "claude".to_string(),
+                description,
+                config: HarnessConfig::Claude(claude_config),
+            })
+        }
+    }
+}
+
+/// Harness-specific configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum HarnessConfig {
+    Claude(ClaudeHarnessConfig),
+    Gemini(GeminiHarnessConfig),
+    Codex(CodexHarnessConfig),
+    Shell(ShellHarnessConfig),
+    Custom(CustomHarnessConfig),
+}
+
+impl Default for HarnessConfig {
+    fn default() -> Self {
+        HarnessConfig::Claude(ClaudeHarnessConfig::default())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ClaudeHarnessConfig {
+    pub model: Option<String>,
+    pub system_prompt: Option<String>,
+    pub dangerously_skip_permissions: Option<bool>,
+    pub allowed_tools: Option<Vec<String>>,
+    pub context_limit: Option<usize>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GeminiHarnessConfig {
+    pub model: Option<String>,
+    pub system_prompt: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CodexHarnessConfig {
+    pub model: Option<String>,
+    pub system_prompt: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ShellHarnessConfig {
+    pub command: Option<String>,
+    pub args: Option<Vec<String>>,
+    pub env: Option<HashMap<String, String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CustomHarnessConfig {
+    pub command: String,
+    pub args: Option<Vec<String>>,
+    pub env: Option<HashMap<String, String>>,
 }
 
 /// Beads integration settings

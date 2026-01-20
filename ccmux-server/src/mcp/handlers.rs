@@ -7,6 +7,7 @@ use uuid::Uuid;
 use ccmux_protocol::PaneState;
 
 use crate::claude::{inject_session_id, is_claude_command};
+use crate::config::AppConfig;
 use crate::pty::{PtyConfig, PtyManager};
 use crate::session::SessionManager;
 
@@ -18,14 +19,20 @@ use super::error::McpError;
 pub struct ToolContext<'a> {
     pub session_manager: &'a mut SessionManager,
     pub pty_manager: &'a mut PtyManager,
+    pub config: &'a AppConfig,
 }
 
 impl<'a> ToolContext<'a> {
     /// Create a new tool context
-    pub fn new(session_manager: &'a mut SessionManager, pty_manager: &'a mut PtyManager) -> Self {
+    pub fn new(
+        session_manager: &'a mut SessionManager,
+        pty_manager: &'a mut PtyManager,
+        config: &'a AppConfig,
+    ) -> Self {
         Self {
             session_manager,
             pty_manager,
+            config,
         }
     }
 
@@ -133,6 +140,9 @@ impl<'a> ToolContext<'a> {
         command: Option<&str>,
         cwd: Option<&str>,
         select: bool,
+        model: Option<&str>,
+        config: serde_json::Value,
+        preset: Option<&str>,
     ) -> Result<String, McpError> {
         // Parse direction (included in response for client-side layout hints)
         let direction_str = match direction {
@@ -229,13 +239,105 @@ impl<'a> ToolContext<'a> {
             pane.set_name(Some(pane_name.to_string()));
         }
 
+        // Determine harness command
+        let mut final_command = command.map(String::from);
+        let mut harness_args: Vec<String> = Vec::new();
+        let mut harness_env: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        let mut claude_config_map = serde_json::Map::new();
+
+        // Apply preset
+        if let Some(preset_name) = preset {
+            if let Some(preset_cfg) = self.config.presets.get(preset_name) {
+                match &preset_cfg.config {
+                    crate::config::HarnessConfig::Shell(shell_cfg) => {
+                        if final_command.is_none() {
+                            final_command = shell_cfg.command.clone();
+                        }
+                        if let Some(args) = &shell_cfg.args {
+                            harness_args.extend(args.clone());
+                        }
+                        if let Some(env) = &shell_cfg.env {
+                            harness_env.extend(env.clone());
+                        }
+                    },
+                    crate::config::HarnessConfig::Custom(custom_cfg) => {
+                        if final_command.is_none() {
+                            final_command = Some(custom_cfg.command.clone());
+                        }
+                        if let Some(args) = &custom_cfg.args {
+                            harness_args.extend(args.clone());
+                        }
+                        if let Some(env) = &custom_cfg.env {
+                            harness_env.extend(env.clone());
+                        }
+                    },
+                    crate::config::HarnessConfig::Claude(claude_cfg) => {
+                        if final_command.is_none() {
+                            final_command = Some("claude".to_string());
+                        }
+                        // Extract config for .claude.json
+                        if let Some(m) = &claude_cfg.model {
+                            claude_config_map.insert("model".to_string(), serde_json::json!(m));
+                        }
+                        if let Some(c) = claude_cfg.context_limit {
+                            claude_config_map.insert("context_limit".to_string(), serde_json::json!(c));
+                        }
+                        if let Some(sp) = &claude_cfg.system_prompt {
+                            claude_config_map.insert("system_prompt".to_string(), serde_json::json!(sp));
+                        }
+                        if let Some(dsp) = &claude_cfg.dangerously_skip_permissions {
+                            claude_config_map.insert("dangerously_skip_permissions".to_string(), serde_json::json!(dsp));
+                        }
+                        if let Some(at) = &claude_cfg.allowed_tools {
+                            claude_config_map.insert("allowed_tools".to_string(), serde_json::json!(at));
+                        }
+                    },
+                    crate::config::HarnessConfig::Gemini(_) => {
+                        if final_command.is_none() {
+                            final_command = Some("gemini".to_string());
+                        }
+                    },
+                    crate::config::HarnessConfig::Codex(_) => {
+                        if final_command.is_none() {
+                            final_command = Some("codex".to_string());
+                        }
+                    },
+                }
+            }
+        }
+
+        // Apply explicit config overrides
+        if let serde_json::Value::Object(map) = config {
+            for (k, v) in map {
+                claude_config_map.insert(k, v);
+            }
+        }
+        if let Some(m) = model {
+            claude_config_map.insert("model".to_string(), serde_json::json!(m));
+        }
+
+        // Write config if not empty
+        if !claude_config_map.is_empty() {
+             match crate::isolation::ensure_config_dir(pane_id) {
+                Ok(path) => {
+                    let config_file = path.join(".claude.json"); // We only support .claude.json for now for standard agents
+                    // TODO: Support other config files for other harnesses if needed
+                    let json_content = serde_json::Value::Object(claude_config_map);
+                    if let Ok(mut file) = std::fs::File::create(&config_file) {
+                        let _ = serde_json::to_writer_pretty(&mut file, &json_content);
+                    }
+                },
+                Err(_) => {}
+            }
+        }
+
         // Spawn PTY
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
-        let cmd = command.unwrap_or(&shell);
+        let cmd = final_command.as_deref().unwrap_or(&shell);
 
         // Check if this is a Claude command and inject session ID if needed
-        let (actual_cmd, args, injected_session_id) = if is_claude_command(cmd, &[]) {
-            let injection = inject_session_id(cmd, &[]);
+        let (actual_cmd, args, injected_session_id) = if is_claude_command(cmd, &harness_args) {
+            let injection = inject_session_id(cmd, &harness_args);
             if injection.injected {
                 let session_id = injection.session_id.clone().unwrap();
                 tracing::info!(
@@ -248,13 +350,30 @@ impl<'a> ToolContext<'a> {
             }
             (cmd.to_string(), injection.args, injection.session_id)
         } else {
-            (cmd.to_string(), vec![], None)
+            (cmd.to_string(), harness_args, None)
         };
 
-        let mut config = PtyConfig::command(&actual_cmd);
-        for arg in &args {
-            config = config.with_arg(arg);
+        let mut config = if !args.is_empty() {
+             let mut c = PtyConfig::command(&actual_cmd);
+             for arg in &args {
+                 c = c.with_arg(arg);
+             }
+             c
+        } else if actual_cmd == shell {
+             PtyConfig::command(&actual_cmd)
+        } else {
+             // Fallback for simple command without args: wrap in shell to handle potential shell syntax in command string
+             // But if it came from a preset with explicit command, maybe we should execute directly?
+             // If we had harness_args (even empty list), it means we treated it as direct command.
+             // If harness_args was empty initially, it might be a shell command string.
+             PtyConfig::command("sh").with_arg("-c").with_arg(&actual_cmd)
+        };
+
+        // Apply environment
+        for (k, v) in harness_env {
+            config = config.with_env(k, v);
         }
+
         // BUG-050: Apply explicit cwd, or inherit from parent pane
         if let Some(cwd) = cwd {
             config = config.with_cwd(cwd);
@@ -290,6 +409,92 @@ impl<'a> ToolContext<'a> {
             result["claude_session_id"] = serde_json::json!(claude_session_id);
         }
 
+        serde_json::to_string_pretty(&result).map_err(|e| McpError::Internal(e.to_string()))
+    }
+
+    /// Select a worker based on strategy and criteria
+    pub fn select_worker(
+        &self,
+        strategy: Option<&str>,
+        pool: Option<Vec<String>>,
+        criteria: serde_json::Value,
+    ) -> Result<String, McpError> {
+        let strategy = strategy.unwrap_or("random");
+        
+        let sessions = self.session_manager.list_sessions();
+        
+        let mut candidates = Vec::new();
+        
+        for session in sessions {
+            let session_id = session.id().to_string();
+            let session_name = session.name();
+            
+            // Check if in pool
+            if let Some(ref p) = pool {
+                if !p.contains(&session_id) && !p.contains(&session_name.to_string()) {
+                    continue;
+                }
+            }
+            
+            // Check criteria (tags)
+            if let Some(tags) = criteria.get("tags").and_then(|t| t.as_array()) {
+                let session_tags = session.tags();
+                let mut match_all = true;
+                for tag in tags {
+                    if let Some(tag_str) = tag.as_str() {
+                        if !session_tags.contains(tag_str) {
+                            match_all = false;
+                            break;
+                        }
+                    }
+                }
+                if !match_all {
+                    continue;
+                }
+            }
+            
+            // Check if it's a worker (convention: default to considering all sessions unless filtered)
+            // But usually we want sessions tagged "worker".
+            // If no criteria provided, maybe just return all?
+            
+            candidates.push(session.id());
+        }
+        
+        if candidates.is_empty() {
+            return Err(McpError::Internal("No workers found matching criteria".to_string()));
+        }
+        
+        let selected = match strategy {
+            "random" => {
+                if candidates.is_empty() { None }
+                else {
+                    let idx = fastrand::usize(..candidates.len());
+                    Some(candidates[idx].clone())
+                }
+            },
+            "round-robin" => {
+                // We don't track round-robin state here yet. Fallback to random.
+                if candidates.is_empty() { None }
+                else {
+                    let idx = fastrand::usize(..candidates.len());
+                    Some(candidates[idx].clone())
+                }
+            },
+            _ => return Err(McpError::InvalidParams(format!("Unknown strategy: {}", strategy))),
+        };
+        
+        let selected_id = selected.ok_or_else(|| McpError::Internal("Selection failed".to_string()))?;
+        
+        // Return details
+        let session = self.session_manager.get_session(selected_id)
+            .ok_or_else(|| McpError::Internal("Selected session disappeared".to_string()))?;
+            
+        let result = serde_json::json!({
+            "worker_id": selected_id.to_string(),
+            "name": session.name(),
+            "strategy": strategy
+        });
+        
         serde_json::to_string_pretty(&result).map_err(|e| McpError::Internal(e.to_string()))
     }
 
@@ -1332,15 +1537,17 @@ mod tests {
     fn create_test_context<'a>(
         session_manager: &'a mut SessionManager,
         pty_manager: &'a mut PtyManager,
+        config: &'a AppConfig,
     ) -> ToolContext<'a> {
-        ToolContext::new(session_manager, pty_manager)
+        ToolContext::new(session_manager, pty_manager, config)
     }
 
     #[test]
     fn test_list_panes_empty() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.list_panes(None).unwrap();
         assert_eq!(result, "[]");
@@ -1360,7 +1567,8 @@ mod tests {
         let window = session.get_window_mut(window_id).unwrap();
         window.create_pane();
 
-        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
         let result = ctx.list_panes(None).unwrap();
 
         assert!(result.contains("test"));
@@ -1376,7 +1584,8 @@ mod tests {
         session_manager.create_session("session1").unwrap();
         session_manager.create_session("session2").unwrap();
 
-        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         // Filter by session1
         let result = ctx.list_panes(Some("session1")).unwrap();
@@ -1387,7 +1596,8 @@ mod tests {
     fn test_read_pane_not_found() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.read_pane(Uuid::new_v4(), 100);
         assert!(matches!(result, Err(McpError::PaneNotFound(_))));
@@ -1397,7 +1607,8 @@ mod tests {
     fn test_send_input_pane_not_found() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.send_input(Uuid::new_v4(), "hello", false);
         assert!(matches!(result, Err(McpError::PaneNotFound(_))));
@@ -1407,7 +1618,8 @@ mod tests {
     fn test_get_status_pane_not_found() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.get_status(Uuid::new_v4());
         assert!(matches!(result, Err(McpError::PaneNotFound(_))));
@@ -1417,7 +1629,8 @@ mod tests {
     fn test_close_pane_not_found() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.close_pane(Uuid::new_v4());
         assert!(matches!(result, Err(McpError::PaneNotFound(_))));
@@ -1427,7 +1640,8 @@ mod tests {
     fn test_focus_pane_not_found() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.focus_pane(Uuid::new_v4());
         assert!(matches!(result, Err(McpError::PaneNotFound(_))));
@@ -1439,7 +1653,8 @@ mod tests {
     fn test_list_sessions_empty() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.list_sessions().unwrap();
         assert_eq!(result, "[]");
@@ -1453,7 +1668,8 @@ mod tests {
         session_manager.create_session("test1").unwrap();
         session_manager.create_session("test2").unwrap();
 
-        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
         let result = ctx.list_sessions().unwrap();
 
         assert!(result.contains("test1"));
@@ -1468,7 +1684,8 @@ mod tests {
     fn test_list_windows_no_sessions() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.list_windows(None);
         assert!(result.is_err());
@@ -1485,7 +1702,8 @@ mod tests {
         session.create_window(Some("win1".to_string()));
         session.create_window(Some("win2".to_string()));
 
-        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
         let result = ctx.list_windows(None).unwrap();
 
         assert!(result.contains("win1"));
@@ -1505,7 +1723,8 @@ mod tests {
 
         session_manager.create_session("other").unwrap();
 
-        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
         let result = ctx.list_windows(Some("target")).unwrap();
 
         assert!(result.contains("target-window"));
@@ -1518,7 +1737,8 @@ mod tests {
 
         session_manager.create_session("existing").unwrap();
 
-        let ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
         let result = ctx.list_windows(Some("nonexistent"));
 
         assert!(result.is_err());
@@ -1530,7 +1750,8 @@ mod tests {
     fn test_create_session_with_name() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.create_session(Some("my-session")).unwrap();
 
@@ -1545,7 +1766,8 @@ mod tests {
     fn test_create_session_auto_name() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.create_session(None).unwrap();
 
@@ -1557,7 +1779,8 @@ mod tests {
     fn test_create_session_duplicate_name() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         ctx.create_session(Some("duplicate")).unwrap();
         let result = ctx.create_session(Some("duplicate"));
@@ -1571,7 +1794,8 @@ mod tests {
     fn test_create_window_no_sessions() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.create_window(None, None, None, None);
         assert!(result.is_err());
@@ -1584,7 +1808,8 @@ mod tests {
 
         session_manager.create_session("default").unwrap();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
         let result = ctx.create_window(None, Some("new-window"), None, None).unwrap();
 
         assert!(result.contains("window_id"));
@@ -1601,7 +1826,8 @@ mod tests {
         session_manager.create_session("target").unwrap();
         session_manager.create_session("other").unwrap();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
         let result = ctx.create_window(Some("target"), None, None, None).unwrap();
 
         assert!(result.contains("target"));
@@ -1614,7 +1840,8 @@ mod tests {
 
         session_manager.create_session("existing").unwrap();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
         let result = ctx.create_window(Some("nonexistent"), None, None, None);
 
         assert!(result.is_err());
@@ -1638,7 +1865,8 @@ mod tests {
         // Select session1 as active (even though session2 is more recent)
         session_manager.set_active_session(session1_id);
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         // Create window without specifying session - should use active session (session1)
         let result = ctx.create_window(None, Some("test-window"), None, None).unwrap();
@@ -1675,10 +1903,11 @@ mod tests {
         // Select session1 as active
         session_manager.set_active_session(session1_id);
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         // Create pane without specifying session - should use active session (session1)
-        let result = ctx.create_pane(None, None, None, None, None, None, false).unwrap();
+        let result = ctx.create_pane(None, None, None, None, None, None, false, None, serde_json::Value::Null, None).unwrap();
 
         // Verify the pane was created in session1
         assert!(result.contains("session1"));
@@ -1698,7 +1927,8 @@ mod tests {
 
         session_manager.create_session("session-0").unwrap();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         // Simulate the MCP flow: select_session then create_window
         // This is the exact scenario from BUG-034
@@ -1721,8 +1951,9 @@ mod tests {
 
         session_manager.create_session("test").unwrap();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(None, None, None, Some("horizontal"), None, None, false).unwrap();
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
+        let result = ctx.create_pane(None, None, None, Some("horizontal"), None, None, false, None, serde_json::Value::Null, None).unwrap();
 
         assert!(result.contains("\"direction\": \"horizontal\""));
     }
@@ -1734,8 +1965,9 @@ mod tests {
 
         session_manager.create_session("test").unwrap();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(None, None, None, None, None, None, false).unwrap();
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
+        let result = ctx.create_pane(None, None, None, None, None, None, false, None, serde_json::Value::Null, None).unwrap();
 
         assert!(result.contains("\"direction\": \"vertical\""));
     }
@@ -1748,8 +1980,9 @@ mod tests {
         session_manager.create_session("session1").unwrap();
         session_manager.create_session("session2").unwrap();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(Some("session2"), None, None, None, None, None, false).unwrap();
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
+        let result = ctx.create_pane(Some("session2"), None, None, None, None, None, false, None, serde_json::Value::Null, None).unwrap();
 
         assert!(result.contains("session2"));
         assert!(result.contains("session_id"));
@@ -1762,8 +1995,9 @@ mod tests {
 
         session_manager.create_session("existing").unwrap();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(Some("nonexistent"), None, None, None, None, None, false);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
+        let result = ctx.create_pane(Some("nonexistent"), None, None, None, None, None, false, None, serde_json::Value::Null, None);
 
         assert!(result.is_err());
     }
@@ -1779,8 +2013,9 @@ mod tests {
         session.create_window(Some("window1".to_string()));
         session.create_window(Some("window2".to_string()));
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(None, Some("window2"), None, None, None, None, false).unwrap();
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
+        let result = ctx.create_pane(None, Some("window2"), None, None, None, None, false, None, serde_json::Value::Null, None).unwrap();
 
         assert!(result.contains("pane_id"));
         assert!(result.contains("window_id"));
@@ -1793,8 +2028,9 @@ mod tests {
 
         session_manager.create_session("test").unwrap();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(None, Some("nonexistent"), None, None, None, None, false);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
+        let result = ctx.create_pane(None, Some("nonexistent"), None, None, None, None, false, None, serde_json::Value::Null, None);
 
         assert!(result.is_err());
     }
@@ -1806,8 +2042,9 @@ mod tests {
 
         session_manager.create_session("test").unwrap();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
-        let result = ctx.create_pane(None, None, None, None, None, None, false).unwrap();
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
+        let result = ctx.create_pane(None, None, None, None, None, None, false, None, serde_json::Value::Null, None).unwrap();
 
         assert!(result.contains("session_id"));
         assert!(result.contains("pane_id"));
@@ -1820,7 +2057,8 @@ mod tests {
     fn test_split_pane_not_found() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.split_pane(Uuid::new_v4(), None, None, None, None, false);
         assert!(matches!(result, Err(McpError::PaneNotFound(_))));
@@ -1841,7 +2079,8 @@ mod tests {
         let pane = window.create_pane();
         let pane_id = pane.id();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
         let result = ctx.split_pane(pane_id, Some("horizontal"), Some(0.7), None, None, false).unwrap();
 
         assert!(result.contains("pane_id"));
@@ -1864,7 +2103,8 @@ mod tests {
         let pane = window.create_pane();
         let pane_id = pane.id();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
         let result = ctx.split_pane(pane_id, None, None, None, None, false).unwrap();
 
         assert!(result.contains("\"direction\": \"vertical\""));
@@ -1876,7 +2116,8 @@ mod tests {
     fn test_resize_pane_not_found() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.resize_pane(Uuid::new_v4(), 0.1);
         assert!(matches!(result, Err(McpError::PaneNotFound(_))));
@@ -1896,7 +2137,8 @@ mod tests {
         let pane = window.create_pane();
         let pane_id = pane.id();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
         let result = ctx.resize_pane(pane_id, 0.1).unwrap();
 
         assert!(result.contains("pane_id"));
@@ -1917,7 +2159,8 @@ mod tests {
         let pane = window.create_pane();
         let pane_id = pane.id();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         // Test extreme positive delta gets clamped
         let result = ctx.resize_pane(pane_id, 1.0).unwrap();
@@ -1934,7 +2177,8 @@ mod tests {
     fn test_create_layout_single_pane() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let layout = serde_json::json!({
             "pane": {}
@@ -1950,7 +2194,8 @@ mod tests {
     fn test_create_layout_horizontal_split() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let layout = serde_json::json!({
             "direction": "horizontal",
@@ -1973,7 +2218,8 @@ mod tests {
     fn test_create_layout_nested() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         // Layout: 65% left, 35% right (split into top/bottom)
         let layout = serde_json::json!({
@@ -2002,7 +2248,8 @@ mod tests {
     fn test_create_layout_invalid_spec() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         // Invalid: neither pane nor direction+splits
         let layout = serde_json::json!({
@@ -2017,7 +2264,8 @@ mod tests {
     fn test_create_layout_normalizes_ratios() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         // Ratios don't sum to 1.0, should be normalized
         let layout = serde_json::json!({
@@ -2038,7 +2286,8 @@ mod tests {
     fn test_rename_session_not_found() {
         let mut session_manager = SessionManager::new();
         let mut pty_manager = PtyManager::new();
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
 
         let result = ctx.rename_session("nonexistent", "newname");
         assert!(matches!(result, Err(McpError::SessionNotFound(_))));
@@ -2051,7 +2300,8 @@ mod tests {
 
         session_manager.create_session("oldname").unwrap();
 
-        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager);
+        let config = AppConfig::default();
+        let mut ctx = create_test_context(&mut session_manager, &mut pty_manager, &config);
         let result = ctx.rename_session("oldname", "newname").unwrap();
 
         assert!(result.contains("\"name\": \"newname\""));

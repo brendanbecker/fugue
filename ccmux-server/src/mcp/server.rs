@@ -17,21 +17,30 @@ use super::protocol::{
 };
 use super::tools::get_tool_definitions;
 
+use crate::config::{AppConfig, ConfigLoader};
+
 /// MCP Server
 ///
 /// Handles MCP protocol communication over stdio.
 pub struct McpServer {
     session_manager: SessionManager,
     pty_manager: PtyManager,
+    config: AppConfig,
     initialized: bool,
 }
 
 impl McpServer {
     /// Create a new MCP server
     pub fn new() -> Self {
+        let config = ConfigLoader::load().unwrap_or_else(|e| {
+            warn!("Failed to load config, using defaults: {}", e);
+            AppConfig::default()
+        });
+
         Self {
             session_manager: SessionManager::new(),
             pty_manager: PtyManager::new(),
+            config,
             initialized: false,
         }
     }
@@ -39,12 +48,19 @@ impl McpServer {
     /// Create an MCP server with existing managers
     #[allow(dead_code)] // Alternative constructor for custom initialization
     pub fn with_managers(session_manager: SessionManager, pty_manager: PtyManager) -> Self {
+        let config = ConfigLoader::load().unwrap_or_else(|e| {
+            warn!("Failed to load config, using defaults: {}", e);
+            AppConfig::default()
+        });
+
         Self {
             session_manager,
             pty_manager,
+            config,
             initialized: false,
         }
     }
+// ...
 
     /// Run the MCP server, reading from stdin and writing to stdout
     pub fn run(&mut self) -> Result<(), McpError> {
@@ -203,6 +219,16 @@ impl McpServer {
                 command: arguments["command"].as_str().map(String::from),
                 cwd: arguments["cwd"].as_str().map(String::from),
                 select: arguments["select"].as_bool().unwrap_or(false),
+                model: arguments["model"].as_str().map(String::from),
+                config: arguments["config"].clone(),
+                preset: arguments["preset"].as_str().map(String::from),
+            },
+            "ccmux_select_worker" => ToolParams::SelectWorker {
+                strategy: arguments["strategy"].as_str().map(String::from),
+                pool: arguments["pool"].as_array().map(|arr| {
+                    arr.iter().filter_map(|v| v.as_str().map(String::from)).collect()
+                }),
+                criteria: arguments["criteria"].clone(),
             },
             "ccmux_send_input" => ToolParams::SendInput {
                 pane_id: parse_uuid(arguments, "pane_id")?,
@@ -280,12 +306,12 @@ impl McpServer {
         };
 
         // Execute tool - convert execution errors to ToolResult::error()
-        let mut ctx = ToolContext::new(&mut self.session_manager, &mut self.pty_manager);
+        let mut ctx = ToolContext::new(&mut self.session_manager, &mut self.pty_manager, &self.config);
 
         let result = match params {
             ToolParams::ListPanes { session } => ctx.list_panes(session.as_deref()),
             ToolParams::ReadPane { pane_id, lines } => ctx.read_pane(pane_id, lines),
-            ToolParams::CreatePane { session, window, name, direction, command, cwd, select } => {
+            ToolParams::CreatePane { session, window, name, direction, command, cwd, select, model, config, preset } => {
                 ctx.create_pane(
                     session.as_deref(),
                     window.as_deref(),
@@ -294,7 +320,13 @@ impl McpServer {
                     command.as_deref(),
                     cwd.as_deref(),
                     select,
+                    model.as_deref(),
+                    config,
+                    preset.as_deref(),
                 )
+            }
+            ToolParams::SelectWorker { strategy, pool, criteria } => {
+                ctx.select_worker(strategy.as_deref(), pool, criteria)
             }
             ToolParams::SendInput { pane_id, input, key, submit } => {
                 ctx.send_input_with_key(pane_id, input.as_deref(), key.as_deref(), submit)
@@ -370,6 +402,7 @@ fn is_known_tool(name: &str) -> bool {
             | "ccmux_resize_pane"
             | "ccmux_create_layout"
             | "ccmux_create_status_pane"
+            | "ccmux_select_worker"
     )
 }
 
@@ -385,6 +418,14 @@ enum ToolParams {
         command: Option<String>,
         cwd: Option<String>,
         select: bool,
+        model: Option<String>,
+        config: serde_json::Value,
+        preset: Option<String>,
+    },
+    SelectWorker {
+        strategy: Option<String>,
+        pool: Option<Vec<String>>,
+        criteria: serde_json::Value,
     },
     SendInput { pane_id: Uuid, input: Option<String>, key: Option<String>, submit: bool },
     GetStatus { pane_id: Uuid },

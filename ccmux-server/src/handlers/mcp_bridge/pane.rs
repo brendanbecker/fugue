@@ -290,7 +290,12 @@ impl HandlerContext {
             pane.set_name(Some(pane_name.clone()));
         }
 
-        // FEAT-071: Per-pane Claude configuration
+        // Determine harness command if not provided explicitly
+        let mut final_command = command.clone();
+        let mut harness_args: Vec<String> = Vec::new();
+        let mut harness_env: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+
+        // FEAT-071: Per-pane Claude configuration / FEAT-105: Universal Agent Presets
         if claude_model.is_some() || claude_config.is_some() || preset.is_some() {
             let config = &self.config;
             
@@ -299,18 +304,71 @@ impl HandlerContext {
             // 1. Apply preset
             if let Some(preset_name) = &preset {
                 if let Some(preset_cfg) = config.presets.get(preset_name) {
-                    if let Some(m) = &preset_cfg.model {
-                        final_config.insert("model".to_string(), serde_json::json!(m));
+                    // Determine command based on harness type
+                    match &preset_cfg.config {
+                        crate::config::HarnessConfig::Shell(shell_cfg) => {
+                            if final_command.is_none() {
+                                final_command = shell_cfg.command.clone();
+                            }
+                            if let Some(args) = &shell_cfg.args {
+                                harness_args.extend(args.clone());
+                            }
+                            if let Some(env) = &shell_cfg.env {
+                                harness_env.extend(env.clone());
+                            }
+                        },
+                        crate::config::HarnessConfig::Custom(custom_cfg) => {
+                            if final_command.is_none() {
+                                final_command = Some(custom_cfg.command.clone());
+                            }
+                            if let Some(args) = &custom_cfg.args {
+                                harness_args.extend(args.clone());
+                            }
+                            if let Some(env) = &custom_cfg.env {
+                                harness_env.extend(env.clone());
+                            }
+                        },
+                        crate::config::HarnessConfig::Claude(_) => {
+                            if final_command.is_none() {
+                                final_command = Some("claude".to_string());
+                            }
+                        },
+                        crate::config::HarnessConfig::Gemini(_) => {
+                            if final_command.is_none() {
+                                final_command = Some("gemini".to_string());
+                            }
+                        },
+                        crate::config::HarnessConfig::Codex(_) => {
+                            if final_command.is_none() {
+                                final_command = Some("codex".to_string());
+                            }
+                        },
                     }
-                    if let Some(c) = preset_cfg.context_limit {
-                        final_config.insert("context_limit".to_string(), serde_json::json!(c));
+
+                    // Check if it's a Claude harness for config extraction
+                    if preset_cfg.harness == "claude" {
+                        if let crate::config::HarnessConfig::Claude(claude_cfg) = &preset_cfg.config {
+                            if let Some(m) = &claude_cfg.model {
+                                final_config.insert("model".to_string(), serde_json::json!(m));
+                            }
+                            if let Some(c) = claude_cfg.context_limit {
+                                final_config.insert("context_limit".to_string(), serde_json::json!(c));
+                            }
+                            // Map other fields
+                            if let Some(sp) = &claude_cfg.system_prompt {
+                                final_config.insert("system_prompt".to_string(), serde_json::json!(sp));
+                            }
+                            if let Some(dsp) = &claude_cfg.dangerously_skip_permissions {
+                                final_config.insert("dangerously_skip_permissions".to_string(), serde_json::json!(dsp));
+                            }
+                            if let Some(at) = &claude_cfg.allowed_tools {
+                                final_config.insert("allowed_tools".to_string(), serde_json::json!(at));
+                            }
+                        }
                     }
-                    for (k, v) in &preset_cfg.extra {
-                        final_config.insert(k.clone(), v.clone());
-                    }
-                    debug!("Applied Claude preset '{}' to pane {}", preset_name, pane_id);
+                    debug!("Applied preset '{}' to pane {}", preset_name, pane_id);
                 } else {
-                    warn!("Claude preset '{}' not found for pane {}", preset_name, pane_id);
+                    warn!("Preset '{}' not found for pane {}", preset_name, pane_id);
                 }
             }
             
@@ -377,12 +435,40 @@ impl HandlerContext {
 
         // Spawn PTY
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
-        let mut config = if let Some(ref cmd) = command {
-            // Wrap user command in shell to handle arguments and shell syntax
-            PtyConfig::command("sh").with_arg("-c").with_arg(cmd)
+        let mut config = if let Some(ref cmd) = final_command {
+            // Use derived command
+            let mut cfg = if harness_args.is_empty() && !cmd.contains(' ') {
+                 // Simple command, run directly or via shell? 
+                 // If we have harness_args, we assume cmd is the executable.
+                 // If we don't, we assume cmd might be a shell string.
+                 // But wait, existing logic wrapped in `sh -c`.
+                 PtyConfig::command("sh").with_arg("-c").with_arg(cmd)
+            } else {
+                 // If we have explicit harness args, treat cmd as executable
+                 // Or if it's from preset, we should respect it.
+                 // Let's stick to existing behavior for user command (sh -c), but for harness derived command we might want direct execution?
+                 // The safe bet is sticking to existing behavior unless we know better.
+                 // BUT `sh -c` messes up argument passing if we have extra args.
+                 
+                 if !harness_args.is_empty() {
+                     let mut c = PtyConfig::command(cmd);
+                     for arg in &harness_args {
+                         c = c.with_arg(arg);
+                     }
+                     c
+                 } else {
+                     PtyConfig::command("sh").with_arg("-c").with_arg(cmd)
+                 }
+            };
+            cfg
         } else {
             PtyConfig::command(&shell)
         };
+        // Apply harness environment
+        for (k, v) in harness_env {
+            config = config.with_env(k, v);
+        }
+
         // BUG-050: Apply explicit cwd, or inherit from parent pane
         if let Some(ref cwd) = cwd {
             config = config.with_cwd(cwd);

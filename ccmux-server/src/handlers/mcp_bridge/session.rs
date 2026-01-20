@@ -86,18 +86,30 @@ impl HandlerContext {
             // 1. Apply preset
             if let Some(preset_name) = &preset {
                 if let Some(preset_cfg) = config.presets.get(preset_name) {
-                    if let Some(m) = &preset_cfg.model {
-                        final_config.insert("model".to_string(), serde_json::json!(m));
+                    // Check if it's a Claude harness
+                    if preset_cfg.harness == "claude" {
+                        if let crate::config::HarnessConfig::Claude(claude_cfg) = &preset_cfg.config {
+                            if let Some(m) = &claude_cfg.model {
+                                final_config.insert("model".to_string(), serde_json::json!(m));
+                            }
+                            if let Some(c) = claude_cfg.context_limit {
+                                final_config.insert("context_limit".to_string(), serde_json::json!(c));
+                            }
+                            // Map other fields
+                            if let Some(sp) = &claude_cfg.system_prompt {
+                                final_config.insert("system_prompt".to_string(), serde_json::json!(sp));
+                            }
+                            if let Some(dsp) = &claude_cfg.dangerously_skip_permissions {
+                                final_config.insert("dangerously_skip_permissions".to_string(), serde_json::json!(dsp));
+                            }
+                            if let Some(at) = &claude_cfg.allowed_tools {
+                                final_config.insert("allowed_tools".to_string(), serde_json::json!(at));
+                            }
+                        }
                     }
-                    if let Some(c) = preset_cfg.context_limit {
-                        final_config.insert("context_limit".to_string(), serde_json::json!(c));
-                    }
-                    for (k, v) in &preset_cfg.extra {
-                        final_config.insert(k.clone(), v.clone());
-                    }
-                    debug!("Applied Claude preset '{}' to pane {}", preset_name, pane_id);
+                    debug!("Applied preset '{}' to pane {}", preset_name, pane_id);
                 } else {
-                    warn!("Claude preset '{}' not found for pane {}", preset_name, pane_id);
+                    warn!("Preset '{}' not found for pane {}", preset_name, pane_id);
                 }
             }
             

@@ -1030,6 +1030,37 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "properties": {}
             }),
         },
+        // ==================== FEAT-105: Universal Agent Presets ====================
+        Tool {
+            name: "ccmux_select_worker".into(),
+            description: "Select a worker session based on strategy (random, round-robin) and criteria.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "strategy": {
+                        "type": "string",
+                        "enum": ["random", "round-robin"],
+                        "default": "random",
+                        "description": "Selection strategy"
+                    },
+                    "pool": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Explicit pool of session IDs or names to choose from"
+                    },
+                    "criteria": {
+                        "type": "object",
+                        "properties": {
+                            "tags": {
+                                "type": "array",
+                                "items": { "type": "string" },
+                                "description": "Required tags (all must match)"
+                            }
+                        }
+                    }
+                }
+            }),
+        },
     ]
 }
 

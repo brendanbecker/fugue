@@ -242,6 +242,7 @@ dependencies = [
  "ccmux-utils",
  "dashmap",
  "dirs",
+ "fastrand",
  "futures",
  "http-body-util",
  "hyper",
