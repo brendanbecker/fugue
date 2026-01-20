@@ -138,6 +138,65 @@ enabled = false
 
 # Socket path for MCP server
 socket_path = "~/.ccmux/mcp.sock"
+
+### Agent Presets (FEAT-105)
+
+Universal presets define reusable configurations for different agent harnesses.
+
+```toml
+# Generic Claude worker
+[presets.worker]
+harness = "claude"
+description = "Standard Claude worker"
+[presets.worker.config]
+model = "claude-3-5-sonnet-20241022"
+context_limit = 100000
+
+# Low-cost watchdog
+[presets.watchdog]
+harness = "claude"
+description = "Haiku monitoring agent"
+[presets.watchdog.config]
+model = "claude-3-haiku-20240307"
+dangerously_skip_permissions = true
+
+# Gemini worker
+[presets.gemini]
+harness = "gemini"
+description = "Gemini 2.5 Pro worker"
+[presets.gemini.config]
+model = "gemini-2.5-pro"
+
+# Shell preset (no agent)
+[presets.build-env]
+harness = "shell"
+description = "Build environment with specific variables"
+[presets.build-env.config]
+command = "/bin/bash"
+[presets.build-env.config.env]
+RUST_LOG = "debug"
+CARGO_INCREMENTAL = "0"
+
+# Custom harness
+[presets.custom-tool]
+harness = "custom"
+[presets.custom-tool.config]
+command = "my-custom-tool"
+args = ["--verbose", "--mode=agent"]
+```
+
+#### Harness Types
+
+| Harness | Description | Config Options |
+|---------|-------------|----------------|
+| `claude` | Anthropic's Claude Code | `model`, `system_prompt`, `context_limit`, `allowed_tools`, `dangerously_skip_permissions` |
+| `gemini` | Google's Gemini CLI | `model`, `system_prompt` |
+| `codex` | OpenAI Codex CLI | `model`, `system_prompt` |
+| `shell` | Standard shell | `command`, `args`, `env` |
+| `custom` | Custom executable | `command`, `args`, `env` |
+
+*Note: Legacy Claude-only presets (without `harness` field) are still supported for backward compatibility.*
+
 ```
 
 ## Change Categories

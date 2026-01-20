@@ -140,20 +140,24 @@ ccmux-compat --addr tcp://localhost:9999 set-environment -t polecat-1 GT_RIG "ga
 ccmux-compat --addr tcp://localhost:9999 show-environment -t polecat-1
 ```
 
-## Remote-Aware Presets (FEAT-071)
+## Remote-Aware Presets (FEAT-105)
 
-You can define Claude configuration presets in your remote server's `config.toml` to optimize for remote agents.
+You can define universal agent presets in your remote server's `config.toml` to optimize for remote agents.
 
 **Example `~/.config/ccmux/config.toml` on Remote Machine:**
 
 ```toml
 [presets.haiku-worker]
-model = "claude-3-haiku-20240307"
+harness = "claude"
 description = "Fast, low-cost model for background worker tasks"
+[presets.haiku-worker.config]
+model = "claude-3-haiku-20240307"
 
 [presets.sonnet-heavy]
-model = "claude-3-5-sonnet-20241022"
+harness = "claude"
 description = "High-intelligence model for complex remote tasks"
+[presets.sonnet-heavy.config]
+model = "claude-3-5-sonnet-20241022"
 ```
 
 Then, when spawning a pane via MCP or sideband, specify the preset:
