@@ -3,7 +3,11 @@
 **Priority**: P1
 **Component**: client/rendering
 **Effort**: Large
-**Status**: new
+**Status**: converted
+
+> **Note**: This feature has been converted to **INQ-001** (Visualization Architecture Review).
+> The scope requires multi-agent deliberation before implementation.
+> See: `../inquiries/INQ-001-visualization-architecture/`
 
 ## Problem
 

@@ -201,11 +201,63 @@ Default presets if not specified:
 - [ ] `/orchestrate` skill uses presets for workers and watchdog
 - [ ] Documentation updated with preset examples
 - [ ] Tests for each harness type
+- [ ] `DelegationConfig` schema with strategy and pool
+- [ ] `ccmux_select_worker` MCP tool returns preset according to delegation strategy
+- [ ] Random and round-robin strategies implemented
+
+## Delegation Strategy
+
+Orchestrators need a way to select which preset to use when spawning workers. Add a `[delegation]` section:
+
+```toml
+[delegation]
+strategy = "random"  # "random", "round-robin", "weighted"
+pool = ["worker", "gemini-worker"]  # preset names to select from
+
+# Future: weighted strategy
+# [delegation.weights]
+# worker = 0.7
+# gemini-worker = 0.3
+```
+
+### Rust Schema Addition
+
+```rust
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DelegationConfig {
+    /// Strategy: "random", "round-robin", "weighted"
+    pub strategy: String,
+
+    /// Pool of preset names to select from
+    pub pool: Vec<String>,
+
+    /// Optional weights for weighted strategy
+    pub weights: Option<HashMap<String, f64>>,
+}
+```
+
+### MCP Tool Addition
+
+Add `ccmux_select_worker` tool for orchestrators:
+
+```json
+{
+  "tool": "ccmux_select_worker",
+  "input": {}
+}
+// Returns: { "preset": "gemini-worker", "harness": "gemini" }
+```
+
+This reads the delegation config and returns the next preset according to strategy.
 
 ## Example Config
 
 ```toml
 # ~/.ccmux/config.toml
+
+[delegation]
+strategy = "random"
+pool = ["worker", "gemini-worker"]
 
 [presets.watchdog]
 harness = "claude"
@@ -225,6 +277,12 @@ harness = "gemini"
 description = "Gemini for quick tasks"
 [presets.gemini-fast.config]
 model = "gemini-2.5-flash"
+
+[presets.gemini-worker]
+harness = "gemini"
+description = "Gemini worker for parallel tasks"
+[presets.gemini-worker.config]
+model = "gemini-2.5-pro"
 
 [presets.reviewer]
 harness = "codex"
