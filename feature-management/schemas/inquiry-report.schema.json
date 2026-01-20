@@ -1,0 +1,190 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://featmgmt.dev/schemas/inquiry-report.schema.json",
+  "title": "Inquiry Report",
+  "description": "Schema for inquiry_report.json files in featmgmt inquiries - structured deliberation for complex decisions",
+  "type": "object",
+  "required": [
+    "inquiry_id",
+    "title",
+    "component",
+    "priority",
+    "status",
+    "phase",
+    "created_date",
+    "updated_date",
+    "question",
+    "context",
+    "constraints",
+    "research_agents"
+  ],
+  "properties": {
+    "inquiry_id": {
+      "type": "string",
+      "pattern": "^INQ-\\d{3,}$",
+      "description": "Unique inquiry identifier (e.g., INQ-001, INQ-042)"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 200,
+      "description": "Concise, descriptive inquiry title"
+    },
+    "component": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Primary affected component or module"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["P0", "P1", "P2", "P3"],
+      "description": "Inquiry priority (P0=critical, P1=high, P2=medium, P3=low)"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["new", "research", "synthesis", "debate", "consensus", "completed", "cancelled"],
+      "description": "Current inquiry status reflecting phase progression"
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["research", "synthesis", "debate", "consensus", "completed"],
+      "description": "Current deliberation phase"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date inquiry was opened (YYYY-MM-DD)"
+    },
+    "updated_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date inquiry was last updated (YYYY-MM-DD)"
+    },
+    "assigned_to": {
+      "type": ["string", "null"],
+      "description": "Lead facilitator for the inquiry"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Tags for categorization and filtering"
+    },
+    "question": {
+      "type": "string",
+      "minLength": 10,
+      "description": "The core question to be answered through deliberation"
+    },
+    "context": {
+      "type": "string",
+      "minLength": 20,
+      "description": "Background information and why this decision matters"
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 5
+      },
+      "minItems": 1,
+      "description": "Non-negotiable requirements that any solution must satisfy"
+    },
+    "research_agents": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 10,
+      "description": "Number of independent agents for Phase 1 research"
+    },
+    "stakeholders": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Parties with interest in the outcome"
+    },
+    "deadline": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "Decision deadline if time-constrained (YYYY-MM-DD)"
+    },
+    "scope": {
+      "type": "string",
+      "description": "Boundaries of the inquiry - what is and isn't in scope"
+    },
+    "spawned_features": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^FEAT-\\d{3,}$"
+      },
+      "default": [],
+      "description": "FEAT IDs created as output of this inquiry"
+    },
+    "alternatives_considered": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "reason_rejected"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the rejected alternative"
+          },
+          "reason_rejected": {
+            "type": "string",
+            "description": "Why this alternative was not chosen"
+          }
+        }
+      },
+      "default": [],
+      "description": "Summary of approaches that were considered but rejected"
+    },
+    "phase_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["phase", "entered_date"],
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": ["research", "synthesis", "debate", "consensus", "completed"]
+          },
+          "entered_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "History of phase transitions"
+    },
+    "decision_points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["topic", "resolution"],
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "The decision topic"
+          },
+          "resolution": {
+            "type": "string",
+            "description": "The agreed resolution"
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Why this resolution was chosen"
+          }
+        }
+      },
+      "description": "Key decisions made during the inquiry"
+    }
+  },
+  "additionalProperties": false
+}
