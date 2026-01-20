@@ -4,9 +4,9 @@
 **Last Updated**: 2026-01-19
 
 ## Summary Statistics
-- Total Inquiries: 2
+- Total Inquiries: 3
 - By Phase:
-  - Research: 2
+  - Research: 3
   - Synthesis: 0
   - Debate: 0
   - Consensus: 0
@@ -18,6 +18,7 @@
 |----|-------|----------|-------|-----------------|----------|----------|
 | INQ-001 | Visualization Architecture Review | P1 | research | 3 | - | `INQ-001-visualization-architecture/` |
 | INQ-002 | Intelligent Pipe Fabric | P1 | research | 3 | - | `INQ-002-intelligent-pipe-fabric/` |
+| INQ-003 | Hierarchical Orchestration Messaging | P1 | research | 3 | - | `INQ-003-hierarchical-orchestration-messaging/` |
 
 ## Completed Inquiries
 
@@ -27,6 +28,7 @@
 ## Recent Activity
 
 ### 2026-01-19
+- INQ-003 created (hierarchical orchestration, mcp-agent-mail research)
 - INQ-001 created (converted from FEAT-103)
 - INQ-002 created ("replace | with mux" vision)
 

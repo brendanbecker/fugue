@@ -1,0 +1,22 @@
+{
+  "inquiry_id": "INQ-003",
+  "title": "Hierarchical Orchestration Messaging",
+  "component": "orchestration/messaging",
+  "priority": "P1",
+  "status": "new",
+  "phase": "research",
+  "created_date": "2026-01-19",
+  "updated_date": "2026-01-19",
+  "question": "How should ccmux handle multi-level orchestration hierarchies (overseer → orchestrators → workers) with proper message routing, and should we integrate with or learn from external solutions like mcp-agent-mail?",
+  "context": "Current ccmux_report_status broadcasts to ALL sessions tagged 'orchestrator'. This breaks down with hierarchical orchestration where an overseer manages multiple project orchestrators, each managing their own workers. Workers flood all orchestrators with status, and there's no parent-child relationship tracking. External projects like Jeffrey Emanuel's mcp-agent-mail may offer patterns or integration opportunities.",
+  "constraints": [
+    "Must support at least 3 levels: overseer → orchestrator → worker",
+    "Workers must report to their spawning orchestrator, not all orchestrators",
+    "Orchestrators must be able to report to overseer",
+    "Must not break existing flat orchestration use cases",
+    "Should consider interoperability with external MCP messaging solutions"
+  ],
+  "research_agents": 3,
+  "tags": ["orchestration", "messaging", "hierarchy", "mcp", "agent-mail"],
+  "spawned_features": []
+}
