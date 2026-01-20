@@ -1,0 +1,16 @@
+{
+  "feature_id": "FEAT-107",
+  "title": "Landlock Sandbox Wrapper Integration",
+  "component": "pty/sandbox",
+  "priority": "P1",
+  "status": "new",
+  "type": "new_feature",
+  "created_date": "2026-01-19",
+  "updated_date": "2026-01-19",
+  "description": "Integrate ccmux-sandbox as a transparent wrapper for pane commands, enabling per-pane Landlock filesystem sandboxing. Workers can run with --dangerously-skip-permissions safely isolated to their worktree.",
+  "estimated_effort": "medium",
+  "business_value": "high",
+  "tags": ["security", "sandboxing", "landlock", "orchestration", "workers"],
+  "dependencies": ["FEAT-081"],
+  "technical_complexity": "medium"
+}
