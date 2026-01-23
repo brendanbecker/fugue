@@ -10,6 +10,27 @@
 
 ## Current State (2026-01-22)
 
+### Active Session (Session 23) - Bug Fixes + Regression Fix
+
+**Orchestrator**: Running in `nexus` session with tags `[orchestrator, meta, nexus]`
+
+**Session Summary**:
+- Merged BUG-054 and BUG-071 fixes from Session 22 workers
+- Discovered BUG-072 regression (kill_session hang returned)
+- Spawned Codex worker to investigate and fix BUG-072
+- All bugs resolved, worktrees cleaned up
+
+**Completed This Session**:
+| Bug | Description | Fix | Commit |
+|-----|-------------|-----|--------|
+| BUG-054 | send_input submit:true not triggering Enter | Increased delay 50ms→200ms | `8d7ff25` |
+| BUG-071 | Watchdog timer submit not working | Increased delay + explicit flush | `9b46903` |
+| BUG-072 | kill_session hang regression | Added SessionEnded broadcast to cleanup loop | `3b59961` |
+
+**BUG-072 Root Cause**: Original BUG-058 fix only covered explicit `kill_session` MCP calls. The `run_pane_cleanup_loop` (auto-removes empty sessions when all panes exit) was missing the same `SessionEnded` broadcast and client detachment logic.
+
+---
+
 **All P1 Features Complete!** Orchestration primitives fully shipped:
 - `ccmux_expect` - Wait for regex patterns in pane output (FEAT-096)
 - `ccmux_run_parallel` - Execute commands in parallel across panes (FEAT-094)
@@ -29,7 +50,7 @@
 
 ### Active Bugs (0)
 
-**ZERO BUGS!** All 70 bugs resolved (69 fixed, 1 deprecated).
+All bugs resolved! See Session 23 summary above for latest fixes.
 
 ### Remaining Backlog
 
@@ -41,7 +62,41 @@
 | P1 | INQ-004 | MCP Response Integrity | new |
 | P3 | FEAT-069, FEAT-072 | TLS/auth, per-pane MCP mode | backlog |
 
-### Latest Session (2026-01-22, Session 21)
+### Latest Session (2026-01-22, Session 23)
+
+**Bug Fixes + BUG-072 Regression Fix**
+
+1. Merged BUG-054 and BUG-071 fixes from Session 22 Gemini workers
+2. Cleaned up worktrees (`ccmux-bug054`, `ccmux-bug071`) and sessions
+3. User reported `ccmux_kill_session` hanging again - regression of BUG-058
+4. Created BUG-072, spawned Codex worker to investigate
+5. Codex found root cause: `run_pane_cleanup_loop` missing SessionEnded broadcast
+6. Fix merged, cleanup completed
+
+**Commits**:
+- `8d7ff25`: fix(mcp): resolve submit:true not triggering Enter (BUG-054)
+- `9b46903`: fix(watchdog): resolve timer submit not triggering Enter (BUG-071)
+- `3b59961`: fix(session): broadcast end on cleanup (BUG-072)
+
+**Key Learning**: Session destruction has TWO code paths:
+1. `handle_destroy_session` - explicit MCP kill (fixed in BUG-058)
+2. `run_pane_cleanup_loop` - auto-cleanup when all panes exit (fixed in BUG-072)
+
+Both need to broadcast `SessionEnded` and detach clients.
+
+**Daemon Rebuild Required**: Run `cargo install --path ccmux-server && pkill ccmux-server`
+
+---
+
+### Previous Session (2026-01-22, Session 22)
+
+**Submit/Enter Bug Fixes via Parallel Gemini Workers**
+
+Launched two Gemini workers to fix related submit/Enter issues. Both merged in Session 23.
+
+---
+
+### Previous Session (2026-01-22, Session 21)
 
 **BUG-070: Session Switch Rendering Corruption**
 
@@ -624,7 +679,7 @@ All refactoring features merged in Session 9:
 
 ### Bugs (0 open)
 
-All bugs resolved! 66 total (65 fixed, 1 deprecated).
+All bugs resolved! 72 total (71 fixed, 1 deprecated).
 
 ### Features (backlog)
 
@@ -677,6 +732,13 @@ ccmux is agent-agnostic:
 - See: `docs/adr/ADR-001-dumb-pipe-strategy.md`
 
 ## Recent Completions
+
+### 2026-01-22 (Session 23)
+| ID | Description | Commit |
+|----|-------------|--------|
+| BUG-054 | send_input submit:true Enter fix | 8d7ff25 |
+| BUG-071 | Watchdog timer submit fix | 9b46903 |
+| BUG-072 | kill_session hang regression (cleanup loop) | 3b59961 |
 
 ### 2026-01-20 (Session 20)
 | ID | Description | Commit |
@@ -774,7 +836,7 @@ ccmux is agent-agnostic:
 
 | Metric | Value |
 |--------|-------|
-| Total Bugs | 66 |
+| Total Bugs | 72 |
 | Open Bugs | 0 |
 | Resolution Rate | 100% |
 | Total Features | 111 |
