@@ -38,8 +38,8 @@ pub struct Connection {
     state: ConnectionState,
     /// Channel for outgoing messages
     tx: mpsc::Sender<ClientMessage>,
-    /// Channel for receiving messages
-    rx: mpsc::Receiver<ServerMessage>,
+    /// Channel for receiving messages (unbounded to prevent deadlock - BUG-072)
+    rx: mpsc::UnboundedReceiver<ServerMessage>,
     /// Handle to the connection task
     task_handle: Option<tokio::task::JoinHandle<()>>,
 }
@@ -48,7 +48,7 @@ impl Connection {
     /// Create a new connection (not yet connected)
     pub fn new() -> Self {
         let (tx, _) = mpsc::channel(100);
-        let (_, rx) = mpsc::channel(100);
+        let (_, rx) = mpsc::unbounded_channel();
         let default_socket = socket_path();
         let addr = format!("unix://{}", default_socket.to_string_lossy());
 
@@ -144,8 +144,12 @@ impl Connection {
         let framed = Framed::new(stream, ClientCodec::new());
 
         // Set up channels
+        // BUG-072 FIX: Use unbounded channel for incoming to prevent deadlock.
+        // When incoming is bounded, connection_task can block on incoming.send()
+        // while the main loop blocks on connection.send(). This creates a circular
+        // dependency that causes deadlock during high-traffic scenarios like session kill.
         let (outgoing_tx, outgoing_rx) = mpsc::channel::<ClientMessage>(100);
-        let (incoming_tx, incoming_rx) = mpsc::channel::<ServerMessage>(100);
+        let (incoming_tx, incoming_rx) = mpsc::unbounded_channel::<ServerMessage>();
 
         self.tx = outgoing_tx;
         self.rx = incoming_rx;
@@ -199,7 +203,7 @@ impl Connection {
     async fn connection_task(
         mut framed: Framed<Box<dyn StreamTrait>, ClientCodec>,
         mut outgoing: mpsc::Receiver<ClientMessage>,
-        incoming: mpsc::Sender<ServerMessage>,
+        incoming: mpsc::UnboundedSender<ServerMessage>,
     ) {
         loop {
             tokio::select! {
@@ -219,7 +223,8 @@ impl Connection {
                                 message_type = ?std::mem::discriminant(&msg),
                                 "Received message from server socket"
                             );
-                            if incoming.send(msg).await.is_err() {
+                            // BUG-072: Using unbounded channel, send is non-blocking
+                            if incoming.send(msg).is_err() {
                                 // Receiver dropped
                                 tracing::debug!("Incoming channel closed, receiver dropped");
                                 break;
