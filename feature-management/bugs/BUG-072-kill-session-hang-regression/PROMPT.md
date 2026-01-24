@@ -47,6 +47,16 @@ Client hangs after session is killed, similar to original BUG-058 symptoms.
 
 **Key insight:** The hang affects the client globally, not just the session that was killed. This suggests the issue is in shared client state or event loop, not session-specific handling.
 
+### Additional Observations (2026-01-24)
+
+**New data point - daemon is fine, client render is broken:**
+1. Screen froze, input appeared unresponsive
+2. In session management screen: `n` (new session) and `r` (refresh) appeared to do nothing
+3. After client restart: **new session existed** - the `n` command was actually processed!
+4. Conclusion: Daemon received and processed commands, but client stopped updating UI
+
+**This strongly suggests:** Client message receive loop or render loop is blocked/deadlocked. Commands are being sent successfully, daemon processes them, but client never receives/renders the responses.
+
 ## Hypotheses
 
 Based on the 2026-01-23 observations:
@@ -62,6 +72,19 @@ The client may maintain state (subscriptions, pending requests) for the killed s
 
 ### H4: Session Picker Works but Attach Fails
 Since `Ctrl+b s` works but entering a session doesn't, the issue may be in the session attach/select path rather than the render loop itself.
+
+### H5: Client Receive Loop Deadlocked (Most Likely - 2026-01-24)
+The 2026-01-24 observation proves:
+- Commands are being sent (daemon created session)
+- Daemon is processing correctly
+- Client is NOT receiving/rendering responses
+
+The client likely has separate tasks for:
+1. Sending commands (working)
+2. Receiving daemon messages (blocked/deadlocked)
+3. Rendering UI (starved because no messages arriving)
+
+The `Ctrl+b` keybindings may work because they're handled locally before hitting the message receive path. The deadlock is likely in the message receive task, possibly waiting on a channel related to the killed session.
 
 ## Investigation Steps
 
