@@ -759,6 +759,8 @@ impl<'a> ToolContext<'a> {
             .map_err(|e| McpError::Pty(e.to_string()))?;
 
         if submit {
+            // BUG-054: Delay to ensure TUI sees Enter as separate event
+            std::thread::sleep(std::time::Duration::from_millis(200));
             handle
                 .write_all(b"\r")
                 .map_err(|e| McpError::Pty(e.to_string()))?;
@@ -804,6 +806,8 @@ impl<'a> ToolContext<'a> {
                     .map_err(|e| McpError::Pty(e.to_string()))?;
 
                 if submit {
+                    // BUG-054: Delay to ensure TUI sees Enter as separate event
+                    std::thread::sleep(std::time::Duration::from_millis(200));
                     handle
                         .write_all(b"\r")
                         .map_err(|e| McpError::Pty(e.to_string()))?;

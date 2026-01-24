@@ -3,7 +3,7 @@
 **Priority**: P2
 **Component**: mcp
 **Severity**: medium
-**Status**: open
+**Status**: fixed
 
 ## Problem
 
@@ -147,6 +147,7 @@ This mirrors what the workaround does (two separate calls) but internally, givin
 - 2026-01-17: Reopened after QA testing confirmed `submit:true` still fails with Gemini CLI
 - Verified: separate `key: "Enter"` call works, so Option A should work
 - 2026-01-24: Reopened again - still fails ~20% of the time. Works most of the time but intermittently requires manual Enter. This suggests a race condition rather than a complete failure.
+- 2026-01-24: Root cause found - two MCP code paths, only bridge had the delay. Fixed by adding 200ms delay to mcp/handlers.rs as well.
 
 ## Related
 
