@@ -204,6 +204,43 @@ Orchestrator:
   3. Coordinates merge
 ```
 
+## Watchdog Monitor Pattern
+
+For long-running workflows, use a dedicated **watchdog monitor** instead of having the orchestrator poll workers directly. This preserves orchestrator context for decision-making.
+
+See [WATCHDOG_MONITOR.md](./WATCHDOG_MONITOR.md) for full documentation.
+
+### Quick Setup
+
+```json
+// 1. Create watchdog session
+{"tool": "fugue_create_session", "input": {
+  "name": "__watchdog",
+  "command": "claude --dangerously-skip-permissions",
+  "tags": ["watchdog"]
+}}
+
+// 2. Start native timer (sends "check" every 30s)
+{"tool": "fugue_watchdog_start", "input": {
+  "pane_id": "<watchdog_pane_id>",
+  "interval_secs": 30,
+  "message": "check"
+}}
+```
+
+### Alert Types
+
+The watchdog sends alerts ONLY when action is needed:
+
+| Alert | Trigger |
+|-------|---------|
+| `worker.stuck` | No activity for N intervals |
+| `worker.error` | Error status or output detected |
+| `worker.complete` | Worker finished successfully |
+| `worker.needs_input` | Worker awaiting input/confirmation |
+
+**Key principle**: No news is good news. Silence means all workers are healthy.
+
 ## Future Enhancements
 
 - **Push notifications**: Orchestrator notified immediately on status change

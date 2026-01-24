@@ -13,7 +13,26 @@ Tags are arbitrary strings used for message routing and role identification. Thi
 | Tag | Purpose |
 |-----|---------|
 | `worker` | Session doing implementation work; should not delegate further |
-| `watchdog` | Session monitoring other sessions for timeouts/failures |
+| `watchdog` | Session monitoring workers; sends alerts to orchestrator when action needed |
+
+## Watchdog Monitor Tags
+
+The watchdog monitor (see [WATCHDOG_MONITOR.md](./WATCHDOG_MONITOR.md)) uses tags to:
+
+1. **Discover workers**: Filters sessions by `worker` tag
+2. **Route alerts**: Sends `worker.*` messages to `orchestrator` tag
+3. **Self-identify**: Tags itself with `watchdog`
+
+### Alert Message Routing
+
+```
+Watchdog (tag: watchdog)
+    │
+    │ worker.stuck, worker.error,
+    │ worker.complete, worker.needs_input
+    ▼
+Orchestrator (tag: orchestrator)
+```
 
 ## Usage Examples
 

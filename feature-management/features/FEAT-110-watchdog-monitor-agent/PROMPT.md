@@ -3,7 +3,7 @@
 **Priority**: P1
 **Component**: orchestration/watchdog
 **Effort**: Medium
-**Status**: new
+**Status**: done
 
 ## Summary
 
@@ -312,17 +312,17 @@ If watchdog session restarts:
 
 ## Acceptance Criteria
 
-- [ ] Watchdog agent preset defined in example config
-- [ ] System prompt documented for watchdog agent behavior
-- [ ] Stuck detection works with configurable threshold
-- [ ] Error detection catches status-reported and output-based errors
-- [ ] Complete detection triggers on fugue_report_status(status: "complete")
-- [ ] Needs input detection checks is_awaiting_input/is_awaiting_confirmation
-- [ ] Alerts sent ONLY when action needed (no "all good" messages)
-- [ ] Alert messages contain actionable context
-- [ ] Configuration documented with defaults
-- [ ] Integration with fugue_watchdog_start timer documented
-- [ ] Example orchestrator handling of watchdog alerts provided
+- [x] Watchdog agent preset defined in example config
+- [x] System prompt documented for watchdog agent behavior
+- [x] Stuck detection works with configurable threshold
+- [x] Error detection catches status-reported and output-based errors
+- [x] Complete detection triggers on fugue_report_status(status: "complete")
+- [x] Needs input detection checks is_awaiting_input/is_awaiting_confirmation
+- [x] Alerts sent ONLY when action needed (no "all good" messages)
+- [x] Alert messages contain actionable context
+- [x] Configuration documented with defaults
+- [x] Integration with fugue_watchdog_start timer documented
+- [x] Example orchestrator handling of watchdog alerts provided
 
 ## Example Orchestrator Alert Handling
 
