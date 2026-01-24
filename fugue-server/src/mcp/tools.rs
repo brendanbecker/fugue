@@ -999,9 +999,10 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         // ==================== FEAT-104: Watchdog Timer ====================
+        // FEAT-114: Named/Multiple Watchdogs
         Tool {
             name: "fugue_watchdog_start".into(),
-            description: "Start a native watchdog timer that sends periodic messages to a pane. Used for monitoring worker agents.".into(),
+            description: "Start a named watchdog timer that sends periodic messages to a pane. Multiple watchdogs can run simultaneously with different names.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -1018,6 +1019,11 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                         "type": "string",
                         "default": "check",
                         "description": "Message to send to the pane (default: 'check')"
+                    },
+                    "name": {
+                        "type": "string",
+                        "default": "default",
+                        "description": "Name identifier for this watchdog (default: 'default'). Use different names to run multiple watchdogs."
                     }
                 },
                 "required": ["pane_id"]
@@ -1025,18 +1031,28 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         Tool {
             name: "fugue_watchdog_stop".into(),
-            description: "Stop the currently running watchdog timer.".into(),
+            description: "Stop watchdog timer(s). If name is provided, stops only that watchdog. If omitted, stops all running watchdogs.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
-                "properties": {}
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Name of specific watchdog to stop. If omitted, stops ALL running watchdogs."
+                    }
+                }
             }),
         },
         Tool {
             name: "fugue_watchdog_status".into(),
-            description: "Get the current status of the watchdog timer.".into(),
+            description: "Get watchdog timer status. If name is provided, returns status of that watchdog. If omitted, returns status of all watchdogs.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
-                "properties": {}
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Name of specific watchdog to query. If omitted, returns status of ALL watchdogs."
+                    }
+                }
             }),
         },
         // ==================== FEAT-109: Drain Messages Tool ====================

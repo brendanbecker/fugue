@@ -1800,26 +1800,31 @@ impl<'a> ToolHandlers<'a> {
                 }
 
     // ==================== FEAT-104: Watchdog Timer ====================
+    // FEAT-114: Named/Multiple Watchdogs
 
-    /// Start the watchdog timer
+    /// Start a named watchdog timer
     pub async fn tool_watchdog_start(
         &mut self,
         pane_id: Uuid,
         interval_secs: Option<u64>,
         message: Option<String>,
+        name: Option<String>,
     ) -> Result<ToolResult, McpError> {
         match self.connection.send_and_recv(ClientMessage::WatchdogStart {
             pane_id,
             interval_secs: interval_secs.unwrap_or(90),
             message,
+            name,
         }).await? {
             ServerMessage::WatchdogStarted {
+                name,
                 pane_id,
                 interval_secs,
                 message,
             } => {
                 let result = serde_json::json!({
                     "status": "started",
+                    "name": name,
                     "pane_id": pane_id.to_string(),
                     "interval_secs": interval_secs,
                     "message": message
@@ -1836,13 +1841,22 @@ impl<'a> ToolHandlers<'a> {
         }
     }
 
-    /// Stop the watchdog timer
-    pub async fn tool_watchdog_stop(&mut self) -> Result<ToolResult, McpError> {
-        match self.connection.send_and_recv(ClientMessage::WatchdogStop).await? {
-            ServerMessage::WatchdogStopped => {
-                let result = serde_json::json!({
-                    "status": "stopped"
-                });
+    /// Stop watchdog timer(s)
+    /// If name is Some, stops only that watchdog. If None, stops all.
+    pub async fn tool_watchdog_stop(&mut self, name: Option<String>) -> Result<ToolResult, McpError> {
+        match self.connection.send_and_recv(ClientMessage::WatchdogStop { name: name.clone() }).await? {
+            ServerMessage::WatchdogStopped { stopped } => {
+                let result = if stopped.is_empty() {
+                    serde_json::json!({
+                        "status": "no_watchdogs_running",
+                        "stopped": []
+                    })
+                } else {
+                    serde_json::json!({
+                        "status": "stopped",
+                        "stopped": stopped
+                    })
+                };
 
                 let json = serde_json::to_string_pretty(&result)
                     .map_err(|e| McpError::Internal(e.to_string()))?;
@@ -1856,20 +1870,31 @@ impl<'a> ToolHandlers<'a> {
     }
 
     /// Get watchdog timer status
-    pub async fn tool_watchdog_status(&mut self) -> Result<ToolResult, McpError> {
-        match self.connection.send_and_recv(ClientMessage::WatchdogStatus).await? {
-            ServerMessage::WatchdogStatusResponse {
-                is_running,
-                pane_id,
-                interval_secs,
-                message,
-            } => {
-                let result = serde_json::json!({
-                    "is_running": is_running,
-                    "pane_id": pane_id.map(|id| id.to_string()),
-                    "interval_secs": interval_secs,
-                    "message": message
-                });
+    /// If name is Some, returns status of that specific watchdog. If None, returns all.
+    pub async fn tool_watchdog_status(&mut self, name: Option<String>) -> Result<ToolResult, McpError> {
+        match self.connection.send_and_recv(ClientMessage::WatchdogStatus { name: name.clone() }).await? {
+            ServerMessage::WatchdogStatusResponse { watchdogs } => {
+                let result = if watchdogs.is_empty() {
+                    serde_json::json!({
+                        "is_running": false,
+                        "watchdogs": []
+                    })
+                } else {
+                    let watchdog_list: Vec<_> = watchdogs.iter().map(|w| {
+                        serde_json::json!({
+                            "name": w.name,
+                            "pane_id": w.pane_id.to_string(),
+                            "interval_secs": w.interval_secs,
+                            "message": w.message
+                        })
+                    }).collect();
+
+                    serde_json::json!({
+                        "is_running": true,
+                        "count": watchdogs.len(),
+                        "watchdogs": watchdog_list
+                    })
+                };
 
                 let json = serde_json::to_string_pretty(&result)
                     .map_err(|e| McpError::Internal(e.to_string()))?;

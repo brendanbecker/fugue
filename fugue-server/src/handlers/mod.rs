@@ -466,19 +466,20 @@ impl HandlerContext {
                 .await
             }
 
-            // FEAT-104: Watchdog Timer
+            // FEAT-104: Watchdog Timer + FEAT-114: Named Watchdogs
             ClientMessage::WatchdogStart {
                 pane_id,
                 interval_secs,
                 message,
+                name,
             } => {
-                self.handle_watchdog_start(pane_id, interval_secs, message)
+                self.handle_watchdog_start(pane_id, interval_secs, message, name)
                     .await
             }
 
-            ClientMessage::WatchdogStop => self.handle_watchdog_stop().await,
+            ClientMessage::WatchdogStop { name } => self.handle_watchdog_stop(name).await,
 
-            ClientMessage::WatchdogStatus => self.handle_watchdog_status().await,
+            ClientMessage::WatchdogStatus { name } => self.handle_watchdog_status(name).await,
         }
     }
 
@@ -496,7 +497,7 @@ impl HandlerContext {
         HandlerResult::NoResponse
     }
 
-    // ==================== Watchdog Timer Handlers (FEAT-104) ====================
+    // ==================== Watchdog Timer Handlers (FEAT-104 + FEAT-114) ====================
 
     /// Handle watchdog start request
     async fn handle_watchdog_start(
@@ -504,6 +505,7 @@ impl HandlerContext {
         pane_id: Uuid,
         interval_secs: u64,
         message: Option<String>,
+        name: Option<String>,
     ) -> HandlerResult {
         let state = self
             .watchdog
@@ -511,11 +513,13 @@ impl HandlerContext {
                 pane_id,
                 interval_secs,
                 message,
+                name,
                 Arc::clone(&self.pty_manager),
             )
             .await;
 
         HandlerResult::Response(ServerMessage::WatchdogStarted {
+            name: state.name,
             pane_id: state.pane_id,
             interval_secs: state.interval_secs,
             message: state.message,
@@ -523,21 +527,38 @@ impl HandlerContext {
     }
 
     /// Handle watchdog stop request
-    async fn handle_watchdog_stop(&self) -> HandlerResult {
-        self.watchdog.stop().await;
-        HandlerResult::Response(ServerMessage::WatchdogStopped)
+    /// If name is Some, stops only that watchdog. If None, stops all.
+    async fn handle_watchdog_stop(&self, name: Option<String>) -> HandlerResult {
+        // Get the names of watchdogs that will be stopped before stopping them
+        let to_stop: Vec<String> = self.watchdog.status(name.clone()).await
+            .into_iter()
+            .map(|s| s.name)
+            .collect();
+
+        self.watchdog.stop(name).await;
+
+        HandlerResult::Response(ServerMessage::WatchdogStopped {
+            stopped: to_stop,
+        })
     }
 
     /// Handle watchdog status request
-    async fn handle_watchdog_status(&self) -> HandlerResult {
-        let status = self.watchdog.status().await;
+    /// If name is Some, returns status of that specific watchdog. If None, returns all.
+    async fn handle_watchdog_status(&self, name: Option<String>) -> HandlerResult {
+        use fugue_protocol::messages::WatchdogInfo;
 
-        HandlerResult::Response(ServerMessage::WatchdogStatusResponse {
-            is_running: status.is_some(),
-            pane_id: status.as_ref().map(|s| s.pane_id),
-            interval_secs: status.as_ref().map(|s| s.interval_secs),
-            message: status.map(|s| s.message),
-        })
+        let states = self.watchdog.status(name).await;
+        let watchdogs: Vec<WatchdogInfo> = states
+            .into_iter()
+            .map(|s| WatchdogInfo {
+                name: s.name,
+                pane_id: s.pane_id,
+                interval_secs: s.interval_secs,
+                message: s.message,
+            })
+            .collect();
+
+        HandlerResult::Response(ServerMessage::WatchdogStatusResponse { watchdogs })
     }
 
     // ==================== Beads Query Handlers (FEAT-058) ====================

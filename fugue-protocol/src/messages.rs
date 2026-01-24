@@ -454,6 +454,7 @@ pub enum ClientMessage {
     },
 
     // ==================== FEAT-104: Watchdog Timer ====================
+    // FEAT-114: Named/Multiple Watchdogs
 
     /// Start the watchdog timer that sends periodic messages to a pane
     WatchdogStart {
@@ -463,13 +464,23 @@ pub enum ClientMessage {
         interval_secs: u64,
         /// Message to send (default: "check")
         message: Option<String>,
+        /// Name identifier for this watchdog (default: "default")
+        name: Option<String>,
     },
 
-    /// Stop the watchdog timer
-    WatchdogStop,
+    /// Stop the watchdog timer(s)
+    /// If name is None, stops all watchdogs
+    WatchdogStop {
+        /// Name of specific watchdog to stop (None = stop all)
+        name: Option<String>,
+    },
 
     /// Get current watchdog status
-    WatchdogStatus,
+    /// If name is None, returns status of all watchdogs
+    WatchdogStatus {
+        /// Name of specific watchdog to query (None = all)
+        name: Option<String>,
+    },
 }
 
 impl ClientMessage {
@@ -529,8 +540,8 @@ impl ClientMessage {
             ClientMessage::PollMessages { .. } => "PollMessages",
             ClientMessage::CreateStatusPane { .. } => "CreateStatusPane",
             ClientMessage::WatchdogStart { .. } => "WatchdogStart",
-            ClientMessage::WatchdogStop => "WatchdogStop",
-            ClientMessage::WatchdogStatus => "WatchdogStatus",
+            ClientMessage::WatchdogStop { .. } => "WatchdogStop",
+            ClientMessage::WatchdogStatus { .. } => "WatchdogStatus",
         }
     }
 }
@@ -955,9 +966,12 @@ pub enum ServerMessage {
     },
 
     // ==================== FEAT-104: Watchdog Timer ====================
+    // FEAT-114: Named/Multiple Watchdogs
 
     /// Watchdog timer started successfully
     WatchdogStarted {
+        /// Name identifier for this watchdog
+        name: String,
         /// Target pane receiving the periodic messages
         pane_id: Uuid,
         /// Interval between messages in seconds
@@ -966,20 +980,30 @@ pub enum ServerMessage {
         message: String,
     },
 
-    /// Watchdog timer stopped
-    WatchdogStopped,
-
-    /// Current watchdog status
-    WatchdogStatusResponse {
-        /// Whether a watchdog timer is currently running
-        is_running: bool,
-        /// Target pane (if running)
-        pane_id: Option<Uuid>,
-        /// Interval in seconds (if running)
-        interval_secs: Option<u64>,
-        /// Message being sent (if running)
-        message: Option<String>,
+    /// Watchdog timer(s) stopped
+    WatchdogStopped {
+        /// Names of watchdogs that were stopped
+        stopped: Vec<String>,
     },
+
+    /// Current watchdog status response
+    WatchdogStatusResponse {
+        /// List of running watchdogs
+        watchdogs: Vec<WatchdogInfo>,
+    },
+}
+
+/// Information about a single watchdog timer
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct WatchdogInfo {
+    /// Name identifier for this watchdog
+    pub name: String,
+    /// Target pane receiving messages
+    pub pane_id: Uuid,
+    /// Interval between messages in seconds
+    pub interval_secs: u64,
+    /// Message being sent
+    pub message: String,
 }
 
 impl ServerMessage {
@@ -1040,7 +1064,7 @@ impl ServerMessage {
             ServerMessage::MirrorCreated { .. } => "MirrorCreated",
             ServerMessage::MirrorSourceClosed { .. } => "MirrorSourceClosed",
             ServerMessage::WatchdogStarted { .. } => "WatchdogStarted",
-            ServerMessage::WatchdogStopped => "WatchdogStopped",
+            ServerMessage::WatchdogStopped { .. } => "WatchdogStopped",
             ServerMessage::WatchdogStatusResponse { .. } => "WatchdogStatusResponse",
         }
     }
