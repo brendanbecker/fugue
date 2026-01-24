@@ -2,6 +2,28 @@
 
 Multi-agent orchestration commands for managing worker agents with watchdog monitoring.
 
+**Invoke when:** User types `/orchestrate <command>` where command is one of: `spawn`, `status`, `monitor`, `kill`, `collect`.
+
+**Parse the arguments** from the user's input to determine which command to execute.
+
+---
+
+## `/orchestrate` (no arguments)
+
+If no command is provided, display available commands:
+
+```
+Orchestration Commands:
+  /orchestrate spawn <task>     - Spawn a worker agent for a task
+  /orchestrate status           - Show all workers and their status
+  /orchestrate monitor start    - Start the watchdog agent
+  /orchestrate monitor stop     - Stop the watchdog agent
+  /orchestrate kill <session>   - Kill a worker session
+  /orchestrate collect [session] - Collect work from completed workers
+```
+
+---
+
 ## Commands
 
 ### `/orchestrate spawn <task>`
@@ -16,16 +38,50 @@ Spawn a new worker agent for a task.
 
 **What it does:**
 1. Creates a new session named `<task>-worker`
-2. Tags the session with `worker`
+2. Tags the session with `worker` and lineage tag
 3. Launches Claude with the task in `--dangerously-skip-permissions` mode
 
-**Implementation:**
-```
-1. fugue_create_session(name: "<task>-worker", cwd: $PWD)
-2. fugue_set_tags(session: "<task>-worker", add: ["worker"])
-3. Get pane_id from the new session
-4. fugue_send_input(pane_id: <pane>, input: "claude --dangerously-skip-permissions '<task>'", submit: true)
-```
+**Execute these steps:**
+
+1. **Get your session name** for lineage tracking:
+   ```
+   fugue_list_sessions() → find your session, note the name
+   ```
+
+2. **Create the worker session:**
+   ```
+   fugue_create_session(
+     name: "<task>-worker",
+     cwd: "<current working directory>",
+     tags: ["worker", "child:<your-session-name>"]
+   )
+   ```
+   Save the returned `session_id` and find the pane_id from the session.
+
+3. **Get the pane ID:**
+   ```
+   fugue_list_panes(session: "<task>-worker") → get pane_id
+   ```
+
+4. **Launch Claude in the worker:**
+   ```
+   fugue_send_input(
+     pane_id: <pane_id>,
+     input: "claude --dangerously-skip-permissions",
+     submit: true
+   )
+   ```
+
+5. **Wait for Claude to start** (2-3 seconds), then send the task:
+   ```
+   fugue_send_input(
+     pane_id: <pane_id>,
+     input: "<task description>",
+     submit: true
+   )
+   ```
+
+**Report to user:** "Spawned worker `<task>-worker` for task: <task>"
 
 ---
 
@@ -38,18 +94,35 @@ Show status of all worker agents.
 /orchestrate status
 ```
 
-**What it does:**
-1. Lists all sessions tagged as `worker` or matching `*-worker` pattern
-2. Shows each worker's Claude state (working, idle, waiting for input)
-3. Shows how long each worker has been running
+**Execute these steps:**
 
-**Implementation:**
-```
-1. fugue_list_panes to get all panes
-2. Filter for sessions matching *-worker or having tag:worker
-3. For each: fugue_get_status to get Claude state
-4. Format and display summary table
-```
+1. **List all panes:**
+   ```
+   fugue_list_panes()
+   ```
+
+2. **Filter for workers:** From the results, identify panes where:
+   - Session name ends with `-worker`, OR
+   - Session has tag `worker`
+
+3. **Get detailed status for each worker:**
+   ```
+   fugue_get_status(pane_id: <worker_pane_id>)
+   ```
+   Note the Claude state: `Processing`, `Idle`, `AwaitingInput`
+
+4. **Optionally read recent output** if status unclear:
+   ```
+   fugue_read_pane(pane_id: <worker_pane_id>, lines: 30)
+   ```
+
+5. **Display summary table:**
+   ```
+   | Session | Status | Claude State | Notes |
+   |---------|--------|--------------|-------|
+   | bug-066-worker | running | Processing | Working on fix |
+   | feat-103-worker | idle | AwaitingInput | Needs approval |
+   ```
 
 ---
 
@@ -63,21 +136,63 @@ Start the watchdog agent that monitors workers.
 /orchestrate monitor start --interval 60   # Check every 60 seconds
 ```
 
-**What it does:**
-1. Creates a `__watchdog` session with `watchdog` tag
-2. Launches a Haiku-powered Claude with monitoring prompt
-3. Starts native fugue timer that sends "check" at intervals
-4. Tags current session as `orchestrator` to receive alerts
+**Parse optional interval:** Default is 90 seconds if not specified.
 
-**Implementation:**
-```
-1. Tag self as orchestrator: fugue_set_tags(add: ["orchestrator"])
-2. Create watchdog session: fugue_create_session(name: "__watchdog")
-3. Tag watchdog: fugue_set_tags(session: "__watchdog", add: ["watchdog"])
-4. Get watchdog pane_id
-5. Launch Claude: fugue_send_input(pane_id: <watchdog_pane>, input: "claude --model haiku ...", submit: true)
-6. Start timer: fugue_watchdog_start(pane_id: <watchdog_pane>, interval_secs: 90)
-```
+**Execute these steps:**
+
+1. **Tag yourself as orchestrator** (to receive watchdog alerts):
+   ```
+   fugue_set_tags(add: ["orchestrator"])
+   ```
+
+2. **Check if watchdog already exists:**
+   ```
+   fugue_list_sessions()
+   ```
+   If `__watchdog` session exists, report "Watchdog already running" and stop.
+
+3. **Create watchdog session:**
+   ```
+   fugue_create_session(
+     name: "__watchdog",
+     cwd: "<current working directory>",
+     tags: ["watchdog"]
+   )
+   ```
+
+4. **Get the watchdog pane ID:**
+   ```
+   fugue_list_panes(session: "__watchdog") → get pane_id
+   ```
+
+5. **Launch Claude Haiku with monitoring prompt:**
+   ```
+   fugue_send_input(
+     pane_id: <watchdog_pane_id>,
+     input: "claude --model claude-3-5-haiku-20241022 --dangerously-skip-permissions",
+     submit: true
+   )
+   ```
+
+6. **Wait for Claude to initialize** (3 seconds), then send the watchdog prompt:
+   ```
+   fugue_send_input(
+     pane_id: <watchdog_pane_id>,
+     input: "You are a worker agent monitor. When you receive 'check', use fugue_list_panes to find workers, fugue_get_status to check their state, and fugue_send_orchestration to alert the orchestrator if any need attention. Be concise.",
+     submit: true
+   )
+   ```
+
+7. **Start the native watchdog timer:**
+   ```
+   fugue_watchdog_start(
+     pane_id: <watchdog_pane_id>,
+     interval_secs: <interval, default 90>,
+     message: "check"
+   )
+   ```
+
+**Report to user:** "Watchdog started. Checking workers every <interval> seconds."
 
 **Watchdog Model:** Uses Claude Haiku for cost efficiency (monitoring is frequent, simple).
 
@@ -92,15 +207,24 @@ Stop the watchdog agent and timer.
 /orchestrate monitor stop
 ```
 
-**What it does:**
-1. Stops the native watchdog timer
-2. Kills the `__watchdog` session
+**Execute these steps:**
 
-**Implementation:**
-```
-1. fugue_watchdog_stop()
-2. fugue_kill_session(session: "__watchdog")
-```
+1. **Stop the native timer:**
+   ```
+   fugue_watchdog_stop()
+   ```
+
+2. **Kill the watchdog session:**
+   ```
+   fugue_kill_session(session: "__watchdog")
+   ```
+
+3. **Optionally remove orchestrator tag** if no longer orchestrating:
+   ```
+   fugue_set_tags(remove: ["orchestrator"])
+   ```
+
+**Report to user:** "Watchdog stopped."
 
 ---
 
@@ -113,14 +237,20 @@ Kill a specific worker session.
 /orchestrate kill bug-066-worker
 ```
 
-**What it does:**
-1. Kills the specified worker session and all its panes
-2. Cleans up resources
+**Execute these steps:**
 
-**Implementation:**
-```
-1. fugue_kill_session(session: "<session>")
-```
+1. **Verify the session exists:**
+   ```
+   fugue_list_sessions()
+   ```
+   Find the session matching `<session>`. If not found, report error.
+
+2. **Kill the session:**
+   ```
+   fugue_kill_session(session: "<session>")
+   ```
+
+**Report to user:** "Killed worker session: <session>"
 
 ---
 
@@ -134,18 +264,41 @@ Collect work from completed workers.
 /orchestrate collect bug-066-worker    # Collect from specific worker
 ```
 
-**What it does:**
-1. Reads the final output from the worker's pane
-2. Optionally kills the worker session after collecting
-3. Returns summary of work completed
+**Execute these steps:**
 
-**Implementation:**
-```
-1. fugue_list_panes to find completed workers (idle state)
-2. For each (or specified): fugue_read_pane(pane_id, lines: 200)
-3. Parse output for completion summary
-4. Optionally: fugue_kill_session to clean up
-```
+1. **If specific session provided:**
+   - Get pane ID for that session
+   - Skip to step 3
+
+2. **If no session specified, find completed workers:**
+   ```
+   fugue_list_panes()
+   ```
+   For each worker session (name ends with `-worker` or has tag `worker`):
+   ```
+   fugue_get_status(pane_id: <worker_pane_id>)
+   ```
+   Filter for workers with `Idle` Claude state (likely completed).
+
+3. **Read output from each worker:**
+   ```
+   fugue_read_pane(pane_id: <worker_pane_id>, lines: 150, strip_escapes: true)
+   ```
+
+4. **Summarize the work:** Look for completion indicators in the output:
+   - Commit messages
+   - "Complete" or "Done" statements
+   - Error messages (if any)
+
+5. **Ask user** whether to kill the collected sessions:
+   "Found work from N workers. Kill these sessions? [y/n]"
+
+6. **If yes, kill sessions:**
+   ```
+   fugue_kill_session(session: "<session-name>")
+   ```
+
+**Report to user:** Summary of collected work from each worker.
 
 ---
 
