@@ -3,7 +3,7 @@
 **Priority**: P1
 **Component**: skill/orchestration
 **Effort**: Small
-**Status**: new
+**Status**: implemented
 
 ## Summary
 
@@ -232,14 +232,34 @@ If `/clear` itself fails (rare):
 
 ## Acceptance Criteria
 
-- [ ] Watchdog clears context after each monitoring cycle
-- [ ] Clear happens only after all notifications confirmed
-- [ ] Failed notifications trigger retry before clear
-- [ ] Watchdog prompt includes clear instructions
-- [ ] No conversation history accumulates across cycles
-- [ ] Watchdog remains functional after clear (tools, prompt preserved)
-- [ ] Config option to disable auto-clear (for debugging)
-- [ ] Watchdog can discover workers from scratch each cycle (stateless)
+- [x] Watchdog clears context after each monitoring cycle
+- [x] Clear happens only after all notifications confirmed
+- [x] Failed notifications trigger retry before clear
+- [x] Watchdog prompt includes clear instructions
+- [x] No conversation history accumulates across cycles
+- [x] Watchdog remains functional after clear (tools, prompt preserved)
+- [x] Config option to disable auto-clear (for debugging)
+- [x] Watchdog can discover workers from scratch each cycle (stateless)
+
+## Implementation Notes
+
+**Implemented in:** `.claude/skills/orchestrate.md`
+
+**Changes made:**
+1. Added step 7 to the watchdog cycle: type "/clear" after completing checks
+2. Added "Context Management (FEAT-111)" section to the watchdog prompt with:
+   - Notification verification before clearing
+   - Retry logic (up to 3 attempts for failed notifications)
+   - Explanation of what gets preserved vs cleared
+3. Added configuration options:
+   - `WATCHDOG_AUTO_CLEAR` (default: true)
+   - `WATCHDOG_NOTIFICATION_RETRIES` (default: 3)
+   - `WATCHDOG_CLEAR_ON_ERROR` (default: true)
+
+**Implementation approach:** Option 1 + Option 3 combined (as recommended in spec):
+- Clear instruction built into watchdog system prompt
+- Agent uses native `/clear` command
+- No new MCP tools needed
 
 ## Testing
 
