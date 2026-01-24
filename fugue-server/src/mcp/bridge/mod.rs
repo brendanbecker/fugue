@@ -1,7 +1,7 @@
-//! MCP Bridge - Connects MCP protocol to the ccmux daemon
+//! MCP Bridge - Connects MCP protocol to the fugue daemon
 //!
 //! This module implements the MCP bridge that translates between MCP JSON-RPC
-//! (over stdio) and the ccmux IPC protocol (over Unix socket).
+//! (over stdio) and the fugue IPC protocol (over Unix socket).
 
 pub mod connection;
 pub mod handlers;
@@ -32,7 +32,7 @@ use self::health::ConnectionState;
 
 /// MCP Bridge
 ///
-/// Connects to the ccmux daemon and handles MCP protocol communication over stdio.
+/// Connects to the fugue daemon and handles MCP protocol communication over stdio.
 pub struct McpBridge {
     connection: ConnectionManager,
     initialized: bool,
@@ -313,26 +313,26 @@ impl McpBridge {
         let mut handlers = ToolHandlers::new(&mut self.connection);
 
         match name {
-            "ccmux_list_sessions" => handlers.tool_list_sessions().await,
-            "ccmux_list_windows" => {
+            "fugue_list_sessions" => handlers.tool_list_sessions().await,
+            "fugue_list_windows" => {
                 let session = arguments["session"].as_str().map(String::from);
                 handlers.tool_list_windows(session).await
             }
-            "ccmux_list_panes" => {
+            "fugue_list_panes" => {
                 let session = arguments["session"].as_str().map(String::from);
                 handlers.tool_list_panes(session).await
             }
-            "ccmux_read_pane" => {
+            "fugue_read_pane" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
                 let lines = arguments["lines"].as_u64().unwrap_or(100) as usize;
                 let strip_escapes = arguments["strip_escapes"].as_bool().unwrap_or(false);
                 handlers.tool_read_pane(pane_id, lines, strip_escapes).await
             }
-            "ccmux_get_status" => {
+            "fugue_get_status" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
                 handlers.tool_get_status(pane_id).await
             }
-            "ccmux_create_session" => {
+            "fugue_create_session" => {
                 let name = arguments["name"].as_str().map(String::from);
                 let command = arguments["command"].as_str().map(String::from);
                 let cwd = arguments["cwd"].as_str().map(String::from);
@@ -349,18 +349,18 @@ impl McpBridge {
                     .unwrap_or_default();
                 handlers.tool_create_session(name, command, cwd, model, config, preset, tags).await
             }
-            "ccmux_attach_session" => {
+            "fugue_attach_session" => {
                 let session_id = parse_uuid(arguments, "session_id")?;
                 handlers.tool_attach_session(session_id).await
             }
-            "ccmux_create_window" => {
+            "fugue_create_window" => {
                 let session = arguments["session"].as_str().map(String::from);
                 let name = arguments["name"].as_str().map(String::from);
                 let command = arguments["command"].as_str().map(String::from);
                 let cwd = arguments["cwd"].as_str().map(String::from);
                 handlers.tool_create_window(session, name, command, cwd).await
             }
-            "ccmux_create_pane" => {
+            "fugue_create_pane" => {
                 let session = arguments["session"].as_str().map(String::from);
                 let window = arguments["window"].as_str().map(String::from);
                 let name = arguments["name"].as_str().map(String::from);
@@ -377,30 +377,30 @@ impl McpBridge {
                 )
                 .await
             }
-            "ccmux_send_input" => {
+            "fugue_send_input" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
                 let input = arguments["input"].as_str().map(String::from);
                 let key = arguments["key"].as_str().map(String::from);
                 let submit = arguments["submit"].as_bool().unwrap_or(false);
                 handlers.tool_send_input(pane_id, input, key, submit).await
             }
-            "ccmux_close_pane" => {
+            "fugue_close_pane" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
                 handlers.tool_close_pane(pane_id).await
             }
-            "ccmux_focus_pane" => {
+            "fugue_focus_pane" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
                 handlers.tool_focus_pane(pane_id).await
             }
-            "ccmux_select_window" => {
+            "fugue_select_window" => {
                 let window_id = parse_uuid(arguments, "window_id")?;
                 handlers.tool_select_window(window_id).await
             }
-            "ccmux_select_session" => {
+            "fugue_select_session" => {
                 let session_id = parse_uuid(arguments, "session_id")?;
                 handlers.tool_select_session(session_id).await
             }
-            "ccmux_rename_session" => {
+            "fugue_rename_session" => {
                 let session = arguments["session"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'session' parameter".into()))?;
@@ -409,21 +409,21 @@ impl McpBridge {
                     .ok_or_else(|| McpError::InvalidParams("Missing 'name' parameter".into()))?;
                 handlers.tool_rename_session(session, name).await
             }
-            "ccmux_rename_pane" => {
+            "fugue_rename_pane" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
                 let name = arguments["name"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'name' parameter".into()))?;
                 handlers.tool_rename_pane(pane_id, name).await
             }
-            "ccmux_rename_window" => {
+            "fugue_rename_window" => {
                 let window_id = parse_uuid(arguments, "window_id")?;
                 let name = arguments["name"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'name' parameter".into()))?;
                 handlers.tool_rename_window(window_id, name).await
             }
-            "ccmux_split_pane" => {
+            "fugue_split_pane" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
                 let direction = arguments["direction"].as_str().map(String::from);
                 let ratio = arguments["ratio"].as_f64().unwrap_or(0.5) as f32;
@@ -433,7 +433,7 @@ impl McpBridge {
                 handlers.tool_split_pane(pane_id, direction, ratio, command, cwd, select)
                     .await
             }
-            "ccmux_resize_pane" => {
+            "fugue_resize_pane" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
                 let delta = arguments["delta"]
                     .as_f64()
@@ -441,7 +441,7 @@ impl McpBridge {
                     as f32;
                 handlers.tool_resize_pane(pane_id, delta).await
             }
-            "ccmux_create_layout" => {
+            "fugue_create_layout" => {
                 let session = arguments["session"].as_str().map(String::from);
                 let window = arguments["window"].as_str().map(String::from);
                 let raw_layout = arguments["layout"].clone();
@@ -464,13 +464,13 @@ impl McpBridge {
                 };
                 handlers.tool_create_layout(session, window, layout).await
             }
-            "ccmux_kill_session" => {
+            "fugue_kill_session" => {
                 let session = arguments["session"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'session' parameter".into()))?;
                 handlers.tool_kill_session(session).await
             }
-            "ccmux_set_environment" => {
+            "fugue_set_environment" => {
                 let session = arguments["session"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'session' parameter".into()))?;
@@ -482,14 +482,14 @@ impl McpBridge {
                     .ok_or_else(|| McpError::InvalidParams("Missing 'value' parameter".into()))?;
                 handlers.tool_set_environment(session, key, value).await
             }
-            "ccmux_get_environment" => {
+            "fugue_get_environment" => {
                 let session = arguments["session"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'session' parameter".into()))?;
                 let key = arguments["key"].as_str().map(String::from);
                 handlers.tool_get_environment(session, key).await
             }
-            "ccmux_set_metadata" => {
+            "fugue_set_metadata" => {
                 let session = arguments["session"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'session' parameter".into()))?;
@@ -501,14 +501,14 @@ impl McpBridge {
                     .ok_or_else(|| McpError::InvalidParams("Missing 'value' parameter".into()))?;
                 handlers.tool_set_metadata(session, key, value).await
             }
-            "ccmux_get_metadata" => {
+            "fugue_get_metadata" => {
                 let session = arguments["session"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'session' parameter".into()))?;
                 let key = arguments["key"].as_str().map(String::from);
                 handlers.tool_get_metadata(session, key).await
             }
-            "ccmux_send_orchestration" => {
+            "fugue_send_orchestration" => {
                 let raw_target = arguments["target"].clone();
                 // BUG-061: Handle target as JSON string (some MCP clients serialize nested objects)
                 let target = match &raw_target {
@@ -526,7 +526,7 @@ impl McpBridge {
                 let payload = arguments["payload"].clone();
                 handlers.tool_send_orchestration(&target, msg_type, payload).await
             }
-            "ccmux_set_tags" => {
+            "fugue_set_tags" => {
                 let session = arguments["session"].as_str().map(String::from);
                 let add = arguments["add"]
                     .as_array()
@@ -546,32 +546,32 @@ impl McpBridge {
                     .unwrap_or_default();
                 handlers.tool_set_tags(session, add, remove).await
             }
-            "ccmux_get_tags" => {
+            "fugue_get_tags" => {
                 let session = arguments["session"].as_str().map(String::from);
                 handlers.tool_get_tags(session).await
             }
-            "ccmux_report_status" => {
+            "fugue_report_status" => {
                 let status = arguments["status"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'status' parameter".into()))?;
                 let message = arguments["message"].as_str().map(String::from);
                 handlers.tool_report_status(status, message).await
             }
-            "ccmux_request_help" => {
+            "fugue_request_help" => {
                 let context = arguments["context"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'context' parameter".into()))?;
                 handlers.tool_request_help(context).await
             }
-            "ccmux_broadcast" => {
+            "fugue_broadcast" => {
                 let msg_type = arguments["msg_type"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'msg_type' parameter".into()))?;
                 let payload = arguments["payload"].clone();
                 handlers.tool_broadcast(msg_type, payload).await
             }
-            "ccmux_connection_status" => handlers.tool_connection_status().await,
-            "ccmux_beads_assign" => {
+            "fugue_connection_status" => handlers.tool_connection_status().await,
+            "fugue_beads_assign" => {
                 let issue_id = arguments["issue_id"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'issue_id' parameter".into()))?;
@@ -584,7 +584,7 @@ impl McpBridge {
                     .transpose()?;
                 handlers.tool_beads_assign(issue_id, pane_id).await
             }
-            "ccmux_beads_release" => {
+            "fugue_beads_release" => {
                 let pane_id = arguments["pane_id"]
                     .as_str()
                     .map(|s| {
@@ -595,13 +595,13 @@ impl McpBridge {
                 let outcome = arguments["outcome"].as_str().map(String::from);
                 handlers.tool_beads_release(pane_id, outcome).await
             }
-            "ccmux_beads_find_pane" => {
+            "fugue_beads_find_pane" => {
                 let issue_id = arguments["issue_id"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'issue_id' parameter".into()))?;
                 handlers.tool_beads_find_pane(issue_id).await
             }
-            "ccmux_beads_pane_history" => {
+            "fugue_beads_pane_history" => {
                 let pane_id = arguments["pane_id"]
                     .as_str()
                     .map(|s| {
@@ -611,12 +611,12 @@ impl McpBridge {
                     .transpose()?;
                 handlers.tool_beads_pane_history(pane_id).await
             }
-            "ccmux_mirror_pane" => {
+            "fugue_mirror_pane" => {
                 let source_pane_id = parse_uuid(arguments, "source_pane_id")?;
                 let direction = arguments["direction"].as_str();
                 handlers.tool_mirror_pane(source_pane_id, direction).await
             }
-            "ccmux_expect" => {
+            "fugue_expect" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
                 let pattern = arguments["pattern"]
                     .as_str()
@@ -628,28 +628,28 @@ impl McpBridge {
 
                 handlers.tool_expect(pane_id, pattern, timeout_ms, action, poll_interval_ms, lines).await
             }
-            "ccmux_run_parallel" => {
+            "fugue_run_parallel" => {
                 let request: orchestration::RunParallelRequest = serde_json::from_value(arguments.clone())
                     .map_err(|e| McpError::InvalidParams(format!("Invalid run_parallel parameters: {}", e)))?;
                 orchestration::run_parallel(handlers.connection, request).await
             }
-            "ccmux_run_pipeline" => {
+            "fugue_run_pipeline" => {
                 let request: orchestration::RunPipelineRequest = serde_json::from_value(arguments.clone())
                     .map_err(|e| McpError::InvalidParams(format!("Invalid run_pipeline parameters: {}", e)))?;
                 handlers.tool_run_pipeline(request).await
             }
-            "ccmux_get_worker_status" => {
+            "fugue_get_worker_status" => {
                 let worker_id = arguments["worker_id"].as_str().map(String::from);
                 handlers.tool_get_worker_status(worker_id).await
             }
-            "ccmux_poll_messages" => {
+            "fugue_poll_messages" => {
                 let worker_id = arguments["worker_id"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'worker_id' parameter".into()))?
                     .to_string();
                 handlers.tool_poll_messages(worker_id).await
             }
-            "ccmux_create_status_pane" => {
+            "fugue_create_status_pane" => {
                 let position = arguments["position"].as_str().map(String::from);
                 let width_percent = arguments["width_percent"].as_i64();
                 let show_activity_feed = arguments["show_activity_feed"].as_bool().unwrap_or(true);
@@ -667,16 +667,16 @@ impl McpBridge {
                 .await
             }
             // FEAT-104: Watchdog Timer
-            "ccmux_watchdog_start" => {
+            "fugue_watchdog_start" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
                 let interval_secs = arguments["interval_secs"].as_u64();
                 let message = arguments["message"].as_str().map(String::from);
                 handlers.tool_watchdog_start(pane_id, interval_secs, message).await
             }
-            "ccmux_watchdog_stop" => handlers.tool_watchdog_stop().await,
-            "ccmux_watchdog_status" => handlers.tool_watchdog_status().await,
+            "fugue_watchdog_stop" => handlers.tool_watchdog_stop().await,
+            "fugue_watchdog_status" => handlers.tool_watchdog_status().await,
             // FEAT-109: Drain Messages Tool
-            "ccmux_drain_messages" => handlers.tool_drain_messages(),
+            "fugue_drain_messages" => handlers.tool_drain_messages(),
             _ => Err(McpError::UnknownTool(name.into())),
         }
     }

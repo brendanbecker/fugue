@@ -50,7 +50,7 @@ pub enum McpError {
     // ==================== Bridge-specific errors ====================
 
     /// Daemon not running
-    #[error("ccmux daemon is not running")]
+    #[error("fugue daemon is not running")]
     DaemonNotRunning,
 
     /// Connection to daemon failed
@@ -124,7 +124,7 @@ impl From<McpError> for JsonRpcError {
                 JsonRpcError::new(JsonRpcError::INTERNAL_ERROR, format!("PTY error: {}", msg))
             }
             McpError::DaemonNotRunning => {
-                JsonRpcError::new(JsonRpcError::INTERNAL_ERROR, "ccmux daemon is not running".to_string())
+                JsonRpcError::new(JsonRpcError::INTERNAL_ERROR, "fugue daemon is not running".to_string())
             }
             McpError::ConnectionFailed(msg) => {
                 JsonRpcError::new(JsonRpcError::INTERNAL_ERROR, format!("Connection failed: {}", msg))
@@ -163,7 +163,7 @@ impl From<McpError> for JsonRpcError {
                         "error": "daemon_connection_lost",
                         "recoverable": false,
                         "reconnect_attempts": attempts,
-                        "action_required": "Please restart the ccmux daemon"
+                        "action_required": "Please restart the fugue daemon"
                     })
                 )
             }

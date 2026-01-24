@@ -1,4 +1,4 @@
-//! Metrics collection for ccmux
+//! Metrics collection for fugue
 //!
 //! Provides a simple, internal metrics system for tracking server health
 //! and performance. Supports Prometheus text format export (FEAT-074).
@@ -218,77 +218,77 @@ impl Metrics {
         // === Counters ===
 
         counter!(
-            "ccmux_command_count",
+            "fugue_command_count",
             "Total number of commands processed",
             self.command_count
         );
         counter!(
-            "ccmux_command_latency_sum_ms",
+            "fugue_command_latency_sum_ms",
             "Sum of command latency in milliseconds",
             self.command_latency_sum_ms
         );
         counter!(
-            "ccmux_client_resync_total",
+            "fugue_client_resync_total",
             "Total number of client resyncs",
             self.client_resync_total
         );
         counter!(
-            "ccmux_client_desync_total",
+            "fugue_client_desync_total",
             "Total number of client desyncs detected",
             self.client_desync_total
         );
         counter!(
-            "ccmux_events_replay_requested_total",
+            "fugue_events_replay_requested_total",
             "Total number of events requested for replay",
             self.events_replay_requested_total
         );
         counter!(
-            "ccmux_events_replay_failed_total",
+            "fugue_events_replay_failed_total",
             "Total number of failed event replays",
             self.events_replay_failed_total
         );
         counter!(
-            "ccmux_wal_append_total",
+            "fugue_wal_append_total",
             "Total number of WAL appends",
             self.wal_append_count
         );
         counter!(
-            "ccmux_wal_append_sum_ms",
+            "fugue_wal_append_sum_ms",
             "Sum of WAL append time in milliseconds",
             self.wal_append_ms_sum
         );
         counter!(
-            "ccmux_wal_bytes_written_total",
+            "fugue_wal_bytes_written_total",
             "Total bytes written to WAL",
             self.wal_bytes_written_total
         );
         counter!(
-            "ccmux_checkpoint_total",
+            "fugue_checkpoint_total",
             "Total number of checkpoints created",
             self.checkpoint_count
         );
         counter!(
-            "ccmux_checkpoint_duration_sum_ms",
+            "fugue_checkpoint_duration_sum_ms",
             "Sum of checkpoint duration in milliseconds",
             self.checkpoint_duration_ms_sum
         );
         counter!(
-            "ccmux_checkpoint_bytes_written_total",
+            "fugue_checkpoint_bytes_written_total",
             "Total bytes written to checkpoints",
             self.checkpoint_bytes_written_total
         );
         counter!(
-            "ccmux_event_dispatch_count",
+            "fugue_event_dispatch_count",
             "Total number of events dispatched",
             self.event_dispatch_count
         );
         counter!(
-            "ccmux_event_dispatch_sum_ms",
+            "fugue_event_dispatch_sum_ms",
             "Sum of event dispatch time in milliseconds",
             self.event_dispatch_ms_sum
         );
         counter!(
-            "ccmux_claude_state_transitions_total",
+            "fugue_claude_state_transitions_total",
             "Total Claude state transitions",
             self.claude_state_transitions_total
         );
@@ -299,13 +299,13 @@ impl Metrics {
         if !self.requests_by_type.is_empty() {
             let _ = writeln!(
                 output,
-                "# HELP ccmux_requests_total Total requests by message type"
+                "# HELP fugue_requests_total Total requests by message type"
             );
-            let _ = writeln!(output, "# TYPE ccmux_requests_total counter");
+            let _ = writeln!(output, "# TYPE fugue_requests_total counter");
             for entry in self.requests_by_type.iter() {
                 let _ = writeln!(
                     output,
-                    "ccmux_requests_total{{message_type=\"{}\"}} {}",
+                    "fugue_requests_total{{message_type=\"{}\"}} {}",
                     entry.key(),
                     entry.value().load(Ordering::Relaxed)
                 );
@@ -314,12 +314,12 @@ impl Metrics {
 
         // Errors by code
         if !self.errors_by_code.is_empty() {
-            let _ = writeln!(output, "# HELP ccmux_errors_total Total errors by code");
-            let _ = writeln!(output, "# TYPE ccmux_errors_total counter");
+            let _ = writeln!(output, "# HELP fugue_errors_total Total errors by code");
+            let _ = writeln!(output, "# TYPE fugue_errors_total counter");
             for entry in self.errors_by_code.iter() {
                 let _ = writeln!(
                     output,
-                    "ccmux_errors_total{{code=\"{}\"}} {}",
+                    "fugue_errors_total{{code=\"{}\"}} {}",
                     entry.key(),
                     entry.value().load(Ordering::Relaxed)
                 );
@@ -329,17 +329,17 @@ impl Metrics {
         // === Gauges ===
 
         gauge!(
-            "ccmux_active_connections",
+            "fugue_active_connections",
             "Number of active client connections",
             gauges.active_connections
         );
         gauge!(
-            "ccmux_active_sessions",
+            "fugue_active_sessions",
             "Number of active sessions",
             gauges.active_sessions
         );
         gauge!(
-            "ccmux_active_panes",
+            "fugue_active_panes",
             "Number of active panes",
             gauges.active_panes
         );
@@ -347,14 +347,14 @@ impl Metrics {
         // Process metrics (Linux only)
         if let Some(memory) = gauges.process_memory_bytes {
             gauge!(
-                "ccmux_process_memory_bytes",
+                "fugue_process_memory_bytes",
                 "Process resident set size in bytes",
                 memory
             );
         }
         if let Some(fds) = gauges.process_open_fds {
             gauge!(
-                "ccmux_process_open_fds",
+                "fugue_process_open_fds",
                 "Number of open file descriptors",
                 fds
             );

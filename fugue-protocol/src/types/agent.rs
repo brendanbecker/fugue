@@ -11,7 +11,7 @@ use std::collections::HashMap;
 ///
 /// # Examples
 /// ```rust
-/// use ccmux_protocol::types::agent::{AgentState, AgentActivity};
+/// use fugue_protocol::types::agent::{AgentState, AgentActivity};
 /// use std::collections::HashMap;
 ///
 /// let state = AgentState::new("claude")

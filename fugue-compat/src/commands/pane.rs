@@ -1,7 +1,7 @@
 //! Pane management commands
 
-use ccmux_protocol::{ClientMessage, ServerMessage, SplitDirection};
-use ccmux_utils::Result;
+use fugue_protocol::{ClientMessage, ServerMessage, SplitDirection};
+use fugue_utils::Result;
 use uuid::Uuid;
 
 use super::{connect, parse_target, Target};
@@ -124,8 +124,8 @@ pub async fn split_window(
 
     // Determine split direction
     // In tmux: -h is horizontal split (left/right), -v is vertical (top/bottom)
-    // ccmux uses: Horizontal = stacked (top/bottom), Vertical = side-by-side
-    // So tmux -h maps to ccmux Vertical, tmux -v maps to ccmux Horizontal
+    // fugue uses: Horizontal = stacked (top/bottom), Vertical = side-by-side
+    // So tmux -h maps to fugue Vertical, tmux -v maps to fugue Horizontal
     let direction = if horizontal {
         SplitDirection::Vertical // tmux -h = side by side
     } else {

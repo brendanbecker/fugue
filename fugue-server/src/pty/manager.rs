@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use ccmux_utils::{CcmuxError, Result};
+use fugue_utils::{CcmuxError, Result};
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use uuid::Uuid;
 

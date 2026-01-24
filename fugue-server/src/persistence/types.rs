@@ -8,7 +8,7 @@
 // Scaffolding for crash recovery feature - not all types are used yet
 #![allow(dead_code)]
 
-use ccmux_protocol::PaneState;
+use fugue_protocol::PaneState;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -296,7 +296,7 @@ impl RecoveryState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ccmux_protocol::AgentState;
+    use fugue_protocol::AgentState;
 
     #[test]
     fn test_checkpoint_new() {

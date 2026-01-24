@@ -1,6 +1,6 @@
 use tracing::info;
 use uuid::Uuid;
-use ccmux_protocol::{ErrorCode, ServerMessage, SplitDirection};
+use fugue_protocol::{ErrorCode, ServerMessage, SplitDirection};
 use crate::pty::{PtyConfig, PtyOutputPoller};
 use crate::session::SessionManager;
 use crate::arbitration::{Action, Resource};
@@ -202,7 +202,7 @@ impl HandlerContext {
         window_id: Uuid,
         layout: &serde_json::Value,
         pane_ids: &mut Vec<Uuid>,
-        pane_infos: &mut Vec<ccmux_protocol::PaneInfo>,
+        pane_infos: &mut Vec<fugue_protocol::PaneInfo>,
         pty_configs: &mut Vec<(Uuid, PtyConfig)>,
     ) -> Result<(), String> {
         // Check if this is a simple pane definition
@@ -246,7 +246,7 @@ impl HandlerContext {
             if let Some(ref cwd) = cwd {
                 config = config.with_cwd(cwd);
             }
-            config = config.with_ccmux_context(session_id, session_name, window_id, pane_id);
+            config = config.with_fugue_context(session_id, session_name, window_id, pane_id);
             config = config.with_env_map(&session_env);
 
             // Store config for later PTY spawning (Phase 2)

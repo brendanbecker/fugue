@@ -1,10 +1,10 @@
-//! Error types for ccmux
+//! Error types for fugue
 //!
-//! Provides a unified error type used across all ccmux crates.
+//! Provides a unified error type used across all fugue crates.
 
 use std::path::PathBuf;
 
-/// Main error type for ccmux operations
+/// Main error type for fugue operations
 #[derive(Debug, thiserror::Error)]
 pub enum CcmuxError {
     // === IO Errors ===
@@ -192,11 +192,11 @@ mod tests {
     #[test]
     fn test_error_display_server_not_running() {
         let err = CcmuxError::ServerNotRunning {
-            path: PathBuf::from("/tmp/ccmux.sock"),
+            path: PathBuf::from("/tmp/fugue.sock"),
         };
         let msg = err.to_string();
         assert!(msg.contains("Server not running"));
-        assert!(msg.contains("/tmp/ccmux.sock"));
+        assert!(msg.contains("/tmp/fugue.sock"));
     }
 
     #[test]
@@ -244,7 +244,7 @@ mod tests {
     #[test]
     fn test_error_display_config_invalid() {
         let err = CcmuxError::ConfigInvalid {
-            path: PathBuf::from("/home/user/.config/ccmux/config.toml"),
+            path: PathBuf::from("/home/user/.config/fugue/config.toml"),
             message: "syntax error".into(),
         };
         let msg = err.to_string();

@@ -1,4 +1,4 @@
-//! Beads integration for ccmux
+//! Beads integration for fugue
 //!
 //! Provides passive beads awareness with automatic detection
 //! of .beads/ directories and environment configuration.
@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use ccmux_protocol::types::{BeadsStatus, BeadsTask};
+use fugue_protocol::types::{BeadsStatus, BeadsTask};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -41,7 +41,7 @@ pub struct BeadsDetection {
 /// # Example
 /// ```ignore
 /// use std::path::Path;
-/// use ccmux_server::beads::detect_beads_root;
+/// use fugue_server::beads::detect_beads_root;
 ///
 /// if let Some(detection) = detect_beads_root(Path::new("/home/user/project/src")) {
 ///     println!("Found beads at: {:?}", detection.beads_dir);

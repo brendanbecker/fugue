@@ -1,6 +1,6 @@
 //! MCP (Model Context Protocol) server implementation
 //!
-//! Enables Claude Code to programmatically interact with ccmux through
+//! Enables Claude Code to programmatically interact with fugue through
 //! the MCP protocol, providing tools to list panes, read output, create
 //! panes, and send input.
 //!
@@ -9,7 +9,7 @@
 //! ## Two Modes
 //!
 //! - **`mcp-server`**: Standalone mode with its own session state (legacy)
-//! - **`mcp-bridge`**: Connects to the ccmux daemon, sharing sessions with TUI
+//! - **`mcp-bridge`**: Connects to the fugue daemon, sharing sessions with TUI
 
 pub mod bridge;
 mod error;

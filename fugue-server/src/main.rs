@@ -1,4 +1,4 @@
-//! ccmux server - Background daemon
+//! fugue server - Background daemon
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -14,8 +14,8 @@ use tracing::{debug, error, info, warn};
 
 use handlers::{HandlerContext, HandlerResult};
 
-use ccmux_protocol::{ServerCodec, ServerMessage};
-use ccmux_utils::Result;
+use fugue_protocol::{ServerCodec, ServerMessage};
+use fugue_utils::Result;
 
 mod agents;
 mod arbitration;
@@ -468,12 +468,12 @@ impl Server {
 /// 2. Checks for and cleans up stale sockets from previous crashes
 /// 3. Binds the UnixListener to the socket path
 async fn setup_socket() -> Result<UnixListener> {
-    let socket_path = ccmux_utils::socket_path();
-    let runtime_dir = ccmux_utils::runtime_dir();
+    let socket_path = fugue_utils::socket_path();
+    let runtime_dir = fugue_utils::runtime_dir();
 
     // Ensure runtime directory exists
-    if let Err(e) = ccmux_utils::ensure_dir(&runtime_dir) {
-        return Err(ccmux_utils::CcmuxError::Io(e));
+    if let Err(e) = fugue_utils::ensure_dir(&runtime_dir) {
+        return Err(fugue_utils::CcmuxError::Io(e));
     }
 
     // Check for stale socket
@@ -484,8 +484,8 @@ async fn setup_socket() -> Result<UnixListener> {
         match tokio::net::UnixStream::connect(&socket_path).await {
             Ok(_) => {
                 // Another server is running
-                return Err(ccmux_utils::CcmuxError::Internal(
-                    "Another ccmux server is already running".to_string()
+                return Err(fugue_utils::CcmuxError::Internal(
+                    "Another fugue server is already running".to_string()
                 ));
             }
             Err(_) => {
@@ -502,7 +502,7 @@ async fn setup_socket() -> Result<UnixListener> {
     info!("Binding to socket: {}", socket_path.display());
     let listener = UnixListener::bind(&socket_path).map_err(|e| {
         error!("Failed to bind socket at {}: {}", socket_path.display(), e);
-        ccmux_utils::CcmuxError::Io(e)
+        fugue_utils::CcmuxError::Io(e)
     })?;
 
     info!("Server listening on {}", socket_path.display());
@@ -511,7 +511,7 @@ async fn setup_socket() -> Result<UnixListener> {
 
 /// Clean up socket file on shutdown
 fn cleanup_socket() {
-    let socket_path = ccmux_utils::socket_path();
+    let socket_path = fugue_utils::socket_path();
     if socket_path.exists() {
         if let Err(e) = std::fs::remove_file(&socket_path) {
             warn!("Failed to remove socket file: {}", e);
@@ -762,31 +762,31 @@ where
 /// Run the MCP server mode (standalone, legacy)
 fn run_mcp_server() -> Result<()> {
     use mcp::McpServer;
-    use ccmux_utils::logging::{init_logging_with_config, LogConfig};
+    use fugue_utils::logging::{init_logging_with_config, LogConfig};
 
     // Initialize file-based logging for standalone MCP server
     init_logging_with_config(LogConfig::mcp_server())?;
 
     let mut mcp_server = McpServer::new();
-    mcp_server.run().map_err(|e| ccmux_utils::CcmuxError::Internal(e.to_string()))
+    mcp_server.run().map_err(|e| fugue_utils::CcmuxError::Internal(e.to_string()))
 }
 
 /// Run the MCP bridge mode (connects to daemon)
 async fn run_mcp_bridge() -> Result<()> {
     use mcp::McpBridge;
-    use ccmux_utils::logging::{init_logging_with_config, LogConfig};
+    use fugue_utils::logging::{init_logging_with_config, LogConfig};
 
     // Initialize file-based logging for MCP bridge
     // This is safe because it doesn't use stdout/stderr which are used for JSON-RPC
     init_logging_with_config(LogConfig::mcp_bridge())?;
 
     let mut bridge = McpBridge::new();
-    bridge.run().await.map_err(|e| ccmux_utils::CcmuxError::Internal(e.to_string()))
+    bridge.run().await.map_err(|e| fugue_utils::CcmuxError::Internal(e.to_string()))
 }
 
 /// Run the main server daemon
 async fn run_daemon(tcp_override: Option<String>) -> Result<()> {
-    info!("ccmux server starting");
+    info!("fugue server starting");
 
     // Load configuration from file or use defaults
     let mut app_config = config::ConfigLoader::load().unwrap_or_else(|e| {
@@ -1022,7 +1022,7 @@ async fn run_daemon(tcp_override: Option<String>) -> Result<()> {
     // Clean up socket file
     cleanup_socket();
 
-    info!("ccmux server stopped");
+    info!("fugue server stopped");
     Ok(())
 }
 
@@ -1263,7 +1263,7 @@ async fn main() -> Result<()> {
                 return Ok(());
             }
             "--version" | "-V" => {
-                println!("ccmux-server {}", env!("CARGO_PKG_VERSION"));
+                println!("fugue-server {}", env!("CARGO_PKG_VERSION"));
                 return Ok(());
             }
             _ => {
@@ -1283,7 +1283,7 @@ async fn main() -> Result<()> {
                         arg => {
                             eprintln!("Unknown argument: {}", arg);
                             eprintln!("Run with --help for usage information");
-                            return Err(ccmux_utils::CcmuxError::Internal(format!(
+                            return Err(fugue_utils::CcmuxError::Internal(format!(
                                 "Unknown argument: {}",
                                 arg
                             )));
@@ -1295,7 +1295,7 @@ async fn main() -> Result<()> {
     }
 
     // For daemon mode, initialize logging
-    ccmux_utils::init_logging()?;
+    fugue_utils::init_logging()?;
 
     run_daemon(tcp_override).await
 }
@@ -1303,10 +1303,10 @@ async fn main() -> Result<()> {
 /// Print help information
 fn print_help() {
     println!(
-        r#"ccmux-server - Background daemon for ccmux terminal multiplexer
+        r#"fugue-server - Background daemon for fugue terminal multiplexer
 
 USAGE:
-    ccmux-server [SUBCOMMAND]
+    fugue-server [SUBCOMMAND]
 
 SUBCOMMANDS:
     (none)          Run as daemon (default)
@@ -1321,16 +1321,16 @@ OPTIONS:
 
 EXAMPLES:
     # Start the daemon
-    ccmux-server
+    fugue-server
 
     # Run MCP bridge for Claude Code integration
-    ccmux-server mcp-bridge
+    fugue-server mcp-bridge
 
     # Claude Code MCP configuration (~/.config/claude/claude_desktop_config.json):
     {{
       "mcpServers": {{
-        "ccmux": {{
-          "command": "ccmux-server",
+        "fugue": {{
+          "command": "fugue-server",
           "args": ["mcp-bridge"]
         }}
       }}
@@ -1344,7 +1344,7 @@ EXAMPLES:
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ccmux_protocol::{ClientMessage, ClientType, PROTOCOL_VERSION};
+    use fugue_protocol::{ClientMessage, ClientType, PROTOCOL_VERSION};
     use tempfile::TempDir;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -1505,7 +1505,7 @@ mod tests {
         });
 
         // Send Ping from client
-        let mut client_codec = ccmux_protocol::ClientCodec::new();
+        let mut client_codec = fugue_protocol::ClientCodec::new();
         let mut buf = bytes::BytesMut::new();
         tokio_util::codec::Encoder::encode(&mut client_codec, ClientMessage::Ping, &mut buf).unwrap();
         client_stream.write_all(&buf).await.unwrap();
@@ -1553,7 +1553,7 @@ mod tests {
         });
 
         // Send Connect message
-        let mut client_codec = ccmux_protocol::ClientCodec::new();
+        let mut client_codec = fugue_protocol::ClientCodec::new();
         let mut buf = bytes::BytesMut::new();
         let connect_msg = ClientMessage::Connect {
             client_id: uuid::Uuid::new_v4(),
@@ -1610,7 +1610,7 @@ mod tests {
         });
 
         // Send Connect with wrong protocol version
-        let mut client_codec = ccmux_protocol::ClientCodec::new();
+        let mut client_codec = fugue_protocol::ClientCodec::new();
         let mut buf = bytes::BytesMut::new();
         let connect_msg = ClientMessage::Connect {
             client_id: uuid::Uuid::new_v4(),
@@ -1633,7 +1633,7 @@ mod tests {
 
         match response {
             ServerMessage::Error { code, .. } => {
-                assert_eq!(code, ccmux_protocol::ErrorCode::ProtocolMismatch);
+                assert_eq!(code, fugue_protocol::ErrorCode::ProtocolMismatch);
             }
             _ => panic!("Expected ProtocolMismatch error, got {:?}", response),
         }
@@ -1777,7 +1777,7 @@ mod tests {
     #[tokio::test]
     async fn test_route_message_ping() {
         let ctx = create_test_handler_context();
-        let result = ctx.route_message(ccmux_protocol::ClientMessage::Ping).await;
+        let result = ctx.route_message(fugue_protocol::ClientMessage::Ping).await;
 
         match result {
             HandlerResult::Response(ServerMessage::Pong) => {}
@@ -1788,7 +1788,7 @@ mod tests {
     #[tokio::test]
     async fn test_route_message_list_sessions() {
         let ctx = create_test_handler_context();
-        let result = ctx.route_message(ccmux_protocol::ClientMessage::ListSessions).await;
+        let result = ctx.route_message(fugue_protocol::ClientMessage::ListSessions).await;
 
         match result {
             HandlerResult::Response(ServerMessage::SessionList { sessions }) => {
@@ -1801,7 +1801,7 @@ mod tests {
     #[tokio::test]
     async fn test_route_message_sync_not_attached() {
         let ctx = create_test_handler_context();
-        let result = ctx.route_message(ccmux_protocol::ClientMessage::Sync).await;
+        let result = ctx.route_message(fugue_protocol::ClientMessage::Sync).await;
 
         // When not attached to a session, Sync returns SessionList
         match result {
@@ -1815,7 +1815,7 @@ mod tests {
     #[tokio::test]
     async fn test_route_message_detach_not_attached() {
         let ctx = create_test_handler_context();
-        let result = ctx.route_message(ccmux_protocol::ClientMessage::Detach).await;
+        let result = ctx.route_message(fugue_protocol::ClientMessage::Detach).await;
 
         // Detach when not attached returns SessionList (current sessions)
         match result {
@@ -1867,7 +1867,7 @@ mod tests {
         });
 
         // --- TUI: Send Connect ---
-        let mut tui_codec = ccmux_protocol::ClientCodec::new();
+        let mut tui_codec = fugue_protocol::ClientCodec::new();
         let mut buf = bytes::BytesMut::new();
         let connect_msg = ClientMessage::Connect {
             client_id: uuid::Uuid::new_v4(),
@@ -1942,7 +1942,7 @@ mod tests {
         });
 
         // --- MCP: Send Connect ---
-        let mut mcp_codec = ccmux_protocol::ClientCodec::new();
+        let mut mcp_codec = fugue_protocol::ClientCodec::new();
         buf.clear();
         let connect_msg = ClientMessage::Connect {
             client_id: uuid::Uuid::new_v4(),
@@ -1968,7 +1968,7 @@ mod tests {
         let create_pane_msg = ClientMessage::CreatePaneWithOptions {
             session_filter: None,  // Use active session
             window_filter: None,
-            direction: ccmux_protocol::SplitDirection::Vertical,
+            direction: fugue_protocol::SplitDirection::Vertical,
             command: None,
             cwd: None,
             select: false,

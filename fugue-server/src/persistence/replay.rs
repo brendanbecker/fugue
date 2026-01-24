@@ -7,7 +7,7 @@
 #![allow(dead_code)]
 
 use std::collections::VecDeque;
-use ccmux_protocol::ServerMessage;
+use fugue_protocol::ServerMessage;
 
 /// Buffer for retaining recent events for replay
 #[derive(Debug)]
@@ -118,7 +118,7 @@ impl ReplayBuffer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ccmux_protocol::ServerMessage;
+    use fugue_protocol::ServerMessage;
 
     #[test]
     fn test_replay_buffer_capacity() {

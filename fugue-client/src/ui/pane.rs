@@ -17,7 +17,7 @@ use tui_term::vt100::{Parser, Screen};
 use tui_term::widget::PseudoTerminal;
 use uuid::Uuid;
 
-use ccmux_protocol::{AgentActivity, AgentState, ClaudeActivity, PaneState};
+use fugue_protocol::{AgentActivity, AgentState, ClaudeActivity, PaneState};
 
 /// Abbreviate home directory to ~ for display
 fn abbreviate_home(path: &str) -> String {
@@ -1227,8 +1227,8 @@ mod tests {
         let mut pane = Pane::new(id, 24, 80);
         pane.set_title(Some("claude".to_string()));
         pane.set_pane_state(PaneState::Agent(
-            ccmux_protocol::AgentState::new("claude")
-                .with_activity(ccmux_protocol::AgentActivity::Processing),
+            fugue_protocol::AgentState::new("claude")
+                .with_activity(fugue_protocol::AgentActivity::Processing),
         ));
 
         assert!(pane.display_title().contains("Processing"));

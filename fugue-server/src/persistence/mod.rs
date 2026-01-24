@@ -23,11 +23,11 @@
 //! # Usage
 //!
 //! ```ignore
-//! use ccmux_server::persistence::{PersistenceManager, PersistenceConfig};
+//! use fugue_server::persistence::{PersistenceManager, PersistenceConfig};
 //!
 //! // Create persistence manager
 //! let config = PersistenceConfig::default();
-//! let mut manager = PersistenceManager::new("~/.ccmux/state", config)?;
+//! let mut manager = PersistenceManager::new("~/.fugue/state", config)?;
 //!
 //! // Recover state on startup
 //! let state = manager.recover()?;
@@ -54,8 +54,8 @@ use parking_lot::Mutex;
 use tracing::{info, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::{PaneState, ServerMessage};
-use ccmux_utils::{CcmuxError, Result};
+use fugue_protocol::{PaneState, ServerMessage};
+use fugue_utils::{CcmuxError, Result};
 use replay::ReplayBuffer;
 
 // Re-exports for public API - allow unused during development
@@ -80,7 +80,7 @@ pub use types::{
 pub use wal::{Wal, WalConfig, WalReader};
 
 /// Default state directory path
-pub const DEFAULT_STATE_DIR: &str = ".ccmux/state";
+pub const DEFAULT_STATE_DIR: &str = ".fugue/state";
 
 /// Configuration for the persistence subsystem
 #[derive(Debug, Clone)]

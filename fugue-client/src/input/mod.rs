@@ -1,4 +1,4 @@
-//! Input handling for ccmux client
+//! Input handling for fugue client
 //!
 //! This module provides comprehensive keyboard and mouse input handling,
 //! including a state machine for prefix key combinations (similar to tmux).

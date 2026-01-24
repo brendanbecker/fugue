@@ -11,8 +11,8 @@ use crossterm::event::{Event as CrosstermEvent, EventStream, KeyEvent, MouseEven
 use futures::StreamExt;
 use tokio::sync::mpsc;
 
-use ccmux_protocol::ServerMessage;
-use ccmux_utils::Result;
+use fugue_protocol::ServerMessage;
+use fugue_utils::Result;
 
 /// Application events combining input and server messages
 #[derive(Debug)]
@@ -140,7 +140,7 @@ impl EventHandler {
     pub fn send_server_message(&self, msg: ServerMessage) -> Result<()> {
         self.tx
             .send(AppEvent::Server(Box::new(msg)))
-            .map_err(|_| ccmux_utils::CcmuxError::connection("Event channel closed"))
+            .map_err(|_| fugue_utils::CcmuxError::connection("Event channel closed"))
     }
 }
 

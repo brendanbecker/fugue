@@ -3,8 +3,8 @@
 // Allow unused code that's part of the public API for future features
 #![allow(dead_code)]
 
-use ccmux_protocol::{ClientMessage, ServerMessage};
-use ccmux_utils::Result;
+use fugue_protocol::{ClientMessage, ServerMessage};
+use fugue_utils::Result;
 use tokio::sync::mpsc;
 
 /// Clonable message sender
@@ -22,7 +22,7 @@ impl MessageSender {
         self.tx
             .send(msg)
             .await
-            .map_err(|_| ccmux_utils::CcmuxError::ConnectionClosed)?;
+            .map_err(|_| fugue_utils::CcmuxError::ConnectionClosed)?;
         Ok(())
     }
 
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_callback_handler_different_message_types() {
-        use ccmux_protocol::SessionInfo;
+        use fugue_protocol::SessionInfo;
         use uuid::Uuid;
 
         let messages = Arc::new(std::sync::Mutex::new(Vec::new()));

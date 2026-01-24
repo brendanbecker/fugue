@@ -1,4 +1,4 @@
-//! UI components for ccmux client
+//! UI components for fugue client
 //!
 //! This module provides the Ratatui-based terminal user interface for managing
 //! multiple Claude Code sessions.

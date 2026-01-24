@@ -8,7 +8,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Widget};
 
-use ccmux_protocol::{AgentActivity, PaneState};
+use fugue_protocol::{AgentActivity, PaneState};
 
 use super::pane::Pane;
 use super::state::ClientState;
@@ -51,7 +51,7 @@ fn render_agent_list(state: &ClientState, area: Rect, buf: &mut Buffer) {
 
     // Iterate over all panes in current session (and maybe others if we had global visibility)
     // state.panes only contains panes in the current session.
-    // If we want global visibility, we need data from `ccmux_list_panes` equivalent.
+    // If we want global visibility, we need data from `fugue_list_panes` equivalent.
     // For now, we use state.panes which is what we have.
     
     let mut panes: Vec<_> = state.panes.values().collect();

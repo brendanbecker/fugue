@@ -3,7 +3,7 @@
 //! Parses user input commands like `/reply worker-3 "message"` and
 //! converts them into protocol messages.
 
-use ccmux_protocol::{PaneTarget, ReplyMessage};
+use fugue_protocol::{PaneTarget, ReplyMessage};
 use uuid::Uuid;
 
 /// Parsed client command
@@ -52,7 +52,7 @@ impl std::error::Error for ParseError {}
 /// # Examples
 ///
 /// ```
-/// use ccmux_client::commands::parse_command;
+/// use fugue_client::commands::parse_command;
 ///
 /// let cmd = parse_command("/reply worker-3 yes").unwrap();
 /// let cmd = parse_command("/reply worker-3 \"use async, we need non-blocking\"").unwrap();

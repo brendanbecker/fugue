@@ -7,11 +7,11 @@ use serde::{Deserialize, Serialize};
 ///
 /// Widgets are agent-agnostic data containers that replace hardcoded types like BeadsTask.
 /// This follows the "dumb pipe" strategy from ADR-001, allowing any external system
-/// to push data through ccmux without requiring protocol changes.
+/// to push data through fugue without requiring protocol changes.
 ///
 /// # Examples
 /// ```rust
-/// use ccmux_protocol::types::widget::Widget;
+/// use fugue_protocol::types::widget::Widget;
 /// use serde_json::json;
 ///
 /// let widget = Widget::new("beads.task", json!({"id": "BUG-042", "title": "Fix login"}))
@@ -68,7 +68,7 @@ impl Widget {
 ///
 /// # Examples
 /// ```rust
-/// use ccmux_protocol::types::widget::{Widget, WidgetUpdate};
+/// use fugue_protocol::types::widget::{Widget, WidgetUpdate};
 /// use serde_json::json;
 ///
 /// let update = WidgetUpdate::new("beads.status", json!({"daemon_available": true}))

@@ -5,7 +5,7 @@
 /// Default configuration as TOML (for reference/documentation)
 #[allow(dead_code)]
 pub const DEFAULT_CONFIG_TOML: &str = r##"
-# ccmux configuration
+# fugue configuration
 
 [general]
 # default_shell = "/bin/bash"

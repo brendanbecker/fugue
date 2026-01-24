@@ -1,4 +1,4 @@
-//! Per-session logging infrastructure for ccmux
+//! Per-session logging infrastructure for fugue
 //!
 //! Provides session-specific logging with configurable levels,
 //! structured output, log rotation, and audit trail separation.
@@ -285,7 +285,7 @@ impl SessionLogger {
             source: e,
         })?;
 
-        let level = std::env::var("CCMUX_SESSION_LOG")
+        let level = std::env::var("FUGUE_SESSION_LOG")
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(config.default_level);
@@ -871,7 +871,7 @@ mod tests {
 
         // Check that rotated files were created
         let rotated = temp_dir.path()
-            .join("ccmux")
+            .join("fugue")
             .join("log")
             .join(logger.session_id().to_string())
             .join("system.1.jsonl");

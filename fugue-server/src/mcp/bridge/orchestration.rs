@@ -1,8 +1,8 @@
 //! Orchestration tools for parallel and sequential command execution
 //!
 //! Provides tools for:
-//! - FEAT-096: `ccmux_expect` - waiting for patterns in pane output
-//! - FEAT-094: `ccmux_run_parallel` - parallel command execution
+//! - FEAT-096: `fugue_expect` - waiting for patterns in pane output
+//! - FEAT-094: `fugue_run_parallel` - parallel command execution
 
 use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ use uuid::Uuid;
 use regex::Regex;
 use serde_json::json;
 
-use ccmux_protocol::{ClientMessage, ServerMessage};
+use fugue_protocol::{ClientMessage, ServerMessage};
 
 use super::connection::ConnectionManager;
 use super::orchestration_context::{OrchestrationContext, OrchestrationConfig, CreatePaneOptions};
@@ -19,7 +19,7 @@ use crate::mcp::error::McpError;
 use crate::mcp::protocol::ToolResult;
 
 // ============================================================================ 
-// FEAT-096: ccmux_expect
+// FEAT-096: fugue_expect
 // ============================================================================ 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -129,7 +129,7 @@ pub async fn run_expect(
 }
 
 // ============================================================================ 
-// FEAT-094: ccmux_run_parallel
+// FEAT-094: fugue_run_parallel
 // ============================================================================ 
 
 /// Maximum number of parallel commands allowed
@@ -142,7 +142,7 @@ pub const DEFAULT_TIMEOUT_MS: u64 = 300_000;
 const POLL_INTERVAL_MS: u64 = 200;
 
 /// Exit code marker prefix used to detect command completion
-const EXIT_MARKER_PREFIX: &str = "___CCMUX_EXIT_";
+const EXIT_MARKER_PREFIX: &str = "___FUGUE_EXIT_";
 
 /// Exit code marker suffix
 const EXIT_MARKER_SUFFIX: &str = "___";
@@ -437,7 +437,7 @@ async fn read_pane_for_exit_code(
 
     match connection.recv_response_from_daemon().await? {
         ServerMessage::PaneContent { content, .. } => {
-            // Look for exit marker pattern: ___CCMUX_EXIT_<code>___
+            // Look for exit marker pattern: ___FUGUE_EXIT_<code>___
             for line in content.lines().rev() {
                 if let Some(exit_code) = parse_exit_marker(line) {
                     return Ok(Some(exit_code));
@@ -466,7 +466,7 @@ pub fn parse_exit_marker(line: &str) -> Option<i32> {
 
 
 // ============================================================================ 
-// FEAT-095: ccmux_run_pipeline
+// FEAT-095: fugue_run_pipeline
 // ============================================================================ 
 
 #[derive(Debug, Deserialize)]
@@ -548,7 +548,7 @@ impl<'a> PipelineRunner<'a> {
 
             // 2. Wrap command with exit marker using unique UUID
             let marker_uuid = Uuid::new_v4().simple().to_string();
-            let marker_end = format!("__CCMUX_EXIT_{}_", marker_uuid);
+            let marker_end = format!("__FUGUE_EXIT_{}_", marker_uuid);
 
             let wrapped_command = format!(
                 "{{ {}; }} ; echo \"{}{}_\"",
@@ -583,7 +583,7 @@ impl<'a> PipelineRunner<'a> {
                     _ => String::new(),
                 };
 
-                // Check for exit marker: __CCMUX_EXIT_{uuid}_{code}_
+                // Check for exit marker: __FUGUE_EXIT_{uuid}_{code}_
                 let end_marker_pattern = &marker_end;
                 if let Some(idx) = content.rfind(end_marker_pattern) {
                     let rest = &content[idx + end_marker_pattern.len()..];
@@ -662,7 +662,7 @@ mod tests {
 
     #[test]
     fn test_regex_compilation() {
-        let regex = Regex::new(r"___CCMUX_EXIT_\d+___");
+        let regex = Regex::new(r"___FUGUE_EXIT_\d+___");
         assert!(regex.is_ok());
 
         let regex = Regex::new(r"[invalid");
@@ -671,32 +671,32 @@ mod tests {
 
     #[test]
     fn test_regex_matching() {
-        let regex = Regex::new(r"___CCMUX_EXIT_0___").unwrap();
-        let content = "some output\n___CCMUX_EXIT_0___\nmore output";
+        let regex = Regex::new(r"___FUGUE_EXIT_0___").unwrap();
+        let content = "some output\n___FUGUE_EXIT_0___\nmore output";
         assert!(regex.find(content).is_some());
     }
 
     // FEAT-094 tests
     #[test]
     fn test_parse_exit_marker_success() {
-        assert_eq!(parse_exit_marker("___CCMUX_EXIT_0___"), Some(0));
-        assert_eq!(parse_exit_marker("___CCMUX_EXIT_1___"), Some(1));
-        assert_eq!(parse_exit_marker("___CCMUX_EXIT_127___"), Some(127));
-        assert_eq!(parse_exit_marker("___CCMUX_EXIT_-1___"), Some(-1));
+        assert_eq!(parse_exit_marker("___FUGUE_EXIT_0___"), Some(0));
+        assert_eq!(parse_exit_marker("___FUGUE_EXIT_1___"), Some(1));
+        assert_eq!(parse_exit_marker("___FUGUE_EXIT_127___"), Some(127));
+        assert_eq!(parse_exit_marker("___FUGUE_EXIT_-1___"), Some(-1));
     }
 
     #[test]
     fn test_parse_exit_marker_with_whitespace() {
-        assert_eq!(parse_exit_marker("  ___CCMUX_EXIT_0___  "), Some(0));
-        assert_eq!(parse_exit_marker("\t___CCMUX_EXIT_42___
+        assert_eq!(parse_exit_marker("  ___FUGUE_EXIT_0___  "), Some(0));
+        assert_eq!(parse_exit_marker("\t___FUGUE_EXIT_42___
 "), Some(42));
     }
 
     #[test]
     fn test_parse_exit_marker_failure() {
-        assert_eq!(parse_exit_marker("___CCMUX_EXIT_abc___"), None);
-        assert_eq!(parse_exit_marker("___CCMUX_EXIT_0"), None);
-        assert_eq!(parse_exit_marker("CCMUX_EXIT_0___"), None);
+        assert_eq!(parse_exit_marker("___FUGUE_EXIT_abc___"), None);
+        assert_eq!(parse_exit_marker("___FUGUE_EXIT_0"), None);
+        assert_eq!(parse_exit_marker("FUGUE_EXIT_0___"), None);
         assert_eq!(parse_exit_marker("some random text"), None);
         assert_eq!(parse_exit_marker(""), None);
     }

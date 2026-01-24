@@ -14,7 +14,7 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 use uuid::Uuid;
 
-use ccmux_protocol::{ClientMessage, ErrorCode, ServerMessage, messages::ErrorDetails};
+use fugue_protocol::{ClientMessage, ErrorCode, ServerMessage, messages::ErrorDetails};
 
 use crate::arbitration::{Action, Actor, Arbitrator, Resource};
 use crate::config::AppConfig;
@@ -119,7 +119,7 @@ impl HandlerContext {
     /// Get the actor for this context based on client type
     pub fn actor(&self) -> Actor {
         match self.registry.get_client_type(self.client_id) {
-            Some(ccmux_protocol::ClientType::Mcp) => Actor::Agent,
+            Some(fugue_protocol::ClientType::Mcp) => Actor::Agent,
             // Treat TUI or unknown as Human
             _ => Actor::Human(self.client_id),
         }
@@ -545,7 +545,7 @@ impl HandlerContext {
     /// Handle request for beads status (daemon availability, ready count)
     async fn handle_request_beads_status(&self, pane_id: Uuid) -> HandlerResult {
         use crate::beads::BeadsClient;
-        use ccmux_protocol::types::BeadsStatus;
+        use fugue_protocol::types::BeadsStatus;
         use std::path::PathBuf;
 
         // Get the pane's working directory
@@ -606,7 +606,7 @@ impl HandlerContext {
     /// - "beads.ready_list" -> returns BeadsReadyList as WidgetUpdate
     /// - Unknown types -> returns error
     async fn handle_request_widget_update(&self, pane_id: Uuid, widget_type: String) -> HandlerResult {
-        use ccmux_protocol::types::{BeadsStatus, WidgetUpdate};
+        use fugue_protocol::types::{BeadsStatus, WidgetUpdate};
 
         match widget_type.as_str() {
             "beads.status" => {
@@ -639,7 +639,7 @@ impl HandlerContext {
             "beads.ready_list" => {
                 // Delegate to existing beads handler and convert to WidgetUpdate
                 use crate::beads::BeadsClient;
-                use ccmux_protocol::types::Widget;
+                use fugue_protocol::types::Widget;
                 use std::path::PathBuf;
 
                 let cwd: PathBuf = {
@@ -725,7 +725,7 @@ impl HandlerContext {
     pub fn error_with_details(
         code: ErrorCode,
         message: impl Into<String>,
-        details: ccmux_protocol::messages::ErrorDetails,
+        details: fugue_protocol::messages::ErrorDetails,
     ) -> HandlerResult {
         // FEAT-074: Record error metric
         Metrics::global().record_error(&format!("{:?}", code));
@@ -746,9 +746,9 @@ impl From<ServerMessage> for HandlerResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ccmux_protocol::PROTOCOL_VERSION;
+    use fugue_protocol::PROTOCOL_VERSION;
     use tokio::sync::mpsc;
-    use ccmux_protocol::ClientType;
+    use fugue_protocol::ClientType;
 
     fn create_test_context() -> HandlerContext {
         let session_manager = Arc::new(RwLock::new(SessionManager::new()));

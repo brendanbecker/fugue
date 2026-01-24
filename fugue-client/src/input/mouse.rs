@@ -1,4 +1,4 @@
-//! Mouse event handling for ccmux client
+//! Mouse event handling for fugue client
 //!
 //! Handles mouse clicks, scroll events, and coordinate translation for pane interaction.
 

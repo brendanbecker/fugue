@@ -1,4 +1,4 @@
-//! Configuration management for ccmux server
+//! Configuration management for fugue server
 //!
 //! Provides hot-reloading configuration with lock-free access
 //! using ArcSwap for 60fps rendering compatibility.

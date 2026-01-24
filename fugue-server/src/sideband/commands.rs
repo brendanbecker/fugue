@@ -1,11 +1,11 @@
-//! Sideband command types for Claude-ccmux communication
+//! Sideband command types for Claude-fugue communication
 //!
 //! These commands are embedded in terminal output using XML-like tags:
-//! - `<ccmux:spawn direction="vertical" command="cargo build" />`
-//! - `<ccmux:input pane="1">ls -la</ccmux:input>`
+//! - `<fugue:spawn direction="vertical" command="cargo build" />`
+//! - `<fugue:input pane="1">ls -la</fugue:input>`
 
 use uuid::Uuid;
-use ccmux_protocol::MailPriority;
+use fugue_protocol::MailPriority;
 
 /// Direction for pane splitting
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -15,11 +15,11 @@ pub enum SplitDirection {
     Vertical,
 }
 
-impl From<SplitDirection> for ccmux_protocol::SplitDirection {
+impl From<SplitDirection> for fugue_protocol::SplitDirection {
     fn from(dir: SplitDirection) -> Self {
         match dir {
-            SplitDirection::Horizontal => ccmux_protocol::SplitDirection::Horizontal,
-            SplitDirection::Vertical => ccmux_protocol::SplitDirection::Vertical,
+            SplitDirection::Horizontal => fugue_protocol::SplitDirection::Horizontal,
+            SplitDirection::Vertical => fugue_protocol::SplitDirection::Vertical,
         }
     }
 }

@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 use uuid::Uuid;
 use vt100::Parser;
-use ccmux_protocol::{AgentActivity, AgentState, ClaudeActivity, ClaudeState, PaneInfo, PaneState, PaneStuckStatus};
+use fugue_protocol::{AgentActivity, AgentState, ClaudeActivity, ClaudeState, PaneInfo, PaneState, PaneStuckStatus};
 use crate::agents::DetectorRegistry;
 use crate::claude::ClaudeDetector;
 use crate::config::SessionType;
@@ -699,7 +699,7 @@ impl Pane {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ccmux_protocol::ClaudeActivity;
+    use fugue_protocol::ClaudeActivity;
 
     #[test]
     fn test_pane_creation() {

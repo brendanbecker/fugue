@@ -1,4 +1,4 @@
-//! Mirror pane registry for ccmux server (FEAT-062)
+//! Mirror pane registry for fugue server (FEAT-062)
 //!
 //! Tracks mirror pane relationships for output forwarding and cleanup.
 //! When a pane produces output, the registry is consulted to forward

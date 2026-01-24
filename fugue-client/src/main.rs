@@ -1,9 +1,9 @@
-//! ccmux client - Terminal UI for ccmux
+//! fugue client - Terminal UI for fugue
 //!
-//! This is the main entry point for the ccmux terminal multiplexer client.
+//! This is the main entry point for the fugue terminal multiplexer client.
 //! It provides a Ratatui-based interface for managing Claude Code sessions.
 
-use ccmux_utils::{init_logging_with_config, LogConfig, Result};
+use fugue_utils::{init_logging_with_config, LogConfig, Result};
 
 mod auto_start;
 mod cli;
@@ -27,17 +27,17 @@ async fn main() -> Result<()> {
 
     // Initialize logging to file (not stderr, since we're using the terminal)
     init_logging_with_config(LogConfig::client())?;
-    tracing::info!("ccmux client starting");
+    tracing::info!("fugue client starting");
     tracing::debug!("CLI args: {:?}", args);
 
     // Run the application
     match run_app(args).await {
         Ok(()) => {
-            tracing::info!("ccmux client exiting normally");
+            tracing::info!("fugue client exiting normally");
             Ok(())
         }
         Err(e) => {
-            tracing::error!("ccmux client error: {}", e);
+            tracing::error!("fugue client error: {}", e);
             // Print error to stderr after terminal restoration
             eprintln!("Error: {}", e);
             Err(e)
@@ -56,7 +56,7 @@ async fn run_app(args: Args) -> Result<()> {
             None => {
                 let msg = format!("Unknown target alias: '{}'", target);
                 eprintln!("Error: {}", msg);
-                return Err(ccmux_utils::CcmuxError::Config(msg));
+                return Err(fugue_utils::CcmuxError::Config(msg));
             }
         }
     } else {
@@ -85,9 +85,9 @@ async fn run_app(args: Args) -> Result<()> {
             }
             Ok(ServerStartResult::NotRunning) => {
                 // Auto-start disabled and server not running
-                eprintln!("Error: Server not running. Start it with 'ccmux-server' or run without --no-auto-start");
-                return Err(ccmux_utils::CcmuxError::ServerNotRunning {
-                    path: ccmux_utils::socket_path(),
+                eprintln!("Error: Server not running. Start it with 'fugue-server' or run without --no-auto-start");
+                return Err(fugue_utils::CcmuxError::ServerNotRunning {
+                    path: fugue_utils::socket_path(),
                 });
             }
             Err(e) => {

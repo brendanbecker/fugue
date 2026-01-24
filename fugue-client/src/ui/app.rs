@@ -1,6 +1,6 @@
 //! Main application struct and state management
 //!
-//! The App struct is the central coordinator for the ccmux client UI.
+//! The App struct is the central coordinator for the fugue client UI.
 
 // Allow unused code that's part of the public API for future features
 #![allow(dead_code)]
@@ -31,11 +31,11 @@ use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
 use uuid::Uuid;
 
-use ccmux_protocol::{
+use fugue_protocol::{
     ClientMessage, ClientType, PaneState,
     ServerMessage, SplitDirection,
 };
-use ccmux_utils::Result;
+use fugue_utils::Result;
 
 use crate::connection::Connection;
 use crate::input::{ClientCommand, InputAction, InputHandler, InputMode};
@@ -158,7 +158,7 @@ impl App {
         Ok(())
     }
 
-    /// Connect to the ccmux server
+    /// Connect to the fugue server
     async fn connect(&mut self) -> Result<()> {
         self.state.state = AppState::Connecting;
         self.state.status_message = Some("Connecting to server...".to_string());
@@ -169,7 +169,7 @@ impl App {
                 self.connection
                     .send(ClientMessage::Connect {
                         client_id: self.state.client_id,
-                        protocol_version: ccmux_protocol::PROTOCOL_VERSION,
+                        protocol_version: fugue_protocol::PROTOCOL_VERSION,
                         client_type: ClientType::Tui,
                     })
                     .await?;
@@ -1791,7 +1791,7 @@ impl App {
             ServerMessage::Error { code, message, details } => {
                 self.state.status_message = Some(format!("Error ({:?}): {}", code, message));
                 
-                if let Some(ccmux_protocol::messages::ErrorDetails::HumanControl { remaining_ms }) = details {
+                if let Some(fugue_protocol::messages::ErrorDetails::HumanControl { remaining_ms }) = details {
                     self.state.human_control_lock_expiry = Some(Instant::now() + Duration::from_millis(remaining_ms));
                 }
             }

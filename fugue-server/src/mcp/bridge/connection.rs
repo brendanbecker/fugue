@@ -9,10 +9,10 @@ use tokio_util::codec::Framed;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::{
+use fugue_protocol::{
     ClientCodec, ClientMessage, ClientType, ServerMessage, PROTOCOL_VERSION,
 };
-use ccmux_utils::socket_path;
+use fugue_utils::socket_path;
 
 use crate::mcp::error::McpError;
 use super::health::{self, ConnectionState};
@@ -26,7 +26,7 @@ pub const MAX_RECONNECT_ATTEMPTS: u8 = 5;
 /// BUG-037 FIX: Timeout for waiting for a daemon response (in seconds)
 pub const DAEMON_RESPONSE_TIMEOUT_SECS: u64 = 25;
 
-/// Manages connection to the ccmux daemon
+/// Manages connection to the fugue daemon
 pub struct ConnectionManager {
     /// Channel for sending messages to daemon
     pub daemon_tx: Option<mpsc::Sender<ClientMessage>>,
@@ -70,14 +70,14 @@ impl ConnectionManager {
         }
     }
 
-    /// Connect to the ccmux daemon
+    /// Connect to the fugue daemon
     pub async fn connect_to_daemon(&mut self) -> Result<(), McpError> {
         let socket = socket_path();
 
         info!(
             socket_path = %socket.display(),
             client_id = %self.client_id,
-            "Attempting to connect to ccmux daemon"
+            "Attempting to connect to fugue daemon"
         );
 
         // Check if socket exists
@@ -173,7 +173,7 @@ impl ConnectionManager {
             ServerMessage::Connected { .. } => {
                 info!(
                     client_id = %self.client_id,
-                    "Successfully connected to ccmux daemon"
+                    "Successfully connected to fugue daemon"
                 );
 
                 // FEAT-060: Update connection state to Connected
@@ -389,7 +389,7 @@ impl ConnectionManager {
 
     /// Drain pending messages and return diagnostic information (FEAT-109)
     ///
-    /// Used by the `ccmux_drain_messages` MCP tool to clear stale broadcast
+    /// Used by the `fugue_drain_messages` MCP tool to clear stale broadcast
     /// messages and provide visibility into what was discarded.
     ///
     /// Returns a tuple of (total_count, message_types) where message_types

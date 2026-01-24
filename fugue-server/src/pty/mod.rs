@@ -1,4 +1,4 @@
-//! PTY management for ccmux server
+//! PTY management for fugue server
 //!
 //! Provides pseudo-terminal creation and lifecycle management
 //! using portable-pty for cross-platform compatibility.

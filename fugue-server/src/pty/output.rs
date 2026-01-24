@@ -7,7 +7,7 @@
 //! ## Sideband Command Integration
 //!
 //! When sideband parsing is enabled, the poller intercepts XML command tags
-//! embedded in PTY output (e.g., `<ccmux:spawn direction="vertical" />`),
+//! embedded in PTY output (e.g., `<fugue:spawn direction="vertical" />`),
 //! executes them, and strips them from the display output.
 
 use std::io::Read;
@@ -22,7 +22,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info, trace, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::ServerMessage;
+use fugue_protocol::ServerMessage;
 
 use crate::registry::ClientRegistry;
 use crate::sideband::{AsyncCommandExecutor, SidebandCommand, SidebandParser, SplitDirection};
@@ -183,7 +183,7 @@ impl PtyOutputPoller {
     /// Spawn a new output poller with sideband command parsing enabled
     ///
     /// This version integrates sideband parsing, which:
-    /// - Intercepts XML command tags (e.g., `<ccmux:spawn ... />`) from output
+    /// - Intercepts XML command tags (e.g., `<fugue:spawn ... />`) from output
     /// - Executes the commands against the session manager
     /// - Strips command tags from the display output
     pub fn spawn_with_sideband(
@@ -1357,7 +1357,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_poller_triggers_claude_detection() {
-        use ccmux_protocol::PaneState;
+        use fugue_protocol::PaneState;
 
         // Setup: create session manager with pane
         let (session_manager, _pty_manager, registry, executor, session_id, pane_id) =

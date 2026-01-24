@@ -1,4 +1,4 @@
-//! Client command dispatch for ccmux
+//! Client command dispatch for fugue
 //!
 //! Handles client-side commands triggered by prefix key combinations
 //! and command mode input.

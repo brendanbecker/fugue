@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
-use ccmux_utils::{CcmuxError, Result};
+use fugue_utils::{CcmuxError, Result};
 
 use super::{MirrorRegistry, Pane, Session, Window};
 use crate::orchestration::WorktreeDetector;

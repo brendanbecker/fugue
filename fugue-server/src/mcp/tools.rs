@@ -1,15 +1,15 @@
-//! MCP tool definitions for ccmux
+//! MCP tool definitions for fugue
 //!
 //! Defines the tools exposed to Claude Code through the MCP protocol.
 
 use super::protocol::Tool;
 
-/// Get all tool definitions for the ccmux MCP server
+/// Get all tool definitions for the fugue MCP server
 pub fn get_tool_definitions() -> Vec<Tool> {
     vec![
         Tool {
-            name: "ccmux_list_panes".into(),
-            description: "List all panes in ccmux with their status, including Claude detection state".into(),
+            name: "fugue_list_panes".into(),
+            description: "List all panes in fugue with their status, including Claude detection state".into(),
             input_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
@@ -21,7 +21,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_read_pane".into(),
+            name: "fugue_read_pane".into(),
             description: "Read the output buffer (scrollback) from a pane".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -44,7 +44,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_create_pane".into(),
+            name: "fugue_create_pane".into(),
             description: "Create a new pane in a session".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -95,7 +95,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_send_input".into(),
+            name: "fugue_send_input".into(),
             description: "Send input (keystrokes) to a pane".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -122,7 +122,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_get_status".into(),
+            name: "fugue_get_status".into(),
             description: "Get detailed status of a pane including Claude state if applicable".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -136,7 +136,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_close_pane".into(),
+            name: "fugue_close_pane".into(),
             description: "Close a pane by killing its process".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -150,7 +150,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_focus_pane".into(),
+            name: "fugue_focus_pane".into(),
             description: "Focus a pane (make it the active pane)".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -164,7 +164,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_select_window".into(),
+            name: "fugue_select_window".into(),
             description: "Switch to a specific window (make it the active window)".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -178,7 +178,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_select_session".into(),
+            name: "fugue_select_session".into(),
             description: "Switch to a specific session (make it the active session)".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -192,7 +192,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_list_sessions".into(),
+            name: "fugue_list_sessions".into(),
             description: "List all terminal sessions".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -200,7 +200,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_list_windows".into(),
+            name: "fugue_list_windows".into(),
             description: "List all windows in a session".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -213,7 +213,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_create_session".into(),
+            name: "fugue_create_session".into(),
             description: "Create a new terminal session".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -239,7 +239,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_attach_session".into(),
+            name: "fugue_attach_session".into(),
             description: "Attach the MCP client to a session. Required for sending orchestration messages.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -253,7 +253,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_create_window".into(),
+            name: "fugue_create_window".into(),
             description: "Create a new window in a session".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -278,7 +278,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_rename_session".into(),
+            name: "fugue_rename_session".into(),
             description: "Rename a session for easier identification".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -297,7 +297,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // FEAT-036: Pane and window rename tools
         Tool {
-            name: "ccmux_rename_pane".into(),
+            name: "fugue_rename_pane".into(),
             description: "Rename a pane for easier identification".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -315,7 +315,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_rename_window".into(),
+            name: "fugue_rename_window".into(),
             description: "Rename a window for easier identification".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -333,7 +333,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_split_pane".into(),
+            name: "fugue_split_pane".into(),
             description: "Split a specific pane with custom ratio".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -369,7 +369,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_resize_pane".into(),
+            name: "fugue_resize_pane".into(),
             description: "Adjust pane sizes dynamically".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -387,7 +387,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_kill_session".into(),
+            name: "fugue_kill_session".into(),
             description: "Kill/destroy a session and all its windows and panes".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -401,7 +401,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_set_environment".into(),
+            name: "fugue_set_environment".into(),
             description: "Set an environment variable on a session (inherited by new panes)".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -423,7 +423,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_get_environment".into(),
+            name: "fugue_get_environment".into(),
             description: "Get environment variables from a session".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -441,7 +441,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_set_metadata".into(),
+            name: "fugue_set_metadata".into(),
             description: "Set metadata on a session (arbitrary key-value pairs for application use)".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -463,7 +463,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_get_metadata".into(),
+            name: "fugue_get_metadata".into(),
             description: "Get metadata from a session".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -481,7 +481,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_create_layout".into(),
+            name: "fugue_create_layout".into(),
             description: "Create complex layouts declaratively in a single call. Supports nested splits with custom ratios.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -543,7 +543,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // ==================== FEAT-048: Orchestration MCP Tools ====================
         Tool {
-            name: "ccmux_send_orchestration".into(),
+            name: "fugue_send_orchestration".into(),
             description: "Send orchestration message to other sessions using tag-based routing".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -609,7 +609,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_set_tags".into(),
+            name: "fugue_set_tags".into(),
             description: "Add or remove tags on a session for routing purposes".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -632,7 +632,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_get_tags".into(),
+            name: "fugue_get_tags".into(),
             description: "Get tags from a session".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -645,7 +645,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_report_status".into(),
+            name: "fugue_report_status".into(),
             description: "Report current session status to orchestrator (sends to sessions tagged 'orchestrator')".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -664,7 +664,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_request_help".into(),
+            name: "fugue_request_help".into(),
             description: "Request help from orchestrator (sends to sessions tagged 'orchestrator')".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -678,7 +678,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_broadcast".into(),
+            name: "fugue_broadcast".into(),
             description: "Broadcast a message to all other sessions".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -697,7 +697,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // ==================== FEAT-059: Beads Workflow Integration Tools ====================
         Tool {
-            name: "ccmux_beads_assign".into(),
+            name: "fugue_beads_assign".into(),
             description: "Assign a beads issue to the current pane. Tracks which pane is working on which issue.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -715,7 +715,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_beads_release".into(),
+            name: "fugue_beads_release".into(),
             description: "Release/unassign the current beads issue from a pane. Records outcome in history.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -733,7 +733,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_beads_find_pane".into(),
+            name: "fugue_beads_find_pane".into(),
             description: "Find the pane currently working on a specific beads issue.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -747,7 +747,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_beads_pane_history".into(),
+            name: "fugue_beads_pane_history".into(),
             description: "Get the issue history for a pane, showing all issues worked on.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -761,7 +761,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // ==================== FEAT-060: Connection Status Tool ====================
         Tool {
-            name: "ccmux_connection_status".into(),
+            name: "fugue_connection_status".into(),
             description: "Get the current daemon connection status including health and recovery info".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -770,7 +770,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // ==================== FEAT-074: Server Status Tool ====================
         Tool {
-            name: "ccmux_server_status".into(),
+            name: "fugue_server_status".into(),
             description: "Get server-wide operational status including persistence health and metrics".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -779,7 +779,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // ==================== FEAT-062: Mirror Pane Tool ====================
         Tool {
-            name: "ccmux_mirror_pane".into(),
+            name: "fugue_mirror_pane".into(),
             description: "Create a read-only mirror pane that displays another pane's output in real-time. Useful for 'plate spinning' visibility in multi-agent workflows.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -799,7 +799,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // ==================== FEAT-096: Expect Tool ====================
         Tool {
-            name: "ccmux_expect".into(),
+            name: "fugue_expect".into(),
             description: "Wait for regex pattern in pane output".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -839,7 +839,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // ==================== FEAT-094: Parallel Command Execution ====================
         Tool {
-            name: "ccmux_run_parallel".into(),
+            name: "fugue_run_parallel".into(),
             description: "Execute commands in parallel across separate panes and return aggregated results. Creates panes, runs commands with exit code tracking, polls for completion, and optionally cleans up.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -889,7 +889,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // FEAT-095: Sequential pipeline execution
         Tool {
-            name: "ccmux_run_pipeline".into(),
+            name: "fugue_run_pipeline".into(),
             description: "Execute commands sequentially in a single pane. Supports stopping on error and returning structured results with exit codes for each step.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -937,7 +937,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // ==================== FEAT-097: Orchestration Message Receive ====================
         Tool {
-            name: "ccmux_get_worker_status".into(),
+            name: "fugue_get_worker_status".into(),
             description: "Retrieves the current status of a specific worker (or all workers if no ID provided).".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -950,7 +950,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_poll_messages".into(),
+            name: "fugue_poll_messages".into(),
             description: "Allows a worker to check for new messages in its inbox.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -965,7 +965,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // ==================== FEAT-102: Agent Status Pane ====================
         Tool {
-            name: "ccmux_create_status_pane".into(),
+            name: "fugue_create_status_pane".into(),
             description: "Create an agent status pane showing real-time activity across all sessions".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -1001,7 +1001,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // ==================== FEAT-104: Watchdog Timer ====================
         Tool {
-            name: "ccmux_watchdog_start".into(),
+            name: "fugue_watchdog_start".into(),
             description: "Start a native watchdog timer that sends periodic messages to a pane. Used for monitoring worker agents.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -1025,7 +1025,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_watchdog_stop".into(),
+            name: "fugue_watchdog_stop".into(),
             description: "Stop the currently running watchdog timer.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -1033,7 +1033,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
             }),
         },
         Tool {
-            name: "ccmux_watchdog_status".into(),
+            name: "fugue_watchdog_status".into(),
             description: "Get the current status of the watchdog timer.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -1042,7 +1042,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // ==================== FEAT-109: Drain Messages Tool ====================
         Tool {
-            name: "ccmux_drain_messages".into(),
+            name: "fugue_drain_messages".into(),
             description: "Clear stale broadcast messages from the response channel. Use this to recover from stuck states after timeouts or heavy broadcast traffic. Returns diagnostic info about what was drained.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -1051,7 +1051,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         // ==================== FEAT-105: Universal Agent Presets ====================
         Tool {
-            name: "ccmux_select_worker".into(),
+            name: "fugue_select_worker".into(),
             description: "Select a worker session based on strategy (random, round-robin) and criteria.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -1098,7 +1098,7 @@ mod tests {
         let tools = get_tool_definitions();
         for tool in &tools {
             assert!(!tool.name.is_empty());
-            assert!(tool.name.starts_with("ccmux_"));
+            assert!(tool.name.starts_with("fugue_"));
         }
     }
 
@@ -1125,59 +1125,59 @@ mod tests {
         let tools = get_tool_definitions();
         let names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
 
-        assert!(names.contains(&"ccmux_list_panes"));
-        assert!(names.contains(&"ccmux_read_pane"));
-        assert!(names.contains(&"ccmux_create_pane"));
-        assert!(names.contains(&"ccmux_send_input"));
-        assert!(names.contains(&"ccmux_get_status"));
-        assert!(names.contains(&"ccmux_close_pane"));
-        assert!(names.contains(&"ccmux_focus_pane"));
-        assert!(names.contains(&"ccmux_list_sessions"));
-        assert!(names.contains(&"ccmux_list_windows"));
-        assert!(names.contains(&"ccmux_create_session"));
-        assert!(names.contains(&"ccmux_create_window"));
-        assert!(names.contains(&"ccmux_rename_session"));
+        assert!(names.contains(&"fugue_list_panes"));
+        assert!(names.contains(&"fugue_read_pane"));
+        assert!(names.contains(&"fugue_create_pane"));
+        assert!(names.contains(&"fugue_send_input"));
+        assert!(names.contains(&"fugue_get_status"));
+        assert!(names.contains(&"fugue_close_pane"));
+        assert!(names.contains(&"fugue_focus_pane"));
+        assert!(names.contains(&"fugue_list_sessions"));
+        assert!(names.contains(&"fugue_list_windows"));
+        assert!(names.contains(&"fugue_create_session"));
+        assert!(names.contains(&"fugue_create_window"));
+        assert!(names.contains(&"fugue_rename_session"));
         // FEAT-036: Pane and window rename tools
-        assert!(names.contains(&"ccmux_rename_pane"));
-        assert!(names.contains(&"ccmux_rename_window"));
+        assert!(names.contains(&"fugue_rename_pane"));
+        assert!(names.contains(&"fugue_rename_window"));
         // New declarative layout tools (FEAT-045)
-        assert!(names.contains(&"ccmux_split_pane"));
-        assert!(names.contains(&"ccmux_resize_pane"));
-        assert!(names.contains(&"ccmux_create_layout"));
-        assert!(names.contains(&"ccmux_kill_session"));
-        assert!(names.contains(&"ccmux_set_environment"));
-        assert!(names.contains(&"ccmux_get_environment"));
+        assert!(names.contains(&"fugue_split_pane"));
+        assert!(names.contains(&"fugue_resize_pane"));
+        assert!(names.contains(&"fugue_create_layout"));
+        assert!(names.contains(&"fugue_kill_session"));
+        assert!(names.contains(&"fugue_set_environment"));
+        assert!(names.contains(&"fugue_get_environment"));
         // FEAT-050: Session metadata
-        assert!(names.contains(&"ccmux_set_metadata"));
-        assert!(names.contains(&"ccmux_get_metadata"));
+        assert!(names.contains(&"fugue_set_metadata"));
+        assert!(names.contains(&"fugue_get_metadata"));
         // FEAT-048: Orchestration MCP tools
-        assert!(names.contains(&"ccmux_send_orchestration"));
-        assert!(names.contains(&"ccmux_set_tags"));
-        assert!(names.contains(&"ccmux_get_tags"));
-        assert!(names.contains(&"ccmux_report_status"));
-        assert!(names.contains(&"ccmux_request_help"));
-        assert!(names.contains(&"ccmux_broadcast"));
+        assert!(names.contains(&"fugue_send_orchestration"));
+        assert!(names.contains(&"fugue_set_tags"));
+        assert!(names.contains(&"fugue_get_tags"));
+        assert!(names.contains(&"fugue_report_status"));
+        assert!(names.contains(&"fugue_request_help"));
+        assert!(names.contains(&"fugue_broadcast"));
         // FEAT-059: Beads workflow integration tools
-        assert!(names.contains(&"ccmux_beads_assign"));
-        assert!(names.contains(&"ccmux_beads_release"));
-        assert!(names.contains(&"ccmux_beads_find_pane"));
-        assert!(names.contains(&"ccmux_beads_pane_history"));
+        assert!(names.contains(&"fugue_beads_assign"));
+        assert!(names.contains(&"fugue_beads_release"));
+        assert!(names.contains(&"fugue_beads_find_pane"));
+        assert!(names.contains(&"fugue_beads_pane_history"));
         // FEAT-060: Connection status tool
-        assert!(names.contains(&"ccmux_connection_status"));
+        assert!(names.contains(&"fugue_connection_status"));
         // FEAT-096: Expect tool
-        assert!(names.contains(&"ccmux_expect"));
+        assert!(names.contains(&"fugue_expect"));
         // FEAT-094: Parallel command execution
-        assert!(names.contains(&"ccmux_run_parallel"));
+        assert!(names.contains(&"fugue_run_parallel"));
         // FEAT-095: Sequential pipeline execution
-        assert!(names.contains(&"ccmux_run_pipeline"));
+        assert!(names.contains(&"fugue_run_pipeline"));
         // FEAT-097: Orchestration Message Receive
-        assert!(names.contains(&"ccmux_get_worker_status"));
-        assert!(names.contains(&"ccmux_poll_messages"));
+        assert!(names.contains(&"fugue_get_worker_status"));
+        assert!(names.contains(&"fugue_poll_messages"));
         // FEAT-104: Watchdog timer
-        assert!(names.contains(&"ccmux_watchdog_start"));
-        assert!(names.contains(&"ccmux_watchdog_stop"));
-        assert!(names.contains(&"ccmux_watchdog_status"));
+        assert!(names.contains(&"fugue_watchdog_start"));
+        assert!(names.contains(&"fugue_watchdog_stop"));
+        assert!(names.contains(&"fugue_watchdog_status"));
         // FEAT-109: Drain messages tool
-        assert!(names.contains(&"ccmux_drain_messages"));
+        assert!(names.contains(&"fugue_drain_messages"));
     }
 }

@@ -8,7 +8,7 @@
 
 use tracing::{debug, warn};
 
-use ccmux_utils::{CcmuxError, Result};
+use fugue_utils::{CcmuxError, Result};
 
 use super::types::{CompressionMethod, ScrollbackSnapshot};
 

@@ -1,6 +1,6 @@
 use tracing::{info, debug};
 use uuid::Uuid;
-use ccmux_protocol::{ErrorCode, ServerMessage};
+use fugue_protocol::{ErrorCode, ServerMessage};
 use crate::handlers::{HandlerContext, HandlerResult};
 
 impl HandlerContext {

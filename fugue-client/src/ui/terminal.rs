@@ -14,7 +14,7 @@ use crossterm::{
 };
 use ratatui::backend::CrosstermBackend;
 
-use ccmux_utils::Result;
+use fugue_utils::Result;
 
 /// Terminal wrapper that handles initialization and cleanup
 pub struct Terminal {

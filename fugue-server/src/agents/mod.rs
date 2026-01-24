@@ -12,7 +12,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use ccmux_server::agents::DetectorRegistry;
+//! use fugue_server::agents::DetectorRegistry;
 //!
 //! let mut registry = DetectorRegistry::with_defaults();
 //!
@@ -27,7 +27,7 @@ pub mod gemini;
 pub mod codex;
 
 use std::collections::HashMap;
-use ccmux_protocol::{AgentActivity, AgentState, JsonValue};
+use fugue_protocol::{AgentActivity, AgentState, JsonValue};
 
 /// Trait for agent-specific detection logic (FEAT-084)
 ///

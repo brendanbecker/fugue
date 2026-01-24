@@ -12,7 +12,7 @@ use uuid::Uuid;
 use super::checkpoint::{CheckpointConfig, CheckpointManager};
 use super::types::{PaneSnapshot, RecoveryState, SessionSnapshot, WalEntry, WindowSnapshot};
 use super::wal::{Wal, WalConfig};
-use ccmux_utils::{CcmuxError, Result};
+use fugue_utils::{CcmuxError, Result};
 
 // Helper functions for specific error types
 fn io_error(msg: impl Into<String>) -> CcmuxError {
@@ -239,7 +239,7 @@ impl RecoveryManager {
                             index,
                             cols,
                             rows,
-                            state: ccmux_protocol::PaneState::Normal,
+                            state: fugue_protocol::PaneState::Normal,
                             name: None,
                             title: None,
                             cwd: None,

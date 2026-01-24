@@ -6,7 +6,7 @@ mod window;
 
 use crate::cli::Command;
 use crate::client::Client;
-use ccmux_utils::Result;
+use fugue_utils::Result;
 use std::sync::OnceLock;
 
 /// Global storage for server address

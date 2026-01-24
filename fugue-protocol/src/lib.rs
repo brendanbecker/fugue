@@ -1,7 +1,7 @@
-//! ccmux-protocol: Shared IPC definitions for client-server communication
+//! fugue-protocol: Shared IPC definitions for client-server communication
 //!
 //! This crate defines all message types and data structures used for
-//! communication between the ccmux client and server over Unix sockets.
+//! communication between the fugue client and server over Unix sockets.
 
 pub mod codec;
 pub mod messages;

@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use ccmux_protocol::{AgentActivity, AgentState, JsonValue};
+use fugue_protocol::{AgentActivity, AgentState, JsonValue};
 
 use super::AgentDetector;
 

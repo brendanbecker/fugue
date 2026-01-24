@@ -1,17 +1,17 @@
-//! Command-line argument parsing for ccmux client
+//! Command-line argument parsing for fugue client
 //!
 //! Uses clap for argument parsing with derive macros.
 
 use clap::Parser;
 use std::path::PathBuf;
 
-/// ccmux - Claude Code terminal multiplexer client
+/// fugue - Claude Code terminal multiplexer client
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
     /// Disable automatic server startup
     ///
-    /// By default, ccmux will automatically start the server daemon if it's
+    /// By default, fugue will automatically start the server daemon if it's
     /// not already running. Use this flag to disable that behavior and fail
     /// immediately if the server is not running.
     #[arg(long, default_value_t = false)]
@@ -34,22 +34,22 @@ pub struct Args {
     ///
     /// Specifies the server address to connect to. Supports both TCP and Unix
     /// sockets via URL format. Overrides --socket if provided.
-    /// Example: tcp://127.0.0.1:3000 or unix:///tmp/ccmux.sock
-    #[arg(long, env = "CCMUX_ADDR")]
+    /// Example: tcp://127.0.0.1:3000 or unix:///tmp/fugue.sock
+    #[arg(long, env = "FUGUE_ADDR")]
     pub addr: Option<String>,
 
     /// Connection target alias (from [remotes] config)
     ///
     /// Specifies a named remote target to connect to. Looks up the address in the
-    /// [remotes] section of ~/.config/ccmux/config.toml.
+    /// [remotes] section of ~/.config/fugue/config.toml.
     /// Overrides --addr if valid.
     #[arg(long)]
     pub target: Option<String>,
 
     /// Command to run in new sessions (overrides default_command from config)
     ///
-    /// Example: ccmux claude --resume
-    /// Example: ccmux bash
+    /// Example: fugue claude --resume
+    /// Example: fugue bash
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     pub command: Vec<String>,
 }
@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_default_args() {
-        let args = Args::parse_from(["ccmux"]);
+        let args = Args::parse_from(["fugue"]);
         assert!(!args.no_auto_start);
         assert!(args.auto_start_enabled());
         assert_eq!(args.server_timeout, 2000);
@@ -92,64 +92,64 @@ mod tests {
 
     #[test]
     fn test_no_auto_start_flag() {
-        let args = Args::parse_from(["ccmux", "--no-auto-start"]);
+        let args = Args::parse_from(["fugue", "--no-auto-start"]);
         assert!(args.no_auto_start);
         assert!(!args.auto_start_enabled());
     }
 
     #[test]
     fn test_server_timeout() {
-        let args = Args::parse_from(["ccmux", "--server-timeout", "5000"]);
+        let args = Args::parse_from(["fugue", "--server-timeout", "5000"]);
         assert_eq!(args.server_timeout, 5000);
     }
 
     #[test]
     fn test_socket_path() {
-        let args = Args::parse_from(["ccmux", "-S", "/tmp/custom.sock"]);
+        let args = Args::parse_from(["fugue", "-S", "/tmp/custom.sock"]);
         assert_eq!(args.socket, Some(PathBuf::from("/tmp/custom.sock")));
 
-        let args = Args::parse_from(["ccmux", "--socket", "/tmp/other.sock"]);
+        let args = Args::parse_from(["fugue", "--socket", "/tmp/other.sock"]);
         assert_eq!(args.socket, Some(PathBuf::from("/tmp/other.sock")));
     }
 
     #[test]
     fn test_addr_flag() {
-        let args = Args::parse_from(["ccmux", "--addr", "tcp://localhost:3000"]);
+        let args = Args::parse_from(["fugue", "--addr", "tcp://localhost:3000"]);
         assert_eq!(args.addr, Some("tcp://localhost:3000".to_string()));
     }
 
     #[test]
     fn test_combined_flags() {
         let args = Args::parse_from([
-            "ccmux",
+            "fugue",
             "--no-auto-start",
             "--server-timeout",
             "3000",
             "-S",
-            "/run/ccmux.sock",
+            "/run/fugue.sock",
         ]);
         assert!(args.no_auto_start);
         assert_eq!(args.server_timeout, 3000);
-        assert_eq!(args.socket, Some(PathBuf::from("/run/ccmux.sock")));
+        assert_eq!(args.socket, Some(PathBuf::from("/run/fugue.sock")));
     }
 
     #[test]
     fn test_command_simple() {
-        let args = Args::parse_from(["ccmux", "bash"]);
+        let args = Args::parse_from(["fugue", "bash"]);
         assert_eq!(args.command, vec!["bash"]);
         assert_eq!(args.command_string(), Some("bash".to_string()));
     }
 
     #[test]
     fn test_command_with_args() {
-        let args = Args::parse_from(["ccmux", "claude", "--resume"]);
+        let args = Args::parse_from(["fugue", "claude", "--resume"]);
         assert_eq!(args.command, vec!["claude", "--resume"]);
         assert_eq!(args.command_string(), Some("claude --resume".to_string()));
     }
 
     #[test]
     fn test_command_with_quoted_args() {
-        let args = Args::parse_from(["ccmux", "claude", "do the thing"]);
+        let args = Args::parse_from(["fugue", "claude", "do the thing"]);
         assert_eq!(args.command, vec!["claude", "do the thing"]);
         assert_eq!(
             args.command_string(),
@@ -160,7 +160,7 @@ mod tests {
     #[test]
     fn test_flags_before_command() {
         let args = Args::parse_from([
-            "ccmux",
+            "fugue",
             "--no-auto-start",
             "-S",
             "/tmp/sock",

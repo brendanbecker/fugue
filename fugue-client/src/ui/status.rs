@@ -11,7 +11,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Span;
 use ratatui::widgets::Widget;
 
-use ccmux_protocol::{AgentActivity, AgentState, ClaudeActivity, SessionInfo};
+use fugue_protocol::{AgentActivity, AgentState, ClaudeActivity, SessionInfo};
 
 /// Connection status for display
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

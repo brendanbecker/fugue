@@ -2,7 +2,7 @@ use uuid::Uuid;
 use tracing::{debug, info, warn};
 use std::time::Duration;
 
-use ccmux_protocol::{ClientMessage, ServerMessage, SplitDirection};
+use fugue_protocol::{ClientMessage, ServerMessage, SplitDirection};
 
 use super::connection::ConnectionManager;
 use crate::mcp::error::McpError;
@@ -240,10 +240,10 @@ impl OrchestrationContext {
         if cleanup_session && self.session_was_created && matches!(self.config.layout, Layout::Hidden) {
             if let Some(_session_id) = self.session_id {
                  // To close a session, we usually rely on closing all its panes or windows.
-                 // But ccmux might not auto-close session on last pane close depending on config.
+                 // But fugue might not auto-close session on last pane close depending on config.
                  // For now, let's assume if we closed all panes we created, and it was a new session,
                  // we might want to ensure the session is gone.
-                 // However, ccmux protocol doesn't have explicit "CloseSession" yet (checking protocol messages).
+                 // However, fugue protocol doesn't have explicit "CloseSession" yet (checking protocol messages).
                  // Ah, `KillSession` exists in some versions? Or just close all windows/panes.
                  // Let's check ClientMessage in protocol... 
                  // Based on context, we only have ClosePane, CloseWindow.
@@ -265,13 +265,13 @@ impl OrchestrationContext {
                  // PROMPT says: "Cleanup panes (and session if auto-created)"
                  
                  // Let's check if there is a way to kill session.
-                 // I'll check `ccmux-protocol/src/messages.rs`.
+                 // I'll check `fugue-protocol/src/messages.rs`.
                  // For now I will assume closing panes is what is expected, maybe iterating over all panes in session?
                  
                  // Actually, let's stick to closing the panes we tracked.
                  // If `cleanup_session` is true, we might want to find a way to close the session.
                  
-                 // NOTE: Since I cannot see `ccmux-protocol` content right now, I will assume `ClosePane` is the main mechanism.
+                 // NOTE: Since I cannot see `fugue-protocol` content right now, I will assume `ClosePane` is the main mechanism.
                  // I will leave session cleanup as "best effort" via pane cleanup for now unless I find `KillSession`.
                  
                  // Wait, I can search protocol messages.

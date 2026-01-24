@@ -1,4 +1,4 @@
-//! Session management for ccmux server
+//! Session management for fugue server
 //!
 //! Provides the session/window/pane hierarchy that organizes
 //! terminal processes.

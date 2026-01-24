@@ -1,5 +1,5 @@
 use uuid::Uuid;
-use ccmux_protocol::{
+use fugue_protocol::{
     ClientMessage,
     ServerMessage,
     SplitDirection,
@@ -30,12 +30,12 @@ pub fn format_pane_list(panes: &[PaneListEntry]) -> Vec<serde_json::Value> {
     .iter()
     .map(|p| {
     let state_str = match &p.state {
-    ccmux_protocol::PaneState::Normal => "normal",
-    ccmux_protocol::PaneState::Agent(state) => {
+    fugue_protocol::PaneState::Normal => "normal",
+    fugue_protocol::PaneState::Agent(state) => {
         if state.is_claude() { "claude" } else { "agent" }
     }
-    ccmux_protocol::PaneState::Exited { .. } => "exited",
-    ccmux_protocol::PaneState::Status => "status",
+    fugue_protocol::PaneState::Exited { .. } => "exited",
+    fugue_protocol::PaneState::Status => "status",
     };
 
     serde_json::json!({
@@ -195,8 +195,8 @@ impl<'a> ToolHandlers<'a> {
     is_awaiting_confirmation,
     } => {
     let state_json = match &state {
-    ccmux_protocol::PaneState::Normal => serde_json::json!({"type": "normal"}),
-    ccmux_protocol::PaneState::Agent(agent_state) => serde_json::json!({
+    fugue_protocol::PaneState::Normal => serde_json::json!({"type": "normal"}),
+    fugue_protocol::PaneState::Agent(agent_state) => serde_json::json!({
         "type": if agent_state.is_claude() { "claude" } else { "agent" },
         "agent_type": agent_state.agent_type,
         "session_id": agent_state.session_id,
@@ -204,11 +204,11 @@ impl<'a> ToolHandlers<'a> {
         "model": agent_state.get_metadata("model"),
         "tokens_used": agent_state.get_metadata("tokens_used"),
     }),
-    ccmux_protocol::PaneState::Exited { code } => serde_json::json!({
+    fugue_protocol::PaneState::Exited { code } => serde_json::json!({
         "type": "exited",
         "exit_code": code,
     }),
-    ccmux_protocol::PaneState::Status => serde_json::json!({"type": "status"}),
+    fugue_protocol::PaneState::Status => serde_json::json!({"type": "status"}),
     };
 
     let result = serde_json::json!({

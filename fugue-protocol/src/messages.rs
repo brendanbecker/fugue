@@ -17,7 +17,7 @@ use crate::types::*;
 ///
 /// # Example
 /// ```rust
-/// use ccmux_protocol::OrchestrationMessage;
+/// use fugue_protocol::OrchestrationMessage;
 /// use serde_json::json;
 ///
 /// let msg = OrchestrationMessage::new(

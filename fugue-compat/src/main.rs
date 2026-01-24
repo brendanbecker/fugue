@@ -1,7 +1,7 @@
-//! ccmux-compat: tmux-compatible CLI wrapper for ccmux
+//! fugue-compat: tmux-compatible CLI wrapper for fugue
 //!
 //! This binary provides a tmux-compatible CLI interface that translates
-//! tmux commands to ccmux protocol messages, enabling drop-in replacement
+//! tmux commands to fugue protocol messages, enabling drop-in replacement
 //! for existing tmux workflows.
 
 mod cli;
@@ -18,7 +18,7 @@ async fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::from_default_env()
-                .add_directive("ccmux_compat=info".parse().unwrap()),
+                .add_directive("fugue_compat=info".parse().unwrap()),
         )
         .with_writer(std::io::stderr)
         .init();

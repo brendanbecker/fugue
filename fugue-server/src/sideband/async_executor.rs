@@ -12,7 +12,7 @@ use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::{MailPriority, ServerMessage};
+use fugue_protocol::{MailPriority, ServerMessage};
 
 use super::commands::{ControlAction, NotifyLevel, PaneRef, SidebandCommand, SplitDirection};
 use super::executor::{ExecuteError, ExecuteResult, SpawnResult};
@@ -389,7 +389,7 @@ impl AsyncCommandExecutor {
             if cfg.sandbox {
                 match std::env::current_exe() {
                     Ok(exe_path) => {
-                        let sandbox_path = exe_path.parent().unwrap().join("ccmux-sandbox");
+                        let sandbox_path = exe_path.parent().unwrap().join("fugue-sandbox");
                         if sandbox_path.exists() {
                             info!("Applying sandbox wrapper: {:?}", sandbox_path);
                             
@@ -401,12 +401,12 @@ impl AsyncCommandExecutor {
                             pty_config.command = sandbox_path.to_string_lossy().to_string();
                             pty_config.args = new_args;
                         } else {
-                            warn!("Sandbox requested but ccmux-sandbox binary not found at {:?}", sandbox_path);
-                            return Err(ExecuteError::ExecutionFailed("Sandbox requested but ccmux-sandbox binary not found".to_string()));
+                            warn!("Sandbox requested but fugue-sandbox binary not found at {:?}", sandbox_path);
+                            return Err(ExecuteError::ExecutionFailed("Sandbox requested but fugue-sandbox binary not found".to_string()));
                         }
                     }
                     Err(e) => {
-                        return Err(ExecuteError::ExecutionFailed(format!("Failed to locate ccmux-sandbox: {}", e)));
+                        return Err(ExecuteError::ExecutionFailed(format!("Failed to locate fugue-sandbox: {}", e)));
                     }
                 }
             }
@@ -414,7 +414,7 @@ impl AsyncCommandExecutor {
 
         let pty_config = pty_config
             .with_size(pane_size.0, pane_size.1)
-            .with_ccmux_context(session_id, &session_name, window_id, pane_id);
+            .with_fugue_context(session_id, &session_name, window_id, pane_id);
 
         // Step 3: Spawn PTY for the new pane
         let pty_reader = {

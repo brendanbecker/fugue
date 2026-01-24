@@ -4,7 +4,7 @@
 
 use tracing::{debug, info};
 
-use ccmux_protocol::{ErrorCode, OrchestrationMessage, OrchestrationTarget, ServerMessage};
+use fugue_protocol::{ErrorCode, OrchestrationMessage, OrchestrationTarget, ServerMessage};
 
 use super::{HandlerContext, HandlerResult};
 
@@ -200,7 +200,7 @@ impl HandlerContext {
             if let Some(session) = session_manager.get_session(session_id) {
                 let status = session.get_status().cloned().unwrap_or(serde_json::Value::Null);
                 HandlerResult::Response(ServerMessage::WorkerStatus {
-                    status: ccmux_protocol::types::JsonValue::new(status),
+                    status: fugue_protocol::types::JsonValue::new(status),
                 })
             } else {
                 HandlerContext::error(
@@ -217,7 +217,7 @@ impl HandlerContext {
                 all_statuses.insert(session.id().to_string(), status);
             }
             HandlerResult::Response(ServerMessage::WorkerStatus {
-                status: ccmux_protocol::types::JsonValue::new(serde_json::Value::Object(all_statuses)),
+                status: fugue_protocol::types::JsonValue::new(serde_json::Value::Object(all_statuses)),
             })
         }
     }

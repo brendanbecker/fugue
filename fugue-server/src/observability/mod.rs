@@ -1,4 +1,4 @@
-//! Observability subsystem for ccmux
+//! Observability subsystem for fugue
 //!
 //! Provides metrics, structured logging, and tracing infrastructure.
 

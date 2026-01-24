@@ -1,4 +1,4 @@
-//! Connection client for ccmux server
+//! Connection client for fugue server
 
 // Allow unused code that's part of the public API for future features
 #![allow(dead_code)]
@@ -12,8 +12,8 @@ use tokio::sync::mpsc;
 use tokio_util::codec::Framed;
 use url::Url;
 
-use ccmux_protocol::{ClientCodec, ClientMessage, ServerMessage};
-use ccmux_utils::{socket_path, CcmuxError, Result};
+use fugue_protocol::{ClientCodec, ClientMessage, ServerMessage};
+use fugue_utils::{socket_path, CcmuxError, Result};
 
 use super::handler::MessageSender;
 
@@ -30,7 +30,7 @@ pub enum ConnectionState {
     Reconnecting,
 }
 
-/// Client connection to ccmux server
+/// Client connection to fugue server
 pub struct Connection {
     /// Connection address URL (unix://path or tcp://host:port)
     connect_addr: String,

@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::time::SystemTime;
 use uuid::Uuid;
-use ccmux_protocol::WindowInfo;
+use fugue_protocol::WindowInfo;
 
 use super::Pane;
 

@@ -1,6 +1,6 @@
 use tracing::{info, warn, debug};
 use uuid::Uuid;
-use ccmux_protocol::{ErrorCode, PaneListEntry, ServerMessage, SplitDirection};
+use fugue_protocol::{ErrorCode, PaneListEntry, ServerMessage, SplitDirection};
 use crate::pty::{PtyConfig, PtyOutputPoller};
 use crate::arbitration::{Action, Resource};
 use crate::handlers::{HandlerContext, HandlerResult};
@@ -475,7 +475,7 @@ impl HandlerContext {
         } else if let Some(ref inherited) = inherited_cwd {
             config = config.with_cwd(inherited);
         }
-        config = config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
+        config = config.with_fugue_context(session_id, &session_name, window_id, pane_id);
         // Apply session environment variables
         config = config.with_env_map(&session_env);
 
@@ -651,7 +651,7 @@ impl HandlerContext {
         } else if let Some(ref inherited) = inherited_cwd {
             config = config.with_cwd(inherited);
         }
-        config = config.with_ccmux_context(session_id, &session_name, window_id, new_pane_id);
+        config = config.with_fugue_context(session_id, &session_name, window_id, new_pane_id);
         // Apply session environment variables
         config = config.with_env_map(&session_env);
 

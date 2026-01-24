@@ -206,7 +206,7 @@ branch refs/heads/feature/test
 
     #[test]
     fn test_is_git_repo_current_dir() {
-        // This test runs in the ccmux repo
+        // This test runs in the fugue repo
         let cwd = env::current_dir().unwrap();
         assert!(WorktreeDetector::is_git_repo(&cwd));
     }

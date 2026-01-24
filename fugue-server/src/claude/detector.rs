@@ -6,7 +6,7 @@
 
 use std::time::{Duration, Instant};
 use tracing::{debug, info, trace};
-use ccmux_protocol::{ClaudeActivity, ClaudeState};
+use fugue_protocol::{ClaudeActivity, ClaudeState};
 use crate::observability::Metrics;
 use super::state::{DetectorConfig, ClaudeSessionInfo, ClaudeStateChange};
 

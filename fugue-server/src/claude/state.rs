@@ -1,11 +1,11 @@
 //! Claude Code state types
 //!
 //! Defines state types and events for Claude Code detection.
-//! The main types (ClaudeState, ClaudeActivity) are defined in ccmux-protocol
+//! The main types (ClaudeState, ClaudeActivity) are defined in fugue-protocol
 //! for sharing between server and client. This module provides additional
 //! types for state change events.
 
-use ccmux_protocol::{ClaudeActivity, ClaudeState};
+use fugue_protocol::{ClaudeActivity, ClaudeState};
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime};
 

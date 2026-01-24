@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
-use ccmux_protocol::{OrchestrationMessage, OrchestrationTarget};
+use fugue_protocol::{OrchestrationMessage, OrchestrationTarget};
 
 /// Sender for orchestration messages (from_session_id, message)
 pub type MessageSender = mpsc::Sender<(Uuid, OrchestrationMessage)>;

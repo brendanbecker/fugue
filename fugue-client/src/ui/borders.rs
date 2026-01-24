@@ -10,7 +10,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::symbols::border;
 use ratatui::widgets::{Block, Borders};
 
-use ccmux_protocol::ClaudeActivity;
+use fugue_protocol::ClaudeActivity;
 
 /// Border style options
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

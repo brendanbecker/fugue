@@ -9,7 +9,7 @@ use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use notify_debouncer_full::{new_debouncer, DebounceEventResult, Debouncer, FileIdMap};
 use tokio::sync::mpsc;
 
-use ccmux_utils::{config_dir, CcmuxError, Result};
+use fugue_utils::{config_dir, CcmuxError, Result};
 
 use super::{AppConfig, ConfigLoader};
 
@@ -130,7 +130,7 @@ mod tests {
             kind: EventKind::Modify(notify::event::ModifyKind::Data(
                 notify::event::DataChange::Content,
             )),
-            paths: vec![PathBuf::from("/home/user/.config/ccmux/config.toml")],
+            paths: vec![PathBuf::from("/home/user/.config/fugue/config.toml")],
             attrs: Default::default(),
         };
 
@@ -143,7 +143,7 @@ mod tests {
             kind: EventKind::Modify(notify::event::ModifyKind::Data(
                 notify::event::DataChange::Content,
             )),
-            paths: vec![PathBuf::from("/home/user/.config/ccmux/other.toml")],
+            paths: vec![PathBuf::from("/home/user/.config/fugue/other.toml")],
             attrs: Default::default(),
         };
 

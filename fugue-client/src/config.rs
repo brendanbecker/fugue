@@ -6,11 +6,11 @@ use crate::input::QuickBindings;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-/// Get the config file path (~/.config/ccmux/config.toml)
+/// Get the config file path (~/.config/fugue/config.toml)
 fn config_file() -> PathBuf {
     dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("ccmux")
+        .join("fugue")
         .join("config.toml")
 }
 

@@ -1,4 +1,4 @@
-use ccmux_protocol::{ClientType, messages::ErrorDetails, ServerMessage, ErrorCode, SplitDirection};
+use fugue_protocol::{ClientType, messages::ErrorDetails, ServerMessage, ErrorCode, SplitDirection};
 use crate::pty::PtyManager;
 use crate::registry::ClientRegistry;
 use crate::session::SessionManager;

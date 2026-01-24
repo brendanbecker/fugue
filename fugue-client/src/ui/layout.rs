@@ -18,11 +18,11 @@ pub enum SplitDirection {
     Vertical,
 }
 
-impl From<ccmux_protocol::SplitDirection> for SplitDirection {
-    fn from(dir: ccmux_protocol::SplitDirection) -> Self {
+impl From<fugue_protocol::SplitDirection> for SplitDirection {
+    fn from(dir: fugue_protocol::SplitDirection) -> Self {
         match dir {
-            ccmux_protocol::SplitDirection::Horizontal => SplitDirection::Horizontal,
-            ccmux_protocol::SplitDirection::Vertical => SplitDirection::Vertical,
+            fugue_protocol::SplitDirection::Horizontal => SplitDirection::Horizontal,
+            fugue_protocol::SplitDirection::Vertical => SplitDirection::Vertical,
         }
     }
 }
@@ -816,8 +816,8 @@ mod tests {
 
     #[test]
     fn test_split_direction_from_protocol() {
-        let proto_h = ccmux_protocol::SplitDirection::Horizontal;
-        let proto_v = ccmux_protocol::SplitDirection::Vertical;
+        let proto_h = fugue_protocol::SplitDirection::Horizontal;
+        let proto_v = fugue_protocol::SplitDirection::Vertical;
 
         assert_eq!(SplitDirection::from(proto_h), SplitDirection::Horizontal);
         assert_eq!(SplitDirection::from(proto_v), SplitDirection::Vertical);

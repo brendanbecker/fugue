@@ -1,6 +1,6 @@
 //! Configuration schema structs
 
-use ccmux_utils::{SessionLogConfig, SessionLogLevel};
+use fugue_utils::{SessionLogConfig, SessionLogLevel};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -572,7 +572,7 @@ pub enum DetectionMethod {
 pub struct PersistenceConfig {
     /// Enable persistence (default: true)
     pub enabled: bool,
-    /// Custom state directory (default: ~/.ccmux/state)
+    /// Custom state directory (default: ~/.fugue/state)
     pub state_dir: Option<String>,
     /// Checkpoint interval (seconds)
     pub checkpoint_interval_secs: u64,

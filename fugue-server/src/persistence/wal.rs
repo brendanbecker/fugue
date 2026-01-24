@@ -16,7 +16,7 @@ use tracing::{debug, info, trace, warn};
 
 use super::types::WalEntry;
 use crate::observability::Metrics;
-use ccmux_utils::{CcmuxError, Result};
+use fugue_utils::{CcmuxError, Result};
 
 /// WAL configuration
 #[derive(Debug, Clone)]
@@ -333,7 +333,7 @@ impl<'a> Iterator for WalReader<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ccmux_protocol::PaneState;
+    use fugue_protocol::PaneState;
     use tempfile::TempDir;
     use uuid::Uuid;
 

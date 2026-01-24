@@ -15,7 +15,7 @@ use tracing::{debug, info, warn};
 
 use super::types::{Checkpoint, SessionSnapshot, CHECKPOINT_MAGIC, CHECKPOINT_VERSION};
 use crate::observability::Metrics;
-use ccmux_utils::{CcmuxError, Result};
+use fugue_utils::{CcmuxError, Result};
 
 // Helper functions for specific error types
 fn io_error(msg: impl Into<String>) -> CcmuxError {
@@ -425,7 +425,7 @@ impl CheckpointManager {
 mod tests {
     use super::*;
     use std::collections::HashMap;
-    use ccmux_protocol::PaneState;
+    use fugue_protocol::PaneState;
     use tempfile::TempDir;
     use uuid::Uuid;
 

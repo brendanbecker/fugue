@@ -1,7 +1,7 @@
 //! Window management commands
 
-use ccmux_protocol::{ClientMessage, ServerMessage};
-use ccmux_utils::Result;
+use fugue_protocol::{ClientMessage, ServerMessage};
+use fugue_utils::Result;
 
 use super::{connect, parse_target, Target};
 
@@ -58,7 +58,7 @@ pub async fn new_window(
 
 /// Kill a window
 pub async fn kill_window(target: &str) -> Result<i32> {
-    // ccmux doesn't have a direct kill-window command yet
+    // fugue doesn't have a direct kill-window command yet
     // We would need to kill all panes in the window
     eprintln!("kill-window: not yet implemented (kill panes individually with kill-pane)");
     eprintln!("target: {}", target);

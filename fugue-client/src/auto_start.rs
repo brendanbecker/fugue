@@ -1,4 +1,4 @@
-//! Auto-start functionality for ccmux server
+//! Auto-start functionality for fugue server
 //!
 //! Provides tmux-like behavior where running the client automatically
 //! starts the server daemon if it's not already running.
@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-use ccmux_utils::{socket_path, CcmuxError, Result};
+use fugue_utils::{socket_path, CcmuxError, Result};
 
 /// Configuration for auto-start behavior
 #[derive(Debug, Clone)]
@@ -35,9 +35,9 @@ impl Default for AutoStartConfig {
 }
 
 /// Server binary name
-const SERVER_BINARY_NAME: &str = "ccmux-server";
+const SERVER_BINARY_NAME: &str = "fugue-server";
 
-/// Find the ccmux-server binary
+/// Find the fugue-server binary
 ///
 /// Search order:
 /// 1. Same directory as the current executable
@@ -61,12 +61,12 @@ pub fn find_server_binary() -> Result<PathBuf> {
     }
 
     Err(CcmuxError::Internal(format!(
-        "{} binary not found. Ensure it's in the same directory as ccmux or in your PATH.",
+        "{} binary not found. Ensure it's in the same directory as fugue or in your PATH.",
         SERVER_BINARY_NAME
     )))
 }
 
-/// Start the ccmux-server as a background daemon
+/// Start the fugue-server as a background daemon
 ///
 /// The server is spawned as a detached process with no stdin/stdout/stderr
 /// connections, allowing it to run independently of the client.

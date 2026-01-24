@@ -5,7 +5,7 @@ use ratatui::layout::Rect;
 use ratatui::widgets::ListState;
 use uuid::Uuid;
 
-use ccmux_protocol::{
+use fugue_protocol::{
     ClaudeActivity, MailPriority, PaneInfo, PaneState, SessionInfo, SplitDirection, WindowInfo,
 };
 

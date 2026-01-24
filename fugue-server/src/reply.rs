@@ -3,7 +3,7 @@
 //! This module handles the routing of reply messages from orchestrators
 //! to worker panes that are awaiting input.
 
-use ccmux_protocol::{ErrorCode, PaneTarget, ReplyMessage, ReplyResult, ServerMessage};
+use fugue_protocol::{ErrorCode, PaneTarget, ReplyMessage, ReplyResult, ServerMessage};
 use uuid::Uuid;
 
 use crate::pty::PtyManager;
@@ -172,7 +172,7 @@ pub fn result_to_server_message(result: ReplyDeliveryResult) -> ServerMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ccmux_protocol::{AgentActivity, AgentState, PaneState};
+    use fugue_protocol::{AgentActivity, AgentState, PaneState};
 
     // ==================== ReplyError Tests ====================
 

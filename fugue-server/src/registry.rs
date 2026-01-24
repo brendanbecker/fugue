@@ -14,7 +14,7 @@ use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use crate::observability::Metrics;
-use ccmux_protocol::{ClientType, ServerMessage};
+use fugue_protocol::{ClientType, ServerMessage};
 
 /// Type alias for session IDs (matches the Uuid type used in session module)
 pub type SessionId = Uuid;
@@ -1279,13 +1279,13 @@ mod tests {
 
         // Simulate broadcasting PaneCreated to session, excluding MCP client
         // This is exactly what happens in main.rs when processing ResponseWithBroadcast
-        let pane_info = ccmux_protocol::PaneInfo {
+        let pane_info = fugue_protocol::PaneInfo {
             id: Uuid::new_v4(),
             window_id: Uuid::new_v4(),
             index: 1,
             cols: 80,
             rows: 24,
-            state: ccmux_protocol::PaneState::Normal,
+            state: fugue_protocol::PaneState::Normal,
             name: None,
             title: Some("test".to_string()),
             cwd: None,
@@ -1296,7 +1296,7 @@ mod tests {
         };
         let broadcast_msg = ServerMessage::PaneCreated {
             pane: pane_info,
-            direction: ccmux_protocol::SplitDirection::Vertical,
+            direction: fugue_protocol::SplitDirection::Vertical,
             should_focus: false,
         };
 

@@ -9,7 +9,7 @@
 //!
 //! Each Claude pane gets its own config directory:
 //! ```text
-//! ~/.local/state/ccmux/claude-configs/
+//! ~/.local/state/fugue/claude-configs/
 //! ├── pane-<uuid1>/
 //! │   └── .claude.json
 //! ├── pane-<uuid2>/
@@ -26,7 +26,7 @@ use uuid::Uuid;
 pub const CLAUDE_CONFIG_DIR_ENV: &str = "CLAUDE_CONFIG_DIR";
 
 /// Environment variable for tracking pane ID in Claude processes
-pub const CCMUX_PANE_ID_ENV: &str = "CCMUX_PANE_ID";
+pub const FUGUE_PANE_ID_ENV: &str = "FUGUE_PANE_ID";
 
 /// Subdirectory name for isolation configs under state_dir
 const ISOLATION_DIR_NAME: &str = "claude-configs";
@@ -36,7 +36,7 @@ const PANE_DIR_PREFIX: &str = "pane-";
 
 /// Get the base directory for all isolation config directories
 fn isolation_base_dir() -> PathBuf {
-    ccmux_utils::state_dir().join(ISOLATION_DIR_NAME)
+    fugue_utils::state_dir().join(ISOLATION_DIR_NAME)
 }
 
 /// Get the isolation config directory path for a specific pane
@@ -169,7 +169,7 @@ mod tests {
     {
         let _guard = ENV_MUTEX.lock().unwrap();
 
-        let temp_dir = env::temp_dir().join(format!("ccmux_test_{}", Uuid::new_v4()));
+        let temp_dir = env::temp_dir().join(format!("fugue_test_{}", Uuid::new_v4()));
         let original_state = env::var("XDG_STATE_HOME").ok();
 
         // Set temporary state dir
@@ -466,6 +466,6 @@ mod tests {
     #[test]
     fn test_env_var_names() {
         assert_eq!(CLAUDE_CONFIG_DIR_ENV, "CLAUDE_CONFIG_DIR");
-        assert_eq!(CCMUX_PANE_ID_ENV, "CCMUX_PANE_ID");
+        assert_eq!(FUGUE_PANE_ID_ENV, "FUGUE_PANE_ID");
     }
 }

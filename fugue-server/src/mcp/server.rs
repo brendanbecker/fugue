@@ -204,14 +204,14 @@ impl McpServer {
 
         // Parse and validate required parameters (protocol-level errors)
         let params = match name {
-            "ccmux_list_panes" => ToolParams::ListPanes {
+            "fugue_list_panes" => ToolParams::ListPanes {
                 session: arguments["session"].as_str().map(String::from),
             },
-            "ccmux_read_pane" => ToolParams::ReadPane {
+            "fugue_read_pane" => ToolParams::ReadPane {
                 pane_id: parse_uuid(arguments, "pane_id")?,
                 lines: arguments["lines"].as_u64().unwrap_or(100) as usize,
             },
-            "ccmux_create_pane" => ToolParams::CreatePane {
+            "fugue_create_pane" => ToolParams::CreatePane {
                 session: arguments["session"].as_str().map(String::from),
                 window: arguments["window"].as_str().map(String::from),
                 name: arguments["name"].as_str().map(String::from),
@@ -223,48 +223,48 @@ impl McpServer {
                 config: arguments["config"].clone(),
                 preset: arguments["preset"].as_str().map(String::from),
             },
-            "ccmux_select_worker" => ToolParams::SelectWorker {
+            "fugue_select_worker" => ToolParams::SelectWorker {
                 strategy: arguments["strategy"].as_str().map(String::from),
                 pool: arguments["pool"].as_array().map(|arr| {
                     arr.iter().filter_map(|v| v.as_str().map(String::from)).collect()
                 }),
                 criteria: arguments["criteria"].clone(),
             },
-            "ccmux_send_input" => ToolParams::SendInput {
+            "fugue_send_input" => ToolParams::SendInput {
                 pane_id: parse_uuid(arguments, "pane_id")?,
                 input: arguments["input"].as_str().map(String::from),
                 key: arguments["key"].as_str().map(String::from),
                 submit: arguments["submit"].as_bool().unwrap_or(false),
             },
-            "ccmux_get_status" => ToolParams::GetStatus {
+            "fugue_get_status" => ToolParams::GetStatus {
                 pane_id: parse_uuid(arguments, "pane_id")?,
             },
-            "ccmux_close_pane" => ToolParams::ClosePane {
+            "fugue_close_pane" => ToolParams::ClosePane {
                 pane_id: parse_uuid(arguments, "pane_id")?,
             },
-            "ccmux_focus_pane" => ToolParams::FocusPane {
+            "fugue_focus_pane" => ToolParams::FocusPane {
                 pane_id: parse_uuid(arguments, "pane_id")?,
             },
-            "ccmux_select_window" => ToolParams::SelectWindow {
+            "fugue_select_window" => ToolParams::SelectWindow {
                 window_id: parse_uuid(arguments, "window_id")?,
             },
-            "ccmux_select_session" => ToolParams::SelectSession {
+            "fugue_select_session" => ToolParams::SelectSession {
                 session_id: parse_uuid(arguments, "session_id")?,
             },
-            "ccmux_list_sessions" => ToolParams::ListSessions,
-            "ccmux_list_windows" => ToolParams::ListWindows {
+            "fugue_list_sessions" => ToolParams::ListSessions,
+            "fugue_list_windows" => ToolParams::ListWindows {
                 session: arguments["session"].as_str().map(String::from),
             },
-            "ccmux_create_session" => ToolParams::CreateSession {
+            "fugue_create_session" => ToolParams::CreateSession {
                 name: arguments["name"].as_str().map(String::from),
             },
-            "ccmux_create_window" => ToolParams::CreateWindow {
+            "fugue_create_window" => ToolParams::CreateWindow {
                 session: arguments["session"].as_str().map(String::from),
                 name: arguments["name"].as_str().map(String::from),
                 command: arguments["command"].as_str().map(String::from),
                 cwd: arguments["cwd"].as_str().map(String::from),
             },
-            "ccmux_rename_session" => ToolParams::RenameSession {
+            "fugue_rename_session" => ToolParams::RenameSession {
                 session: arguments["session"]
                     .as_str()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'session' parameter".into()))?
@@ -274,7 +274,7 @@ impl McpServer {
                     .ok_or_else(|| McpError::InvalidParams("Missing 'name' parameter".into()))?
                     .to_string(),
             },
-            "ccmux_split_pane" => ToolParams::SplitPane {
+            "fugue_split_pane" => ToolParams::SplitPane {
                 pane_id: parse_uuid(arguments, "pane_id")?,
                 direction: arguments["direction"].as_str().map(String::from),
                 ratio: arguments["ratio"].as_f64(),
@@ -282,18 +282,18 @@ impl McpServer {
                 cwd: arguments["cwd"].as_str().map(String::from),
                 select: arguments["select"].as_bool().unwrap_or(false),
             },
-            "ccmux_resize_pane" => ToolParams::ResizePane {
+            "fugue_resize_pane" => ToolParams::ResizePane {
                 pane_id: parse_uuid(arguments, "pane_id")?,
                 delta: arguments["delta"]
                     .as_f64()
                     .ok_or_else(|| McpError::InvalidParams("Missing 'delta' parameter".into()))?,
             },
-            "ccmux_create_layout" => ToolParams::CreateLayout {
+            "fugue_create_layout" => ToolParams::CreateLayout {
                 session: arguments["session"].as_str().map(String::from),
                 window: arguments["window"].as_str().map(String::from),
                 layout: arguments["layout"].clone(),
             },
-            "ccmux_create_status_pane" => ToolParams::CreateStatusPane {
+            "fugue_create_status_pane" => ToolParams::CreateStatusPane {
                 position: arguments["position"].as_str().map(String::from),
                 width_percent: arguments["width_percent"].as_i64(),
                 show_activity_feed: arguments["show_activity_feed"].as_bool().unwrap_or(true),
@@ -384,25 +384,25 @@ impl McpServer {
 fn is_known_tool(name: &str) -> bool {
     matches!(
         name,
-        "ccmux_list_panes"
-            | "ccmux_read_pane"
-            | "ccmux_create_pane"
-            | "ccmux_send_input"
-            | "ccmux_get_status"
-            | "ccmux_close_pane"
-            | "ccmux_focus_pane"
-            | "ccmux_select_window"
-            | "ccmux_select_session"
-            | "ccmux_list_sessions"
-            | "ccmux_list_windows"
-            | "ccmux_create_session"
-            | "ccmux_create_window"
-            | "ccmux_rename_session"
-            | "ccmux_split_pane"
-            | "ccmux_resize_pane"
-            | "ccmux_create_layout"
-            | "ccmux_create_status_pane"
-            | "ccmux_select_worker"
+        "fugue_list_panes"
+            | "fugue_read_pane"
+            | "fugue_create_pane"
+            | "fugue_send_input"
+            | "fugue_get_status"
+            | "fugue_close_pane"
+            | "fugue_focus_pane"
+            | "fugue_select_window"
+            | "fugue_select_session"
+            | "fugue_list_sessions"
+            | "fugue_list_windows"
+            | "fugue_create_session"
+            | "fugue_create_window"
+            | "fugue_rename_session"
+            | "fugue_split_pane"
+            | "fugue_resize_pane"
+            | "fugue_create_layout"
+            | "fugue_create_status_pane"
+            | "fugue_select_worker"
     )
 }
 
@@ -505,7 +505,7 @@ mod tests {
 
         let tools = result["tools"].as_array().unwrap();
         assert!(!tools.is_empty());
-        assert!(tools.iter().any(|t| t["name"] == "ccmux_list_panes"));
+        assert!(tools.iter().any(|t| t["name"] == "fugue_list_panes"));
     }
 
     #[test]
@@ -526,7 +526,7 @@ mod tests {
     fn test_dispatch_list_panes() {
         let mut server = McpServer::new();
         let result = server
-            .dispatch_tool("ccmux_list_panes", &serde_json::json!({}))
+            .dispatch_tool("fugue_list_panes", &serde_json::json!({}))
             .unwrap();
 
         assert!(result.is_error.is_none());
@@ -573,7 +573,7 @@ mod tests {
         // Call get_status on a non-existent pane
         let result = server
             .dispatch_tool(
-                "ccmux_get_status",
+                "fugue_get_status",
                 &serde_json::json!({"pane_id": nonexistent_pane.to_string()}),
             )
             .unwrap(); // Should NOT return Err - tool errors are ToolResult::error()
@@ -612,7 +612,7 @@ mod tests {
             id: serde_json::json!(3),
             method: "tools/call".into(),
             params: serde_json::json!({
-                "name": "ccmux_list_panes",
+                "name": "fugue_list_panes",
                 "arguments": {}
             }),
         };

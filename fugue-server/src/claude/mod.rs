@@ -23,7 +23,7 @@
 //! # Usage
 //!
 //! ```rust,ignore
-//! use ccmux_server::claude::{ClaudeDetector, ClaudeStateChange};
+//! use fugue_server::claude::{ClaudeDetector, ClaudeStateChange};
 //!
 //! let mut detector = ClaudeDetector::new();
 //!
@@ -51,4 +51,4 @@ pub use state::{ClaudeSessionInfo, ClaudeStateChange, DetectorConfig};
 // Re-export protocol types for convenience
 // Allow unused since these are part of the public API even if not used internally
 #[allow(unused_imports)]
-pub use ccmux_protocol::{ClaudeActivity, ClaudeState};
+pub use fugue_protocol::{ClaudeActivity, ClaudeState};

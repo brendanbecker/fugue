@@ -1,4 +1,4 @@
-//! Logging infrastructure for ccmux
+//! Logging infrastructure for fugue
 //!
 //! Provides unified logging setup using the tracing ecosystem.
 
@@ -27,13 +27,13 @@ pub enum LogOutput {
 pub struct LogConfig {
     /// Output destination
     pub output: LogOutput,
-    /// Log level filter (e.g., "info", "debug", "ccmux=debug,tokio=warn")
+    /// Log level filter (e.g., "info", "debug", "fugue=debug,tokio=warn")
     pub filter: String,
     /// Include span events (enter/exit)
     pub span_events: bool,
     /// Include file/line in logs
     pub file_line: bool,
-    /// Optional custom log file name (defaults to "ccmux.log")
+    /// Optional custom log file name (defaults to "fugue.log")
     pub file_name: Option<String>,
 }
 
@@ -54,7 +54,7 @@ impl LogConfig {
     pub fn client() -> Self {
         Self {
             output: LogOutput::File,
-            filter: std::env::var("CCMUX_LOG")
+            filter: std::env::var("FUGUE_LOG")
                 .unwrap_or_else(|_| "warn".into()),
             span_events: false,
             file_line: false,
@@ -66,7 +66,7 @@ impl LogConfig {
     pub fn server() -> Self {
         Self {
             output: LogOutput::File,
-            filter: std::env::var("CCMUX_LOG")
+            filter: std::env::var("FUGUE_LOG")
                 .unwrap_or_else(|_| "info".into()),
             span_events: true,
             file_line: true,
@@ -78,8 +78,8 @@ impl LogConfig {
     pub fn mcp_bridge() -> Self {
         Self {
             output: LogOutput::File,
-            filter: std::env::var("CCMUX_MCP_LOG")
-                .or_else(|_| std::env::var("CCMUX_LOG"))
+            filter: std::env::var("FUGUE_MCP_LOG")
+                .or_else(|_| std::env::var("FUGUE_LOG"))
                 .unwrap_or_else(|_| "info".into()),
             span_events: true,
             file_line: true,
@@ -91,8 +91,8 @@ impl LogConfig {
     pub fn mcp_server() -> Self {
         Self {
             output: LogOutput::File,
-            filter: std::env::var("CCMUX_MCP_LOG")
-                .or_else(|_| std::env::var("CCMUX_LOG"))
+            filter: std::env::var("FUGUE_MCP_LOG")
+                .or_else(|_| std::env::var("FUGUE_LOG"))
                 .unwrap_or_else(|_| "info".into()),
             span_events: true,
             file_line: true,
@@ -114,7 +114,7 @@ impl LogConfig {
 
 /// Initialize logging with default configuration
 ///
-/// Uses CCMUX_LOG env var for filter, defaults to "info"
+/// Uses FUGUE_LOG env var for filter, defaults to "info"
 pub fn init_logging() -> Result<()> {
     init_logging_with_config(LogConfig::default())
 }
@@ -141,7 +141,7 @@ pub fn init_logging_with_config(config: LogConfig) -> Result<()> {
         fmt_layer.with_file(false).with_line_number(false)
     };
 
-    let file_name = config.file_name.as_deref().unwrap_or("ccmux.log");
+    let file_name = config.file_name.as_deref().unwrap_or("fugue.log");
 
     match config.output {
         LogOutput::Stderr => {
@@ -299,31 +299,31 @@ mod tests {
     #[test]
     fn test_log_config_client_default_filter() {
         // Save original
-        let original = env::var("CCMUX_LOG").ok();
-        env::remove_var("CCMUX_LOG");
+        let original = env::var("FUGUE_LOG").ok();
+        env::remove_var("FUGUE_LOG");
 
         let config = LogConfig::client();
         assert_eq!(config.filter, "warn");
 
         // Restore
         if let Some(val) = original {
-            env::set_var("CCMUX_LOG", val);
+            env::set_var("FUGUE_LOG", val);
         }
     }
 
     #[test]
     fn test_log_config_client_with_env() {
         // Save original
-        let original = env::var("CCMUX_LOG").ok();
-        env::set_var("CCMUX_LOG", "debug");
+        let original = env::var("FUGUE_LOG").ok();
+        env::set_var("FUGUE_LOG", "debug");
 
         let config = LogConfig::client();
         assert_eq!(config.filter, "debug");
 
         // Restore
         match original {
-            Some(val) => env::set_var("CCMUX_LOG", val),
-            None => env::remove_var("CCMUX_LOG"),
+            Some(val) => env::set_var("FUGUE_LOG", val),
+            None => env::remove_var("FUGUE_LOG"),
         }
     }
 
@@ -351,31 +351,31 @@ mod tests {
     #[test]
     fn test_log_config_server_default_filter() {
         // Save original
-        let original = env::var("CCMUX_LOG").ok();
-        env::remove_var("CCMUX_LOG");
+        let original = env::var("FUGUE_LOG").ok();
+        env::remove_var("FUGUE_LOG");
 
         let config = LogConfig::server();
         assert_eq!(config.filter, "info");
 
         // Restore
         if let Some(val) = original {
-            env::set_var("CCMUX_LOG", val);
+            env::set_var("FUGUE_LOG", val);
         }
     }
 
     #[test]
     fn test_log_config_server_with_env() {
         // Save original
-        let original = env::var("CCMUX_LOG").ok();
-        env::set_var("CCMUX_LOG", "trace");
+        let original = env::var("FUGUE_LOG").ok();
+        env::set_var("FUGUE_LOG", "trace");
 
         let config = LogConfig::server();
         assert_eq!(config.filter, "trace");
 
         // Restore
         match original {
-            Some(val) => env::set_var("CCMUX_LOG", val),
-            None => env::remove_var("CCMUX_LOG"),
+            Some(val) => env::set_var("FUGUE_LOG", val),
+            None => env::remove_var("FUGUE_LOG"),
         }
     }
 
@@ -404,29 +404,29 @@ mod tests {
 
     #[test]
     fn test_log_config_mcp_bridge_default_filter() {
-        let _original_mcp = env::var("CCMUX_MCP_LOG").ok();
-        let _original_ccmux = env::var("CCMUX_LOG").ok();
-        env::remove_var("CCMUX_MCP_LOG");
-        env::remove_var("CCMUX_LOG");
+        let _original_mcp = env::var("FUGUE_MCP_LOG").ok();
+        let _original_fugue = env::var("FUGUE_LOG").ok();
+        env::remove_var("FUGUE_MCP_LOG");
+        env::remove_var("FUGUE_LOG");
 
         let config = LogConfig::mcp_bridge();
         assert_eq!(config.filter, "info");
 
-        if let Some(val) = _original_mcp { env::set_var("CCMUX_MCP_LOG", val); }
-        if let Some(val) = _original_ccmux { env::set_var("CCMUX_LOG", val); }
+        if let Some(val) = _original_mcp { env::set_var("FUGUE_MCP_LOG", val); }
+        if let Some(val) = _original_fugue { env::set_var("FUGUE_LOG", val); }
     }
 
     #[test]
     fn test_log_config_mcp_bridge_with_env() {
-        let _original = env::var("CCMUX_MCP_LOG").ok();
-        env::set_var("CCMUX_MCP_LOG", "trace");
+        let _original = env::var("FUGUE_MCP_LOG").ok();
+        env::set_var("FUGUE_MCP_LOG", "trace");
 
         let config = LogConfig::mcp_bridge();
         assert_eq!(config.filter, "trace");
 
         match _original {
-            Some(val) => env::set_var("CCMUX_MCP_LOG", val),
-            None => env::remove_var("CCMUX_MCP_LOG"),
+            Some(val) => env::set_var("FUGUE_MCP_LOG", val),
+            None => env::remove_var("FUGUE_MCP_LOG"),
         }
     }
 
@@ -464,7 +464,7 @@ mod tests {
     fn test_log_config_clone() {
         let config = LogConfig {
             output: LogOutput::Both,
-            filter: "ccmux=debug,tokio=warn".to_string(),
+            filter: "fugue=debug,tokio=warn".to_string(),
             span_events: true,
             file_line: true,
             file_name: Some("test.log".into()),
@@ -494,10 +494,10 @@ mod tests {
     #[test]
     fn test_log_config_custom_filter() {
         let config = LogConfig {
-            filter: "ccmux=trace,hyper=warn".to_string(),
+            filter: "fugue=trace,hyper=warn".to_string(),
             ..LogConfig::default()
         };
-        assert_eq!(config.filter, "ccmux=trace,hyper=warn");
+        assert_eq!(config.filter, "fugue=trace,hyper=warn");
     }
 
     #[test]
@@ -574,9 +574,9 @@ mod tests {
             "warn",
             "error",
             "trace",
-            "ccmux=debug",
-            "ccmux=trace,tokio=warn",
-            "ccmux::server=debug,ccmux::client=info",
+            "fugue=debug",
+            "fugue=trace,tokio=warn",
+            "fugue::server=debug,fugue::client=info",
         ];
 
         for filter_str in filters {

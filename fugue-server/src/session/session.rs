@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::time::SystemTime;
 use uuid::Uuid;
-use ccmux_protocol::{SessionInfo, WorktreeInfo as ProtocolWorktreeInfo, OrchestrationMessage};
+use fugue_protocol::{SessionInfo, WorktreeInfo as ProtocolWorktreeInfo, OrchestrationMessage};
 
 use super::Window;
 use crate::orchestration::WorktreeInfo;

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use uuid::Uuid;
-    use ccmux_protocol::{ServerMessage, PaneState, ViewportState, SplitDirection, WindowInfo, PaneInfo, ClaudeState, ErrorCode, OrchestrationMessage};
+    use fugue_protocol::{ServerMessage, PaneState, ViewportState, SplitDirection, WindowInfo, PaneInfo, ClaudeState, ErrorCode, OrchestrationMessage};
     use crate::mcp::bridge::connection::{ConnectionManager, RECONNECT_DELAYS_MS, MAX_RECONNECT_ATTEMPTS, DAEMON_RESPONSE_TIMEOUT_SECS};
     use crate::mcp::bridge::handlers::{parse_uuid, format_pane_list};
     use crate::mcp::bridge::health::{HEARTBEAT_INTERVAL_MS, HEARTBEAT_TIMEOUT_MS, ConnectionState};

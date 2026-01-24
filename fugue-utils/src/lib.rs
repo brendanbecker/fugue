@@ -1,4 +1,4 @@
-//! ccmux-utils: Common utilities shared across ccmux crates
+//! fugue-utils: Common utilities shared across fugue crates
 //!
 //! This crate provides:
 //! - Unified error types ([`CcmuxError`], [`Result`])

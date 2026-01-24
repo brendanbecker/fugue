@@ -1,6 +1,6 @@
 use tracing::{info, warn, debug};
 use uuid::Uuid;
-use ccmux_protocol::{ErrorCode, ServerMessage, WindowInfo, SplitDirection};
+use fugue_protocol::{ErrorCode, ServerMessage, WindowInfo, SplitDirection};
 use crate::pty::{PtyConfig, PtyOutputPoller};
 use crate::handlers::{HandlerContext, HandlerResult};
 
@@ -191,7 +191,7 @@ impl HandlerContext {
         if let Some(ref cwd) = cwd {
             config = config.with_cwd(cwd);
         }
-        config = config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
+        config = config.with_fugue_context(session_id, &session_name, window_id, pane_id);
         // Apply session environment variables
         config = config.with_env_map(&session_env);
 

@@ -11,7 +11,7 @@ use thiserror::Error;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::{MailPriority, PaneInfo, ServerMessage};
+use fugue_protocol::{MailPriority, PaneInfo, ServerMessage};
 
 use super::commands::{ControlAction, NotifyLevel, PaneRef, SidebandCommand, SplitDirection};
 use crate::pty::{PtyConfig, PtyManager};
@@ -296,7 +296,7 @@ impl CommandExecutor {
         };
         let pty_config = pty_config
             .with_size(pane_size.0, pane_size.1)
-            .with_ccmux_context(session_id, &session_name, window_id, pane_id);
+            .with_fugue_context(session_id, &session_name, window_id, pane_id);
 
         // Step 3: Spawn PTY for the new pane
         let pty_reader = {

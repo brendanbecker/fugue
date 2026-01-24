@@ -2,18 +2,18 @@
 
 use clap::{Parser, Subcommand};
 
-/// tmux-compatible CLI for ccmux
+/// tmux-compatible CLI for fugue
 #[derive(Parser, Debug)]
-#[command(name = "ccmux-compat")]
-#[command(about = "tmux-compatible CLI wrapper for ccmux")]
+#[command(name = "fugue-compat")]
+#[command(about = "tmux-compatible CLI wrapper for fugue")]
 #[command(version)]
 pub struct Cli {
     /// Connection address (tcp://host:port or unix://path)
     ///
     /// Specifies the server address to connect to. Supports both TCP and Unix
     /// sockets via URL format. Overrides default Unix socket if provided.
-    /// Example: tcp://127.0.0.1:3000 or unix:///tmp/ccmux.sock
-    #[arg(long, env = "CCMUX_ADDR")]
+    /// Example: tcp://127.0.0.1:3000 or unix:///tmp/fugue.sock
+    #[arg(long, env = "FUGUE_ADDR")]
     pub addr: Option<String>,
 
     #[command(subcommand)]

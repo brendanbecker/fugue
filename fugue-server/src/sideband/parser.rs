@@ -1,8 +1,8 @@
-//! Sideband command parser for extracting ccmux commands from PTY output
+//! Sideband command parser for extracting fugue commands from PTY output
 //!
 //! Parses OSC (Operating System Command) escape sequences:
-//! - Self-closing: `\x1b]ccmux:spawn direction="vertical"\x07`
-//! - With content: `\x1b]ccmux:input pane="1"\x07ls -la\x1b]ccmux:/input\x07`
+//! - Self-closing: `\x1b]fugue:spawn direction="vertical"\x07`
+//! - With content: `\x1b]fugue:input pane="1"\x07ls -la\x1b]fugue:/input\x07`
 //!
 //! The OSC format (ESC ] ... BEL) ensures commands won't accidentally trigger
 //! from grep/cat output of source files containing command examples.
@@ -11,17 +11,17 @@ use std::collections::HashMap;
 
 use regex::Regex;
 use tracing::warn;
-use ccmux_protocol::MailPriority;
+use fugue_protocol::MailPriority;
 
 use super::commands::{ControlAction, NotifyLevel, PaneRef, SidebandCommand, SplitDirection};
 
 /// Parser for extracting sideband commands from terminal output
 pub struct SidebandParser {
-    /// Regex for matching OSC ccmux commands: ESC ] ccmux:cmd attrs BEL
-    /// Format: \x1b]ccmux:CMD ATTRS\x07
+    /// Regex for matching OSC fugue commands: ESC ] fugue:cmd attrs BEL
+    /// Format: \x1b]fugue:CMD ATTRS\x07
     osc_command_regex: Regex,
-    /// Regex for matching OSC ccmux closing tags: ESC ] ccmux:/cmd BEL
-    /// Format: \x1b]ccmux:/CMD\x07
+    /// Regex for matching OSC fugue closing tags: ESC ] fugue:/cmd BEL
+    /// Format: \x1b]fugue:/CMD\x07
     osc_close_regex: Regex,
     /// Buffer for incomplete commands across chunks
     buffer: String,
@@ -37,17 +37,17 @@ impl SidebandParser {
     /// Create a new sideband parser
     pub fn new() -> Self {
         Self {
-            // Match OSC commands: ESC ] ccmux:CMD ATTRS BEL (or ESC \)
+            // Match OSC commands: ESC ] fugue:CMD ATTRS BEL (or ESC \)
             // Group 1: command type
             // Group 2: attributes string (may be empty)
             // Terminators: BEL (\x07) or ST (ESC \, i.e., \x1b\\)
             osc_command_regex: Regex::new(
-                r"\x1b\]ccmux:(\w+)([^\x07\x1b]*)(?:\x07|\x1b\\)"
+                r"\x1b\]fugue:(\w+)([^\x07\x1b]*)(?:\x07|\x1b\\)"
             ).expect("Invalid OSC command regex"),
-            // Match OSC closing tags: ESC ] ccmux:/CMD BEL (or ESC \)
+            // Match OSC closing tags: ESC ] fugue:/CMD BEL (or ESC \)
             // Group 1: command type being closed
             osc_close_regex: Regex::new(
-                r"\x1b\]ccmux:/(\w+)(?:\x07|\x1b\\)"
+                r"\x1b\]fugue:/(\w+)(?:\x07|\x1b\\)"
             ).expect("Invalid OSC close regex"),
             buffer: String::new(),
         }
@@ -55,7 +55,7 @@ impl SidebandParser {
 
     /// Parse output, returning (display_text, commands)
     ///
-    /// - Extracts ccmux OSC commands from the input
+    /// - Extracts fugue OSC commands from the input
     /// - Strips command sequences from display output
     /// - Buffers incomplete sequences for next chunk
     pub fn parse(&mut self, input: &str) -> (String, Vec<SidebandCommand>) {
@@ -148,8 +148,8 @@ impl SidebandParser {
         display.push_str(&full_input[last_end..]);
 
         // Check for incomplete OSC sequence at end (buffer for next chunk)
-        // Look for ESC ] ccmux: that doesn't have a terminator
-        if let Some(incomplete_start) = display.rfind("\x1b]ccmux:") {
+        // Look for ESC ] fugue: that doesn't have a terminator
+        if let Some(incomplete_start) = display.rfind("\x1b]fugue:") {
             // Check if there's a terminator after it
             let after_tag = &display[incomplete_start..];
             if !after_tag.contains('\x07') && !after_tag.contains("\x1b\\") {
@@ -315,13 +315,13 @@ mod tests {
 
     // Helper to create OSC command string
     fn osc(cmd: &str) -> String {
-        format!("\x1b]ccmux:{}\x07", cmd)
+        format!("\x1b]fugue:{}\x07", cmd)
     }
 
     // Helper to create OSC command with content
     fn osc_content(cmd: &str, attrs: &str, content: &str) -> String {
         format!(
-            "\x1b]ccmux:{} {}\x07{}\x1b]ccmux:/{}\x07",
+            "\x1b]fugue:{} {}\x07{}\x1b]fugue:/{}\x07",
             cmd, attrs, content, cmd
         )
     }
@@ -613,7 +613,7 @@ mod tests {
         let mut parser = SidebandParser::new();
 
         // First chunk with incomplete OSC sequence (no terminator)
-        let (display1, commands1) = parser.parse("Hello \x1b]ccmux:spa");
+        let (display1, commands1) = parser.parse("Hello \x1b]fugue:spa");
         assert_eq!(display1, "Hello ");
         assert!(commands1.is_empty());
         assert!(parser.has_buffered());
@@ -631,7 +631,7 @@ mod tests {
 
         // When there's an open tag without a close tag, parser treats it as
         // self-closing (no content). The "content" becomes display text.
-        let (display, commands) = parser.parse("\x1b]ccmux:input pane=\"1\"\x07ls -la");
+        let (display, commands) = parser.parse("\x1b]fugue:input pane=\"1\"\x07ls -la");
 
         // The open tag is parsed as a self-closing command (empty content)
         // "ls -la" becomes display text since there's no close tag
@@ -707,7 +707,7 @@ mod tests {
         let mut parser = SidebandParser::new();
 
         // Create incomplete OSC sequence
-        let _ = parser.parse("\x1b]ccmux:spawn");
+        let _ = parser.parse("\x1b]fugue:spawn");
         assert!(parser.has_buffered());
 
         parser.clear_buffer();
@@ -846,7 +846,7 @@ mod tests {
     #[test]
     fn test_preserve_ansi_escapes() {
         let mut parser = SidebandParser::new();
-        // ANSI color codes around a command - these should NOT be parsed as ccmux commands
+        // ANSI color codes around a command - these should NOT be parsed as fugue commands
         let input = format!(
             "\x1b[31mRed\x1b[0m {} \x1b[32mGreen\x1b[0m",
             osc(r#"focus pane="0""#)
@@ -886,7 +886,7 @@ mod tests {
         // CRITICAL: Old XML format should NOT trigger commands anymore
         // This is the fix for the runaway spawning bug
         let mut parser = SidebandParser::new();
-        let input = r#"<ccmux:spawn direction="vertical" /> some text"#;
+        let input = r#"<fugue:spawn direction="vertical" /> some text"#;
 
         let (display, commands) = parser.parse(input);
 
@@ -899,7 +899,7 @@ mod tests {
     fn test_grep_output_not_parsed() {
         // Simulating grep output that shows source code containing old format
         let mut parser = SidebandParser::new();
-        let input = r#"parser.rs:123: <ccmux:spawn direction="vertical" />"#;
+        let input = r#"parser.rs:123: <fugue:spawn direction="vertical" />"#;
 
         let (display, commands) = parser.parse(input);
 
@@ -913,7 +913,7 @@ mod tests {
         // Test ESC followed by backslash (ST) as terminator instead of BEL
         let mut parser = SidebandParser::new();
         // ST terminator is ESC followed by backslash: \x1b\x5c
-        let input = "\x1b]ccmux:spawn direction=\"vertical\"\x1b\x5c";
+        let input = "\x1b]fugue:spawn direction=\"vertical\"\x1b\x5c";
 
         let (display, commands) = parser.parse(input);
 

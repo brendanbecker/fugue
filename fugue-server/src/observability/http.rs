@@ -139,9 +139,9 @@ async fn serve_metrics(state: Arc<SharedState>) -> Response<Full<Bytes>> {
 fn serve_index() -> Response<Full<Bytes>> {
     let body = r#"<!DOCTYPE html>
 <html>
-<head><title>ccmux Metrics</title></head>
+<head><title>fugue Metrics</title></head>
 <body>
-<h1>ccmux Metrics Server</h1>
+<h1>fugue Metrics Server</h1>
 <p><a href="/metrics">Metrics</a></p>
 <p><a href="/health">Health Check</a></p>
 </body>
@@ -200,17 +200,17 @@ mod tests {
         let output = metrics.to_prometheus(&gauges);
 
         // Check for expected metric names
-        assert!(output.contains("ccmux_command_count"));
-        assert!(output.contains("ccmux_active_connections"));
-        assert!(output.contains("ccmux_active_sessions"));
-        assert!(output.contains("ccmux_active_panes"));
-        assert!(output.contains("ccmux_process_memory_bytes"));
-        assert!(output.contains("ccmux_process_open_fds"));
+        assert!(output.contains("fugue_command_count"));
+        assert!(output.contains("fugue_active_connections"));
+        assert!(output.contains("fugue_active_sessions"));
+        assert!(output.contains("fugue_active_panes"));
+        assert!(output.contains("fugue_process_memory_bytes"));
+        assert!(output.contains("fugue_process_open_fds"));
 
         // Check for expected values
-        assert!(output.contains("ccmux_active_connections 5"));
-        assert!(output.contains("ccmux_active_sessions 2"));
-        assert!(output.contains("ccmux_active_panes 10"));
+        assert!(output.contains("fugue_active_connections 5"));
+        assert!(output.contains("fugue_active_sessions 2"));
+        assert!(output.contains("fugue_active_panes 10"));
     }
 
     #[test]

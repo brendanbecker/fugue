@@ -5,7 +5,7 @@
 use tracing::{debug, info};
 use uuid::Uuid;
 
-use ccmux_protocol::{ClientType, ErrorCode, ServerMessage, PROTOCOL_VERSION};
+use fugue_protocol::{ClientType, ErrorCode, ServerMessage, PROTOCOL_VERSION};
 
 use crate::observability::Metrics;
 use super::{HandlerContext, HandlerResult};

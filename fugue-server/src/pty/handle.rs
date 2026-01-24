@@ -3,7 +3,7 @@
 use std::io::{Read, Write};
 use std::sync::Arc;
 
-use ccmux_utils::{CcmuxError, Result};
+use fugue_utils::{CcmuxError, Result};
 use parking_lot::Mutex;
 use portable_pty::{Child, MasterPty, PtySize};
 

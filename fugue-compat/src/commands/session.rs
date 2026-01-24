@@ -1,7 +1,7 @@
 //! Session management commands
 
-use ccmux_protocol::{ClientMessage, ErrorCode, ServerMessage};
-use ccmux_utils::Result;
+use fugue_protocol::{ClientMessage, ErrorCode, ServerMessage};
+use fugue_utils::Result;
 
 use super::{connect, parse_target, Target};
 
@@ -39,7 +39,7 @@ pub async fn new_session(
             if !detached {
                 // For now, just print the session info
                 // Full attach would require the TUI client
-                println!("{}: {} (created, run ccmux to attach)", session_name, session_id);
+                println!("{}: {} (created, run fugue to attach)", session_name, session_id);
             }
             Ok(0)
         }
@@ -150,9 +150,9 @@ pub async fn has_session(target: &str) -> Result<i32> {
 /// Attach to a session (placeholder - full attach requires TUI)
 pub async fn attach_session(target: Option<&str>) -> Result<i32> {
     // Attaching requires the full TUI client, not this compat layer
-    // For now, print a message directing users to ccmux
+    // For now, print a message directing users to fugue
     eprintln!(
-        "attach-session: use 'ccmux' for interactive session attachment"
+        "attach-session: use 'fugue' for interactive session attachment"
     );
     if let Some(t) = target {
         eprintln!("target session: {}", t);

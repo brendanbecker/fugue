@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::{ErrorCode, ServerMessage, SplitDirection, messages::ErrorDetails};
+use fugue_protocol::{ErrorCode, ServerMessage, SplitDirection, messages::ErrorDetails};
 
 use crate::arbitration::{Action, Resource};
 use crate::beads::{self, metadata_keys};
@@ -124,7 +124,7 @@ impl HandlerContext {
                     }
                 }
             }
-            pty_config = pty_config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
+            pty_config = pty_config.with_fugue_context(session_id, &session_name, window_id, pane_id);
 
             // Apply session environment variables
             pty_config = pty_config.with_env_map(&session_env);
@@ -470,7 +470,7 @@ impl HandlerContext {
             None => {
                 return HandlerContext::error(
                     ErrorCode::InvalidOperation,
-                    "Must be attached to a session to create mirror panes. Call ccmux_attach_session first.".to_string(),
+                    "Must be attached to a session to create mirror panes. Call fugue_attach_session first.".to_string(),
                 );
             }
         };
@@ -610,7 +610,7 @@ impl HandlerContext {
         show_output_preview: bool,
         filter_tags: Option<Vec<String>>,
     ) -> HandlerResult {
-        use ccmux_protocol::PaneState;
+        use fugue_protocol::PaneState;
 
         info!("CreateStatusPane request from {}", self.client_id);
 
@@ -635,7 +635,7 @@ impl HandlerContext {
 
         // Determine direction based on position
         let direction = match position.as_deref() {
-            Some("left") | Some("right") => SplitDirection::Horizontal, // Note: ccmux layout logic is simple
+            Some("left") | Some("right") => SplitDirection::Horizontal, // Note: fugue layout logic is simple
             Some("top") | Some("bottom") => SplitDirection::Vertical,
             _ => SplitDirection::Horizontal,
         };

@@ -4,7 +4,7 @@
 
 use uuid::Uuid;
 
-use ccmux_protocol::PaneState;
+use fugue_protocol::PaneState;
 
 use crate::claude::{inject_session_id, is_claude_command};
 use crate::config::AppConfig;
@@ -380,7 +380,7 @@ impl<'a> ToolContext<'a> {
         } else if let Some(ref inherited) = inherited_cwd {
             config = config.with_cwd(inherited);
         }
-        config = config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
+        config = config.with_fugue_context(session_id, &session_name, window_id, pane_id);
 
         self.pty_manager
             .spawn(pane_id, config)
@@ -602,7 +602,7 @@ impl<'a> ToolContext<'a> {
         // Spawn PTY for the default pane
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
         let config = PtyConfig::command(&shell)
-            .with_ccmux_context(session_id, &session_name, window_id, pane_id);
+            .with_fugue_context(session_id, &session_name, window_id, pane_id);
 
         self.pty_manager
             .spawn(pane_id, config)
@@ -712,7 +712,7 @@ impl<'a> ToolContext<'a> {
         if let Some(cwd) = cwd {
             config = config.with_cwd(cwd);
         }
-        config = config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
+        config = config.with_fugue_context(session_id, &session_name, window_id, pane_id);
 
         self.pty_manager
             .spawn(pane_id, config)
@@ -1119,7 +1119,7 @@ impl<'a> ToolContext<'a> {
         if let Some(cwd) = cwd {
             config = config.with_cwd(cwd);
         }
-        config = config.with_ccmux_context(session_id, &session_name, window_id, new_pane_id);
+        config = config.with_fugue_context(session_id, &session_name, window_id, new_pane_id);
 
         self.pty_manager
             .spawn(new_pane_id, config)
@@ -1452,7 +1452,7 @@ impl<'a> ToolContext<'a> {
         if let Some(cwd) = cwd {
             config = config.with_cwd(cwd);
         }
-        config = config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
+        config = config.with_fugue_context(session_id, &session_name, window_id, pane_id);
 
         self.pty_manager
             .spawn(pane_id, config)
@@ -1485,8 +1485,8 @@ impl<'a> ToolContext<'a> {
     ) -> Result<String, McpError> {
         // Parse direction, defaulting to vertical
         let _split_direction = match direction {
-            Some("horizontal") => ccmux_protocol::SplitDirection::Horizontal,
-            _ => ccmux_protocol::SplitDirection::Vertical,
+            Some("horizontal") => fugue_protocol::SplitDirection::Horizontal,
+            _ => fugue_protocol::SplitDirection::Vertical,
         };
 
         // Find the source pane and extract IDs

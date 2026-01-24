@@ -4,12 +4,12 @@
 
 use tracing::{debug, info, warn};
 use uuid::Uuid;
-use ccmux_utils::CcmuxError;
+use fugue_utils::CcmuxError;
 
 use crate::arbitration::{Action, Resource};
 use crate::pty::{PtyConfig, PtyOutputPoller};
 
-use ccmux_protocol::{
+use fugue_protocol::{
     ErrorCode,
     ServerMessage,
     SplitDirection,
@@ -116,7 +116,7 @@ impl HandlerContext {
                     if let Ok(cwd) = std::env::current_dir() {
                         pty_config = pty_config.with_cwd(cwd);
                     }
-                    pty_config = pty_config.with_ccmux_context(session_id, &name, window_id, pane_id);
+                    pty_config = pty_config.with_fugue_context(session_id, &name, window_id, pane_id);
 
                     match pty_manager.spawn(pane_id, pty_config) {
                         Ok(handle) => {
@@ -498,7 +498,7 @@ impl HandlerContext {
             if let Ok(cwd) = std::env::current_dir() {
                 pty_config = pty_config.with_cwd(cwd);
             }
-            pty_config = pty_config.with_ccmux_context(session_id, &session_name, window_id, pane_id);
+            pty_config = pty_config.with_fugue_context(session_id, &session_name, window_id, pane_id);
             // Apply session environment variables
             pty_config = pty_config.with_env_map(&session_env);
 

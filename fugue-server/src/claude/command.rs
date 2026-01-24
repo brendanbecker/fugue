@@ -17,7 +17,7 @@ use uuid::Uuid;
 /// # Examples
 ///
 /// ```
-/// use ccmux_server::claude::is_claude_command;
+/// use fugue_server::claude::is_claude_command;
 ///
 /// assert!(is_claude_command("claude", &[]));
 /// assert!(is_claude_command("claude", &["--help".to_string()]));
@@ -43,7 +43,7 @@ pub fn is_claude_command(command: &str, _args: &[String]) -> bool {
 /// # Examples
 ///
 /// ```
-/// use ccmux_server::claude::has_session_id;
+/// use fugue_server::claude::has_session_id;
 ///
 /// assert!(!has_session_id(&[]));
 /// assert!(has_session_id(&["--session-id".to_string(), "abc123".to_string()]));
@@ -82,7 +82,7 @@ pub struct InjectionResult {
 /// # Examples
 ///
 /// ```
-/// use ccmux_server::claude::inject_session_id;
+/// use fugue_server::claude::inject_session_id;
 ///
 /// // Claude command without session ID - injects one
 /// let result = inject_session_id("claude", &[]);
@@ -142,7 +142,7 @@ pub fn inject_session_id(command: &str, args: &[String]) -> InjectionResult {
 /// # Examples
 ///
 /// ```
-/// use ccmux_server::claude::create_resume_command;
+/// use fugue_server::claude::create_resume_command;
 ///
 /// let (cmd, args) = create_resume_command("abc123");
 /// assert_eq!(cmd, "claude");
@@ -162,7 +162,7 @@ pub fn create_resume_command(session_id: &str) -> (String, Vec<String>) {
 /// # Examples
 ///
 /// ```
-/// use ccmux_server::claude::extract_session_id_from_args;
+/// use fugue_server::claude::extract_session_id_from_args;
 ///
 /// let args = vec!["--session-id".to_string(), "abc123".to_string()];
 /// assert_eq!(extract_session_id_from_args(&args), Some("abc123".to_string()));

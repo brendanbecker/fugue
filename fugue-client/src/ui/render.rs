@@ -5,7 +5,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::canvas::{Canvas, Rectangle};
 use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
 
-use ccmux_protocol::{
+use fugue_protocol::{
     MailPriority, PaneState, PaneStuckStatus,
 };
 
@@ -31,7 +31,7 @@ fn draw_disconnected(state: &ClientState, frame: &mut ratatui::Frame, area: Rect
     let message = state.status_message.as_deref().unwrap_or("Disconnected");
     let paragraph = Paragraph::new(message)
         .style(Style::default().fg(Color::Red))
-        .block(Block::default().borders(Borders::ALL).title("ccmux"));
+        .block(Block::default().borders(Borders::ALL).title("fugue"));
     frame.render_widget(paragraph, area);
 }
 
@@ -41,7 +41,7 @@ fn draw_connecting(state: &ClientState, frame: &mut ratatui::Frame, area: Rect) 
     let message = format!("Connecting{}", dots);
     let paragraph = Paragraph::new(message)
         .style(Style::default().fg(Color::Yellow))
-        .block(Block::default().borders(Borders::ALL).title("ccmux"));
+        .block(Block::default().borders(Borders::ALL).title("fugue"));
     frame.render_widget(paragraph, area);
 }
 
@@ -251,7 +251,7 @@ fn draw_system_graph(state: &ClientState, frame: &mut ratatui::Frame, area: Rect
                     _ => match &pane.state {
                         PaneState::Normal => Color::Green,
                         PaneState::Agent(agent_state) => {
-                            if matches!(agent_state.activity, ccmux_protocol::AgentActivity::Idle) {
+                            if matches!(agent_state.activity, fugue_protocol::AgentActivity::Idle) {
                                 Color::Blue
                             } else {
                                 Color::Cyan
@@ -389,17 +389,17 @@ fn build_status_bar(state: &ClientState, mode_indicator: &str) -> String {
 }
 
 /// Format agent activity indicator with animation (FEAT-084)
-fn format_agent_indicator(agent_type: &str, activity: &ccmux_protocol::AgentActivity, tick: u64) -> String {
+fn format_agent_indicator(agent_type: &str, activity: &fugue_protocol::AgentActivity, tick: u64) -> String {
     let prefix = agent_type.chars().next().unwrap_or('A').to_uppercase().to_string();
     match activity {
-        ccmux_protocol::AgentActivity::Idle => format!("[{}]", prefix),
-        ccmux_protocol::AgentActivity::Processing => {
+        fugue_protocol::AgentActivity::Idle => format!("[{}]", prefix),
+        fugue_protocol::AgentActivity::Processing => {
             let frames = ["[.  ]", "[.. ]", "[... ]", "[ ..]", "[  .]", "[   ]"];
             format!("{}{}", prefix, frames[(tick / 3) as usize % frames.len()])
         }
-        ccmux_protocol::AgentActivity::Generating => format!(">[{}]", prefix),
-        ccmux_protocol::AgentActivity::ToolUse => format!("[{}*]", prefix),
-        ccmux_protocol::AgentActivity::AwaitingConfirmation => format!("[{}?]", prefix),
-        ccmux_protocol::AgentActivity::Custom(name) => format!("[{}:{}]", prefix, &name[..name.len().min(3)]),
+        fugue_protocol::AgentActivity::Generating => format!(">[{}]", prefix),
+        fugue_protocol::AgentActivity::ToolUse => format!("[{}*]", prefix),
+        fugue_protocol::AgentActivity::AwaitingConfirmation => format!("[{}?]", prefix),
+        fugue_protocol::AgentActivity::Custom(name) => format!("[{}:{}]", prefix, &name[..name.len().min(3)]),
     }
 }

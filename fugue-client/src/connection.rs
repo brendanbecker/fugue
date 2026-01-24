@@ -1,6 +1,6 @@
 //! Client-server connection management
 //!
-//! Provides Unix socket connection to the ccmux server with
+//! Provides Unix socket connection to the fugue server with
 //! automatic message framing and async dispatch.
 
 mod client;

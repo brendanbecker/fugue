@@ -13,7 +13,7 @@ use std::path::Path;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
-use ccmux_protocol::PaneState;
+use fugue_protocol::PaneState;
 
 use crate::claude::create_resume_command;
 use crate::isolation;
@@ -369,7 +369,7 @@ impl SessionRestorer {
                         );
                         pty_config = pty_config
                             .with_env(isolation::CLAUDE_CONFIG_DIR_ENV, config_dir.to_string_lossy().as_ref())
-                            .with_env(isolation::CCMUX_PANE_ID_ENV, snapshot.id.to_string());
+                            .with_env(isolation::FUGUE_PANE_ID_ENV, snapshot.id.to_string());
                     }
                     Err(e) => {
                         warn!(
@@ -382,7 +382,7 @@ impl SessionRestorer {
             }
 
             // Add CCMUX context environment variables
-            pty_config = pty_config.with_ccmux_context(
+            pty_config = pty_config.with_fugue_context(
                 session_id,
                 session_name,
                 snapshot.window_id,
@@ -428,7 +428,7 @@ impl SessionRestorer {
 mod tests {
     use super::*;
     use std::collections::HashMap;
-    use ccmux_protocol::{AgentState, AgentActivity};
+    use fugue_protocol::{AgentState, AgentActivity};
 
     fn create_test_session_snapshot() -> SessionSnapshot {
         let session_id = Uuid::new_v4();

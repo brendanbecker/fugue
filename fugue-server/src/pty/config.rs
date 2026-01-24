@@ -117,23 +117,23 @@ impl PtyConfig {
     /// Inject CCMUX context environment variables
     ///
     /// Sets the following environment variables:
-    /// - `CCMUX_SESSION_ID`: UUID of the session
-    /// - `CCMUX_SESSION_NAME`: Human-readable session name
-    /// - `CCMUX_WINDOW_ID`: UUID of the window
-    /// - `CCMUX_PANE_ID`: UUID of the pane
+    /// - `FUGUE_SESSION_ID`: UUID of the session
+    /// - `FUGUE_SESSION_NAME`: Human-readable session name
+    /// - `FUGUE_WINDOW_ID`: UUID of the window
+    /// - `FUGUE_PANE_ID`: UUID of the pane
     ///
-    /// These enable processes to be self-aware of their ccmux context.
-    pub fn with_ccmux_context(
+    /// These enable processes to be self-aware of their fugue context.
+    pub fn with_fugue_context(
         self,
         session_id: Uuid,
         session_name: &str,
         window_id: Uuid,
         pane_id: Uuid,
     ) -> Self {
-        self.with_env("CCMUX_SESSION_ID", session_id.to_string())
-            .with_env("CCMUX_SESSION_NAME", session_name)
-            .with_env("CCMUX_WINDOW_ID", window_id.to_string())
-            .with_env("CCMUX_PANE_ID", pane_id.to_string())
+        self.with_env("FUGUE_SESSION_ID", session_id.to_string())
+            .with_env("FUGUE_SESSION_NAME", session_name)
+            .with_env("FUGUE_WINDOW_ID", window_id.to_string())
+            .with_env("FUGUE_PANE_ID", pane_id.to_string())
     }
 
     /// Get effective scrollback lines based on session type and override
@@ -444,13 +444,13 @@ mod tests {
     }
 
     #[test]
-    fn test_with_ccmux_context() {
+    fn test_with_fugue_context() {
         let session_id = Uuid::new_v4();
         let session_name = "test-session";
         let window_id = Uuid::new_v4();
         let pane_id = Uuid::new_v4();
 
-        let config = PtyConfig::default().with_ccmux_context(
+        let config = PtyConfig::default().with_fugue_context(
             session_id,
             session_name,
             window_id,
@@ -458,42 +458,42 @@ mod tests {
         );
 
         assert_eq!(
-            config.env.get("CCMUX_SESSION_ID"),
+            config.env.get("FUGUE_SESSION_ID"),
             Some(&session_id.to_string())
         );
         assert_eq!(
-            config.env.get("CCMUX_SESSION_NAME"),
+            config.env.get("FUGUE_SESSION_NAME"),
             Some(&session_name.to_string())
         );
         assert_eq!(
-            config.env.get("CCMUX_WINDOW_ID"),
+            config.env.get("FUGUE_WINDOW_ID"),
             Some(&window_id.to_string())
         );
         assert_eq!(
-            config.env.get("CCMUX_PANE_ID"),
+            config.env.get("FUGUE_PANE_ID"),
             Some(&pane_id.to_string())
         );
     }
 
     #[test]
-    fn test_with_ccmux_context_builder_chain() {
+    fn test_with_fugue_context_builder_chain() {
         let session_id = Uuid::new_v4();
         let window_id = Uuid::new_v4();
         let pane_id = Uuid::new_v4();
 
         let config = PtyConfig::command("bash")
             .with_cwd("/home/user")
-            .with_ccmux_context(session_id, "my-session", window_id, pane_id)
+            .with_fugue_context(session_id, "my-session", window_id, pane_id)
             .with_size(120, 40);
 
         assert_eq!(config.command, "bash");
         assert_eq!(config.cwd, Some(PathBuf::from("/home/user")));
         assert_eq!(config.size, (120, 40));
         assert_eq!(config.env.len(), 4);
-        assert!(config.env.contains_key("CCMUX_SESSION_ID"));
-        assert!(config.env.contains_key("CCMUX_SESSION_NAME"));
-        assert!(config.env.contains_key("CCMUX_WINDOW_ID"));
-        assert!(config.env.contains_key("CCMUX_PANE_ID"));
+        assert!(config.env.contains_key("FUGUE_SESSION_ID"));
+        assert!(config.env.contains_key("FUGUE_SESSION_NAME"));
+        assert!(config.env.contains_key("FUGUE_WINDOW_ID"));
+        assert!(config.env.contains_key("FUGUE_PANE_ID"));
     }
 
     // ==================== Beads Config Tests (FEAT-057) ====================

@@ -1,7 +1,7 @@
-//! Simple synchronous client for ccmux protocol
+//! Simple synchronous client for fugue protocol
 //!
 //! This client is designed for one-shot command execution, unlike the
-//! interactive client in ccmux-client which handles streaming updates.
+//! interactive client in fugue-client which handles streaming updates.
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -14,8 +14,8 @@ use tokio_util::codec::Framed;
 use url::Url;
 use uuid::Uuid;
 
-use ccmux_protocol::{ClientCodec, ClientMessage, ClientType, ServerMessage, PROTOCOL_VERSION};
-use ccmux_utils::{socket_path, CcmuxError, Result};
+use fugue_protocol::{ClientCodec, ClientMessage, ClientType, ServerMessage, PROTOCOL_VERSION};
+use fugue_utils::{socket_path, CcmuxError, Result};
 
 /// Timeout for server responses
 const RESPONSE_TIMEOUT: Duration = Duration::from_secs(10);
@@ -31,7 +31,7 @@ pub struct Client {
 }
 
 impl Client {
-    /// Connect to the ccmux server using default or provided address
+    /// Connect to the fugue server using default or provided address
     pub async fn connect(addr: Option<String>) -> Result<Self> {
         let addr = addr.unwrap_or_else(|| {
             format!("unix://{}", socket_path().to_string_lossy())

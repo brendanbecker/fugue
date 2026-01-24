@@ -103,7 +103,7 @@ impl JsonRpcError {
 /// MCP Tool definition
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tool {
-    /// Tool name (e.g., "ccmux_list_panes")
+    /// Tool name (e.g., "fugue_list_panes")
     pub name: String,
     /// Human-readable description
     pub description: String,
@@ -186,7 +186,7 @@ pub struct ServerInfo {
 impl Default for ServerInfo {
     fn default() -> Self {
         Self {
-            name: "ccmux".into(),
+            name: "fugue".into(),
             version: env!("CARGO_PKG_VERSION").into(),
         }
     }
@@ -304,7 +304,7 @@ mod tests {
 
         assert!(json.contains("protocolVersion"));
         assert!(json.contains("2024-11-05"));
-        assert!(json.contains("ccmux"));
+        assert!(json.contains("fugue"));
     }
 
     #[test]

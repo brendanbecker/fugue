@@ -1,23 +1,23 @@
-//! Sideband protocol for Claude-ccmux communication
+//! Sideband protocol for Claude-fugue communication
 //!
 //! This module implements the OSC (Operating System Command) sideband protocol
-//! that allows Claude to send structured commands to ccmux embedded in its
+//! that allows Claude to send structured commands to fugue embedded in its
 //! terminal output. The protocol supports commands for pane management, input
 //! routing, notifications, and viewport control.
 //!
 //! ## Protocol Format
 //!
-//! Commands use OSC escape sequences (ESC ] ... BEL) with the `ccmux:` prefix:
+//! Commands use OSC escape sequences (ESC ] ... BEL) with the `fugue:` prefix:
 //!
 //! ```text
 //! # Self-closing commands (terminated by BEL \x07 or ST \x1b\x5c)
-//! \x1b]ccmux:spawn direction="vertical" command="cargo build"\x07
-//! \x1b]ccmux:focus pane="1"\x07
-//! \x1b]ccmux:scroll lines="-10"\x07
+//! \x1b]fugue:spawn direction="vertical" command="cargo build"\x07
+//! \x1b]fugue:focus pane="1"\x07
+//! \x1b]fugue:scroll lines="-10"\x07
 //!
 //! # Commands with content
-//! \x1b]ccmux:input pane="1"\x07ls -la\x1b]ccmux:/input\x07
-//! \x1b]ccmux:notify title="Build Complete"\x07Build succeeded\x1b]ccmux:/notify\x07
+//! \x1b]fugue:input pane="1"\x07ls -la\x1b]fugue:/input\x07
+//! \x1b]fugue:notify title="Build Complete"\x07Build succeeded\x1b]fugue:/notify\x07
 //! ```
 //!
 //! The OSC format prevents accidental command triggering from grep/cat output
@@ -92,13 +92,13 @@ mod tests {
 
     // Helper to create OSC command string
     fn osc(cmd: &str) -> String {
-        format!("\x1b]ccmux:{}\x07", cmd)
+        format!("\x1b]fugue:{}\x07", cmd)
     }
 
     // Helper to create OSC command with content
     fn osc_content(cmd: &str, attrs: &str, content: &str) -> String {
         format!(
-            "\x1b]ccmux:{} {}\x07{}\x1b]ccmux:/{}\x07",
+            "\x1b]fugue:{} {}\x07{}\x1b]fugue:/{}\x07",
             cmd, attrs, content, cmd
         )
     }
@@ -193,8 +193,8 @@ mod tests {
         let mut parser = SidebandParser::new();
 
         // Simulate OSC data arriving in chunks
-        let chunk1 = "Hello \x1b]ccmux:noti";
-        let chunk2 = "fy title=\"Test\"\x07Message\x1b]ccmux:/notify\x07 World";
+        let chunk1 = "Hello \x1b]fugue:noti";
+        let chunk2 = "fy title=\"Test\"\x07Message\x1b]fugue:/notify\x07 World";
 
         let (display1, commands1) = parser.parse(chunk1);
         assert_eq!(display1, "Hello ");
@@ -255,7 +255,7 @@ mod tests {
         let mut parser = SidebandParser::new();
 
         // Old XML format should pass through as plain text
-        let input = r#"<ccmux:spawn direction="vertical" /> some grep output"#;
+        let input = r#"<fugue:spawn direction="vertical" /> some grep output"#;
         let (display, commands) = parser.parse(input);
 
         assert_eq!(display, input);

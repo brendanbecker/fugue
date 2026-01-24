@@ -5,7 +5,7 @@ use tokio::sync::{mpsc, watch, RwLock};
 use tokio::task::JoinHandle;
 use tracing::{debug, info, warn};
 
-use ccmux_protocol::ClientMessage;
+use fugue_protocol::ClientMessage;
 
 /// Heartbeat interval in milliseconds
 pub const HEARTBEAT_INTERVAL_MS: u64 = 1000;

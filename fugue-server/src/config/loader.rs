@@ -2,7 +2,7 @@
 
 use std::path::Path;
 
-use ccmux_utils::{config_file, CcmuxError, Result};
+use fugue_utils::{config_file, CcmuxError, Result};
 
 use super::AppConfig;
 
