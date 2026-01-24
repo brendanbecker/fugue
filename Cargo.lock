@@ -161,130 +161,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ccmux-client"
-version = "0.1.1"
-dependencies = [
- "base64",
- "bincode",
- "ccmux-protocol",
- "ccmux-utils",
- "clap",
- "crossterm",
- "dirs",
- "futures",
- "ratatui",
- "serde",
- "tempfile",
- "tokio",
- "tokio-util",
- "toml",
- "tracing",
- "tui-term",
- "url",
- "uuid",
- "which",
-]
-
-[[package]]
-name = "ccmux-compat"
-version = "0.1.1"
-dependencies = [
- "ccmux-protocol",
- "ccmux-utils",
- "clap",
- "futures",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 1.0.69",
- "tokio",
- "tokio-util",
- "tracing",
- "tracing-subscriber",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "ccmux-protocol"
-version = "0.1.1"
-dependencies = [
- "bincode",
- "bytes",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "tokio",
- "tokio-util",
- "uuid",
-]
-
-[[package]]
-name = "ccmux-sandbox"
-version = "0.1.1"
-dependencies = [
- "anyhow",
- "clap",
- "landlock",
- "libc",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "ccmux-server"
-version = "0.1.1"
-dependencies = [
- "arc-swap",
- "bincode",
- "bytes",
- "ccmux-protocol",
- "ccmux-utils",
- "dashmap",
- "dirs",
- "fastrand",
- "futures",
- "http-body-util",
- "hyper",
- "hyper-util",
- "lazy_static",
- "lz4_flex",
- "notify",
- "notify-debouncer-full",
- "okaywal",
- "parking_lot",
- "portable-pty",
- "regex",
- "serde",
- "serde_json",
- "strip-ansi-escapes",
- "tempfile",
- "thiserror 1.0.69",
- "tokio",
- "tokio-util",
- "toml",
- "tracing",
- "uuid",
- "vt100",
- "zstd",
-]
-
-[[package]]
-name = "ccmux-utils"
-version = "0.1.1"
-dependencies = [
- "directories",
- "libc",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 1.0.69",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
 name = "cfg-if"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -626,6 +502,130 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76ee7a02da4d231650c7cea31349b889be2f45ddb3ef3032d2ec8185f6313fd2"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "fugue-client"
+version = "0.1.1"
+dependencies = [
+ "base64",
+ "bincode",
+ "clap",
+ "crossterm",
+ "dirs",
+ "fugue-protocol",
+ "fugue-utils",
+ "futures",
+ "ratatui",
+ "serde",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "toml",
+ "tracing",
+ "tui-term",
+ "url",
+ "uuid",
+ "which",
+]
+
+[[package]]
+name = "fugue-compat"
+version = "0.1.1"
+dependencies = [
+ "clap",
+ "fugue-protocol",
+ "fugue-utils",
+ "futures",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "fugue-protocol"
+version = "0.1.1"
+dependencies = [
+ "bincode",
+ "bytes",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-util",
+ "uuid",
+]
+
+[[package]]
+name = "fugue-sandbox"
+version = "0.1.1"
+dependencies = [
+ "anyhow",
+ "clap",
+ "landlock",
+ "libc",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "fugue-server"
+version = "0.1.1"
+dependencies = [
+ "arc-swap",
+ "bincode",
+ "bytes",
+ "dashmap",
+ "dirs",
+ "fastrand",
+ "fugue-protocol",
+ "fugue-utils",
+ "futures",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "lazy_static",
+ "lz4_flex",
+ "notify",
+ "notify-debouncer-full",
+ "okaywal",
+ "parking_lot",
+ "portable-pty",
+ "regex",
+ "serde",
+ "serde_json",
+ "strip-ansi-escapes",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-util",
+ "toml",
+ "tracing",
+ "uuid",
+ "vt100",
+ "zstd",
+]
+
+[[package]]
+name = "fugue-utils"
+version = "0.1.1"
+dependencies = [
+ "directories",
+ "libc",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
