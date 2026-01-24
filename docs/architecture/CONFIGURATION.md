@@ -152,13 +152,23 @@ description = "Standard Claude worker"
 model = "claude-3-5-sonnet-20241022"
 context_limit = 100000
 
-# Low-cost watchdog
+# Low-cost watchdog (basic)
 [presets.watchdog]
 harness = "claude"
 description = "Haiku monitoring agent"
 [presets.watchdog.config]
 model = "claude-3-haiku-20240307"
 dangerously_skip_permissions = true
+
+# Dedicated watchdog monitor (FEAT-110)
+# See docs/WATCHDOG_MONITOR.md for full documentation
+[presets.watchdog-monitor]
+harness = "claude"
+description = "Worker monitoring agent - alerts only when action needed"
+[presets.watchdog-monitor.config]
+model = "claude-3-haiku-20240307"
+dangerously_skip_permissions = true
+context_limit = 50000  # Watchdog doesn't need large context
 
 # Gemini worker
 [presets.gemini]
