@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-057",
   "title": "Beads Passive Awareness - Auto-Detection and Environment Setup",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P2",
   "status": "ready",
   "type": "new_feature",
@@ -11,7 +11,7 @@
   "tags": ["session-management", "enhancement", "config", "beads"],
   "estimated_effort": "medium",
   "dependencies": ["FEAT-047 (completed)", "FEAT-050 (completed)"],
-  "description": "Add passive beads awareness to ccmux that automatically detects when panes are operating in beads-tracked repositories and configures them appropriately. Can use FEAT-050 metadata to store detection state (beads.root, beads.detected). Uses FEAT-047 env var infrastructure for BEADS_DIR auto-setup.",
+  "description": "Add passive beads awareness to fugue that automatically detects when panes are operating in beads-tracked repositories and configures them appropriately. Can use FEAT-050 metadata to store detection state (beads.root, beads.detected). Uses FEAT-047 env var infrastructure for BEADS_DIR auto-setup.",
   "business_value": "medium",
   "technical_complexity": "medium",
   "user_impact": "Zero-configuration beads integration for new panes, eliminating manual env var setup errors and enabling seamless multi-agent workflows"

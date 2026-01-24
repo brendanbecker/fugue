@@ -1,7 +1,7 @@
 # FEAT-072: Per-pane MCP mode control (full/minimal/none)
 
 **Priority**: P2
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: enhancement
 **Estimated Effort**: small
 **Business Value**: high
@@ -59,13 +59,13 @@ Add `mcp_mode` parameter to pane spawn with three modes:
 - Example: `worker` preset = Haiku + minimal MCP
 
 **Future Enhancement (stretch goal):**
-- Dynamic tool granting via `<ccmux:enable-tool name="git">` sideband protocol
+- Dynamic tool granting via `<fugue:enable-tool name="git">` sideband protocol
 - Workers can request tools from orchestrator as needed
 
 ## Implementation Tasks
 
 ### Section 1: MCP Mode Configuration
-- [ ] Add `mcp_mode` field to `CreatePane` message in ccmux-protocol
+- [ ] Add `mcp_mode` field to `CreatePane` message in fugue-protocol
 - [ ] Support "full", "minimal", "none" values
 - [ ] Add `mcp_mode` to configuration presets
 - [ ] Default to "full" (preserve current behavior)
@@ -102,7 +102,7 @@ Add `mcp_mode` parameter to pane spawn with three modes:
 - [ ] Verify no MCP tool hallucinations in workers
 
 ### Section 7: Documentation
-- [ ] Document `mcp_mode` parameter in ccmux-protocol
+- [ ] Document `mcp_mode` parameter in fugue-protocol
 - [ ] Document tool selection for minimal mode
 - [ ] Document token savings with examples
 - [ ] Provide examples for multi-agent workflows
@@ -127,9 +127,9 @@ Add `mcp_mode` parameter to pane spawn with three modes:
 
 ## Related Files
 
-- `ccmux-server/src/session/pane.rs` - config creation logic
-- `ccmux-protocol/src/messages.rs` - `mcp_mode` field definition
-- `ccmux-server/config.toml` - presets with `mcp_mode`
+- `fugue-server/src/session/pane.rs` - config creation logic
+- `fugue-protocol/src/messages.rs` - `mcp_mode` field definition
+- `fugue-server/config.toml` - presets with `mcp_mode`
 - `docs/architecture/MCP_WORKER_MODE.md` - design document
 
 ## Notes
@@ -145,10 +145,10 @@ From design doc:
 
 ### Implementation Approach
 
-This is derived from `ccmux-mcp-worker-mode.md` but generalized into FEAT-071's configuration system. The `mcp_mode` parameter is a specific application of per-pane config for MCP tool control.
+This is derived from `fugue-mcp-worker-mode.md` but generalized into FEAT-071's configuration system. The `mcp_mode` parameter is a specific application of per-pane config for MCP tool control.
 
 **Implementation levers:**
-1. Isolated `CLAUDE_CONFIG_DIR` per pane (already in ccmux via FEAT-020)
+1. Isolated `CLAUDE_CONFIG_DIR` per pane (already in fugue via FEAT-020)
 2. On spawn: create stripped config dir for workers
 3. Copy original config, modify MCP sections based on mode
 4. Set `CLAUDE_CONFIG_DIR` to isolated directory
@@ -157,7 +157,7 @@ This is derived from `ccmux-mcp-worker-mode.md` but generalized into FEAT-071's 
 
 **Stretch goal** (not in current scope):
 - Workers can request tools from orchestrator
-- Sideband protocol: `<ccmux:enable-tool name="git">`
+- Sideband protocol: `<fugue:enable-tool name="git">`
 - Worker reloads config with added tool
 - Enables zero-overhead start with on-demand capability
 

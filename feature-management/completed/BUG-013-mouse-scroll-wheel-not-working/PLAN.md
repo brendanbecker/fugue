@@ -1,7 +1,7 @@
 # Implementation Plan: BUG-013
 
 **Work Item**: [BUG-013: Mouse Scroll Wheel Not Working for Scrollback](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P2
 **Created**: 2026-01-10
 
@@ -17,7 +17,7 @@ After investigation, the fix will depend on where the failure occurs in the even
 
 ```
 +------------------+     +------------------+     +------------------+     +------------------+
-| Terminal sends   | --> | crossterm        | --> | ccmux-client     | --> | tui-term widget  |
+| Terminal sends   | --> | crossterm        | --> | fugue-client     | --> | tui-term widget  |
 | scroll events    |     | captures events  |     | handles events   |     | scrolls viewport |
 +------------------+     +------------------+     +------------------+     +------------------+
 ```
@@ -25,7 +25,7 @@ After investigation, the fix will depend on where the failure occurs in the even
 Possible failure points:
 1. Terminal not sending scroll events (unlikely, terminal-specific)
 2. crossterm not capturing scroll events (mouse capture config)
-3. ccmux-client not handling scroll events (missing handler, regression)
+3. fugue-client not handling scroll events (missing handler, regression)
 4. tui-term widget not scrolling (API usage, state management)
 
 ### Trade-offs
@@ -40,7 +40,7 @@ Based on FEAT-034's design, scroll events should flow as:
 1. User scrolls mouse wheel
 2. Terminal emulator sends escape sequences for scroll
 3. crossterm (with EnableMouseCapture) receives MouseEvent::ScrollUp/ScrollDown
-4. ccmux-client event loop receives the event
+4. fugue-client event loop receives the event
 5. Event dispatcher routes to scroll handler
 6. Scroll handler updates viewport offset
 7. tui-term widget re-renders with new offset
@@ -58,12 +58,12 @@ Key questions to answer during investigation:
 
 | File | Purpose | Priority |
 |------|---------|----------|
-| `ccmux-client/src/main.rs` | Mouse capture enable | High |
-| `ccmux-client/src/input/mod.rs` | Event handling | High |
-| `ccmux-client/src/input/mouse.rs` | Mouse events (if exists) | High |
-| `ccmux-client/src/ui/app.rs` | UI state, viewport | High |
+| `fugue-client/src/main.rs` | Mouse capture enable | High |
+| `fugue-client/src/input/mod.rs` | Event handling | High |
+| `fugue-client/src/input/mouse.rs` | Mouse events (if exists) | High |
+| `fugue-client/src/ui/app.rs` | UI state, viewport | High |
 | `completed/features/FEAT-034-*/` | Original implementation | High |
-| `ccmux-client/src/ui/pane.rs` | Pane scroll state | Medium |
+| `fugue-client/src/ui/pane.rs` | Pane scroll state | Medium |
 
 ## FEAT-034 Implementation Review
 

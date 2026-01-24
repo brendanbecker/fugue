@@ -1,7 +1,7 @@
 {
   "document": {
-    "title": "ccmux Deep Research",
-    "source_path": "/home/becker/projects/tools/ccmux/docs/research/chatgpt_research.pdf",
+    "title": "fugue Deep Research",
+    "source_path": "/home/becker/projects/tools/fugue/docs/research/chatgpt_research.pdf",
     "total_pages": 49,
     "estimated_total_tokens": 12000,
     "parsing_metadata": {
@@ -43,7 +43,7 @@
         },
         {
           "id": "1.3",
-          "title": "Recommended Approach for ccmux",
+          "title": "Recommended Approach for fugue",
           "level": 2,
           "page_range": [11, 12],
           "token_estimate": 300
@@ -83,7 +83,7 @@
         },
         {
           "id": "2.3",
-          "title": "Recommended Approach for ccmux Integration",
+          "title": "Recommended Approach for fugue Integration",
           "level": 2,
           "page_range": [22, 24],
           "token_estimate": 250
@@ -120,7 +120,7 @@
         },
         {
           "id": "3.3",
-          "title": "Recommended Approach (Crash Recovery in ccmux)",
+          "title": "Recommended Approach (Crash Recovery in fugue)",
           "level": 2,
           "page_range": [30, 32],
           "token_estimate": 400

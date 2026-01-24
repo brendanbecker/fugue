@@ -4,7 +4,7 @@
 **Priority**: P0
 **Status**: open
 **Created**: 2026-01-09
-**Component**: ccmux-server
+**Component**: fugue-server
 **Found During**: HA-001 manual testing
 
 ## Description
@@ -15,8 +15,8 @@ This is a P0 blocker because users cannot interact with the terminal multiplexer
 
 ## Reproduction Steps
 
-1. Start server: `./target/release/ccmux-server`
-2. Start client: `./target/release/ccmux`
+1. Start server: `./target/release/fugue-server`
+2. Start client: `./target/release/fugue`
 3. Press 'n' to create new session
 4. Observe: Client shows "No active pane", keyboard input ignored
 
@@ -36,7 +36,7 @@ The client should attach and immediately see a working shell prompt.
 
 ## Root Cause
 
-`handle_create_session()` in `ccmux-server/src/handlers/session.rs` calls `session_manager.create_session()` which creates an empty session. No window or pane is auto-created, and critically, no PTY is spawned.
+`handle_create_session()` in `fugue-server/src/handlers/session.rs` calls `session_manager.create_session()` which creates an empty session. No window or pane is auto-created, and critically, no PTY is spawned.
 
 ### Current Code (session.rs:28-53)
 
@@ -82,7 +82,7 @@ The problem: After `session_manager.create_session()` returns, no further setup 
 
 ### Section 2: Modify handle_create_session()
 
-Location: `ccmux-server/src/handlers/session.rs:28-53`
+Location: `fugue-server/src/handlers/session.rs:28-53`
 
 The fix requires modifying `handle_create_session()` to:
 
@@ -232,8 +232,8 @@ async fn test_handle_create_session_spawns_pty() {
 ### Section 4: Integration Testing
 
 - [ ] **Manual test flow**:
-  1. Start server: `cargo run --release -p ccmux-server`
-  2. Start client: `cargo run --release -p ccmux`
+  1. Start server: `cargo run --release -p fugue-server`
+  2. Start client: `cargo run --release -p fugue`
   3. Create new session (press 'n')
   4. Verify: Should immediately see shell prompt
   5. Type commands and verify they work
@@ -256,7 +256,7 @@ async fn test_handle_create_session_spawns_pty() {
 
 ### Unit Tests
 
-1. **Handler-level tests** in `ccmux-server/src/handlers/session.rs`:
+1. **Handler-level tests** in `fugue-server/src/handlers/session.rs`:
    - Verify `SessionCreated` response includes `window_count: 1`
    - Verify session in `SessionManager` has 1 window with 1 pane
    - Verify pane has initialized parser
@@ -277,10 +277,10 @@ async fn test_handle_create_session_spawns_pty() {
 
 | File | Change |
 |------|--------|
-| `ccmux-server/src/handlers/session.rs` | Modify `handle_create_session()` to create window, pane, and spawn PTY |
-| `ccmux-server/src/handlers/session.rs` | Add `use crate::pty::PtyConfig;` import |
-| `ccmux-server/src/handlers/session.rs` | Add `use tracing::warn;` import |
-| `ccmux-server/src/handlers/session.rs` | Update tests for new expected behavior |
+| `fugue-server/src/handlers/session.rs` | Modify `handle_create_session()` to create window, pane, and spawn PTY |
+| `fugue-server/src/handlers/session.rs` | Add `use crate::pty::PtyConfig;` import |
+| `fugue-server/src/handlers/session.rs` | Add `use tracing::warn;` import |
+| `fugue-server/src/handlers/session.rs` | Update tests for new expected behavior |
 
 ## Alternative Considered
 

@@ -1,6 +1,6 @@
 # Bug Reports
 
-**Project**: ccmux
+**Project**: fugue
 **Last Updated**: 2026-01-19
 
 ## Summary Statistics
@@ -36,7 +36,7 @@ Empty - all bugs fixed.
 - 2026-01-18: Fixed BUG-054 - Add 50ms delay before Enter for TUI compatibility (commit 6abb547, Gemini)
 - 2026-01-17: Filed BUG-057 - Agent detection cross-contamination discovered during QA
 - 2026-01-17: Fixed BUG-053 - DSR [6n] cursor position handling (commit cb1839c)
-- 2026-01-17: Resolved BUG-052 - tested and confirmed working (Gemini connects to ccmux MCP)
+- 2026-01-17: Resolved BUG-052 - tested and confirmed working (Gemini connects to fugue MCP)
 - 2026-01-17: Archived BUG-051 - fixed direction mapping (commit e3d83f0)
 - 2026-01-16: Fixed BUG-050 - cwd inheritance, merged to main, archived
 - 2026-01-16: Verified BUG-038 already fixed (commit 99d024e), archived
@@ -50,7 +50,7 @@ Empty - all bugs fixed.
 | BUG-065 | Parallel MCP requests cause response mismatches | Fixed - request_lock mutex serialization | a358bf1 |
 | BUG-064 | MCP response off-by-one after timeout | Fixed - drain pending messages after timeout | a6a3563 |
 | BUG-063 | Mirror panes can't view other sessions | Fixed - create mirror in caller's attached session | 93f5c87 |
-| BUG-062 | ccmux_close_pane times out for mirror panes | Fixed - RespondWithBroadcast for mirror close | 3b22ce0 |
+| BUG-062 | fugue_close_pane times out for mirror panes | Fixed - RespondWithBroadcast for mirror close | 3b22ce0 |
 | BUG-061 | send_orchestration target parsing fails | Fixed - parse target as JSON string or object | b298b26 |
 | BUG-057 | Agent detection cross-contamination | Fixed - reset state between agent checks | 2ebec74 |
 | BUG-047 | Compiler warnings across crates | Fixed - addressed 51+ warnings | 1612e07 |

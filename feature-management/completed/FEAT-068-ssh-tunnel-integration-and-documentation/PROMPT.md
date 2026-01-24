@@ -8,7 +8,7 @@
 
 ## Overview
 
-Document and validate the complete SSH tunnel-based remote workflow for ccmux. This is the integration/validation phase following FEAT-066 (daemon TCP) and FEAT-067 (client TCP), enabling secure remote peering without requiring TLS implementation.
+Document and validate the complete SSH tunnel-based remote workflow for fugue. This is the integration/validation phase following FEAT-066 (daemon TCP) and FEAT-067 (client TCP), enabling secure remote peering without requiring TLS implementation.
 
 The SSH tunnel approach provides encryption and authentication via SSH keys, making it the recommended MVP for remote access.
 
@@ -64,7 +64,7 @@ Comprehensive documentation and validation of SSH tunnel-based remote workflows:
 - [ ] Document firewall considerations
 
 ### Section 5: Optional Helper Scripts
-- [ ] Create ccmux-remote wrapper script (optional)
+- [ ] Create fugue-remote wrapper script (optional)
 - [ ] Add SSH tunnel management helpers (optional)
 - [ ] Provide connection testing utilities (optional)
 
@@ -96,13 +96,13 @@ Comprehensive documentation and validation of SSH tunnel-based remote workflows:
 
 ```bash
 # Remote host: Start daemon with TCP listener
-ccmux-server --listen-tcp 127.0.0.1:9999
+fugue-server --listen-tcp 127.0.0.1:9999
 
 # Local machine: Create SSH tunnel
 ssh -L 9999:localhost:9999 remote-host
 
 # Local machine: Connect client through tunnel
-ccmux-client --addr tcp://localhost:9999
+fugue-client --addr tcp://localhost:9999
 ```
 
 ## Security Emphasis
@@ -113,10 +113,10 @@ SSH provides both encryption and authentication via SSH keys, making this a secu
 - Leverages existing SSH key infrastructure
 - Provides strong authentication
 - Requires no custom TLS implementation
-- Is the recommended approach from ccmux-peering-design.md
+- Is the recommended approach from fugue-peering-design.md
 
 ## Notes
 
-This is the MVP completion for remote peering. The SSH tunnel approach avoids implementing TLS/auth (FEAT-069) while still providing secure, encrypted remote access. This completes the "Phase 1" remote support and enables users to access remote ccmux instances securely.
+This is the MVP completion for remote peering. The SSH tunnel approach avoids implementing TLS/auth (FEAT-069) while still providing secure, encrypted remote access. This completes the "Phase 1" remote support and enables users to access remote fugue instances securely.
 
 Future enhancement (FEAT-069) would add native TLS support, but SSH tunnels provide a complete and secure solution for most use cases.

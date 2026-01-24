@@ -1,7 +1,7 @@
 # Implementation Plan: BUG-009
 
 **Work Item**: [BUG-009: Flaky Persistence Tests](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P2
 **Created**: 2026-01-09
 **Status**: COMPLETED
@@ -98,9 +98,9 @@ For tests that only exercise WAL recovery without checkpoints, just call `shutdo
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/persistence/recovery.rs` | Added `shutdown()` method, removed `checkpoint_active()` from 6 tests |
-| `ccmux-server/src/persistence/wal.rs` | Removed `checkpoint_active()` from 2 tests |
-| `ccmux-server/src/persistence/mod.rs` | Added `finalize()` method, removed `checkpoint_active()` from 2 tests |
+| `fugue-server/src/persistence/recovery.rs` | Added `shutdown()` method, removed `checkpoint_active()` from 6 tests |
+| `fugue-server/src/persistence/wal.rs` | Removed `checkpoint_active()` from 2 tests |
+| `fugue-server/src/persistence/mod.rs` | Added `finalize()` method, removed `checkpoint_active()` from 2 tests |
 
 ## Verification
 

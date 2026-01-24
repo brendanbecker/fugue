@@ -61,12 +61,12 @@ Pane identification:
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-protocol/src/messages.rs | Add new message type | Low |
-| ccmux-protocol/src/types.rs | Add PaneTarget enum | Low |
-| ccmux-protocol/src/lib.rs | Export new types | Low |
-| ccmux-client/src/commands.rs | Add /reply command parser | Medium |
-| ccmux-server/src/session/pane.rs | Add input-wait detection | Medium |
-| ccmux-server/src/session/manager.rs | Route reply messages | Medium |
+| fugue-protocol/src/messages.rs | Add new message type | Low |
+| fugue-protocol/src/types.rs | Add PaneTarget enum | Low |
+| fugue-protocol/src/lib.rs | Export new types | Low |
+| fugue-client/src/commands.rs | Add /reply command parser | Medium |
+| fugue-server/src/session/pane.rs | Add input-wait detection | Medium |
+| fugue-server/src/session/manager.rs | Route reply messages | Medium |
 
 ## Implementation Sequence
 

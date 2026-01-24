@@ -7,7 +7,7 @@
 
 ## Problem
 
-`ccmux_run_parallel` and `ccmux_run_pipeline` with `layout: "hidden"` currently use a hardcoded session name:
+`fugue_run_parallel` and `fugue_run_pipeline` with `layout: "hidden"` currently use a hardcoded session name:
 
 ```rust
 const ORCHESTRATION_SESSION_NAME: &str = "__orchestration__";
@@ -24,7 +24,7 @@ This causes issues:
 Allow callers to specify a session name, with sensible defaults:
 
 ```json
-ccmux_run_parallel({
+fugue_run_parallel({
   "session": "build-tests",     // optional: use/create this session
   "commands": [...],
   "cleanup": true
@@ -56,7 +56,7 @@ ccmux_run_parallel({
 
 ### Section 1: Update OrchestrationContext
 
-In `ccmux-server/src/mcp/bridge/orchestration_context.rs`:
+In `fugue-server/src/mcp/bridge/orchestration_context.rs`:
 
 ```rust
 impl OrchestrationContext {
@@ -76,7 +76,7 @@ impl OrchestrationContext {
 
 ### Section 2: Update Tool Schemas
 
-In `ccmux-server/src/mcp/tools.rs`, add `session` parameter to:
+In `fugue-server/src/mcp/tools.rs`, add `session` parameter to:
 - `RunParallelParams`
 - `RunPipelineParams`
 
@@ -96,6 +96,6 @@ In `OrchestrationContext::cleanup()`:
 
 ## Related
 
-- FEAT-094: ccmux_run_parallel (implements hidden layout)
-- FEAT-095: ccmux_run_pipeline (implements hidden layout)
-- `ccmux-server/src/mcp/bridge/orchestration.rs`
+- FEAT-094: fugue_run_parallel (implements hidden layout)
+- FEAT-095: fugue_run_pipeline (implements hidden layout)
+- `fugue-server/src/mcp/bridge/orchestration.rs`

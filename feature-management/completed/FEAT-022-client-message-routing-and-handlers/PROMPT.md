@@ -1,7 +1,7 @@
 # FEAT-022: Client Message Routing and Handlers
 
 **Priority**: P0 (Critical)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: Medium (3-4 hours)
 **Business Value**: high
@@ -13,7 +13,7 @@ Route incoming ClientMessage types to appropriate handlers and respond with Serv
 
 ## Requirements
 
-Handle all ClientMessage variants defined in `ccmux-protocol/src/messages.rs` (lines 69-138):
+Handle all ClientMessage variants defined in `fugue-protocol/src/messages.rs` (lines 69-138):
 
 1. **Connect** - Send `ServerMessage::Connected` with server version and protocol info
 2. **ListSessions** - Return `ServerMessage::SessionList` with available sessions
@@ -35,18 +35,18 @@ Handle all ClientMessage variants defined in `ccmux-protocol/src/messages.rs` (l
 
 ## Location
 
-New handler module in `ccmux-server/src/`:
-- `ccmux-server/src/handlers/mod.rs` - Handler module
-- `ccmux-server/src/handlers/message_router.rs` - Main message routing logic
-- `ccmux-server/src/handlers/session_handlers.rs` - Session/window/pane operations
-- `ccmux-server/src/handlers/input_handlers.rs` - Input and PTY operations
-- `ccmux-server/src/handlers/orchestration_handlers.rs` - Orchestration message routing
+New handler module in `fugue-server/src/`:
+- `fugue-server/src/handlers/mod.rs` - Handler module
+- `fugue-server/src/handlers/message_router.rs` - Main message routing logic
+- `fugue-server/src/handlers/session_handlers.rs` - Session/window/pane operations
+- `fugue-server/src/handlers/input_handlers.rs` - Input and PTY operations
+- `fugue-server/src/handlers/orchestration_handlers.rs` - Orchestration message routing
 
 ## Technical Notes
 
 - Session operations exist in `session/manager.rs`
 - PTY operations exist in `pty/manager.rs`
-- Message types defined in `ccmux-protocol/src/messages.rs` (lines 69-138)
+- Message types defined in `fugue-protocol/src/messages.rs` (lines 69-138)
 - Reply handling framework exists in `reply.rs`
 - Use async/await for all operations
 - Errors should return `ServerMessage::Error` with appropriate `ErrorCode`
@@ -54,7 +54,7 @@ New handler module in `ccmux-server/src/`:
 ## Implementation Tasks
 
 ### Section 1: Handler Module Structure
-- [ ] Create `ccmux-server/src/handlers/mod.rs`
+- [ ] Create `fugue-server/src/handlers/mod.rs`
 - [ ] Create message router trait/struct
 - [ ] Define handler context (session_manager, pty_manager, client connections)
 - [ ] Set up error handling patterns
@@ -125,5 +125,5 @@ New handler module in `ccmux-server/src/`:
 - Handler should be stateless - all state lives in session_manager and pty_manager
 - Use `Arc<RwLock<>>` or similar for shared state access
 - Consider using channels for broadcasting to avoid holding locks during send
-- Error codes are defined in `ccmux-protocol/src/messages.rs` (ErrorCode enum)
-- Reply mechanism uses types from `ccmux-protocol/src/types.rs`
+- Error codes are defined in `fugue-protocol/src/messages.rs` (ErrorCode enum)
+- Reply mechanism uses types from `fugue-protocol/src/types.rs`

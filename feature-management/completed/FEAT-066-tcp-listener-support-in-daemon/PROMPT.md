@@ -1,18 +1,18 @@
 # FEAT-066: TCP listener support in daemon
 
 **Priority**: P2
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
 
 ## Overview
 
-Add optional TCP listener support to the ccmux daemon, enabling network-based client connections. This is Phase 1 of remote peering support, allowing the daemon to accept connections over TCP in addition to the default Unix socket.
+Add optional TCP listener support to the fugue daemon, enabling network-based client connections. This is Phase 1 of remote peering support, allowing the daemon to accept connections over TCP in addition to the default Unix socket.
 
 ## Problem Statement
 
-Currently, ccmux daemon only accepts connections via Unix domain socket (`~/.ccmux/ccmux.sock`). This limits client connections to the local machine. To support remote workflows (e.g., Mayor on laptop controlling polecats on gaming PC), the daemon needs optional TCP listener capability.
+Currently, fugue daemon only accepts connections via Unix domain socket (`~/.fugue/fugue.sock`). This limits client connections to the local machine. To support remote workflows (e.g., Mayor on laptop controlling polecats on gaming PC), the daemon needs optional TCP listener capability.
 
 ## Requested Feature
 
@@ -63,7 +63,7 @@ Currently, ccmux daemon only accepts connections via Unix domain socket (`~/.ccm
 
 ## Benefits
 
-- **Remote Workflows**: Enables cross-machine ccmux control
+- **Remote Workflows**: Enables cross-machine fugue control
 - **SSH Tunnel Support**: Foundation for secure remote access via SSH tunnels (Phase 2)
 - **Flexibility**: Users can choose Unix socket (local) or TCP (network) as needed
 - **Security**: Default localhost-only binding prevents accidental exposure
@@ -78,9 +78,9 @@ None (standalone feature)
 
 ## Related Files
 
-- `ccmux-server/src/main.rs` - CLI flag parsing and startup
-- `ccmux-server/src/server/mod.rs` - Server listener implementation
-- `ccmux-server/config.toml` - Configuration schema
+- `fugue-server/src/main.rs` - CLI flag parsing and startup
+- `fugue-server/src/server/mod.rs` - Server listener implementation
+- `fugue-server/config.toml` - Configuration schema
 
 ## Notes
 
@@ -104,4 +104,4 @@ The daemon should spawn two independent accept loops:
 
 Both should call the same connection handler logic. The connection handler should be transport-agnostic (works with any `AsyncRead + AsyncWrite`).
 
-Reference the existing Unix socket implementation in `ccmux-server/src/server/mod.rs` for patterns.
+Reference the existing Unix socket implementation in `fugue-server/src/server/mod.rs` for patterns.

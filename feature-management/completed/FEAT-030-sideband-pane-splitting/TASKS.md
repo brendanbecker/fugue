@@ -8,9 +8,9 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Review existing sideband executor code in `ccmux-server/src/sideband/executor.rs`
-- [ ] Review SessionManager API in `ccmux-server/src/session/manager.rs`
-- [ ] Review PtyManager API in `ccmux-server/src/pty/manager.rs`
+- [ ] Review existing sideband executor code in `fugue-server/src/sideband/executor.rs`
+- [ ] Review SessionManager API in `fugue-server/src/session/manager.rs`
+- [ ] Review PtyManager API in `fugue-server/src/pty/manager.rs`
 - [ ] Understand how PTYs are currently spawned (session creation flow)
 
 ## Design Tasks
@@ -95,7 +95,7 @@
 
 ### Manual Testing
 
-- [ ] Start ccmux server
+- [ ] Start fugue server
 - [ ] Output spawn command in terminal
 - [ ] Verify command is stripped from display
 - [ ] Verify new pane is created
@@ -112,8 +112,8 @@
 ## Verification Tasks
 
 - [ ] All acceptance criteria from PROMPT.md met
-- [ ] `<ccmux:spawn direction="vertical" />` creates pane
-- [ ] `<ccmux:spawn direction="horizontal" />` creates pane
+- [ ] `<fugue:spawn direction="vertical" />` creates pane
+- [ ] `<fugue:spawn direction="horizontal" />` creates pane
 - [ ] `command` attribute works
 - [ ] `cwd` attribute works
 - [ ] Tests passing

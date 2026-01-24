@@ -6,7 +6,7 @@ Created FEAT-067 for client TCP connection support. This is Phase 2 of remote pe
 
 **Key Design Decisions**:
 - URL-style address format (`tcp://host:port`, `unix://path`)
-- CLI flag `--addr` with `CCMUX_ADDR` environment variable
+- CLI flag `--addr` with `FUGUE_ADDR` environment variable
 - Default to Unix socket for backward compatibility
 - Transport abstraction using trait objects
 

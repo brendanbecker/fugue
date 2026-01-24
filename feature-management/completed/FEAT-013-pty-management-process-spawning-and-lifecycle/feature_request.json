@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-013",
   "title": "PTY Management - Process Spawning and Lifecycle",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P1",
   "status": "completed",
   "type": "new_feature",

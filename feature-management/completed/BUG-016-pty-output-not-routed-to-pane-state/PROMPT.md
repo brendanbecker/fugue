@@ -1,7 +1,7 @@
 # BUG-016: PTY output not routed to pane state - breaks Claude detection and MCP read_pane
 
 **Priority**: P1
-**Component**: ccmux-server
+**Component**: fugue-server
 **Severity**: high
 **Status**: new
 
@@ -9,12 +9,12 @@
 
 The PtyOutputPoller broadcasts PTY output to connected TUI clients via ServerMessage::Output, but never routes the output back to the pane's scrollback buffer or through pane.process() for Claude detection. This causes two critical failures:
 
-1. **MCP read_pane returns empty** - The scrollback buffer is never populated, so ccmux_read_pane always returns empty strings
+1. **MCP read_pane returns empty** - The scrollback buffer is never populated, so fugue_read_pane always returns empty strings
 2. **Claude detection never triggers** - Since pane.process() is never called with PTY output, the ClaudeDetector never analyzes any data, so is_claude is always false
 
 ## Evidence
 
-### PtyOutputPoller::flush() (ccmux-server/src/pty/output.rs, lines 535-564)
+### PtyOutputPoller::flush() (fugue-server/src/pty/output.rs, lines 535-564)
 
 ```rust
 async fn flush(&mut self) {
@@ -44,7 +44,7 @@ async fn flush(&mut self) {
 
 **Problem**: This only broadcasts to clients. There is no call to route data back to the pane state.
 
-### Pane::process() (ccmux-server/src/session/pane.rs, lines 356-374)
+### Pane::process() (fugue-server/src/session/pane.rs, lines 356-374)
 
 ```rust
 pub fn process(&mut self, data: &[u8]) -> Option<ClaudeState> {
@@ -70,7 +70,7 @@ pub fn process(&mut self, data: &[u8]) -> Option<ClaudeState> {
 
 **Note**: This method exists and correctly handles scrollback + Claude detection, but is never called from PtyOutputPoller.
 
-### MCP read_pane handler (ccmux-server/src/mcp/handlers.rs, lines 79-91)
+### MCP read_pane handler (fugue-server/src/mcp/handlers.rs, lines 79-91)
 
 ```rust
 pub fn read_pane(&self, pane_id: Uuid, lines: usize) -> Result<String, McpError> {
@@ -87,11 +87,11 @@ pub fn read_pane(&self, pane_id: Uuid, lines: usize) -> Result<String, McpError>
 
 ## Steps to Reproduce
 
-1. Start ccmux server and attach a TUI client
+1. Start fugue server and attach a TUI client
 2. Run Claude Code in a pane (e.g., `claude` command)
-3. Use MCP tool `ccmux_list_panes` to check pane state
+3. Use MCP tool `fugue_list_panes` to check pane state
 4. Observe: `is_claude` is false for all panes despite Claude running
-5. Use MCP tool `ccmux_read_pane` to read pane output
+5. Use MCP tool `fugue_read_pane` to read pane output
 6. Observe: returns empty string despite visible output in TUI
 
 ## Expected Behavior

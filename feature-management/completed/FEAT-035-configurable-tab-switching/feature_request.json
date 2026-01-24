@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-035",
   "title": "Configurable Tab/Pane Switching",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "priority": "P2",
   "status": "new",
   "type": "enhancement",

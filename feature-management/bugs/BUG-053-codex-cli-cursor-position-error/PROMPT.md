@@ -1,4 +1,4 @@
-# BUG-053: Codex CLI fails with cursor position error inside ccmux pane
+# BUG-053: Codex CLI fails with cursor position error inside fugue pane
 
 **Priority**: P1
 **Component**: pty
@@ -7,7 +7,7 @@
 
 ## Problem
 
-Codex CLI crashes immediately when launched inside a ccmux pane with:
+Codex CLI crashes immediately when launched inside a fugue pane with:
 ```
 Error: The cursor position could not be read within a normal duration
 EXIT CODE: 1
@@ -32,14 +32,14 @@ ESC [ <row> ; <col> R
 
 ### Suspected Cause
 
-ccmux's PTY/terminal emulation layer may:
+fugue's PTY/terminal emulation layer may:
 1. Not respond to DSR `[6n` requests at all
 2. Respond too slowly (Codex has a timeout)
 3. Not route the response back through the PTY correctly
 
 ### Comparison with Other CLIs
 
-| CLI | DSR [6n | Status in ccmux |
+| CLI | DSR [6n | Status in fugue |
 |-----|---------|-----------------|
 | Claude Code | Unknown | Works |
 | Gemini CLI | Unknown | Works |
@@ -49,9 +49,9 @@ ccmux's PTY/terminal emulation layer may:
 
 ### Section 1: Verify DSR Handling
 
-- [ ] Check if ccmux terminal emulator handles `[6n`
+- [ ] Check if fugue terminal emulator handles `[6n`
 - [ ] Search codebase for DSR or cursor position handling
-- [ ] Check `ccmux-server/src/pty/` for escape sequence processing
+- [ ] Check `fugue-server/src/pty/` for escape sequence processing
 
 ### Section 2: Test DSR Response
 
@@ -75,13 +75,13 @@ ccmux's PTY/terminal emulation layer may:
 
 | File | Purpose |
 |------|---------|
-| `ccmux-server/src/pty/` | PTY handling |
-| `ccmux-server/src/session/pane.rs` | Pane I/O |
+| `fugue-server/src/pty/` | PTY handling |
+| `fugue-server/src/session/pane.rs` | Pane I/O |
 | Possibly using external crate | Check dependencies for terminal emulation |
 
 ## Acceptance Criteria
 
-- [ ] Codex CLI launches successfully inside ccmux pane
+- [ ] Codex CLI launches successfully inside fugue pane
 - [ ] DSR `[6n` returns cursor position within acceptable timeout
 - [ ] No regressions for existing CLI tools (Claude, Gemini)
 - [ ] Integration test verifies DSR response

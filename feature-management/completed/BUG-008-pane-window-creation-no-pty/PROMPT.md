@@ -1,7 +1,7 @@
 # BUG-008: Pane/Window Creation Does Not Spawn PTY
 
 **Priority**: P0 (Critical)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: bug
 **Status**: fixed
 
@@ -41,8 +41,8 @@ Added PTY spawning and output poller startup to both handlers:
 
 ## Files Modified
 
-- `ccmux-server/src/handlers/pane.rs` - Added PTY spawn to `handle_create_pane()`
-- `ccmux-server/src/handlers/session.rs` - Added default pane + PTY to `handle_create_window()`
+- `fugue-server/src/handlers/pane.rs` - Added PTY spawn to `handle_create_pane()`
+- `fugue-server/src/handlers/session.rs` - Added default pane + PTY to `handle_create_window()`
 
 ## Testing
 

@@ -1,7 +1,7 @@
-# FEAT-088: Refactor ccmux-server/src/handlers/mcp_bridge.rs
+# FEAT-088: Refactor fugue-server/src/handlers/mcp_bridge.rs
 
 **Priority**: P2
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: refactor
 **Estimated Effort**: medium
 **Current Size**: 27.2k tokens (2880 lines)
@@ -28,7 +28,7 @@ The file likely contains handlers for:
 ## Proposed Module Structure
 
 ```
-ccmux-server/src/handlers/mcp_bridge/
+fugue-server/src/handlers/mcp_bridge/
 ├── mod.rs              # Re-exports, handler dispatch (<3k)
 ├── session.rs          # Session CRUD handlers
 ├── window.rs           # Window CRUD handlers

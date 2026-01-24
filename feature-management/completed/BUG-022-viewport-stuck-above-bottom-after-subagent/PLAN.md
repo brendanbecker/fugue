@@ -7,7 +7,7 @@
 
 ## Overview
 
-When a Claude Code subagent finishes in ccmux, the viewport sometimes doesn't render all the way to the bottom - it appears offset a few lines above where it should be. The issue is intermittent and doesn't happen every time.
+When a Claude Code subagent finishes in fugue, the viewport sometimes doesn't render all the way to the bottom - it appears offset a few lines above where it should be. The issue is intermittent and doesn't happen every time.
 
 ## Architecture Decisions
 
@@ -18,7 +18,7 @@ When a Claude Code subagent finishes in ccmux, the viewport sometimes doesn't re
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-client/src/ui/pane.rs | Primary - resize() and process_output() | Low |
+| fugue-client/src/ui/pane.rs | Primary - resize() and process_output() | Low |
 
 ## Root Cause Analysis
 

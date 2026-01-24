@@ -7,7 +7,7 @@
 
 ## Problem Statement
 
-When creating a new pane, session, or window via MCP tools (`ccmux_create_pane`, `ccmux_create_session`, `ccmux_create_window`), the new shell does not always launch in the expected working directory.
+When creating a new pane, session, or window via MCP tools (`fugue_create_pane`, `fugue_create_session`, `fugue_create_window`), the new shell does not always launch in the expected working directory.
 
 ## Expected Behavior
 
@@ -24,8 +24,8 @@ New panes/sessions/windows sometimes launch in:
 
 ## Steps to Reproduce
 
-1. Start ccmux in `/home/user/projects/myproject`
-2. Call `ccmux_create_pane` without explicit `cwd`
+1. Start fugue in `/home/user/projects/myproject`
+2. Call `fugue_create_pane` without explicit `cwd`
 3. Observe the new pane's working directory
 4. Compare to expected directory
 
@@ -38,10 +38,10 @@ New panes/sessions/windows sometimes launch in:
 
 ## Key Files
 
-- `ccmux-server/src/mcp_handlers.rs` - MCP handlers for create_*
-- `ccmux-session/src/pty.rs` - PTY spawning
-- `ccmux-session/src/pane.rs` - Pane creation
-- `ccmux-session/src/session.rs` - Session creation
+- `fugue-server/src/mcp_handlers.rs` - MCP handlers for create_*
+- `fugue-session/src/pty.rs` - PTY spawning
+- `fugue-session/src/pane.rs` - Pane creation
+- `fugue-session/src/session.rs` - Session creation
 
 ## Implementation Tasks
 

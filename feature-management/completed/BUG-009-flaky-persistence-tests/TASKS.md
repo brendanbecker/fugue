@@ -14,12 +14,12 @@
 
 ### Codebase Analysis (Launch codebase-investigator agent)
 
-- [ ] Read all test functions in `ccmux-server/src/persistence/mod.rs`
-- [ ] Read all test functions in `ccmux-server/src/persistence/recovery.rs`
-- [ ] Read all test functions in `ccmux-server/src/persistence/wal.rs`
-- [ ] Read all test functions in `ccmux-server/src/persistence/checkpoint.rs`
-- [ ] Read all test functions in `ccmux-server/src/persistence/scrollback.rs`
-- [ ] Read all test functions in `ccmux-server/src/persistence/restoration.rs`
+- [ ] Read all test functions in `fugue-server/src/persistence/mod.rs`
+- [ ] Read all test functions in `fugue-server/src/persistence/recovery.rs`
+- [ ] Read all test functions in `fugue-server/src/persistence/wal.rs`
+- [ ] Read all test functions in `fugue-server/src/persistence/checkpoint.rs`
+- [ ] Read all test functions in `fugue-server/src/persistence/scrollback.rs`
+- [ ] Read all test functions in `fugue-server/src/persistence/restoration.rs`
 
 ### Pattern Identification
 
@@ -67,10 +67,10 @@
 - [ ] Run `cargo test --workspace` 10 more times - document results
 - [ ] Run `cargo test --workspace` 5 more times (20 total) - all should pass
 - [ ] Run individual tests to verify they still work:
-  - [ ] `cargo test -p ccmux-server test_recovery_from_wal`
-  - [ ] `cargo test -p ccmux-server test_recovery_active_window_pane`
-  - [ ] `cargo test -p ccmux-server test_recovery_pane_updates`
-  - [ ] `cargo test -p ccmux-server test_persistence_log_operations`
+  - [ ] `cargo test -p fugue-server test_recovery_from_wal`
+  - [ ] `cargo test -p fugue-server test_recovery_active_window_pane`
+  - [ ] `cargo test -p fugue-server test_recovery_pane_updates`
+  - [ ] `cargo test -p fugue-server test_persistence_log_operations`
 
 ## Verification Tasks
 

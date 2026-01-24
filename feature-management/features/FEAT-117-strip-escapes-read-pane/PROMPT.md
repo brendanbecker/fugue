@@ -1,18 +1,18 @@
-# FEAT-117: strip_escapes parameter for ccmux_read_pane
+# FEAT-117: strip_escapes parameter for fugue_read_pane
 
 **Priority**: P1
-**Component**: ccmux-server/mcp
+**Component**: fugue-server/mcp
 **Type**: enhancement
 **Estimated Effort**: small
 **Business Value**: high
 
 ## Overview
 
-Add a `strip_escapes: bool` parameter to the `ccmux_read_pane` MCP tool that strips ANSI escape sequences from the output before returning.
+Add a `strip_escapes: bool` parameter to the `fugue_read_pane` MCP tool that strips ANSI escape sequences from the output before returning.
 
 ## Problem Statement
 
-When orchestrators read pane output via `ccmux_read_pane`, 30-50% of the returned tokens are ANSI escape sequences (colors, cursor movement, formatting). These sequences:
+When orchestrators read pane output via `fugue_read_pane`, 30-50% of the returned tokens are ANSI escape sequences (colors, cursor movement, formatting). These sequences:
 
 1. **Waste context**: LLM tokens spent on `\x1b[32m`, `\x1b[0m`, etc. provide no semantic value
 2. **Obscure content**: The actual text becomes harder to parse programmatically
@@ -21,13 +21,13 @@ When orchestrators read pane output via `ccmux_read_pane`, 30-50% of the returne
 Example raw output (~500 tokens):
 ```
 \x1b[0m\x1b[32m❯\x1b[0m \x1b[36mcargo\x1b[0m build
-   \x1b[32mCompiling\x1b[0m ccmux v0.1.0
+   \x1b[32mCompiling\x1b[0m fugue v0.1.0
 ```
 
 Example stripped output (~100 tokens):
 ```
 ❯ cargo build
-   Compiling ccmux v0.1.0
+   Compiling fugue v0.1.0
 ```
 
 **Token savings: 70-80%**
@@ -38,7 +38,7 @@ Example stripped output (~100 tokens):
 
 ```json
 {
-  "name": "ccmux_read_pane",
+  "name": "fugue_read_pane",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -67,7 +67,7 @@ When `strip_escapes: true`, return cleaned output:
 ```json
 {
   "pane_id": "...",
-  "content": "❯ cargo build\n   Compiling ccmux v0.1.0\n",
+  "content": "❯ cargo build\n   Compiling fugue v0.1.0\n",
   "lines_returned": 2
 }
 ```
@@ -113,7 +113,7 @@ fn strip_escapes(input: &str) -> String {
 
 The stripping should happen in the MCP handler, after reading from the pane buffer:
 
-**File**: `ccmux-server/src/mcp/bridge/handlers.rs`
+**File**: `fugue-server/src/mcp/bridge/handlers.rs`
 
 In the `handle_read_pane` function:
 1. Add `strip_escapes` parameter extraction
@@ -124,18 +124,18 @@ In the `handle_read_pane` function:
 
 ### Section 1: Add Dependency
 
-- [ ] Add `strip-ansi-escapes = "0.2"` to `ccmux-server/Cargo.toml`
+- [ ] Add `strip-ansi-escapes = "0.2"` to `fugue-server/Cargo.toml`
 - [ ] Run `cargo build` to verify dependency resolves
 
 ### Section 2: Update Tool Schema
 
-- [ ] Edit `ccmux-server/src/mcp/tools.rs`
-- [ ] Add `strip_escapes` property to `ccmux_read_pane` schema
+- [ ] Edit `fugue-server/src/mcp/tools.rs`
+- [ ] Add `strip_escapes` property to `fugue_read_pane` schema
 - [ ] Set default to `false` for backwards compatibility
 
 ### Section 3: Update Handler
 
-- [ ] Edit `ccmux-server/src/mcp/bridge/handlers.rs`
+- [ ] Edit `fugue-server/src/mcp/bridge/handlers.rs`
 - [ ] Extract `strip_escapes` from request arguments
 - [ ] After reading content, apply stripping if enabled
 - [ ] Return stripped content
@@ -151,13 +151,13 @@ In the `handle_read_pane` function:
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/Cargo.toml` | Add `strip-ansi-escapes` dependency |
-| `ccmux-server/src/mcp/tools.rs` | Add `strip_escapes` to schema |
-| `ccmux-server/src/mcp/bridge/handlers.rs` | Implement stripping logic |
+| `fugue-server/Cargo.toml` | Add `strip-ansi-escapes` dependency |
+| `fugue-server/src/mcp/tools.rs` | Add `strip_escapes` to schema |
+| `fugue-server/src/mcp/bridge/handlers.rs` | Implement stripping logic |
 
 ## Acceptance Criteria
 
-- [ ] `strip_escapes` parameter available on `ccmux_read_pane`
+- [ ] `strip_escapes` parameter available on `fugue_read_pane`
 - [ ] Default is `false` (backwards compatible)
 - [ ] When `true`, output contains no ANSI escape sequences
 - [ ] Unicode characters preserved (emojis, box drawing, etc.)

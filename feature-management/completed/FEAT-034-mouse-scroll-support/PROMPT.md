@@ -1,7 +1,7 @@
 # FEAT-034: Mouse Scroll Support
 
 **Priority**: P2
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: enhancement
 **Estimated Effort**: small
 **Business Value**: medium
@@ -9,11 +9,11 @@
 
 ## Overview
 
-Scrolling with the scrollwheel/trackpad doesn't work in ccmux. Users should be able to scroll through terminal output using mouse scroll events in the pane output view.
+Scrolling with the scrollwheel/trackpad doesn't work in fugue. Users should be able to scroll through terminal output using mouse scroll events in the pane output view.
 
 ## Problem Statement
 
-Currently, ccmux has infrastructure for mouse scroll handling but the scroll events are not being applied to the pane viewport. The code path exists:
+Currently, fugue has infrastructure for mouse scroll handling but the scroll events are not being applied to the pane viewport. The code path exists:
 
 1. `terminal.rs` enables mouse capture via `EnableMouseCapture`
 2. `event.rs` captures `MouseEvent` from crossterm's `EventStream`
@@ -53,12 +53,12 @@ Missing: Does NOT update local Pane::scroll_offset
 
 | File | Purpose |
 |------|---------|
-| `ccmux-client/src/ui/terminal.rs` | Enables `EnableMouseCapture` on init |
-| `ccmux-client/src/ui/event.rs` | Routes `MouseEvent` to `InputEvent::Mouse` |
-| `ccmux-client/src/input/mouse.rs` | Converts scroll events to `InputAction::ScrollUp/Down` |
-| `ccmux-client/src/input/mod.rs` | `InputHandler` with `scroll_offset` state (copy mode only) |
-| `ccmux-client/src/ui/pane.rs` | `Pane` struct with `scroll_offset` and `scroll_up()/scroll_down()` methods |
-| `ccmux-client/src/ui/app.rs` | `handle_input_action()` processes scroll actions |
+| `fugue-client/src/ui/terminal.rs` | Enables `EnableMouseCapture` on init |
+| `fugue-client/src/ui/event.rs` | Routes `MouseEvent` to `InputEvent::Mouse` |
+| `fugue-client/src/input/mouse.rs` | Converts scroll events to `InputAction::ScrollUp/Down` |
+| `fugue-client/src/input/mod.rs` | `InputHandler` with `scroll_offset` state (copy mode only) |
+| `fugue-client/src/ui/pane.rs` | `Pane` struct with `scroll_offset` and `scroll_up()/scroll_down()` methods |
+| `fugue-client/src/ui/app.rs` | `handle_input_action()` processes scroll actions |
 
 ### Key Code Sections
 
@@ -194,8 +194,8 @@ Based on current code, the `Pane::scroll_offset` field exists but isn't being us
 
 | File | Changes |
 |------|---------|
-| `ccmux-client/src/ui/app.rs` | Update `handle_input_action()` to scroll local pane |
-| `ccmux-client/src/ui/pane.rs` | Possibly update `render_pane()` to use scroll offset |
+| `fugue-client/src/ui/app.rs` | Update `handle_input_action()` to scroll local pane |
+| `fugue-client/src/ui/pane.rs` | Possibly update `render_pane()` to use scroll offset |
 
 ## Implementation Tasks
 

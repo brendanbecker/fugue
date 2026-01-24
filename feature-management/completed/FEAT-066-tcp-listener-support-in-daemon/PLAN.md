@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-066
 
 **Work Item**: [FEAT-066: TCP listener support in daemon](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P2
 **Created**: 2026-01-13
 
 ## Overview
 
-Add optional TCP listener support to the ccmux daemon, enabling network-based client connections. This is Phase 1 of remote peering support, allowing the daemon to accept connections over TCP in addition to the default Unix socket.
+Add optional TCP listener support to the fugue daemon, enabling network-based client connections. This is Phase 1 of remote peering support, allowing the daemon to accept connections over TCP in addition to the default Unix socket.
 
 ## Architecture Decisions
 
@@ -96,11 +96,11 @@ listen_tcp = "0.0.0.0:8888"
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/main.rs | Add CLI flag parsing | Low |
-| ccmux-server/src/server/mod.rs | Add TCP accept loop | Medium |
-| ccmux-server/src/server/connection.rs | Make handler transport-agnostic | Medium |
-| ccmux-server/config.toml | Add listen_tcp field | Low |
-| ccmux-server/Cargo.toml | Add tokio_util dependency | Low |
+| fugue-server/src/main.rs | Add CLI flag parsing | Low |
+| fugue-server/src/server/mod.rs | Add TCP accept loop | Medium |
+| fugue-server/src/server/connection.rs | Make handler transport-agnostic | Medium |
+| fugue-server/config.toml | Add listen_tcp field | Low |
+| fugue-server/Cargo.toml | Add tokio_util dependency | Low |
 
 ## Dependencies
 
@@ -223,7 +223,7 @@ TCP has different performance characteristics than Unix sockets:
 - TCP (localhost): ~2-5ms latency, ~50MB/s throughput
 - TCP (remote): Depends on network (10-100ms latency)
 
-For ccmux's use case (infrequent control messages), this is acceptable.
+For fugue's use case (infrequent control messages), this is acceptable.
 
 ## Future Enhancements (Out of Scope)
 

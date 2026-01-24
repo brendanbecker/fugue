@@ -1,6 +1,6 @@
 # Task Breakdown: BUG-021
 
-**Work Item**: [BUG-021: ccmux_rename_session Not Handled in Standalone MCP Server](PROMPT.md)
+**Work Item**: [BUG-021: fugue_rename_session Not Handled in Standalone MCP Server](PROMPT.md)
 **Status**: Not Started
 **Last Updated**: 2026-01-10
 
@@ -22,7 +22,7 @@
 
 ### server.rs Changes
 
-- [ ] Add `"ccmux_rename_session"` to `is_known_tool()` match (around line 290)
+- [ ] Add `"fugue_rename_session"` to `is_known_tool()` match (around line 290)
 - [ ] Add `RenameSession { session: String, name: String }` variant to `ToolParams` enum (around line 315)
 - [ ] Add parsing case in `dispatch_tool()` match (around line 231)
   - Parse `session` as required string
@@ -41,7 +41,7 @@
 
 ## Testing Tasks
 
-- [ ] Test `ccmux_rename_session` in standalone MCP server mode
+- [ ] Test `fugue_rename_session` in standalone MCP server mode
 - [ ] Verify same behavior as bridge mode
 - [ ] Test error cases (missing session, missing name, invalid session)
 - [ ] Run existing MCP test suite to check for regressions

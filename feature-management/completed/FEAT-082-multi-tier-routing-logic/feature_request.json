@@ -1,11 +1,11 @@
 {
   "feature_id": "FEAT-082",
   "title": "Multi-tier routing logic",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "priority": "P2",
   "status": "new",
   "type": "enhancement",
   "estimated_effort": "medium",
-  "description": "Logic to route commands and connections across multiple ccmux tiers (local Mayor -> remote Polecat) to enable hybrid orchestration workflows. Includes intelligent target selection based on configuration or environment (e.g., GASTOWN_CCMUX_ADDR).",
+  "description": "Logic to route commands and connections across multiple fugue tiers (local Mayor -> remote Polecat) to enable hybrid orchestration workflows. Includes intelligent target selection based on configuration or environment (e.g., GASTOWN_CCMUX_ADDR).",
   "business_value": "high"
 }

@@ -1,6 +1,6 @@
-# ccmux Remote Access Guide
+# fugue Remote Access Guide
 
-This guide explains how to connect a local `ccmux` client to a remote `ccmux` daemon securely using SSH tunneling. This setup allows you to control a persistent session on a remote server (e.g., a powerful dev machine or cloud instance) from your local terminal.
+This guide explains how to connect a local `fugue` client to a remote `fugue` daemon securely using SSH tunneling. This setup allows you to control a persistent session on a remote server (e.g., a powerful dev machine or cloud instance) from your local terminal.
 
 ## Overview
 
@@ -10,30 +10,30 @@ The recommended method for remote access is **SSH Tunneling**. This approach lev
 ```
 [Local Machine]                                [Remote Machine]
 +--------------+                               +--------------+
-| ccmux-client | --- TCP (localhost:9999) ---> | SSH Server   |
+| fugue-client | --- TCP (localhost:9999) ---> | SSH Server   |
 +--------------+       |                       +------+-------+
                        |                              |
                  (Encrypted Tunnel)                   | TCP (localhost:9999)
                        |                              v
                        |                       +------+-------+
-                       +---------------------- | ccmux-server |
+                       +---------------------- | fugue-server |
                                                +--------------+
 ```
 
 ## Prerequisites
 
-1.  **Remote Machine**: SSH access and `ccmux` installed.
-2.  **Local Machine**: `ccmux` installed.
+1.  **Remote Machine**: SSH access and `fugue` installed.
+2.  **Local Machine**: `fugue` installed.
 
 ## Step-by-Step Setup
 
 ### 1. Start the Remote Daemon
 
-On your remote machine (let's call it `polecats`), start the `ccmux-server` listening on a local TCP port. We bind to `127.0.0.1` (localhost) to ensure the daemon is **not** exposed to the public network directly.
+On your remote machine (let's call it `polecats`), start the `fugue-server` listening on a local TCP port. We bind to `127.0.0.1` (localhost) to ensure the daemon is **not** exposed to the public network directly.
 
 ```bash
 # On remote machine
-ccmux-server --listen-tcp 127.0.0.1:9999
+fugue-server --listen-tcp 127.0.0.1:9999
 ```
 
 *Note: You can verify it's listening with `netstat -tulpn | grep 9999`.*
@@ -55,11 +55,11 @@ You can run this in a background terminal or add `&` at the end.
 
 ### 3. Connect the Local Client
 
-Now, connect your local `ccmux` client to the forwarded local port.
+Now, connect your local `fugue` client to the forwarded local port.
 
 ```bash
 # On local machine
-ccmux --addr tcp://127.0.0.1:9999
+fugue --addr tcp://127.0.0.1:9999
 ```
 
 You should now see the session selection screen or be attached to a session running on the remote machine.
@@ -85,21 +85,21 @@ ssh -N polecats-tunnel
 
 ### Option B: Environment Variable
 
-If you primarily work with a specific remote instance, set the `CCMUX_ADDR` environment variable in your local shell profile (`.bashrc` or `.zshrc`).
+If you primarily work with a specific remote instance, set the `FUGUE_ADDR` environment variable in your local shell profile (`.bashrc` or `.zshrc`).
 
 ```bash
-export CCMUX_ADDR="tcp://127.0.0.1:9999"
+export FUGUE_ADDR="tcp://127.0.0.1:9999"
 ```
 
-Now you can just run `ccmux` locally, and it will connect through the tunnel (assuming the tunnel is active).
+Now you can just run `fugue` locally, and it will connect through the tunnel (assuming the tunnel is active).
 
 ### Option C: Wrapper Script
 
-Create a script `ccmux-remote` to handle everything:
+Create a script `fugue-remote` to handle everything:
 
 ```bash
 #!/bin/bash
-# ccmux-remote - Connect to remote ccmux via SSH
+# fugue-remote - Connect to remote fugue via SSH
 
 REMOTE_HOST="user@polecats"
 REMOTE_PORT="9999"
@@ -112,12 +112,12 @@ if ! lsof -i :$LOCAL_PORT > /dev/null; then
 fi
 
 # Connect client
-ccmux --addr tcp://127.0.0.1:$LOCAL_PORT "$@"
+fugue --addr tcp://127.0.0.1:$LOCAL_PORT "$@"
 ```
 
 ## Gas Town Integration
 
-`ccmux-compat` (the tmux-compatible CLI wrapper) also supports remote connections. This is the primary way to integrate with the **Gas Town** multi-agent system.
+`fugue-compat` (the tmux-compatible CLI wrapper) also supports remote connections. This is the primary way to integrate with the **Gas Town** multi-agent system.
 
 ### Remote Agent Spawning
 
@@ -125,7 +125,7 @@ To spawn an agent on a remote machine from a local orchestrator (like Mayor):
 
 ```bash
 # On local machine
-ccmux-compat --addr tcp://localhost:9999 new-session -d -s polecat-1 "claude --resume"
+fugue-compat --addr tcp://localhost:9999 new-session -d -s polecat-1 "claude --resume"
 ```
 
 ### Environment Management
@@ -134,17 +134,17 @@ You can set environment variables on remote sessions (e.g., `GT_RIG` or `BEADS_D
 
 ```bash
 # Set GT_RIG on remote session
-ccmux-compat --addr tcp://localhost:9999 set-environment -t polecat-1 GT_RIG "gaming-pc"
+fugue-compat --addr tcp://localhost:9999 set-environment -t polecat-1 GT_RIG "gaming-pc"
 
 # Verify environment
-ccmux-compat --addr tcp://localhost:9999 show-environment -t polecat-1
+fugue-compat --addr tcp://localhost:9999 show-environment -t polecat-1
 ```
 
 ## Remote-Aware Presets (FEAT-105)
 
 You can define universal agent presets in your remote server's `config.toml` to optimize for remote agents.
 
-**Example `~/.config/ccmux/config.toml` on Remote Machine:**
+**Example `~/.config/fugue/config.toml` on Remote Machine:**
 
 ```toml
 [presets.haiku-worker]
@@ -163,7 +163,7 @@ model = "claude-3-5-sonnet-20241022"
 Then, when spawning a pane via MCP or sideband, specify the preset:
 
 ```xml
-<ccmux:spawn direction="vertical" preset="haiku-worker" command="claude" />
+<fugue:spawn direction="vertical" preset="haiku-worker" command="claude" />
 ```
 
 ## Security Considerations
@@ -176,7 +176,7 @@ Then, when spawning a pane via MCP or sideband, specify the preset:
 
 ### "Connection refused" (Client side)
 *   Is the SSH tunnel running? Check `ps aux | grep ssh`.
-*   Is the local port correct? Check `ccmux --addr ...`.
+*   Is the local port correct? Check `fugue --addr ...`.
 
 ### "Channel X: open failed: connect failed: Connection refused" (SSH output)
 *   Is the remote daemon running?
@@ -184,4 +184,4 @@ Then, when spawning a pane via MCP or sideband, specify the preset:
 *   Did the remote daemon bind to `127.0.0.1`? (If it bound to `::1` IPv6 only, `127.0.0.1` forwarding might fail depending on OS). Try binding specifically to the IPv4 loopback or check `netstat` on remote.
 
 ### Protocol Mismatch
-*   Ensure both client and server are running compatible versions of `ccmux`. The protocol version check happens during the handshake.
+*   Ensure both client and server are running compatible versions of `fugue`. The protocol version check happens during the handshake.

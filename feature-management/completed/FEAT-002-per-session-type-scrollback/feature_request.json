@@ -11,7 +11,7 @@
   "tags": ["config", "terminal", "pty", "performance"],
   "estimated_effort": "medium",
   "dependencies": [],
-  "description": "Support per-session-type buffer sizes instead of global-only scrollback. Enable configuration like: scrollback: { orchestrator: 50000, worker: 500, default: 1000 }. Also support runtime override at spawn time via <ccmux:spawn scrollback=\"10000\"> directive.",
+  "description": "Support per-session-type buffer sizes instead of global-only scrollback. Enable configuration like: scrollback: { orchestrator: 50000, worker: 500, default: 1000 }. Also support runtime override at spawn time via <fugue:spawn scrollback=\"10000\"> directive.",
   "business_value": "high",
   "technical_complexity": "medium",
   "user_impact": "Enables fine-grained memory management for multi-agent orchestration scenarios where orchestrator sessions need large scrollback buffers while ephemeral worker sessions need minimal memory footprint."

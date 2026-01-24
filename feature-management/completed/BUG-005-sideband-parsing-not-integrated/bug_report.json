@@ -1,7 +1,7 @@
 {
   "bug_id": "BUG-005",
   "title": "Sideband parsing not integrated into PTY output flow",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "severity": "high",
   "priority": "P1",
   "status": "new",
@@ -12,11 +12,11 @@
   "affected_versions": ["0.1.0"],
   "environment": "All platforms",
   "reproducibility": "always",
-  "description": "Sideband commands (<ccmux:spawn>, <ccmux:focus>, etc.) output by Claude are displayed as literal text instead of being parsed and executed. The sideband parsing infrastructure exists but is not wired into the PTY output flow.",
+  "description": "Sideband commands (<fugue:spawn>, <fugue:focus>, etc.) output by Claude are displayed as literal text instead of being parsed and executed. The sideband parsing infrastructure exists but is not wired into the PTY output flow.",
   "steps_to_reproduce": [
-    "Start ccmux server and client",
+    "Start fugue server and client",
     "Create a session and attach",
-    "Have Claude (or manually echo) output: <ccmux:spawn direction=\"vertical\" />",
+    "Have Claude (or manually echo) output: <fugue:spawn direction=\"vertical\" />",
     "Observe that the XML tag is displayed as literal text in the terminal",
     "No new pane is created"
   ],
@@ -25,25 +25,25 @@
   "evidence": [
     {
       "type": "file",
-      "location": "ccmux-server/src/pty/output.rs:389-394",
+      "location": "fugue-server/src/pty/output.rs:389-394",
       "description": "PtyOutputPoller::flush() broadcasts raw PTY output without parsing"
     },
     {
       "type": "file",
-      "location": "ccmux-server/src/sideband/mod.rs:63-72",
+      "location": "fugue-server/src/sideband/mod.rs:63-72",
       "description": "CommandExecutor is only instantiated in test code"
     },
     {
       "type": "file",
-      "location": "ccmux-server/src/sideband/mod.rs:36-42",
+      "location": "fugue-server/src/sideband/mod.rs:36-42",
       "description": "Processing pipeline diagram shows intended flow that isn't implemented"
     },
     {
       "type": "file",
-      "location": "ccmux-server/src/main.rs",
+      "location": "fugue-server/src/main.rs",
       "description": "No code instantiates CommandExecutor or SidebandParser in server runtime"
     }
   ],
   "root_cause": "FEAT-019 (sideband parser) and FEAT-030 (spawn command executor) were marked as complete, but the integration point - wiring the parser/executor into PtyOutputPoller - was never implemented. The parser and executor exist as standalone modules that are only exercised by unit tests.",
-  "impact": "Claude cannot control ccmux via sideband commands. The core value proposition of Claude-ccmux integration (autonomous pane spawning, input routing, notifications) is non-functional."
+  "impact": "Claude cannot control fugue via sideband commands. The core value proposition of Claude-fugue integration (autonomous pane spawning, input routing, notifications) is non-functional."
 }

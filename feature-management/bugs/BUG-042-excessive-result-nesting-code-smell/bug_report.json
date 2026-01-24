@@ -1,11 +1,11 @@
 {
   "id": "BUG-042",
   "title": "Excessive Result Nesting (Ok(Ok(...))) in MCP Handlers",
-  "component": "ccmux-server (mcp-bridge)",
+  "component": "fugue-server (mcp-bridge)",
   "priority": "P3",
   "status": "resolved",
   "created_date": "2026-01-14",
-  "created_by": "ccmux-agent",
+  "created_by": "fugue-agent",
   "resolved_date": "2026-01-18",
   "description": "The MCP bridge handlers exhibit a code smell with `Ok(Ok(ServerMessage::Error))` matching. This double wrapping indicates redundant Result layers (likely Transport + Logic) that should be flattened for cleaner error handling.",
   "resolution": "Fixed - recv_from_daemon_with_timeout flattens Result by returning inner result directly and mapping timeout to McpError::ResponseTimeout",

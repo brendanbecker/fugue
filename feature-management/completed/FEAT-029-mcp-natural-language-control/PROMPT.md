@@ -1,7 +1,7 @@
 # FEAT-029: MCP Natural Language Terminal Control
 
 **Priority**: P1 (MVP scope creep - user approved)
-**Component**: ccmux-server (MCP)
+**Component**: fugue-server (MCP)
 **Type**: new_feature
 **Estimated Effort**: medium (2-3 hours)
 **Business Value**: high
@@ -15,11 +15,11 @@ Expand MCP tools to enable natural language terminal control. The MCP server cur
 
 The current MCP tool set is incomplete for full terminal control:
 
-1. **Split direction is broken** - The `direction` parameter in `ccmux_create_pane` is parsed but the resulting `_direction` variable is never used (handlers.rs:106). All splits are effectively vertical regardless of the parameter.
+1. **Split direction is broken** - The `direction` parameter in `fugue_create_pane` is parsed but the resulting `_direction` variable is never used (handlers.rs:106). All splits are effectively vertical regardless of the parameter.
 
 2. **No window creation** - Cannot create a new window in an existing session. Users asking "open a new window" have no tool available.
 
-3. **No session creation** - Cannot explicitly create a new session. The only way is to rely on auto-creation in `ccmux_create_pane`.
+3. **No session creation** - Cannot explicitly create a new session. The only way is to rely on auto-creation in `fugue_create_pane`.
 
 4. **No listing tools** - Cannot list existing windows or sessions, making navigation impossible.
 
@@ -27,21 +27,21 @@ The current MCP tool set is incomplete for full terminal control:
 
 | Tool | Status | Notes |
 |------|--------|-------|
-| `ccmux_list_panes` | Working | Lists panes with Claude state |
-| `ccmux_read_pane` | Working | Read scrollback |
-| `ccmux_create_pane` | BROKEN | Direction parameter parsed but ignored |
-| `ccmux_send_input` | Working | Send keystrokes |
-| `ccmux_get_status` | Working | Pane status |
-| `ccmux_close_pane` | Working | Kill pane |
-| `ccmux_focus_pane` | Working | Switch focus |
+| `fugue_list_panes` | Working | Lists panes with Claude state |
+| `fugue_read_pane` | Working | Read scrollback |
+| `fugue_create_pane` | BROKEN | Direction parameter parsed but ignored |
+| `fugue_send_input` | Working | Send keystrokes |
+| `fugue_get_status` | Working | Pane status |
+| `fugue_close_pane` | Working | Kill pane |
+| `fugue_focus_pane` | Working | Switch focus |
 
 ## Requirements
 
 ### Must Have (MVP)
 
-#### 1. Fix `ccmux_create_pane` Split Direction
+#### 1. Fix `fugue_create_pane` Split Direction
 
-**Location**: `ccmux-server/src/mcp/handlers.rs:106`
+**Location**: `fugue-server/src/mcp/handlers.rs:106`
 
 **Current Code**:
 ```rust
@@ -55,14 +55,14 @@ The `_direction` variable is never used. The pane creation logic needs to actual
 
 **Fix**: Use the `_direction` variable when creating/positioning the pane. This may require changes to how panes are created within a window to support actual splitting.
 
-#### 2. Add `ccmux_create_window`
+#### 2. Add `fugue_create_window`
 
 Create a new window in a session.
 
 **Tool Definition** (tools.rs):
 ```rust
 Tool {
-    name: "ccmux_create_window".into(),
+    name: "fugue_create_window".into(),
     description: "Create a new window in a session".into(),
     input_schema: serde_json::json!({
         "type": "object",
@@ -94,14 +94,14 @@ Tool {
 }
 ```
 
-#### 3. Add `ccmux_create_session`
+#### 3. Add `fugue_create_session`
 
 Create a new session explicitly.
 
 **Tool Definition** (tools.rs):
 ```rust
 Tool {
-    name: "ccmux_create_session".into(),
+    name: "fugue_create_session".into(),
     description: "Create a new terminal session".into(),
     input_schema: serde_json::json!({
         "type": "object",
@@ -128,14 +128,14 @@ Tool {
 
 **Note**: Must create session with default window and pane with PTY (aligns with BUG-003 fix).
 
-#### 4. Add `ccmux_list_windows`
+#### 4. Add `fugue_list_windows`
 
 List windows in a session.
 
 **Tool Definition** (tools.rs):
 ```rust
 Tool {
-    name: "ccmux_list_windows".into(),
+    name: "fugue_list_windows".into(),
     description: "List all windows in a session".into(),
     input_schema: serde_json::json!({
         "type": "object",
@@ -162,14 +162,14 @@ Tool {
 ]
 ```
 
-#### 5. Add `ccmux_list_sessions`
+#### 5. Add `fugue_list_sessions`
 
 List all sessions.
 
 **Tool Definition** (tools.rs):
 ```rust
 Tool {
-    name: "ccmux_list_sessions".into(),
+    name: "fugue_list_sessions".into(),
     description: "List all terminal sessions".into(),
     input_schema: serde_json::json!({
         "type": "object",
@@ -195,49 +195,49 @@ Tool {
 
 These can be added in a follow-up feature if needed:
 
-- `ccmux_resize_pane` - Resize a pane (parameters: pane_id, width, height or delta)
-- `ccmux_rename_window` - Rename a window
-- `ccmux_rename_session` - Rename a session
-- `ccmux_close_window` - Close a window and all its panes
+- `fugue_resize_pane` - Resize a pane (parameters: pane_id, width, height or delta)
+- `fugue_rename_window` - Rename a window
+- `fugue_rename_session` - Rename a session
+- `fugue_close_window` - Close a window and all its panes
 - Higher-level layout commands (tiled, even-horizontal, etc.)
 
 ## Affected Files
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/mcp/tools.rs` | Add 4 new tool definitions |
-| `ccmux-server/src/mcp/handlers.rs` | Fix direction bug, add 4 new handler methods |
-| `ccmux-server/src/mcp/mod.rs` | May need new exports (check) |
-| `ccmux-server/src/mcp/server.rs` | Add routing for new tools in handle_call_tool |
+| `fugue-server/src/mcp/tools.rs` | Add 4 new tool definitions |
+| `fugue-server/src/mcp/handlers.rs` | Fix direction bug, add 4 new handler methods |
+| `fugue-server/src/mcp/mod.rs` | May need new exports (check) |
+| `fugue-server/src/mcp/server.rs` | Add routing for new tools in handle_call_tool |
 
 ## Implementation Tasks
 
 ### Section 1: Fix Split Direction Bug
-- [x] Review how `ccmux_create_pane` currently creates panes
+- [x] Review how `fugue_create_pane` currently creates panes
 - [x] Determine how split direction should affect pane layout
 - [x] Include direction in response for client-side layout hints (actual layout is client-side)
 - [x] Test horizontal and vertical splits work correctly
 
-### Section 2: Add ccmux_list_sessions Tool
+### Section 2: Add fugue_list_sessions Tool
 - [x] Add tool definition to `tools.rs`
 - [x] Implement `list_sessions()` handler in `handlers.rs`
 - [x] Add routing in `server.rs` handle_call_tool
 - [x] Test: returns array of sessions with correct info
 
-### Section 3: Add ccmux_list_windows Tool
+### Section 3: Add fugue_list_windows Tool
 - [x] Add tool definition to `tools.rs`
 - [x] Implement `list_windows()` handler in `handlers.rs`
 - [x] Add routing in `server.rs` handle_call_tool
 - [x] Test: returns array of windows for specified session
 
-### Section 4: Add ccmux_create_session Tool
+### Section 4: Add fugue_create_session Tool
 - [x] Add tool definition to `tools.rs`
 - [x] Implement `create_session()` handler in `handlers.rs`
 - [x] Ensure it creates session with default window, pane, and PTY (BUG-003 pattern)
 - [x] Add routing in `server.rs` handle_call_tool
 - [x] Test: session created with working default pane
 
-### Section 5: Add ccmux_create_window Tool
+### Section 5: Add fugue_create_window Tool
 - [x] Add tool definition to `tools.rs`
 - [x] Implement `create_window()` handler in `handlers.rs`
 - [x] Ensure it creates window with default pane and PTY
@@ -251,11 +251,11 @@ These can be added in a follow-up feature if needed:
 
 ## Acceptance Criteria
 
-- [x] `ccmux_create_pane` direction parameter included in response for client-side layout hints
-- [x] `ccmux_create_session` creates a fully functional session with shell
-- [x] `ccmux_create_window` creates a fully functional window with shell
-- [x] `ccmux_list_sessions` returns all sessions with metadata
-- [x] `ccmux_list_windows` returns windows for a session
+- [x] `fugue_create_pane` direction parameter included in response for client-side layout hints
+- [x] `fugue_create_session` creates a fully functional session with shell
+- [x] `fugue_create_window` creates a fully functional window with shell
+- [x] `fugue_list_sessions` returns all sessions with metadata
+- [x] `fugue_list_windows` returns windows for a session
 - [x] All new tools follow existing patterns (JSON returns, error handling)
 - [x] All existing tests pass (690 tests)
 - [x] New tests cover happy path and error cases
@@ -274,20 +274,20 @@ For each new handler:
 ### Integration Tests
 
 Manual verification via MCP:
-1. Call `ccmux_list_sessions` - should return empty or existing sessions
-2. Call `ccmux_create_session` - should create session with shell
-3. Call `ccmux_list_sessions` - should show new session
-4. Call `ccmux_list_windows` - should show default window
-5. Call `ccmux_create_window` - should add window to session
-6. Call `ccmux_list_windows` - should show both windows
-7. Call `ccmux_create_pane` with direction=horizontal - should split correctly
-8. Call `ccmux_list_panes` - should show split panes
+1. Call `fugue_list_sessions` - should return empty or existing sessions
+2. Call `fugue_create_session` - should create session with shell
+3. Call `fugue_list_sessions` - should show new session
+4. Call `fugue_list_windows` - should show default window
+5. Call `fugue_create_window` - should add window to session
+6. Call `fugue_list_windows` - should show both windows
+7. Call `fugue_create_pane` with direction=horizontal - should split correctly
+8. Call `fugue_list_panes` - should show split panes
 
 ## Technical Notes
 
 ### Pattern to Follow
 
-Look at existing `ccmux_create_pane` implementation in handlers.rs for the pattern:
+Look at existing `fugue_create_pane` implementation in handlers.rs for the pattern:
 1. Get or create session
 2. Get or create window
 3. Create pane
@@ -320,19 +320,19 @@ If the current architecture doesn't support actual layout positioning, document 
 After implementation, Claude should be able to handle:
 
 - "Create a new terminal session called 'dev'"
-  - Uses: `ccmux_create_session` with name="dev"
+  - Uses: `fugue_create_session` with name="dev"
 
 - "Open a new window"
-  - Uses: `ccmux_create_window`
+  - Uses: `fugue_create_window`
 
 - "Split this pane horizontally"
-  - Uses: `ccmux_create_pane` with direction="horizontal"
+  - Uses: `fugue_create_pane` with direction="horizontal"
 
 - "Show me all my sessions"
-  - Uses: `ccmux_list_sessions`
+  - Uses: `fugue_list_sessions`
 
 - "What windows are in this session?"
-  - Uses: `ccmux_list_windows`
+  - Uses: `fugue_list_windows`
 
 ## Notes
 

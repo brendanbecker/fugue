@@ -14,8 +14,8 @@
   "reproducibility": "always",
   "description": "When a Claude session generates large output (such as an extensive README diff), the viewport/scrollback/buffer cannot hold the full output. This causes input to become completely unresponsive - the user cannot interact with the session at all. The user can still detach (Ctrl+B d) and the session remains running, but reattaching shows the same unresponsive state. This persistence through detach/reattach indicates a buffer capacity issue on the server side rather than a transient client rendering problem.",
   "steps_to_reproduce": [
-    "Start ccmux and attach to a session",
-    "Launch a Claude session within ccmux",
+    "Start fugue and attach to a session",
+    "Launch a Claude session within fugue",
     "Perform work that generates a large diff (e.g., updating a README with extensive changes)",
     "Observe that the output fills the viewport",
     "Attempt to type or interact with the session",

@@ -1,17 +1,17 @@
-# ccmux Design Principles
+# fugue Design Principles
 
-ccmux is a terminal multiplexer designed for long-lived, AI-assisted work.
+fugue is a terminal multiplexer designed for long-lived, AI-assisted work.
 These principles guide architectural and product decisions.
 
 ## 1. Places over tools
 
-ccmux is a **place where work happens**, not a command wrapper or agent framework.
+fugue is a **place where work happens**, not a command wrapper or agent framework.
 
 - Sessions are durable workspaces
 - Panes are actors attached to processes
 - Humans and agents inhabit the same environment
 
-The value of ccmux increases with time spent inside it.
+The value of fugue increases with time spent inside it.
 
 ## 2. Server state is authoritative
 
@@ -23,7 +23,7 @@ Clients (TUI, MCP bridge, automation) are projections.
 
 ## 3. Harness-agnostic by default
 
-ccmux does not privilege any specific AI model, vendor, or harness.
+fugue does not privilege any specific AI model, vendor, or harness.
 
 - Claude, Codex, Gemini, scripts, and humans are all clients
 - Integration is capability-based, not name-based
@@ -31,7 +31,7 @@ ccmux does not privilege any specific AI model, vendor, or harness.
 
 ## 4. Command-agnostic execution
 
-ccmux does not care what runs inside a pane.
+fugue does not care what runs inside a pane.
 
 - Shells, editors, agents, daemons, one-shot commands are equal
 - Awareness is additive, never required
@@ -58,7 +58,7 @@ Automation must coexist with human intent.
 
 ## 7. Minimal abstraction, maximal leverage
 
-ccmux prefers:
+fugue prefers:
 - simple primitives
 - explicit state
 - visible invariants

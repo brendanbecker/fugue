@@ -17,7 +17,7 @@ When a user selects an existing session from the session manager/session selecti
 
 ## Steps to Reproduce
 
-1. Start ccmux and create a session
+1. Start fugue and create a session
 2. Detach from the session (Ctrl+B d) or open session manager
 3. From the session manager UI, select the existing session to reattach
 4. Observe that the client appears to connect
@@ -56,12 +56,12 @@ The attach handler may not be properly connecting the new client to the existing
 
 ## Files to Investigate
 
-- `ccmux-server/src/handlers/attach.rs` - Attach handler logic
-- `ccmux-server/src/handlers/session.rs` - Session management
-- `ccmux-server/src/pty/output.rs` - PTY output poller and client registration
-- `ccmux-server/src/registry/` - Client and session registry
-- `ccmux-client/src/ui/session_manager.rs` - Session manager UI (if exists)
-- `ccmux-client/src/ui/app.rs` - Client app attach flow
+- `fugue-server/src/handlers/attach.rs` - Attach handler logic
+- `fugue-server/src/handlers/session.rs` - Session management
+- `fugue-server/src/pty/output.rs` - PTY output poller and client registration
+- `fugue-server/src/registry/` - Client and session registry
+- `fugue-client/src/ui/session_manager.rs` - Session manager UI (if exists)
+- `fugue-client/src/ui/app.rs` - Client app attach flow
 
 ## Related Issues
 

@@ -1,12 +1,12 @@
 # ChatGPT Research Document - Section Map
 
-> Source: `/home/becker/projects/tools/ccmux/docs/research/chatgpt_research.pdf`
+> Source: `/home/becker/projects/tools/fugue/docs/research/chatgpt_research.pdf`
 > Total: ~12,000 tokens | 49 pages | 5 major sections
 
 ## Navigation Tree
 
 ```
-ccmux Deep Research (~12,000 tokens)
+fugue Deep Research (~12,000 tokens)
 │
 ├── 1. Terminal Emulation in Rust (3,200 tokens) [P1-12]
 │   ├── 1.1 Executive Summary (300 tokens) [P1-2]

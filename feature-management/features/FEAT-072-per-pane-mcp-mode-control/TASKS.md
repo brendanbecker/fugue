@@ -10,13 +10,13 @@
 - [ ] Review PLAN.md and update if needed
 - [ ] Review FEAT-071 implementation approach and data structures
 - [ ] Inspect current Claude MCP config format (`~/.claude/mcp.json`)
-- [ ] Locate per-pane config directory creation in ccmux-server
+- [ ] Locate per-pane config directory creation in fugue-server
 
 ## Section 1: Protocol + Tool Surface
 
 - [ ] Add `mcp_mode: Option<String>` to CreatePane message
 - [ ] Update protocol documentation/comments for allowed values
-- [ ] Add `mcp_mode` parameter to `ccmux_create_pane` tool
+- [ ] Add `mcp_mode` parameter to `fugue_create_pane` tool
 - [ ] Validate `mcp_mode` values (full/minimal/none)
 - [ ] Ensure backward compatibility (default to `full`)
 - [ ] Add unit tests for CreatePane serialization with `mcp_mode`

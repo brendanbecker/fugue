@@ -23,11 +23,11 @@
 ## Implementation Tasks
 
 ### Module Setup
-- [ ] Add rmcp dependency to ccmux-server/Cargo.toml
-- [ ] Create ccmux-server/src/mcp/mod.rs
-- [ ] Create ccmux-server/src/mcp/server.rs
-- [ ] Create ccmux-server/src/mcp/tools.rs
-- [ ] Register mcp module in ccmux-server/src/lib.rs
+- [ ] Add rmcp dependency to fugue-server/Cargo.toml
+- [ ] Create fugue-server/src/mcp/mod.rs
+- [ ] Create fugue-server/src/mcp/server.rs
+- [ ] Create fugue-server/src/mcp/tools.rs
+- [ ] Register mcp module in fugue-server/src/lib.rs
 
 ### Server Implementation
 - [ ] Implement MCP server struct with rmcp
@@ -38,11 +38,11 @@
 - [ ] Implement server shutdown handling
 
 ### Tool Implementations
-- [ ] Implement ccmux_list_sessions handler
-- [ ] Implement ccmux_create_pane handler
-- [ ] Implement ccmux_send_input handler
-- [ ] Implement ccmux_get_output handler
-- [ ] Implement ccmux_close_pane handler
+- [ ] Implement fugue_list_sessions handler
+- [ ] Implement fugue_create_pane handler
+- [ ] Implement fugue_send_input handler
+- [ ] Implement fugue_get_output handler
+- [ ] Implement fugue_close_pane handler
 
 ### Integration
 - [ ] Connect tools to SessionManager
@@ -53,11 +53,11 @@
 ## Testing Tasks
 
 - [ ] Add unit tests for tool schema validation
-- [ ] Add unit tests for ccmux_list_sessions
-- [ ] Add unit tests for ccmux_create_pane
-- [ ] Add unit tests for ccmux_send_input
-- [ ] Add unit tests for ccmux_get_output
-- [ ] Add unit tests for ccmux_close_pane
+- [ ] Add unit tests for fugue_list_sessions
+- [ ] Add unit tests for fugue_create_pane
+- [ ] Add unit tests for fugue_send_input
+- [ ] Add unit tests for fugue_get_output
+- [ ] Add unit tests for fugue_close_pane
 - [ ] Add integration test for server lifecycle
 - [ ] Add integration test for tool calls
 - [ ] Manual testing with Claude MCP client

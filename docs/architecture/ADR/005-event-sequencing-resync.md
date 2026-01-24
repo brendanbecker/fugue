@@ -5,7 +5,7 @@ Accepted
 
 ## Context
 
-ccmux must provide a consistent view of server state to clients (TUI, MCP bridge) in the presence of:
+fugue must provide a consistent view of server state to clients (TUI, MCP bridge) in the presence of:
 
 - disconnected clients (detach/attach)
 - event lag or drop (tokio broadcast semantics)

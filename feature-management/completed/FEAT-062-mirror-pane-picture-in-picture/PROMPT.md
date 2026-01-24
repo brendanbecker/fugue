@@ -1,7 +1,7 @@
 # FEAT-062: Mirror Pane (Picture-in-Picture View)
 
 **Priority**: P3
-**Component**: ccmux-server, ccmux-client
+**Component**: fugue-server, fugue-client
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
@@ -19,7 +19,7 @@ When working with multi-agent setups, users need to monitor what workers are doi
 ## Proposed MCP Interface
 
 ```
-ccmux_mirror_pane(source_pane_id, target_pane_id?)
+fugue_mirror_pane(source_pane_id, target_pane_id?)
 ```
 
 **Parameters**:
@@ -34,16 +34,16 @@ ccmux_mirror_pane(source_pane_id, target_pane_id?)
 
 ```json
 // Create new mirror pane (creates split)
-{"tool": "ccmux_mirror_pane", "arguments": {"source_pane_id": "pane-abc123"}}
+{"tool": "fugue_mirror_pane", "arguments": {"source_pane_id": "pane-abc123"}}
 
 // Convert existing pane to mirror
-{"tool": "ccmux_mirror_pane", "arguments": {"source_pane_id": "pane-abc123", "target_pane_id": "pane-def456"}}
+{"tool": "fugue_mirror_pane", "arguments": {"source_pane_id": "pane-abc123", "target_pane_id": "pane-def456"}}
 ```
 
 ## CLI Equivalent
 
 ```bash
-ccmux mirror <source_pane_id>
+fugue mirror <source_pane_id>
 ```
 
 **Options**:
@@ -82,7 +82,7 @@ ccmux mirror <source_pane_id>
 
 ## Implementation Considerations
 
-### Server-Side Changes (ccmux-server)
+### Server-Side Changes (fugue-server)
 
 1. **Mirror Registry**: Track mirror relationships
    - Map of `mirror_pane_id -> source_pane_id`
@@ -98,7 +98,7 @@ ccmux mirror <source_pane_id>
    - Mirrors have their own terminal buffer (for independent scrollback)
    - Mirrors receive output events from source
 
-### Client-Side Changes (ccmux-client)
+### Client-Side Changes (fugue-client)
 
 1. **Mirror Pane Rendering**:
    - Same rendering as regular pane
@@ -113,7 +113,7 @@ ccmux mirror <source_pane_id>
    - Show mirror indicator in status bar
    - Show source pane identifier
 
-### Protocol Changes (ccmux-protocol)
+### Protocol Changes (fugue-protocol)
 
 1. **New Messages**:
    ```rust
@@ -142,8 +142,8 @@ These are out of scope for initial implementation but worth noting for future:
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_mirror_pane` MCP tool creates mirror pane
-- [ ] CLI `ccmux mirror <pane_id>` creates mirror pane
+- [ ] `fugue_mirror_pane` MCP tool creates mirror pane
+- [ ] CLI `fugue mirror <pane_id>` creates mirror pane
 - [ ] Mirror displays source pane output in real-time
 - [ ] Mirror has independent scrollback from source
 - [ ] Mirror shows visual indicator (border color, title)
@@ -185,13 +185,13 @@ Files to create/modify:
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/session/pane.rs` | Add `PaneType::Mirror` variant |
-| `ccmux-server/src/session/mirror.rs` | New: Mirror registry and logic |
-| `ccmux-server/src/mcp/tools.rs` | Add `ccmux_mirror_pane` tool |
-| `ccmux-protocol/src/message.rs` | Add mirror-related messages |
-| `ccmux-client/src/ui/pane.rs` | Mirror rendering logic |
-| `ccmux-client/src/input/handler.rs` | Handle mirror-specific input |
-| `ccmux/src/cli/commands.rs` | Add `mirror` subcommand |
+| `fugue-server/src/session/pane.rs` | Add `PaneType::Mirror` variant |
+| `fugue-server/src/session/mirror.rs` | New: Mirror registry and logic |
+| `fugue-server/src/mcp/tools.rs` | Add `fugue_mirror_pane` tool |
+| `fugue-protocol/src/message.rs` | Add mirror-related messages |
+| `fugue-client/src/ui/pane.rs` | Mirror rendering logic |
+| `fugue-client/src/input/handler.rs` | Handle mirror-specific input |
+| `fugue/src/cli/commands.rs` | Add `mirror` subcommand |
 
 ## Dependencies
 

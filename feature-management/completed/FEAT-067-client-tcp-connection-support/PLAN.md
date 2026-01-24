@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-067
 
 **Work Item**: [FEAT-067: Client TCP connection support](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P2
 **Created**: 2026-01-13
 
 ## Overview
 
-Add TCP connection capability to ccmux-client, enabling connections to remote daemons over TCP alongside the existing Unix socket support. This completes Phase 2 of remote peering (Phase 1 = FEAT-066).
+Add TCP connection capability to fugue-client, enabling connections to remote daemons over TCP alongside the existing Unix socket support. This completes Phase 2 of remote peering (Phase 1 = FEAT-066).
 
 ## Architecture Decisions
 
@@ -65,9 +65,9 @@ Add TCP connection capability to ccmux-client, enabling connections to remote da
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-client/src/main.rs | Add CLI flag parsing | Low |
-| ccmux-client/src/client.rs | Add TCP connection logic | Medium |
-| ccmux-client/Cargo.toml | Add url crate dependency | Low |
+| fugue-client/src/main.rs | Add CLI flag parsing | Low |
+| fugue-client/src/client.rs | Add TCP connection logic | Medium |
+| fugue-client/Cargo.toml | Add url crate dependency | Low |
 
 ## Dependencies
 
@@ -98,7 +98,7 @@ If implementation causes issues:
 
 ### Phase 1: CLI and Parsing (Low Risk)
 1. Add `--addr` flag to clap Args struct
-2. Add `CCMUX_ADDR` environment variable support
+2. Add `FUGUE_ADDR` environment variable support
 3. Implement URL parsing (tcp://, unix://)
 4. Unit tests for parsing logic
 
@@ -136,7 +136,7 @@ This feature **requires** FEAT-066 to be completed first, as there's no point in
 #[derive(Parser)]
 struct Args {
     /// Connection address (tcp://host:port or unix://path)
-    #[arg(long, env = "CCMUX_ADDR", default_value = "unix://~/.ccmux/ccmux.sock")]
+    #[arg(long, env = "FUGUE_ADDR", default_value = "unix://~/.fugue/fugue.sock")]
     addr: String,
     // ... other args
 }

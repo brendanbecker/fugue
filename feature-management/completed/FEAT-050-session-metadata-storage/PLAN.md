@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-050
 
 **Work Item**: [FEAT-050: Session Metadata Storage for Agent Identity](PROMPT.md)
-**Component**: ccmux-server (MCP)
+**Component**: fugue-server (MCP)
 **Priority**: P3
 **Created**: 2026-01-10
 
@@ -68,11 +68,11 @@ Allow storing arbitrary key-value metadata on sessions to track agent identity, 
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-session/src/session.rs | Add metadata field | Low |
-| ccmux-server/src/mcp/tools.rs | Add tool definitions | Low |
-| ccmux-server/src/mcp/handlers.rs | Add handlers | Low |
-| ccmux-protocol/src/types.rs | Add metadata to SessionInfo | Low |
-| ccmux-persistence/src/checkpoint.rs | Serialize metadata | Low |
+| fugue-session/src/session.rs | Add metadata field | Low |
+| fugue-server/src/mcp/tools.rs | Add tool definitions | Low |
+| fugue-server/src/mcp/handlers.rs | Add handlers | Low |
+| fugue-protocol/src/types.rs | Add metadata to SessionInfo | Low |
+| fugue-persistence/src/checkpoint.rs | Serialize metadata | Low |
 
 ## Implementation Order
 
@@ -182,7 +182,7 @@ pub struct SessionInfo {
 ```rust
 // In tools.rs
 Tool {
-    name: "ccmux_set_metadata".to_string(),
+    name: "fugue_set_metadata".to_string(),
     description: Some("Set a metadata key-value pair on a session".to_string()),
     input_schema: json!({
         "type": "object",
@@ -195,7 +195,7 @@ Tool {
     }),
 },
 Tool {
-    name: "ccmux_get_metadata".to_string(),
+    name: "fugue_get_metadata".to_string(),
     description: Some("Get metadata from a session".to_string()),
     input_schema: json!({
         "type": "object",

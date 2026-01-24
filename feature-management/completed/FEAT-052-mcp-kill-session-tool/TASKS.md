@@ -1,6 +1,6 @@
 # Task Breakdown: FEAT-052
 
-**Work Item**: [FEAT-052: Add ccmux_kill_session MCP tool](PROMPT.md)
+**Work Item**: [FEAT-052: Add fugue_kill_session MCP tool](PROMPT.md)
 **Status**: Not Started
 **Last Updated**: 2026-01-10
 
@@ -8,17 +8,17 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Review existing MCP tool pattern in ccmux-server/src/mcp/tools.rs
-- [ ] Review existing handlers in ccmux-server/src/mcp/handlers.rs
-- [ ] Verify DestroySession message in ccmux-protocol/src/messages.rs
+- [ ] Review existing MCP tool pattern in fugue-server/src/mcp/tools.rs
+- [ ] Review existing handlers in fugue-server/src/mcp/handlers.rs
+- [ ] Verify DestroySession message in fugue-protocol/src/messages.rs
 
 ## Phase 1: Tool Definition
 
 ### 1.1 Add Tool Schema
-- [ ] Open ccmux-server/src/mcp/tools.rs
-- [ ] Add `ccmux_kill_session` tool to `get_tool_definitions()` vector
-- [ ] Set name: "ccmux_kill_session"
-- [ ] Set description: "Kill/destroy a ccmux session and all its windows and panes"
+- [ ] Open fugue-server/src/mcp/tools.rs
+- [ ] Add `fugue_kill_session` tool to `get_tool_definitions()` vector
+- [ ] Set name: "fugue_kill_session"
+- [ ] Set description: "Kill/destroy a fugue session and all its windows and panes"
 - [ ] Set input_schema with required "session" string parameter
 
 ### 1.2 Verify Tool Registration
@@ -29,7 +29,7 @@
 ## Phase 2: Handler Implementation
 
 ### 2.1 Add Handler Function
-- [ ] Open ccmux-server/src/mcp/handlers.rs
+- [ ] Open fugue-server/src/mcp/handlers.rs
 - [ ] Add `handle_kill_session` function
 - [ ] Parse "session" parameter from arguments
 - [ ] Return error if session parameter missing
@@ -50,32 +50,32 @@
 - [ ] On error: return appropriate MCP error
 
 ### 2.5 Wire Up Handler
-- [ ] Add routing for "ccmux_kill_session" tool calls
+- [ ] Add routing for "fugue_kill_session" tool calls
 - [ ] Call handle_kill_session when tool is invoked
 
 ## Phase 3: Testing
 
 ### 3.1 Build and Basic Test
 - [ ] Build project: `cargo build`
-- [ ] Start ccmux daemon
+- [ ] Start fugue daemon
 - [ ] Create a test session
-- [ ] Use MCP client to call ccmux_kill_session
+- [ ] Use MCP client to call fugue_kill_session
 
 ### 3.2 Test Kill by UUID
 - [ ] Create session
 - [ ] Get session UUID from list
-- [ ] Call ccmux_kill_session with UUID
+- [ ] Call fugue_kill_session with UUID
 - [ ] Verify session is removed from list
 
 ### 3.3 Test Kill by Name
 - [ ] Create session with known name
-- [ ] Call ccmux_kill_session with name
+- [ ] Call fugue_kill_session with name
 - [ ] Verify session is removed from list
 
 ### 3.4 Test Error Cases
-- [ ] Call ccmux_kill_session with non-existent UUID
+- [ ] Call fugue_kill_session with non-existent UUID
 - [ ] Verify appropriate error response
-- [ ] Call ccmux_kill_session with non-existent name
+- [ ] Call fugue_kill_session with non-existent name
 - [ ] Verify appropriate error response
 
 ### 3.5 Unit Tests (Optional)
@@ -94,7 +94,7 @@
 - [ ] Comment any non-obvious logic
 
 ### 4.3 Update CHANGELOG
-- [ ] Add entry for new ccmux_kill_session tool
+- [ ] Add entry for new fugue_kill_session tool
 
 ## Completion Checklist
 

@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-020
 
 **Work Item**: [FEAT-020: Session Isolation - Per-Pane CLAUDE_CONFIG_DIR](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P1
 **Created**: 2026-01-08
 
@@ -14,7 +14,7 @@ CLAUDE_CONFIG_DIR per pane for concurrent Claude instances, preventing config fi
 ### Isolation Directory Structure
 
 ```
-~/.ccmux/
+~/.fugue/
   claude/
     {pane-id}/           # Isolation directory per pane
       config/            # Claude configuration files
@@ -25,7 +25,7 @@ CLAUDE_CONFIG_DIR per pane for concurrent Claude instances, preventing config fi
 ### Environment Variable Strategy
 
 At PTY spawn, inject:
-- `CLAUDE_CONFIG_DIR=~/.ccmux/claude/{pane-id}`
+- `CLAUDE_CONFIG_DIR=~/.fugue/claude/{pane-id}`
 
 This overrides any existing CLAUDE_CONFIG_DIR to ensure isolation.
 
@@ -58,9 +58,9 @@ Pane Closed -> Remove Isolation Directory
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/pty/config.rs | Modify - Add CLAUDE_CONFIG_DIR support | Low |
-| ccmux-server/src/claude/isolation.rs | New - Isolation directory management | Low |
-| ccmux-server/src/session/pane.rs | Modify - Lifecycle hooks for isolation | Low |
+| fugue-server/src/pty/config.rs | Modify - Add CLAUDE_CONFIG_DIR support | Low |
+| fugue-server/src/claude/isolation.rs | New - Isolation directory management | Low |
+| fugue-server/src/session/pane.rs | Modify - Lifecycle hooks for isolation | Low |
 
 ## Dependencies
 
@@ -79,7 +79,7 @@ Pane Closed -> Remove Isolation Directory
 ## Implementation Phases
 
 ### Phase 1: Isolation Module
-- Create `ccmux-server/src/claude/isolation.rs`
+- Create `fugue-server/src/claude/isolation.rs`
 - Implement directory creation/removal
 - Add pane metadata file handling
 

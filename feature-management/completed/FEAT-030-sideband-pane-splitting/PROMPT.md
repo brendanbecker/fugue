@@ -1,7 +1,7 @@
 # FEAT-030: Sideband Pane Splitting - Execute spawn Commands via Sideband Protocol
 
 **Priority**: P1
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
@@ -9,7 +9,7 @@
 
 ## Overview
 
-Complete the execute_spawn function in the sideband executor to actually split panes when Claude outputs `<ccmux:spawn />` commands. The sideband parser (FEAT-019) already handles command parsing and stripping from display output, but the executor currently just logs a warning and returns Ok(()).
+Complete the execute_spawn function in the sideband executor to actually split panes when Claude outputs `<fugue:spawn />` commands. The sideband parser (FEAT-019) already handles command parsing and stripping from display output, but the executor currently just logs a warning and returns Ok(()).
 
 This feature enables Claude to dynamically create new terminal panes for parallel task execution.
 
@@ -17,11 +17,11 @@ This feature enables Claude to dynamically create new terminal panes for paralle
 
 The sideband infrastructure is in place:
 
-1. **Parser** (`ccmux-server/src/sideband/parser.rs`): Parses XML tags like `<ccmux:spawn direction="vertical" command="cargo build" cwd="/project" />` and extracts them from display output.
+1. **Parser** (`fugue-server/src/sideband/parser.rs`): Parses XML tags like `<fugue:spawn direction="vertical" command="cargo build" cwd="/project" />` and extracts them from display output.
 
-2. **Commands** (`ccmux-server/src/sideband/commands.rs`): Defines `SidebandCommand::Spawn` with `direction`, `command`, and `cwd` fields. `SplitDirection` enum has `Horizontal` and `Vertical` variants.
+2. **Commands** (`fugue-server/src/sideband/commands.rs`): Defines `SidebandCommand::Spawn` with `direction`, `command`, and `cwd` fields. `SplitDirection` enum has `Horizontal` and `Vertical` variants.
 
-3. **Executor** (`ccmux-server/src/sideband/executor.rs`): Has `execute_spawn()` method that receives parsed commands but only logs a warning:
+3. **Executor** (`fugue-server/src/sideband/executor.rs`): Has `execute_spawn()` method that receives parsed commands but only logs a warning:
    ```rust
    fn execute_spawn(
        &self,
@@ -36,7 +36,7 @@ The sideband infrastructure is in place:
    }
    ```
 
-4. **SessionManager** (`ccmux-server/src/session/manager.rs`): Has `find_pane()` to locate panes and session/window hierarchy, but no `split_pane` method.
+4. **SessionManager** (`fugue-server/src/session/manager.rs`): Has `find_pane()` to locate panes and session/window hierarchy, but no `split_pane` method.
 
 ## Requirements
 
@@ -80,31 +80,31 @@ The following sideband commands should work after this feature:
 
 ```xml
 <!-- Split vertically (new pane to the right) -->
-<ccmux:spawn direction="vertical" />
+<fugue:spawn direction="vertical" />
 
 <!-- Split horizontally (new pane below) -->
-<ccmux:spawn direction="horizontal" />
+<fugue:spawn direction="horizontal" />
 
 <!-- Split with specific command -->
-<ccmux:spawn direction="vertical" command="cargo build" />
+<fugue:spawn direction="vertical" command="cargo build" />
 
 <!-- Split with command and working directory -->
-<ccmux:spawn direction="horizontal" command="npm test" cwd="/home/user/project" />
+<fugue:spawn direction="horizontal" command="npm test" cwd="/home/user/project" />
 
 <!-- Shorthand directions -->
-<ccmux:spawn direction="v" />
-<ccmux:spawn direction="h" />
+<fugue:spawn direction="v" />
+<fugue:spawn direction="h" />
 ```
 
 ## Affected Files
 
 | File | Change |
 |------|--------|
-| `ccmux-server/src/session/manager.rs` | Add `split_pane()` method |
-| `ccmux-server/src/session/window.rs` | May need helper for split position |
-| `ccmux-server/src/sideband/executor.rs` | Complete `execute_spawn()` implementation |
-| `ccmux-server/src/sideband/commands.rs` | Already complete (SplitDirection enum) |
-| `ccmux-server/src/pty/manager.rs` | May need spawn_for_pane() integration |
+| `fugue-server/src/session/manager.rs` | Add `split_pane()` method |
+| `fugue-server/src/session/window.rs` | May need helper for split position |
+| `fugue-server/src/sideband/executor.rs` | Complete `execute_spawn()` implementation |
+| `fugue-server/src/sideband/commands.rs` | Already complete (SplitDirection enum) |
+| `fugue-server/src/pty/manager.rs` | May need spawn_for_pane() integration |
 
 ## Implementation Tasks
 
@@ -144,8 +144,8 @@ The following sideband commands should work after this feature:
 
 ## Acceptance Criteria
 
-- [ ] `<ccmux:spawn direction="vertical" />` creates a new pane to the right
-- [ ] `<ccmux:spawn direction="horizontal" />` creates a new pane below
+- [ ] `<fugue:spawn direction="vertical" />` creates a new pane to the right
+- [ ] `<fugue:spawn direction="horizontal" />` creates a new pane below
 - [ ] `command` attribute causes specified command to run in new pane
 - [ ] `cwd` attribute sets working directory for new pane
 - [ ] Invalid source pane returns appropriate error

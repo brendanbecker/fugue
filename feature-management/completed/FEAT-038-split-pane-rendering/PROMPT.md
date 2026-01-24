@@ -1,7 +1,7 @@
 # FEAT-038: Split Pane Rendering - Layout Manager for Multi-Pane Display
 
 **Priority**: P1
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: new_feature
 **Estimated Effort**: large
 **Business Value**: high
@@ -9,12 +9,12 @@
 
 ## Overview
 
-Implement split pane rendering in the ccmux client so that when a user splits a pane (`Ctrl+B %` for vertical, `Ctrl+B "` for horizontal), both panes are displayed side-by-side (or stacked) rather than requiring manual pane switching with `Ctrl+B o`.
+Implement split pane rendering in the fugue client so that when a user splits a pane (`Ctrl+B %` for vertical, `Ctrl+B "` for horizontal), both panes are displayed side-by-side (or stacked) rather than requiring manual pane switching with `Ctrl+B o`.
 
 Currently:
 - The server correctly creates panes and spawns PTY processes
 - The client receives `PaneCreated` messages and stores pane data in `self.panes`
-- BUT: `draw_attached()` in `ccmux-client/src/ui/app.rs` only renders ONE pane - the `active_pane_id`
+- BUT: `draw_attached()` in `fugue-client/src/ui/app.rs` only renders ONE pane - the `active_pane_id`
 - There is no layout manager tracking pane arrangement to divide the screen
 
 ## Current State
@@ -28,7 +28,7 @@ Currently:
    - `active_pane_id: Option<Uuid>` - the currently focused pane
    - `pane_manager: PaneManager` - manages terminal emulators for each pane
 
-3. **Layout module exists**: `ccmux-client/src/ui/layout.rs` contains a full `LayoutManager` with:
+3. **Layout module exists**: `fugue-client/src/ui/layout.rs` contains a full `LayoutManager` with:
    - `LayoutNode` enum for tree-based layouts
    - `add_pane()`, `remove_pane()`, `calculate_rects()` methods
    - Support for horizontal/vertical splits
@@ -186,10 +186,10 @@ When a pane is closed:
 
 | File | Change |
 |------|--------|
-| `ccmux-client/src/ui/app.rs` | Add LayoutManager, update draw_attached(), handle splits |
-| `ccmux-client/src/ui/layout.rs` | May need adjustments based on integration |
-| `ccmux-client/src/ui/pane.rs` | Add border rendering variant |
-| `ccmux-client/src/ui/mod.rs` | Ensure layout module is properly exported |
+| `fugue-client/src/ui/app.rs` | Add LayoutManager, update draw_attached(), handle splits |
+| `fugue-client/src/ui/layout.rs` | May need adjustments based on integration |
+| `fugue-client/src/ui/pane.rs` | Add border rendering variant |
+| `fugue-client/src/ui/mod.rs` | Ensure layout module is properly exported |
 
 ## Existing Code Reference
 
@@ -216,11 +216,11 @@ impl LayoutNode {
 
 The layout module already has a `From` impl:
 ```rust
-impl From<ccmux_protocol::SplitDirection> for SplitDirection {
-    fn from(dir: ccmux_protocol::SplitDirection) -> Self {
+impl From<fugue_protocol::SplitDirection> for SplitDirection {
+    fn from(dir: fugue_protocol::SplitDirection) -> Self {
         match dir {
-            ccmux_protocol::SplitDirection::Horizontal => SplitDirection::Horizontal,
-            ccmux_protocol::SplitDirection::Vertical => SplitDirection::Vertical,
+            fugue_protocol::SplitDirection::Horizontal => SplitDirection::Horizontal,
+            fugue_protocol::SplitDirection::Vertical => SplitDirection::Vertical,
         }
     }
 }

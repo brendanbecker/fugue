@@ -1,7 +1,7 @@
 # FEAT-083: Protocol Generalization: Generic Widget System
 
 **Priority**: P1
-**Component**: ccmux-protocol
+**Component**: fugue-protocol
 **Type**: enhancement
 **Estimated Effort**: medium
 **Business Value**: medium

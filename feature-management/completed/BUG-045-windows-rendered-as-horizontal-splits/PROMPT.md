@@ -7,7 +7,7 @@
 
 ## Problem Statement
 
-When creating a new window with `create_window`, it appears as a horizontal split in the current view rather than as a separate tab/screen. In tmux, windows are like tabs - only one window is visible at a time per session, and you switch between them. In ccmux, creating a new window causes both the original window and the new window to be displayed simultaneously, splitting the screen.
+When creating a new window with `create_window`, it appears as a horizontal split in the current view rather than as a separate tab/screen. In tmux, windows are like tabs - only one window is visible at a time per session, and you switch between them. In fugue, creating a new window causes both the original window and the new window to be displayed simultaneously, splitting the screen.
 
 This violates the expected tmux-like window/pane mental model where:
 - **Windows** are independent screens (like browser tabs) - only one visible at a time
@@ -33,8 +33,8 @@ This violates the expected tmux-like window/pane mental model where:
 
 ## Steps to Reproduce
 
-1. Start ccmux with a single session and window
-2. Call `ccmux_create_window` with name "qa-test"
+1. Start fugue with a single session and window
+2. Call `fugue_create_window` with name "qa-test"
 3. Observe that the new window's pane appears as a split in the current view
 4. Both windows are now visible simultaneously, each taking half the screen height
 

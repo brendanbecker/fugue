@@ -1,7 +1,7 @@
 {
   "bug_id": "BUG-021",
-  "title": "ccmux_rename_session not handled in standalone MCP server",
-  "component": "ccmux-server",
+  "title": "fugue_rename_session not handled in standalone MCP server",
+  "component": "fugue-server",
   "severity": "medium",
   "priority": "P2",
   "status": "new",
@@ -12,38 +12,38 @@
   "affected_versions": ["0.1.0"],
   "environment": "Linux terminal (WSL2)",
   "reproducibility": "always",
-  "description": "The ccmux_rename_session tool is defined in tools.rs and handled correctly in MCP bridge mode (bridge.rs), but is completely missing from the standalone MCP server mode (server.rs). Calling this tool in standalone mode returns an 'unknown tool' error.",
+  "description": "The fugue_rename_session tool is defined in tools.rs and handled correctly in MCP bridge mode (bridge.rs), but is completely missing from the standalone MCP server mode (server.rs). Calling this tool in standalone mode returns an 'unknown tool' error.",
   "steps_to_reproduce": [
-    "Start ccmux-server in standalone MCP server mode (not bridge mode)",
-    "Send a tools/call request for ccmux_rename_session with valid session and name parameters",
+    "Start fugue-server in standalone MCP server mode (not bridge mode)",
+    "Send a tools/call request for fugue_rename_session with valid session and name parameters",
     "Observe that the server returns an 'unknown tool' error"
   ],
-  "expected_behavior": "The ccmux_rename_session tool should work identically in both MCP bridge mode and standalone MCP server mode. The session should be renamed successfully.",
-  "actual_behavior": "In standalone MCP server mode, the ccmux_rename_session tool is not recognized. The is_known_tool() function does not include it, the ToolParams enum has no RenameSession variant, and dispatch_tool() has no case for it.",
+  "expected_behavior": "The fugue_rename_session tool should work identically in both MCP bridge mode and standalone MCP server mode. The session should be renamed successfully.",
+  "actual_behavior": "In standalone MCP server mode, the fugue_rename_session tool is not recognized. The is_known_tool() function does not include it, the ToolParams enum has no RenameSession variant, and dispatch_tool() has no case for it.",
   "evidence": [
     {
       "type": "file",
-      "location": "ccmux-server/src/mcp/tools.rs:225",
+      "location": "fugue-server/src/mcp/tools.rs:225",
       "description": "Tool is defined in the tools list"
     },
     {
       "type": "file",
-      "location": "ccmux-server/src/mcp/bridge.rs:372",
+      "location": "fugue-server/src/mcp/bridge.rs:372",
       "description": "Tool is correctly handled in bridge mode"
     },
     {
       "type": "file",
-      "location": "ccmux-server/src/mcp/server.rs:274-290",
-      "description": "is_known_tool() does not include ccmux_rename_session"
+      "location": "fugue-server/src/mcp/server.rs:274-290",
+      "description": "is_known_tool() does not include fugue_rename_session"
     },
     {
       "type": "file",
-      "location": "ccmux-server/src/mcp/server.rs:181-232",
-      "description": "dispatch_tool() has no case for ccmux_rename_session"
+      "location": "fugue-server/src/mcp/server.rs:181-232",
+      "description": "dispatch_tool() has no case for fugue_rename_session"
     },
     {
       "type": "file",
-      "location": "ccmux-server/src/mcp/server.rs:294-315",
+      "location": "fugue-server/src/mcp/server.rs:294-315",
       "description": "ToolParams enum missing RenameSession variant"
     }
   ],

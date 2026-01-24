@@ -6,7 +6,7 @@
   "status": "completed",
   "type": "enhancement",
   "estimated_effort": "medium",
-  "description": "Draft an Architectural Decision Record (ADR) defining the 'Dumb Pipe' philosophy for ccmux. Explicitly forbid future application-specific logic in the core server/protocol. Define the standard for Sideband usage as the primary integration point.",
+  "description": "Draft an Architectural Decision Record (ADR) defining the 'Dumb Pipe' philosophy for fugue. Explicitly forbid future application-specific logic in the core server/protocol. Define the standard for Sideband usage as the primary integration point.",
   "business_value": "medium",
   "completed_at": "2026-01-16"
 }

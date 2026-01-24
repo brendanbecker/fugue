@@ -13,7 +13,7 @@
   "affected_versions": [],
   "environment": "development",
   "reproducibility": "always",
-  "description": "When using ccmux_split_pane with direction: 'vertical' or direction: 'horizontal', both produce the same result - horizontally stacked panes (one above the other). The direction parameter appears to have no effect on the actual layout.",
+  "description": "When using fugue_split_pane with direction: 'vertical' or direction: 'horizontal', both produce the same result - horizontally stacked panes (one above the other). The direction parameter appears to have no effect on the actual layout.",
   "steps_to_reproduce": [
     "Create a new session",
     "Split the pane with direction: 'horizontal'",

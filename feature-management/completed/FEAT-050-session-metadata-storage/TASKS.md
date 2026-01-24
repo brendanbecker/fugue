@@ -8,8 +8,8 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Familiarize with Session struct in ccmux-session
-- [ ] Review existing MCP tool patterns in ccmux-server
+- [ ] Familiarize with Session struct in fugue-session
+- [ ] Review existing MCP tool patterns in fugue-server
 
 ## Phase 1: Core Storage (session.rs)
 
@@ -47,16 +47,16 @@
 ## Phase 3: MCP Tools
 
 ### 3.1 Add Tool Definitions (tools.rs)
-- [ ] Add `ccmux_set_metadata` tool definition
-- [ ] Add `ccmux_get_metadata` tool definition
+- [ ] Add `fugue_set_metadata` tool definition
+- [ ] Add `fugue_get_metadata` tool definition
 
 ### 3.2 Implement Handlers (handlers.rs)
-- [ ] Add handler for `ccmux_set_metadata`
+- [ ] Add handler for `fugue_set_metadata`
   - [ ] Parse session parameter (name or ID)
   - [ ] Validate key and value
   - [ ] Call session.set_metadata()
   - [ ] Return success response
-- [ ] Add handler for `ccmux_get_metadata`
+- [ ] Add handler for `fugue_get_metadata`
   - [ ] Parse session parameter
   - [ ] If key provided, return single value
   - [ ] If key omitted, return all metadata

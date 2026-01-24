@@ -42,14 +42,14 @@ A pane can have any combination: a Terminal in Claude mode, a Canvas in Normal m
 Support spawning canvases via sideband protocol:
 
 ```xml
-<ccmux:canvas type="diff" path="src/main.rs"/>
-<ccmux:canvas type="test_results" data="..."/>
+<fugue:canvas type="diff" path="src/main.rs"/>
+<fugue:canvas type="test_results" data="..."/>
 ```
 
 ## Requirements
 
 1. **Replace current implicit terminal-only model with explicit PaneContent enum**
-   - Define `PaneContent` enum in `ccmux-protocol/src/lib.rs`
+   - Define `PaneContent` enum in `fugue-protocol/src/lib.rs`
    - Update `Pane` struct to use `PaneContent` instead of implicit terminal assumption
 
 2. **Define Canvas trait for structured interactive widgets**
@@ -61,7 +61,7 @@ Support spawning canvases via sideband protocol:
    - Implement `TestResultsCanvas` for structured test output
 
 4. **Support spawning canvases via sideband**
-   - Parse `<ccmux:canvas>` sideband commands
+   - Parse `<fugue:canvas>` sideband commands
    - Create and manage canvas lifecycle
 
 5. **Integrate with existing PaneState**
@@ -79,16 +79,16 @@ Support spawning canvases via sideband protocol:
 
 | File | Type of Change |
 |------|----------------|
-| `ccmux-server/src/session/pane.rs` | Major refactor - add PaneContent |
-| `ccmux-protocol/src/lib.rs` | New types - PaneContent, Canvas trait |
-| `ccmux-server/src/canvas/` (new) | New module - Canvas implementations |
-| `ccmux-server/src/session/mod.rs` | Update to export canvas module |
+| `fugue-server/src/session/pane.rs` | Major refactor - add PaneContent |
+| `fugue-protocol/src/lib.rs` | New types - PaneContent, Canvas trait |
+| `fugue-server/src/canvas/` (new) | New module - Canvas implementations |
+| `fugue-server/src/session/mod.rs` | Update to export canvas module |
 
 ## Implementation Tasks
 
 ### Section 1: Core Abstractions
-- [ ] Define `PaneContent` enum in ccmux-protocol
-- [ ] Define `Canvas` trait in ccmux-protocol
+- [ ] Define `PaneContent` enum in fugue-protocol
+- [ ] Define `Canvas` trait in fugue-protocol
 - [ ] Define `Action` enum for canvas input handling results
 
 ### Section 2: Pane Refactor
@@ -98,13 +98,13 @@ Support spawning canvases via sideband protocol:
 - [ ] Update pane rendering to dispatch by content type
 
 ### Section 3: Canvas Module
-- [ ] Create `ccmux-server/src/canvas/mod.rs`
+- [ ] Create `fugue-server/src/canvas/mod.rs`
 - [ ] Implement `DiffCanvas` for diff viewing
 - [ ] Implement `TestResultsCanvas` for test output
 - [ ] Add canvas-specific input handling
 
 ### Section 4: Sideband Integration
-- [ ] Parse `<ccmux:canvas>` commands
+- [ ] Parse `<fugue:canvas>` commands
 - [ ] Create canvas panes from sideband commands
 - [ ] Handle canvas lifecycle (creation, updates, close)
 
@@ -119,7 +119,7 @@ Support spawning canvases via sideband protocol:
 - [ ] Canvas trait enables custom widget implementations
 - [ ] DiffCanvas renders diff output in structured format
 - [ ] TestResultsCanvas renders test results in structured format
-- [ ] Sideband `<ccmux:canvas>` command spawns canvas panes
+- [ ] Sideband `<fugue:canvas>` command spawns canvas panes
 - [ ] Existing terminal functionality unchanged
 - [ ] PaneState remains orthogonal to PaneContent
 - [ ] All tests passing

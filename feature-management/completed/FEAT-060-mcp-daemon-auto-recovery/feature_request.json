@@ -3,7 +3,7 @@
   "title": "MCP Daemon Auto-Recovery",
   "priority": "P1",
   "status": "backlog",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "subcomponent": "mcp",
   "created_date": "2026-01-11",
   "created_by": "claude-qa-demo",
@@ -18,7 +18,7 @@
     "Daemon crash detected within 3 seconds",
     "Auto-reconnect succeeds when daemon restarts",
     "Structured error returned when reconnect fails",
-    "ccmux_connection_status tool implemented",
+    "fugue_connection_status tool implemented",
     "QA demo can continue after daemon restart"
   ]
 }

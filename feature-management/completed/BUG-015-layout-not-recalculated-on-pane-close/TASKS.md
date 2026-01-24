@@ -8,13 +8,13 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Understand ccmux layout tree structure
+- [ ] Understand fugue layout tree structure
 
 ## Investigation Tasks
 
 ### Reproduce the Bug
 
-- [ ] Start ccmux with a single pane
+- [ ] Start fugue with a single pane
 - [ ] Create vertical split (2 panes)
 - [ ] Create horizontal splits on each side (4 quadrants)
 - [ ] Close 3 panes one by one
@@ -38,7 +38,7 @@
 
 ### Code Analysis
 
-- [ ] Review `ccmux-client/src/ui/app.rs` for pane close handling
+- [ ] Review `fugue-client/src/ui/app.rs` for pane close handling
 - [ ] Review layout module for tree management
 - [ ] Check for existing tree pruning logic
 - [ ] Check for existing recalculation logic

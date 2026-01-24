@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-009
 
 **Work Item**: [FEAT-009: Client UI - Ratatui Terminal Interface](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P1
 **Created**: 2026-01-08
 
 ## Overview
 
-Ratatui-based terminal UI with pane rendering using tui-term, status bar, borders, and Claude state indicators. This is the primary visual interface for ccmux.
+Ratatui-based terminal UI with pane rendering using tui-term, status bar, borders, and Claude state indicators. This is the primary visual interface for fugue.
 
 ## Architecture Decisions
 
@@ -100,14 +100,14 @@ tui-term provides `PseudoTerminal` widget that:
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-client/src/ui.rs | Major - complete rewrite | High |
-| ccmux-client/src/ui/layout.rs | New file | Medium |
-| ccmux-client/src/ui/pane.rs | New file | Medium |
-| ccmux-client/src/ui/status.rs | New file | Low |
-| ccmux-client/src/ui/borders.rs | New file | Low |
-| ccmux-client/src/ui/indicators.rs | New file | Low |
-| ccmux-client/src/main.rs | Medium - integrate UI | Medium |
-| ccmux-client/Cargo.toml | Minor - add deps | Low |
+| fugue-client/src/ui.rs | Major - complete rewrite | High |
+| fugue-client/src/ui/layout.rs | New file | Medium |
+| fugue-client/src/ui/pane.rs | New file | Medium |
+| fugue-client/src/ui/status.rs | New file | Low |
+| fugue-client/src/ui/borders.rs | New file | Low |
+| fugue-client/src/ui/indicators.rs | New file | Low |
+| fugue-client/src/main.rs | Medium - integrate UI | Medium |
+| fugue-client/Cargo.toml | Minor - add deps | Low |
 
 ## Dependencies
 

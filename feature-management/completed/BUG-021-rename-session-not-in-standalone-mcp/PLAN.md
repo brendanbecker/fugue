@@ -1,13 +1,13 @@
 # Implementation Plan: BUG-021
 
-**Work Item**: [BUG-021: ccmux_rename_session Not Handled in Standalone MCP Server](PROMPT.md)
-**Component**: ccmux-server
+**Work Item**: [BUG-021: fugue_rename_session Not Handled in Standalone MCP Server](PROMPT.md)
+**Component**: fugue-server
 **Priority**: P2
 **Created**: 2026-01-10
 
 ## Overview
 
-The `ccmux_rename_session` MCP tool works in bridge mode but is missing from standalone MCP server mode. This is a straightforward fix to add the missing handler code to match the bridge mode implementation.
+The `fugue_rename_session` MCP tool works in bridge mode but is missing from standalone MCP server mode. This is a straightforward fix to add the missing handler code to match the bridge mode implementation.
 
 ## Architecture Decisions
 
@@ -19,14 +19,14 @@ The `ccmux_rename_session` MCP tool works in bridge mode but is missing from sta
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-server/src/mcp/server.rs` | Add tool handling | Low |
-| `ccmux-server/src/mcp/handlers.rs` | Add method to ToolContext | Low |
+| `fugue-server/src/mcp/server.rs` | Add tool handling | Low |
+| `fugue-server/src/mcp/handlers.rs` | Add method to ToolContext | Low |
 
 ## Implementation Approach
 
 ### Phase 1: Add Tool Recognition
 
-1. Add `ccmux_rename_session` to the `is_known_tool()` function
+1. Add `fugue_rename_session` to the `is_known_tool()` function
 2. Add `RenameSession` variant to `ToolParams` enum
 
 ### Phase 2: Add Parameter Parsing
@@ -69,7 +69,7 @@ If implementation causes issues:
 
 Reference implementation in bridge.rs:372-380:
 ```rust
-"ccmux_rename_session" => {
+"fugue_rename_session" => {
     let session = arguments["session"]
         .as_str()
         .ok_or_else(|| McpError::InvalidParams("Missing 'session' parameter".into()))?;

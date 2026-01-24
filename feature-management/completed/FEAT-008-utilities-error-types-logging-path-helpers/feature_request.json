@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-008",
   "title": "Utilities - Error Types, Logging, and Path Helpers",
-  "component": "ccmux-utils",
+  "component": "fugue-utils",
   "priority": "P1",
   "status": "completed",
   "type": "new_feature",
@@ -14,5 +14,5 @@
   "description": "Common utilities including CcmuxError enum, logging infrastructure with tracing, and XDG-compliant path utilities for config/state/runtime directories.",
   "business_value": "high",
   "technical_complexity": "low",
-  "user_impact": "Provides foundational infrastructure for consistent error handling, structured logging, and platform-appropriate file paths across all ccmux components."
+  "user_impact": "Provides foundational infrastructure for consistent error handling, structured logging, and platform-appropriate file paths across all fugue components."
 }

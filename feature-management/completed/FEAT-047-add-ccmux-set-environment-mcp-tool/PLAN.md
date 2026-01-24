@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-047
 
-**Work Item**: [FEAT-047: Add ccmux_set_environment MCP tool](PROMPT.md)
-**Component**: ccmux-server (MCP)
+**Work Item**: [FEAT-047: Add fugue_set_environment MCP tool](PROMPT.md)
+**Component**: fugue-server (MCP)
 **Priority**: P1
 **Created**: 2026-01-10
 
@@ -24,19 +24,19 @@ Allow setting environment variables on a session that will be inherited by panes
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/session/session.rs | Add environment field | Low |
-| ccmux-protocol/src/messages.rs | Add SetEnvironment message | Low |
-| ccmux-server/src/mcp/tools.rs | Add MCP tool definition | Low |
-| ccmux-server/src/mcp/handlers.rs | Add tool handler | Medium |
-| ccmux-server/src/pty/spawn.rs | Pass environment to spawn | Medium |
-| ccmux-persistence (optional) | Persist environment | Low |
+| fugue-server/src/session/session.rs | Add environment field | Low |
+| fugue-protocol/src/messages.rs | Add SetEnvironment message | Low |
+| fugue-server/src/mcp/tools.rs | Add MCP tool definition | Low |
+| fugue-server/src/mcp/handlers.rs | Add tool handler | Medium |
+| fugue-server/src/pty/spawn.rs | Pass environment to spawn | Medium |
+| fugue-persistence (optional) | Persist environment | Low |
 
 ## Implementation Details
 
 ### 1. Session Environment Storage
 
 ```rust
-// In ccmux-server/src/session/session.rs
+// In fugue-server/src/session/session.rs
 pub struct Session {
     // existing fields...
     pub environment: HashMap<String, String>,
@@ -46,7 +46,7 @@ pub struct Session {
 ### 2. Protocol Message
 
 ```rust
-// In ccmux-protocol/src/messages.rs
+// In fugue-protocol/src/messages.rs
 pub enum ClientMessage {
     // existing variants...
     SetEnvironment {
@@ -61,7 +61,7 @@ pub enum ClientMessage {
 
 ```json
 {
-  "name": "ccmux_set_environment",
+  "name": "fugue_set_environment",
   "description": "Set an environment variable on a session that will be inherited by new panes",
   "inputSchema": {
     "type": "object",

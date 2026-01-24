@@ -7,9 +7,9 @@
 ## Summary
 
 MCP tool calls intermittently receive responses meant for previous requests, causing `UnexpectedResponse` errors. This manifests as:
-- `ccmux_read_pane` receiving `AllPanesList` (meant for `ccmux_list_panes`)
-- `ccmux_list_panes` receiving `PaneContent` (meant for `ccmux_read_pane`)
-- `ccmux_list_sessions` receiving `AllPanesList` (meant for `ccmux_list_panes`)
+- `fugue_read_pane` receiving `AllPanesList` (meant for `fugue_list_panes`)
+- `fugue_list_panes` receiving `PaneContent` (meant for `fugue_read_pane`)
+- `fugue_list_sessions` receiving `AllPanesList` (meant for `fugue_list_panes`)
 
 ## Root Cause
 
@@ -36,12 +36,12 @@ When timeouts occur, responses can arrive out of sync with the request that's cu
 
 ## Affected Files
 
-- `ccmux-server/src/mcp/bridge/connection.rs` - `recv_filtered`, `recv_response_from_daemon`
-- `ccmux-protocol/src/lib.rs` - `ClientMessage`, `ServerMessage` (no request IDs)
+- `fugue-server/src/mcp/bridge/connection.rs` - `recv_filtered`, `recv_response_from_daemon`
+- `fugue-protocol/src/lib.rs` - `ClientMessage`, `ServerMessage` (no request IDs)
 
 ## Reproduction
 
-1. Run ccmux daemon with multiple active sessions (9+ agents)
+1. Run fugue daemon with multiple active sessions (9+ agents)
 2. Make rapid parallel MCP tool calls (`list_panes`, `read_pane`, `list_sessions`)
 3. Under load, some requests will timeout
 4. Subsequent requests receive wrong response types

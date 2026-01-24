@@ -1,14 +1,14 @@
-# FEAT-096: ccmux_expect - Pattern-Based Wait
+# FEAT-096: fugue_expect - Pattern-Based Wait
 
 **Priority**: P1
-**Component**: ccmux-server/mcp
+**Component**: fugue-server/mcp
 **Type**: new_feature
 **Estimated Effort**: small
 **Business Value**: high
 
 ## Overview
 
-Create a high-level MCP tool `ccmux_expect` that blocks until a regex pattern appears in pane output or timeout occurs. Supports configurable actions on match: `notify`, `close_pane`, or `return_output`. This is the foundational primitive for FEAT-094 and FEAT-095.
+Create a high-level MCP tool `fugue_expect` that blocks until a regex pattern appears in pane output or timeout occurs. Supports configurable actions on match: `notify`, `close_pane`, or `return_output`. This is the foundational primitive for FEAT-094 and FEAT-095.
 
 ## Problem Statement
 
@@ -20,7 +20,7 @@ Currently, waiting for specific output requires:
 
 Each poll cycle: ~100 tokens. 10 polls = 1000 tokens.
 
-With `ccmux_expect`: ~100 tokens (single call).
+With `fugue_expect`: ~100 tokens (single call).
 
 ## API Design
 
@@ -28,7 +28,7 @@ With `ccmux_expect`: ~100 tokens (single call).
 
 ```json
 {
-  "name": "ccmux_expect",
+  "name": "fugue_expect",
   "description": "Wait for regex pattern in pane output",
   "inputSchema": {
     "type": "object",
@@ -73,9 +73,9 @@ With `ccmux_expect`: ~100 tokens (single call).
 ```json
 {
   "status": "matched|timeout",
-  "pattern": "___CCMUX_EXIT_0___",
-  "match": "___CCMUX_EXIT_0___",
-  "line": "{ npm test ; } ; echo \"___CCMUX_EXIT_0___\"",
+  "pattern": "___FUGUE_EXIT_0___",
+  "match": "___FUGUE_EXIT_0___",
+  "line": "{ npm test ; } ; echo \"___FUGUE_EXIT_0___\"",
   "duration_ms": 5234,
   "output": "... (if action=return_output)"
 }
@@ -122,7 +122,7 @@ loop {
 ### Section 1: Create Expect Handler
 
 - [ ] Add `ExpectRequest` and `ExpectResponse` types to orchestration module
-- [ ] Implement in `ccmux-server/src/mcp/bridge/orchestration.rs`
+- [ ] Implement in `fugue-server/src/mcp/bridge/orchestration.rs`
 - [ ] Add regex dependency if not present
 
 ### Section 2: Polling Loop
@@ -147,8 +147,8 @@ loop {
 
 ### Section 5: Tool Registration
 
-- [ ] Add tool schema to `ccmux-server/src/mcp/tools.rs`
-- [ ] Register handler in `ccmux-server/src/mcp/bridge/handlers.rs`
+- [ ] Add tool schema to `fugue-server/src/mcp/tools.rs`
+- [ ] Register handler in `fugue-server/src/mcp/bridge/handlers.rs`
 
 ### Section 6: Testing
 
@@ -163,14 +163,14 @@ loop {
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/mcp/bridge/orchestration.rs` | Add expect implementation |
-| `ccmux-server/src/mcp/bridge/handlers.rs` | Register handler |
-| `ccmux-server/src/mcp/tools.rs` | Add tool schema |
-| `ccmux-server/Cargo.toml` | Add `regex` dependency (if needed) |
+| `fugue-server/src/mcp/bridge/orchestration.rs` | Add expect implementation |
+| `fugue-server/src/mcp/bridge/handlers.rs` | Register handler |
+| `fugue-server/src/mcp/tools.rs` | Add tool schema |
+| `fugue-server/Cargo.toml` | Add `regex` dependency (if needed) |
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_expect` tool available in MCP
+- [ ] `fugue_expect` tool available in MCP
 - [ ] Blocks until pattern matches or timeout
 - [ ] `notify` action returns on match
 - [ ] `close_pane` action closes pane then returns
@@ -190,15 +190,15 @@ loop {
 ### Context Savings
 
 Manual polling loop (10 iterations): ~1000 tokens
-With `ccmux_expect`: ~100 tokens
+With `fugue_expect`: ~100 tokens
 
 **Savings: 90% context reduction**
 
 ### Foundation for Other Tools
 
 This tool provides the completion detection primitive for:
-- FEAT-094 (`ccmux_run_parallel`) - detect command completion
-- FEAT-095 (`ccmux_run_pipeline`) - wait for each step
+- FEAT-094 (`fugue_run_parallel`) - detect command completion
+- FEAT-095 (`fugue_run_pipeline`) - wait for each step
 
 Internal implementation may reuse this logic directly.
 
@@ -208,7 +208,7 @@ Internal implementation may reuse this logic directly.
    ```json
    {
      "pane_id": "...",
-     "pattern": "___CCMUX_EXIT_\\d+___",
+     "pattern": "___FUGUE_EXIT_\\d+___",
      "timeout_ms": 300000
    }
    ```

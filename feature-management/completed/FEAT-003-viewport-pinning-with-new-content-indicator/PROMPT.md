@@ -40,9 +40,9 @@ When user scrolls up in a pane, new output buffers without yanking viewport. A v
 
 ## Affected Files
 
-- `ccmux-protocol/src/lib.rs` - Add viewport messages to protocol
-- `ccmux-client/src/ui.rs` - Implement rendering and indicator
-- `ccmux-server/src/session/pane.rs` - Track scroll state server-side
+- `fugue-protocol/src/lib.rs` - Add viewport messages to protocol
+- `fugue-client/src/ui.rs` - Implement rendering and indicator
+- `fugue-server/src/session/pane.rs` - Track scroll state server-side
 
 ## Implementation Tasks
 

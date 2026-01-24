@@ -59,8 +59,8 @@ Clear **after EVERY monitoring cycle** once the following conditions are met:
 Before clearing, verify:
 
 ```
-[ ] All ccmux_send_orchestration calls completed successfully
-[ ] All ccmux_report_status calls completed successfully
+[ ] All fugue_send_orchestration calls completed successfully
+[ ] All fugue_report_status calls completed successfully
 [ ] No notification failures requiring retry
 ```
 
@@ -75,8 +75,8 @@ The watchdog is self-contained - everything it needs comes from external sources
 
 | Data | Source | Not Context |
 |------|--------|-------------|
-| Worker list | `ccmux_list_panes` | Dynamic discovery |
-| Worker status | `ccmux_get_status` | Real-time query |
+| Worker list | `fugue_list_panes` | Dynamic discovery |
+| Worker status | `fugue_get_status` | Real-time query |
 | Orchestrator target | Session tags (`orchestrator`) | Tag-based routing |
 | Detection thresholds | Config file / session metadata | External config |
 | Check interval | Watchdog timer | External trigger |
@@ -85,11 +85,11 @@ The watchdog is self-contained - everything it needs comes from external sources
 
 ### Option 1: Send `/clear` via stdin (Recommended)
 
-After cycle completion, use `ccmux_send_input` to send `/clear`:
+After cycle completion, use `fugue_send_input` to send `/clear`:
 
 ```json
 {
-  "tool": "ccmux_send_input",
+  "tool": "fugue_send_input",
   "input": {
     "pane_id": "<watchdog_pane>",
     "input": "/clear",
@@ -107,13 +107,13 @@ After cycle completion, use `ccmux_send_input` to send `/clear`:
 - Watchdog must send this to itself (possible via known pane ID)
 - Slight timing complexity
 
-### Option 2: New `ccmux_watchdog_clear` MCP Tool
+### Option 2: New `fugue_watchdog_clear` MCP Tool
 
 Add dedicated tool for watchdog self-clear:
 
 ```json
 {
-  "name": "ccmux_watchdog_clear",
+  "name": "fugue_watchdog_clear",
   "description": "Clear the calling session's conversation context. For watchdog agents to reset after each monitoring cycle.",
   "parameters": {}
 }
@@ -197,7 +197,7 @@ Your monitoring state is stateless - you rediscover workers each cycle.
 After `/clear`, the watchdog has:
 
 - **System prompt**: Monitoring instructions (preserved)
-- **MCP tools**: All ccmux tools available (preserved)
+- **MCP tools**: All fugue tools available (preserved)
 - **Session identity**: Same session, same tags (preserved)
 - **Conversation history**: Empty (cleared)
 
@@ -269,7 +269,7 @@ If `/clear` itself fails (rare):
 # - Notify: sends alerts (if needed)
 # - Clear: context resets
 
-# Verify with ccmux_read_pane that watchdog context stays minimal
+# Verify with fugue_read_pane that watchdog context stays minimal
 ```
 
 ## Future Enhancements

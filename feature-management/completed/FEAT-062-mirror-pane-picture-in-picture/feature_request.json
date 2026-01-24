@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-062",
   "title": "Mirror Pane (Picture-in-Picture View)",
-  "component": "ccmux-server, ccmux-client",
+  "component": "fugue-server, fugue-client",
   "priority": "P3",
   "status": "new",
   "type": "new_feature",

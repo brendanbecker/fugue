@@ -9,15 +9,15 @@
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
 - [ ] Verify FEAT-016 (Persistence) is complete or understand current state
-- [ ] Locate Pane struct in ccmux-server/src/session/
-- [ ] Understand PTY spawn path in ccmux-server/src/pty/
+- [ ] Locate Pane struct in fugue-server/src/session/
+- [ ] Understand PTY spawn path in fugue-server/src/pty/
 - [ ] Review existing persistence/WAL infrastructure
 - [ ] Test Claude CLI --session-id and --resume flags manually
 
 ## Phase 1: Pane Metadata Extension
 
 ### 1.1 Add Claude Fields to Pane Struct
-- [ ] Locate Pane struct definition in ccmux-server/src/session/pane.rs
+- [ ] Locate Pane struct definition in fugue-server/src/session/pane.rs
 - [ ] Add `claude_session_id: Option<String>` field
 - [ ] Add `claude_working_dir: Option<PathBuf>` field
 - [ ] Add `is_claude_pane: bool` field
@@ -168,27 +168,27 @@
 
 ## Phase 5: MCP Tools (Optional)
 
-### 5.1 ccmux_mark_persistent Tool
+### 5.1 fugue_mark_persistent Tool
 - [ ] Add tool definition to tools.rs
 - [ ] Parameters: pane (required)
 - [ ] Mark pane for priority restoration
 - [ ] Store flag in pane metadata
 - [ ] Update persistence
 
-### 5.2 ccmux_get_claude_session Tool
+### 5.2 fugue_get_claude_session Tool
 - [ ] Add tool definition to tools.rs
 - [ ] Parameters: pane (required)
 - [ ] Return claude_session_id if set
 - [ ] Return null/error if not a Claude pane
 
-### 5.3 ccmux_set_claude_session Tool
+### 5.3 fugue_set_claude_session Tool
 - [ ] Add tool definition to tools.rs
 - [ ] Parameters: pane (required), session_id (required)
 - [ ] Manually set/override session ID
 - [ ] Update persistence
 - [ ] Use case: adopting existing Claude session
 
-### 5.4 Update ccmux_list_panes
+### 5.4 Update fugue_list_panes
 - [ ] Include claude_session_id in pane info
 - [ ] Include is_claude_pane flag
 - [ ] Make it easy to see which panes have sessions
@@ -230,7 +230,7 @@
 - [ ] Persistence test: session ID survives restart
 
 ### 6.6 Manual E2E Tests
-- [ ] Start ccmux, spawn Claude pane
+- [ ] Start fugue, spawn Claude pane
 - [ ] Have brief conversation
 - [ ] Kill server
 - [ ] Restart server

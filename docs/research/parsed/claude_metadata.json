@@ -1,7 +1,7 @@
 {
   "document": {
-    "title": "Building ccmux: A Claude Code-Aware Terminal Multiplexer in Rust",
-    "source_path": "/home/becker/projects/tools/ccmux/docs/research/claude_research.md"
+    "title": "Building fugue: A Claude Code-Aware Terminal Multiplexer in Rust",
+    "source_path": "/home/becker/projects/tools/fugue/docs/research/claude_research.md"
   },
   "crates": {
     "core_stack": [
@@ -38,11 +38,11 @@
     {"language": "rust", "purpose": "TerminalState struct", "lines": [171, 189], "section": "3.1"},
     {"language": "rust", "purpose": "WAL and checkpoint pattern", "lines": [203, 218], "section": "3.2"},
     {"language": "rust", "purpose": "ClaudeSessionInfo struct", "lines": [225, 239], "section": "3.3"},
-    {"language": "text", "purpose": "Recommended ccmux crate structure", "lines": [291, 297], "section": "4.4"},
+    {"language": "text", "purpose": "Recommended fugue crate structure", "lines": [291, 297], "section": "4.4"},
     {"language": "rust", "purpose": "File watcher with debounce", "lines": [309, 345], "section": "5.1"},
     {"language": "rust", "purpose": "Config diff categorization", "lines": [352, 377], "section": "5.2"},
     {"language": "rust", "purpose": "serde_valid config validation", "lines": [381, 404], "section": "5.3"},
-    {"language": "xml", "purpose": "ccmux protocol examples", "lines": [416, 431], "section": "6.1"},
+    {"language": "xml", "purpose": "fugue protocol examples", "lines": [416, 431], "section": "6.1"},
     {"language": "markdown", "purpose": "SKILL.md definition", "lines": [437, 456], "section": "6.2"},
     {"language": "rust", "purpose": "Streaming XML parser", "lines": [462, 490], "section": "6.3"},
     {"language": "xml", "purpose": "Flat nesting with parent refs", "lines": [497, 505], "section": "6.4"},
@@ -88,8 +88,8 @@
       "~/.claude/CLAUDE.md"
     ],
     "skills": [
-      ".claude/skills/ccmux/SKILL.md",
-      "~/.claude/skills/ccmux/SKILL.md"
+      ".claude/skills/fugue/SKILL.md",
+      "~/.claude/skills/fugue/SKILL.md"
     ]
   },
   "environment_variables": [

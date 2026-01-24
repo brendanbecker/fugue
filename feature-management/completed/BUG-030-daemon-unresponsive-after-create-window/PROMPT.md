@@ -1,14 +1,14 @@
 # BUG-030: Daemon Becomes Unresponsive After create_window Error
 
 ## Summary
-After `ccmux_create_window` returns an unexpected `SessionFocused` response (BUG-029), the daemon becomes completely unresponsive. All subsequent MCP calls fail with `AbortError: The operation was aborted`.
+After `fugue_create_window` returns an unexpected `SessionFocused` response (BUG-029), the daemon becomes completely unresponsive. All subsequent MCP calls fail with `AbortError: The operation was aborted`.
 
 ## Steps to Reproduce
 
-1. Start ccmux and connect Claude Code
+1. Start fugue and connect Claude Code
 2. Create a session and perform various operations (all succeed)
-3. Call `ccmux_create_window` - fails with BUG-029 error
-4. Attempt any subsequent MCP call (e.g., `ccmux_list_panes`, `ccmux_connection_status`)
+3. Call `fugue_create_window` - fails with BUG-029 error
+4. Attempt any subsequent MCP call (e.g., `fugue_list_panes`, `fugue_connection_status`)
 5. Observe: All calls timeout with AbortError
 
 ## Expected Behavior
@@ -20,10 +20,10 @@ After `ccmux_create_window` returns an unexpected `SessionFocused` response (BUG
 - Daemon becomes completely unresponsive after the create_window error
 - All subsequent MCP calls timeout
 - Error: `MCP error -32001: AbortError: The operation was aborted`
-- Even `ccmux_connection_status` fails (which should be a simple health check)
+- Even `fugue_connection_status` fails (which should be a simple health check)
 
 ## Environment
-- ccmux version: current main branch
+- fugue version: current main branch
 - Platform: Linux (WSL2)
 - Triggered during: QA demo run
 - Preceded by: BUG-029 (create_window unexpected response)
@@ -41,8 +41,8 @@ This appears to be a cascading failure:
 4. Result: Complete loss of daemon responsiveness
 
 ## Related Bugs
-- BUG-029: ccmux_create_window Returns Unexpected SessionFocused Response (root cause)
-- BUG-028: Daemon Crashes on ccmux_create_layout (similar daemon stability issue)
+- BUG-029: fugue_create_window Returns Unexpected SessionFocused Response (root cause)
+- BUG-028: Daemon Crashes on fugue_create_layout (similar daemon stability issue)
 
 ## Notes
 - FEAT-060 (daemon auto-recovery) does not appear to help in this case

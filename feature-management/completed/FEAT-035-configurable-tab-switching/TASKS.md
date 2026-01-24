@@ -10,12 +10,12 @@
 - [ ] Review PLAN.md and update if needed
 - [ ] Verify FEAT-010 (Client Input) is complete
 - [ ] Verify FEAT-017 (Configuration) is complete
-- [ ] Identify current input handling code in ccmux-client/src/input/
+- [ ] Identify current input handling code in fugue-client/src/input/
 
 ## Phase 1: Key Binding Parser
 
 ### 1.1 Create Error Types
-- [ ] Create `KeyBindingError` enum in ccmux-client/src/input/keys.rs
+- [ ] Create `KeyBindingError` enum in fugue-client/src/input/keys.rs
 - [ ] Add variants: `Empty`, `UnknownModifier(String)`, `UnknownKey(String)`, `InvalidFKey`
 - [ ] Implement `std::error::Error` and `Display`
 
@@ -58,7 +58,7 @@
 ## Phase 2: Quick Bindings Structure
 
 ### 2.1 Create QuickBindings Struct
-- [ ] Create `QuickBindings` struct in ccmux-client/src/input/mod.rs
+- [ ] Create `QuickBindings` struct in fugue-client/src/input/mod.rs
 - [ ] Fields: `next_window`, `prev_window`, `next_pane`, `prev_pane`
 - [ ] All fields are `Option<KeyBinding>` (None = disabled)
 
@@ -161,7 +161,7 @@
 ## Phase 6: Client Config Loading
 
 ### 6.1 Add Config Loading to Client
-- [ ] Add config loading function in ccmux-client
+- [ ] Add config loading function in fugue-client
 - [ ] Use same XDG paths as server
 - [ ] Handle missing config file (use defaults)
 - [ ] Handle parse errors gracefully (log warning, use defaults)

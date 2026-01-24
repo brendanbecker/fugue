@@ -1,11 +1,11 @@
 {
   "id": "FEAT-081",
   "title": "Optional Landlock Integration for Per-Pane Sandboxing",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P3",
   "status": "new",
   "created_date": "2026-01-14",
-  "created_by": "ccmux-agent",
+  "created_by": "fugue-agent",
   "description": "Provide unprivileged, fine-grained filesystem and network sandboxing for individual panes using Linux Landlock, allowing secure isolation for untrusted tasks.",
   "labels": ["feature", "security", "sandboxing", "landlock"]
 }

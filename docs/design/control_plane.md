@@ -1,8 +1,8 @@
-# ccmux as a Control Plane
+# fugue as a Control Plane
 
-ccmux functions as a **control plane for interactive workspaces**.
+fugue functions as a **control plane for interactive workspaces**.
 
-This document clarifies what that means, what ccmux is responsible for, and—just as importantly—what it is not.
+This document clarifies what that means, what fugue is responsible for, and—just as importantly—what it is not.
 
 ---
 
@@ -15,13 +15,13 @@ A control plane:
 - converges after failure
 - coordinates, but does not perform, work
 
-ccmux satisfies these properties for **interactive, long-lived terminal workspaces** involving humans and automation.
+fugue satisfies these properties for **interactive, long-lived terminal workspaces** involving humans and automation.
 
 ---
 
-## What ccmux Controls
+## What fugue Controls
 
-ccmux is authoritative over:
+fugue is authoritative over:
 
 - Session lifecycle (create, attach, detach, destroy)
 - Window and pane hierarchy
@@ -35,9 +35,9 @@ All mutations of this state flow through the server and are recorded as committe
 
 ---
 
-## What ccmux Does *Not* Control
+## What fugue Does *Not* Control
 
-ccmux is **not** responsible for:
+fugue is **not** responsible for:
 
 - Executing business logic
 - Reasoning, planning, or decision-making
@@ -47,7 +47,7 @@ ccmux is **not** responsible for:
 
 Processes inside panes—shells, editors, agents, CLIs—form the **data plane**.
 
-ccmux coordinates *where* and *how* they run, not *what* they do.
+fugue coordinates *where* and *how* they run, not *what* they do.
 
 ---
 
@@ -55,7 +55,7 @@ ccmux coordinates *where* and *how* they run, not *what* they do.
 
 Traditional terminal multiplexers forward bytes.
 
-ccmux accepts **intent**:
+fugue accepts **intent**:
 
 - "Create a pane running this command"
 - "Resize this layout"
@@ -73,7 +73,7 @@ This is the defining distinction between a multiplexer and a control plane.
 
 ## Arbitration and Authority
 
-ccmux mediates between multiple actors:
+fugue mediates between multiple actors:
 
 - Human users (TUI / CLI)
 - Automated clients (MCP, agents)
@@ -94,7 +94,7 @@ Temporary "human control modes" may block automated mutations without disabling 
 
 Failure is expected.
 
-ccmux provides:
+fugue provides:
 
 - WAL-backed durability
 - Checkpoint-based recovery
@@ -109,20 +109,20 @@ This behavior is characteristic of a control plane, not a UI tool.
 
 ## Relationship to Other Control Planes
 
-ccmux does **not** replace infrastructure control planes such as Kubernetes.
+fugue does **not** replace infrastructure control planes such as Kubernetes.
 
 Instead:
 
 - Kubernetes controls *infrastructure state*
-- ccmux controls *interactive workspace state*
+- fugue controls *interactive workspace state*
 
-ccmux may run on top of infrastructure managed by Kubernetes or other systems, but it occupies a distinct abstraction layer.
+fugue may run on top of infrastructure managed by Kubernetes or other systems, but it occupies a distinct abstraction layer.
 
 ---
 
 ## Design Implications
 
-Treating ccmux as a control plane implies:
+Treating fugue as a control plane implies:
 
 - APIs are contracts, not helpers
 - Correctness and convergence matter more than UI polish
@@ -135,7 +135,7 @@ These constraints are intentional and enable safe coordination between humans an
 
 ## Summary
 
-ccmux is a control plane for interactive work.
+fugue is a control plane for interactive work.
 
 It provides:
 - authoritative state
@@ -145,7 +145,7 @@ It provides:
 
 It deliberately avoids owning the data plane.
 
-This separation allows ccmux to remain:
+This separation allows fugue to remain:
 - harness-agnostic
 - command-agnostic
 - future-compatible with emerging agent systems

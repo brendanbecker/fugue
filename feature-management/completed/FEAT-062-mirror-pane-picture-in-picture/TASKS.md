@@ -16,7 +16,7 @@
 
 ### Pane Type Extension
 
-- [ ] Add `PaneType` enum to `ccmux-server/src/session/pane.rs`
+- [ ] Add `PaneType` enum to `fugue-server/src/session/pane.rs`
   - [ ] `Terminal` variant with PTY and parser
   - [ ] `Mirror` variant with source_id
 - [ ] Add helper methods: `is_mirror()`, `mirror_source()`
@@ -84,7 +84,7 @@
 
 ### Tool Implementation
 
-- [ ] Add `ccmux_mirror_pane` tool definition
+- [ ] Add `fugue_mirror_pane` tool definition
   - [ ] Define input schema (source_pane_id, target_pane_id?)
   - [ ] Define output schema
 - [ ] Implement tool handler
@@ -183,8 +183,8 @@
 ## Verification Tasks
 
 - [ ] All acceptance criteria from PROMPT.md met:
-  - [ ] `ccmux_mirror_pane` MCP tool creates mirror pane
-  - [ ] CLI `ccmux mirror <pane_id>` creates mirror pane
+  - [ ] `fugue_mirror_pane` MCP tool creates mirror pane
+  - [ ] CLI `fugue mirror <pane_id>` creates mirror pane
   - [ ] Mirror displays source pane output in real-time
   - [ ] Mirror has independent scrollback from source
   - [ ] Mirror shows visual indicator (border color, title)

@@ -1,7 +1,7 @@
 # FEAT-024: Session Selection UI
 
 **Priority**: P1
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: enhancement
 **Estimated Effort**: small (2 hours)
 **Business Value**: high
@@ -48,7 +48,7 @@ Implement the session selection UI that appears when the client connects. This U
 
 ## Current State
 
-The session selection UI has a basic implementation in `ccmux-client/src/ui/app.rs`:
+The session selection UI has a basic implementation in `fugue-client/src/ui/app.rs`:
 - `handle_session_select_input()` at line ~478 handles keyboard input
 - `draw_session_select()` at line ~667 renders the session list
 - Basic navigation and selection works
@@ -56,13 +56,13 @@ The session selection UI has a basic implementation in `ccmux-client/src/ui/app.
 
 ## Location
 
-- **Primary file**: `ccmux-client/src/ui/app.rs`
+- **Primary file**: `fugue-client/src/ui/app.rs`
 - **Handler**: `handle_session_select_input()` at line ~478
 - **Renderer**: `draw_session_select()` at line ~667
 
 ## Affected Files
 
-- `ccmux-client/src/ui/app.rs` - Main session selection logic
+- `fugue-client/src/ui/app.rs` - Main session selection logic
 
 ## Implementation Tasks
 

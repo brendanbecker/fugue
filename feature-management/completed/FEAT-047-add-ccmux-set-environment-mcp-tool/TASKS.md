@@ -1,6 +1,6 @@
 # Task Breakdown: FEAT-047
 
-**Work Item**: [FEAT-047: Add ccmux_set_environment MCP tool](PROMPT.md)
+**Work Item**: [FEAT-047: Add fugue_set_environment MCP tool](PROMPT.md)
 **Status**: Not Started
 **Last Updated**: 2026-01-10
 
@@ -24,7 +24,7 @@
 - [ ] Initialize environment as empty HashMap in Session::new()
 - [ ] Add `SetEnvironment { session_id, key, value }` variant to ClientMessage
 - [ ] Add corresponding response type if needed
-- [ ] Add `ccmux_set_environment` MCP tool definition to tools.rs
+- [ ] Add `fugue_set_environment` MCP tool definition to tools.rs
 - [ ] Implement MCP tool handler in handlers.rs
 - [ ] Add session lookup by UUID or name helper if not exists
 - [ ] Implement environment variable storage on session

@@ -1,10 +1,10 @@
-# ccmux Project Handoff
+# fugue Project Handoff
 
 > **LIVING DOCUMENT**: This handoff file is the interface between sessions. Update it constantly as you work—mark completed items, add discoveries, note blockers, revise plans.
 
 ## Context
 
-**ccmux** is a Claude Code-aware terminal multiplexer in Rust.
+**fugue** is a Claude Code-aware terminal multiplexer in Rust.
 **Current Stage**: Stage 8 (Multi-Agent Orchestration Enhancement)
 **Status**: Production-ready core with new orchestration primitives.
 
@@ -32,14 +32,14 @@
 ---
 
 **All P1 Features Complete!** Orchestration primitives fully shipped:
-- `ccmux_expect` - Wait for regex patterns in pane output (FEAT-096)
-- `ccmux_run_parallel` - Execute commands in parallel across panes (FEAT-094)
-- `ccmux_run_pipeline` - Execute commands sequentially in a single pane (FEAT-095)
-- `ccmux_get_worker_status` - Get worker's last reported status (FEAT-097)
-- `ccmux_poll_messages` - Poll messages from worker inbox (FEAT-097)
-- `ccmux_attach_session` - Attach MCP client to session for orchestration (BUG-060 fix)
-- `ccmux_create_status_pane` - Create agent status monitoring pane (FEAT-102)
-- `ccmux_watchdog_start/stop/status` - Native watchdog timer (FEAT-104)
+- `fugue_expect` - Wait for regex patterns in pane output (FEAT-096)
+- `fugue_run_parallel` - Execute commands in parallel across panes (FEAT-094)
+- `fugue_run_pipeline` - Execute commands sequentially in a single pane (FEAT-095)
+- `fugue_get_worker_status` - Get worker's last reported status (FEAT-097)
+- `fugue_poll_messages` - Poll messages from worker inbox (FEAT-097)
+- `fugue_attach_session` - Attach MCP client to session for orchestration (BUG-060 fix)
+- `fugue_create_status_pane` - Create agent status monitoring pane (FEAT-102)
+- `fugue_watchdog_start/stop/status` - Native watchdog timer (FEAT-104)
 - `/orchestrate` skill - Multi-agent orchestration commands (FEAT-104)
 
 **Agent Detection**: Claude, Gemini CLI, and Codex CLI detected (FEAT-098, FEAT-101).
@@ -67,8 +67,8 @@ All bugs resolved! See Session 23 summary above for latest fixes.
 **Bug Fixes + BUG-072 Regression Fix**
 
 1. Merged BUG-054 and BUG-071 fixes from Session 22 Gemini workers
-2. Cleaned up worktrees (`ccmux-bug054`, `ccmux-bug071`) and sessions
-3. User reported `ccmux_kill_session` hanging again - regression of BUG-058
+2. Cleaned up worktrees (`fugue-bug054`, `fugue-bug071`) and sessions
+3. User reported `fugue_kill_session` hanging again - regression of BUG-058
 4. Created BUG-072, spawned Codex worker to investigate
 5. Codex found root cause: `run_pane_cleanup_loop` missing SessionEnded broadcast
 6. Fix merged, cleanup completed
@@ -84,7 +84,7 @@ All bugs resolved! See Session 23 summary above for latest fixes.
 
 Both need to broadcast `SessionEnded` and detach clients.
 
-**Daemon Rebuild Required**: Run `cargo install --path ccmux-server && pkill ccmux-server`
+**Daemon Rebuild Required**: Run `cargo install --path fugue-server && pkill fugue-server`
 
 ---
 
@@ -135,7 +135,7 @@ Fixed critical rendering corruption when switching sessions or closing sessions.
 | BUG-066 | Cross-session mirror output | ✅ Pass |
 
 **FEAT-109 Implemented** (via delegated worker):
-- `ccmux_drain_messages` MCP tool - clears stale broadcast messages from response channel
+- `fugue_drain_messages` MCP tool - clears stale broadcast messages from response channel
 - Workaround for INQ-004 (MCP response mixing)
 - Returns diagnostic info: `drained_count`, `message_types`, `status`
 
@@ -143,8 +143,8 @@ Fixed critical rendering corruption when switching sessions or closing sessions.
 
 | ID | Title | Project | Description |
 |----|-------|---------|-------------|
-| FEAT-110 | Watchdog Monitor Agent | ccmux | Dedicated agent that monitors workers, notifies orchestrator only when action needed |
-| FEAT-111 | Watchdog Auto-Clear Cycle | ccmux | `/clear` after each monitoring cycle to keep watchdog context minimal |
+| FEAT-110 | Watchdog Monitor Agent | fugue | Dedicated agent that monitors workers, notifies orchestrator only when action needed |
+| FEAT-111 | Watchdog Auto-Clear Cycle | fugue | `/clear` after each monitoring cycle to keep watchdog context minimal |
 | FEAT-021 | Inquiry Orchestration Skill | featmgmt | `/inquiry` command to launch and manage inquiries |
 | FEAT-022 | Research Agent Prompt Generator | featmgmt | Parse QUESTION.md, distribute research areas to agents |
 | FEAT-023 | Inquiry Output Collector | featmgmt | Collect research findings, create agent-N.md files |
@@ -152,7 +152,7 @@ Fixed critical rendering corruption when switching sessions or closing sessions.
 **Architecture Designed - Watchdog Monitoring Pattern:**
 ```
 Watchdog Agent (monitors workers directly)
-    │ polls ccmux_get_worker_status()
+    │ polls fugue_get_worker_status()
     │ only notifies on: stuck, error, complete, needs_input
     ▼
 Orchestrator (acts on issues, context preserved)
@@ -165,7 +165,7 @@ Key decisions:
 4. Orchestrator per level (meta-orchestrator → orchestrators → workers)
 
 **Commits:**
-- `ee5b2b3`: feat: add ccmux_drain_messages MCP tool (FEAT-109)
+- `ee5b2b3`: feat: add fugue_drain_messages MCP tool (FEAT-109)
 
 **Notes:** Obsidian vault updated with architecture documentation.
 
@@ -183,8 +183,8 @@ Key decisions:
 | Type | ID | Description |
 |------|-----|-------------|
 | Feature | FEAT-105 | Universal Agent Presets - multi-harness support (claude, gemini, codex, shell, custom) |
-| Feature | FEAT-106 | Tags parameter on `ccmux_create_session` |
-| Feature | FEAT-104 | Watchdog timer tools (`ccmux_watchdog_start/stop/status`) |
+| Feature | FEAT-106 | Tags parameter on `fugue_create_session` |
+| Feature | FEAT-104 | Watchdog timer tools (`fugue_watchdog_start/stop/status`) |
 | Bug Fix | BUG-066 | Forward output to cross-session mirror panes |
 | Bug Fix | BUG-065 | Serialize MCP daemon requests with request_lock mutex |
 | Bug Fix | BUG-064 | Drain pending messages after timeout |
@@ -208,7 +208,7 @@ Key decisions:
 
 **Discovered:**
 - MCP response integrity issues persist despite BUG-064/BUG-065 fixes
-- `ccmux_kill_session` returned unexpected responses (PaneResized, SessionList)
+- `fugue_kill_session` returned unexpected responses (PaneResized, SessionList)
 - Session name resolution incorrect (killed wrong session on first attempts)
 
 ### Previous Session (2026-01-19, Session 17)
@@ -216,7 +216,7 @@ Key decisions:
 **Merge + Documentation + Multi-Project Orchestration**
 
 **Completed:**
-- FEAT-106 merged (`feb8e72`) - adds `tags` parameter to `ccmux_create_session`
+- FEAT-106 merged (`feb8e72`) - adds `tags` parameter to `fugue_create_session`
 - Fixed missing `#[cfg(test)]` on app.rs test module (`91ee4f9`)
 - Added inquiry documentation to feature-management (`60f6b7b`):
   - `schemas/inquiry-report.schema.json`
@@ -235,10 +235,10 @@ Launched 3 sessions for midwestmtg project inquiry:
 - `midwestmtg-gemini-worker` (Gemini, worker tag)
 
 **Known Issue - Agent Launch Input Consumption:**
-When launching Claude agents via `ccmux_create_session` + `ccmux_send_input`, the first input may be consumed by Claude's "trust this folder?" permission prompt. Workaround: use `ccmux_expect` to wait for the prompt to clear, or send input twice.
+When launching Claude agents via `fugue_create_session` + `fugue_send_input`, the first input may be consumed by Claude's "trust this folder?" permission prompt. Workaround: use `fugue_expect` to wait for the prompt to clear, or send input twice.
 
 **Commits:**
-- `feb8e72`: feat: add tags parameter to ccmux_create_session (FEAT-106)
+- `feb8e72`: feat: add tags parameter to fugue_create_session (FEAT-106)
 - `91ee4f9`: fix: add missing #[cfg(test)] to app.rs test module
 - `60f6b7b`: docs: add inquiry schema and work item type documentation
 
@@ -250,18 +250,18 @@ First session with parallel workers (Gemini + Claude) and introduction of Inquir
 
 **Work Items Created:**
 - `docs/TAGS.md` - Tag conventions (orchestrator, worker, watchdog)
-- `FEAT-106` - Session Creation Tags (add `tags` param to `ccmux_create_session`)
+- `FEAT-106` - Session Creation Tags (add `tags` param to `fugue_create_session`)
 - `INQ-001` - Visualization Architecture Review (converted from FEAT-103)
 - `INQ-002` - Intelligent Pipe Fabric ("replace | with mux" vision)
 
 **Global CLAUDE.md Updates:**
 - Role checking to prevent cascade spawning
-- Delegation strategy from `~/.ccmux/config.toml`
+- Delegation strategy from `~/.fugue/config.toml`
 - watchdog tag handling (forward to orchestrator)
 
 **FEAT-105 Spec Updates:**
 - Added `DelegationConfig` schema with strategy (random/round-robin) and pool
-- Added `ccmux_select_worker` MCP tool spec
+- Added `fugue_select_worker` MCP tool spec
 
 **Active Workers:**
 | Feature | Agent | Session | Status |
@@ -277,17 +277,17 @@ First session with parallel workers (Gemini + Claude) and introduction of Inquir
 
 **FEAT-104 Implementation + FEAT-105 Spec - Delegated Worker Pattern**
 
-First session using the ccmux work delegation pattern systematically.
+First session using the fugue work delegation pattern systematically.
 
 **Workflow Pattern Established:**
 - Updated global `~/.claude/CLAUDE.md` with work delegation instructions
-- Orchestrator spawns workers in worktrees via ccmux MCP tools
-- Monitor with `ccmux_get_status`, `ccmux_read_pane`, `ccmux_expect`
-- Approve permissions via `ccmux_send_input`
+- Orchestrator spawns workers in worktrees via fugue MCP tools
+- Monitor with `fugue_get_status`, `fugue_read_pane`, `fugue_expect`
+- Approve permissions via `fugue_send_input`
 - Merge completed work, cleanup worktree/session
 
 **FEAT-104 Implemented** (via delegated worker):
-- Worker session: `feat-104-worker` in worktree `ccmux-feat-104`
+- Worker session: `feat-104-worker` in worktree `fugue-feat-104`
 - Duration: ~20 minutes, 133k tokens
 - Permission approvals: ~6 prompts approved remotely
 
@@ -295,8 +295,8 @@ First session using the ccmux work delegation pattern systematically.
 | Component | Description |
 |-----------|-------------|
 | `.claude/skills/orchestrate.md` | `/orchestrate spawn\|status\|monitor\|kill\|collect` |
-| `ccmux-server/src/watchdog.rs` | Native timer with tokio interval |
-| MCP tools | `ccmux_watchdog_start`, `ccmux_watchdog_stop`, `ccmux_watchdog_status` |
+| `fugue-server/src/watchdog.rs` | Native timer with tokio interval |
+| MCP tools | `fugue_watchdog_start`, `fugue_watchdog_stop`, `fugue_watchdog_status` |
 | Protocol | `WatchdogStart`, `WatchdogStop`, `WatchdogStatus` messages |
 
 **FEAT-105 Created:**
@@ -363,7 +363,7 @@ Reviewed parallel agent work from Sessions 11-12, merged all completed branches,
 | ID | Description | Commit |
 |----|-------------|--------|
 | BUG-047 | Compiler warnings cleanup | 1612e07 |
-| BUG-062 | `ccmux_close_pane` mirror timeout fix | 3b22ce0 |
+| BUG-062 | `fugue_close_pane` mirror timeout fix | 3b22ce0 |
 | BUG-063 | Mirror panes cross-session fix (P1) | 93f5c87 |
 | BUG-064 | MCP response off-by-one fix (drain after timeout) | a6a3563, dc5dcef |
 | FEAT-100 | OrchestrationContext abstraction | 181bbaa |
@@ -372,7 +372,7 @@ Reviewed parallel agent work from Sessions 11-12, merged all completed branches,
 
 **BUG-064 Fix Details:**
 - Added `drain_pending_messages()` method using `try_recv()` to clear stale messages after timeout
-- Location: `ccmux-server/src/mcp/bridge/connection.rs:336-380`
+- Location: `fugue-server/src/mcp/bridge/connection.rs:336-380`
 - Also fixed test expectation for PaneClosed broadcast (was contradicting BUG-062 fix)
 
 **Cleanup performed:**
@@ -423,13 +423,13 @@ Started with QA of Session 10 fixes, then spun up 9 parallel agents to tackle re
 
 | ID | Test | Result |
 |----|------|--------|
-| BUG-060 | `ccmux_attach_session` + orchestration tools | ✅ Pass |
-| BUG-059 | `ccmux_mirror_pane` creates mirror | ✅ Pass |
-| BUG-058 | `ccmux_kill_session` no hang | ✅ Pass |
+| BUG-060 | `fugue_attach_session` + orchestration tools | ✅ Pass |
+| BUG-059 | `fugue_mirror_pane` creates mirror | ✅ Pass |
+| BUG-058 | `fugue_kill_session` no hang | ✅ Pass |
 
 **New Bugs Discovered During QA:**
-- **BUG-061**: `ccmux_send_orchestration` target parameter not parsed correctly
-- **BUG-062**: `ccmux_close_pane` times out for mirror panes
+- **BUG-061**: `fugue_send_orchestration` target parameter not parsed correctly
+- **BUG-062**: `fugue_close_pane` times out for mirror panes
 - **BUG-063** (P1): Mirror panes can't view other sessions - defeats entire purpose of "plate spinning"
 
 **9 Parallel Agents Running:**
@@ -449,9 +449,9 @@ Started with QA of Session 10 fixes, then spun up 9 parallel agents to tackle re
 **Worktrees created:** 9 total (bug-042, bug-047, bug-057, bug-061, bug-062, bug-063, feat-100, feat-101, feat-102)
 
 **Orchestration Pattern:**
-- Using `ccmux_get_status` to poll all 9 agents
-- Using `ccmux_read_pane` to detect confirmation prompts
-- Using `ccmux_send_input` to approve edits/commands remotely
+- Using `fugue_get_status` to poll all 9 agents
+- Using `fugue_read_pane` to detect confirmation prompts
+- Using `fugue_send_input` to approve edits/commands remotely
 - Agents frequently block on permissions - need periodic approval sweeps
 
 **Observation:** BUG-057 (agent cross-contamination) is ironic - the Claude agent working on it is being detected as Gemini!
@@ -467,21 +467,21 @@ Ran 3 parallel agents (2 Gemini, 1 Claude) in separate worktrees to fix all P2 b
 **Fixed this session:**
 | ID | Agent | Description | Commit |
 |----|-------|-------------|--------|
-| BUG-058 | Gemini | `ccmux_kill_session` client hang | `9fd2481` |
-| BUG-059 | Claude | `ccmux_mirror_pane` AbortError | `578ace5` |
+| BUG-058 | Gemini | `fugue_kill_session` client hang | `9fd2481` |
+| BUG-059 | Claude | `fugue_mirror_pane` AbortError | `578ace5` |
 | BUG-060 | Gemini | Orchestration tools require session attachment | `8d24f11` |
 
 **Fix Details:**
 - **BUG-058**: Broadcast `SessionEnded` to attached clients before `detach_session_clients` in `handle_destroy_session`
 - **BUG-059**: Changed `handle_create_mirror` to return `RespondWithBroadcast` instead of `BroadcastToSession` so MCP bridge receives the response
-- **BUG-060**: Implemented `ccmux_attach_session` tool (Option B from PROMPT.md) - MCP clients can now attach to a session before sending orchestration messages
+- **BUG-060**: Implemented `fugue_attach_session` tool (Option B from PROMPT.md) - MCP clients can now attach to a session before sending orchestration messages
 
 **Demo Script Unblocked:**
-- Act 7 (message passing): Now works with `ccmux_attach_session`
+- Act 7 (message passing): Now works with `fugue_attach_session`
 - Act 8 (mirror panes): Now works - MCP receives `MirrorCreated` response
 - Acts 9-10 (cleanup): No longer causes client hang
 
-**Worktrees created:** `ccmux-bug-058`, `ccmux-bug-059`, `ccmux-bug-060`
+**Worktrees created:** `fugue-bug-058`, `fugue-bug-059`, `fugue-bug-060`
 **Branches:** `fix/bug-058-kill-session-hang`, `fix/bug-059-mirror-pane-abort`, `fix/bug-060-orchestration-session-attachment`
 
 ### Previous Session (2026-01-18, Session 9)
@@ -533,20 +533,20 @@ Ran the full `DEMO-MULTI-AGENT.md` script to validate orchestration capabilities
 |------------|--------|-------|
 | Session creation/tagging | ✅ | Created 3 worker sessions, tagged by specialty |
 | Agent detection | ✅ | Claude instances detected (`is_claude: true`) |
-| `ccmux_expect` | ✅ | Pattern matching for "Claude Code" startup |
-| `ccmux_run_parallel` | ✅ | 3 commands in ~2.5s with structured results |
-| `ccmux_run_pipeline` | ✅ | Sequential execution, stops on error |
-| `ccmux_list_panes` / `ccmux_get_status` | ✅ | Real-time cognitive state monitoring |
+| `fugue_expect` | ✅ | Pattern matching for "Claude Code" startup |
+| `fugue_run_parallel` | ✅ | 3 commands in ~2.5s with structured results |
+| `fugue_run_pipeline` | ✅ | Sequential execution, stops on error |
+| `fugue_list_panes` / `fugue_get_status` | ✅ | Real-time cognitive state monitoring |
 | Beads integration | ✅ | assign, find_pane, release, pane_history all work |
 
 **What Failed (New Bugs Filed):**
 | Tool | Error | Bug |
 |------|-------|-----|
-| `ccmux_kill_session` | Client hangs (TUI keybindings still work) | BUG-058 |
-| `ccmux_mirror_pane` | AbortError - feature incomplete | BUG-059 |
-| `ccmux_send_orchestration` | "Must be attached to session" | BUG-060 |
-| `ccmux_broadcast` | "Must be attached to session" | BUG-060 |
-| `ccmux_report_status` | "Must be attached to session" | BUG-060 |
+| `fugue_kill_session` | Client hangs (TUI keybindings still work) | BUG-058 |
+| `fugue_mirror_pane` | AbortError - feature incomplete | BUG-059 |
+| `fugue_send_orchestration` | "Must be attached to session" | BUG-060 |
+| `fugue_broadcast` | "Must be attached to session" | BUG-060 |
+| `fugue_report_status` | "Must be attached to session" | BUG-060 |
 
 **Key Insight:** The orchestration message-passing tools (`send_orchestration`, `broadcast`, `report_status`, `request_help`) require session context that the MCP bridge doesn't have. This blocks the Act 7 message-passing demo entirely. Architecture decision needed.
 
@@ -576,9 +576,9 @@ Ran the full `DEMO-MULTI-AGENT.md` script to validate orchestration capabilities
 
 ### Previous Session (2026-01-17, Session 5)
 
-**Multi-Agent Orchestration via ccmux:**
+**Multi-Agent Orchestration via fugue:**
 
-Successfully ran 8 parallel agents across ccmux sessions for FEAT-097, BUG-042, BUG-047.
+Successfully ran 8 parallel agents across fugue sessions for FEAT-097, BUG-042, BUG-047.
 
 ### Previous Session (2026-01-17, Session 4)
 
@@ -589,7 +589,7 @@ Attempted to launch 3 parallel background agents via Task tool, but:
 2. One agent got blocked on permission issues
 3. Reset main to discard untrusted changes
 
-**Lesson:** Background Task agents don't respect worktree assignments - they need external orchestration (e.g., ccmux sessions) for true isolation.
+**Lesson:** Background Task agents don't respect worktree assignments - they need external orchestration (e.g., fugue sessions) for true isolation.
 
 **Remaining P1:** FEAT-097 (message receive) still needs implementation.
 
@@ -600,14 +600,14 @@ Attempted to launch 3 parallel background agents via Task tool, but:
 | Work Item | Agent | Status | Commit |
 |-----------|-------|--------|--------|
 | BUG-054 | Gemini | ✅ Merged | `3ce77dc` - TUI Enter handling fix |
-| FEAT-096 | Gemini | ✅ Merged | `ab34d81` - `ccmux_expect` tool |
-| FEAT-094 | Claude | ✅ Merged | `bbf060c` - `ccmux_run_parallel` tool |
+| FEAT-096 | Gemini | ✅ Merged | `ab34d81` - `fugue_expect` tool |
+| FEAT-094 | Claude | ✅ Merged | `bbf060c` - `fugue_run_parallel` tool |
 | BUG-053 | Claude | ✅ Merged | `cb1839c` - DSR cursor position fix |
-| FEAT-095 | Claude | ✅ Merged | `3f1d4ff` - `ccmux_run_pipeline` tool |
+| FEAT-095 | Claude | ✅ Merged | `3f1d4ff` - `fugue_run_pipeline` tool |
 
 **Key Accomplishments:**
 - Successfully ran 5 parallel agents (3 Gemini, 2 Claude) across worktrees
-- Orchestrator approved permissions remotely via `ccmux_send_input`
+- Orchestrator approved permissions remotely via `fugue_send_input`
 - Demonstrated "plate spinning" workflow for multi-agent coordination
 - Resolved FEAT-095 merge conflicts - integrated PipelineRunner into combined orchestration.rs
 - Cleaned up all 5 parallel agent worktrees and branches
@@ -634,7 +634,7 @@ Phase 3: Backlog
 These workstreams are **fully independent** and can run in separate worktrees:
 
 ### Workstream A: Client Stability (BUG-058) ✅ COMPLETE
-**Goal**: Fix client hang after `ccmux_kill_session`
+**Goal**: Fix client hang after `fugue_kill_session`
 
 **Solution**: Broadcast `SessionEnded` to attached clients before `detach_session_clients`.
 **Commit**: `9fd2481` on `fix/bug-058-kill-session-hang`
@@ -642,7 +642,7 @@ These workstreams are **fully independent** and can run in separate worktrees:
 ### Workstream B: MCP Session Context (BUG-060) ✅ COMPLETE
 **Goal**: Enable orchestration tools from MCP clients
 
-**Solution**: Implemented Option 2 - Added `ccmux_attach_session` tool. MCP clients can now attach to a session before using orchestration tools.
+**Solution**: Implemented Option 2 - Added `fugue_attach_session` tool. MCP clients can now attach to a session before using orchestration tools.
 **Commit**: `8d24f11` on `fix/bug-060-orchestration-session-attachment`
 
 ### Workstream C: Mirror Pane Implementation (BUG-059) ✅ COMPLETE
@@ -656,7 +656,7 @@ These workstreams are **fully independent** and can run in separate worktrees:
 
 | Item | Description | Effort | Files |
 |------|-------------|--------|-------|
-| FEAT-101 | Codex CLI detection | Low | `ccmux-server/src/agents/` |
+| FEAT-101 | Codex CLI detection | Low | `fugue-server/src/agents/` |
 
 **Note**: Blocked by BUG-053 (Codex requires DSR cursor position). Spec exists at `feature-management/features/FEAT-101-codex-cli-detection/`.
 
@@ -666,8 +666,8 @@ These workstreams are **fully independent** and can run in separate worktrees:
 | Item | Description | Effort | Files |
 |------|-------------|--------|-------|
 | BUG-047 | Compiler warnings | Low | Various |
-| BUG-042 | Result nesting | Low | `ccmux-server/src/mcp/bridge/` |
-| BUG-057 | Agent cross-contamination | Low | `ccmux-server/src/agents/` |
+| BUG-042 | Result nesting | Low | `fugue-server/src/mcp/bridge/` |
+| BUG-057 | Agent cross-contamination | Low | `fugue-server/src/agents/` |
 
 ### Workstream F: Refactoring ✅ COMPLETE
 **Goal**: Improve code organization
@@ -698,17 +698,17 @@ All bugs resolved! 72 total (71 fixed, 1 deprecated).
 All orchestration tools are **bridge-only implementations**:
 - No protocol changes required
 - Use existing primitives: `create_pane`, `send_input`, `read_pane`, `close_pane`
-- Module: `ccmux-server/src/mcp/bridge/orchestration.rs`
+- Module: `fugue-server/src/mcp/bridge/orchestration.rs`
 
 **Available Tools:**
-- `ccmux_expect` - Wait for regex pattern match in pane output
-- `ccmux_run_parallel` - Execute up to 10 commands in parallel panes
-- `ccmux_run_pipeline` - Execute commands sequentially in a single pane
-- `ccmux_attach_session` - Attach MCP client to a session for orchestration messages
+- `fugue_expect` - Wait for regex pattern match in pane output
+- `fugue_run_parallel` - Execute up to 10 commands in parallel panes
+- `fugue_run_pipeline` - Execute commands sequentially in a single pane
+- `fugue_attach_session` - Attach MCP client to a session for orchestration messages
 
 **Completion Detection Pattern:**
 ```bash
-{ <command> ; } ; echo "___CCMUX_EXIT_$?___"
+{ <command> ; } ; echo "___FUGUE_EXIT_$?___"
 ```
 Poll `read_pane` for exit marker to detect command completion.
 
@@ -716,16 +716,16 @@ Poll `read_pane` for exit marker to detect command completion.
 
 | Component | Location |
 |-----------|----------|
-| Agent detection | `ccmux-server/src/agents/` (Claude, Gemini) |
-| Orchestration tools | `ccmux-server/src/mcp/bridge/orchestration.rs` |
-| MCP bridge handlers | `ccmux-server/src/handlers/mcp_bridge/` (refactored) |
-| MCP tool schemas | `ccmux-server/src/mcp/tools.rs` |
-| PTY output (DSR fix) | `ccmux-server/src/pty/output.rs` |
-| Protocol types | `ccmux-protocol/src/types/` (refactored) |
+| Agent detection | `fugue-server/src/agents/` (Claude, Gemini) |
+| Orchestration tools | `fugue-server/src/mcp/bridge/orchestration.rs` |
+| MCP bridge handlers | `fugue-server/src/handlers/mcp_bridge/` (refactored) |
+| MCP tool schemas | `fugue-server/src/mcp/tools.rs` |
+| PTY output (DSR fix) | `fugue-server/src/pty/output.rs` |
+| Protocol types | `fugue-protocol/src/types/` (refactored) |
 
 ### ADR-001: The Dumb Pipe Strategy
 
-ccmux is agent-agnostic:
+fugue is agent-agnostic:
 - `Widget` type for generic UI elements
 - `AgentState` for any AI agent (not just Claude)
 - External systems push data via widget protocol
@@ -743,7 +743,7 @@ ccmux is agent-agnostic:
 ### 2026-01-20 (Session 20)
 | ID | Description | Commit |
 |----|-------------|--------|
-| FEAT-109 | ccmux_drain_messages MCP tool | ee5b2b3 |
+| FEAT-109 | fugue_drain_messages MCP tool | ee5b2b3 |
 
 ### 2026-01-19 (Session 19)
 | ID | Description | Commit |
@@ -798,9 +798,9 @@ ccmux is agent-agnostic:
 ### 2026-01-17 (Session 3)
 | ID | Description | Commit |
 |----|-------------|--------|
-| FEAT-095 | ccmux_run_pipeline tool | 3f1d4ff |
-| FEAT-096 | ccmux_expect tool | ab34d81 |
-| FEAT-094 | ccmux_run_parallel tool | bbf060c |
+| FEAT-095 | fugue_run_pipeline tool | 3f1d4ff |
+| FEAT-096 | fugue_expect tool | ab34d81 |
+| FEAT-094 | fugue_run_parallel tool | bbf060c |
 | BUG-054 | TUI Enter handling fix | 3ce77dc |
 | BUG-053 | DSR [6n] cursor position | cb1839c |
 

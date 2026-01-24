@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-007",
   "title": "Protocol Layer - IPC Message Types and Codec",
-  "component": "ccmux-protocol",
+  "component": "fugue-protocol",
   "priority": "P1",
   "status": "completed",
   "type": "new_feature",
@@ -14,5 +14,5 @@
   "description": "Client/server IPC message types (ClientMessage, ServerMessage), shared data types (SessionInfo, PaneInfo, ClaudeState), and tokio codec for length-prefixed bincode framing.",
   "business_value": "high",
   "technical_complexity": "medium",
-  "user_impact": "Enables reliable client-server communication as the foundation for all ccmux functionality"
+  "user_impact": "Enables reliable client-server communication as the foundation for all fugue functionality"
 }

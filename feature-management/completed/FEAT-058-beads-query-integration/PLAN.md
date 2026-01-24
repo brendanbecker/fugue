@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-058
 
 **Work Item**: [FEAT-058: Beads Query Integration - TUI Visibility into Work Queue](PROMPT.md)
-**Component**: ccmux-server, ccmux-client
+**Component**: fugue-server, fugue-client
 **Priority**: P3
 **Created**: 2026-01-11
 
@@ -22,13 +22,13 @@ Implement beads daemon query integration to provide TUI visibility into the work
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/beads/ | New module | Low |
-| ccmux-server/src/config.rs | Add configuration section | Low |
-| ccmux-protocol/src/lib.rs | Add status message types | Low |
-| ccmux-client/src/ui/status.rs | Add beads indicator | Low |
-| ccmux-client/src/ui/beads_panel.rs | New panel component | Medium |
-| ccmux-client/src/input/mod.rs | Add Ctrl+B b keybind | Low |
-| ccmux-server/src/mcp/handlers.rs | Add MCP tools (optional) | Low |
+| fugue-server/src/beads/ | New module | Low |
+| fugue-server/src/config.rs | Add configuration section | Low |
+| fugue-protocol/src/lib.rs | Add status message types | Low |
+| fugue-client/src/ui/status.rs | Add beads indicator | Low |
+| fugue-client/src/ui/beads_panel.rs | New panel component | Medium |
+| fugue-client/src/input/mod.rs | Add Ctrl+B b keybind | Low |
+| fugue-server/src/mcp/handlers.rs | Add MCP tools (optional) | Low |
 
 ## Implementation Details
 
@@ -37,7 +37,7 @@ Implement beads daemon query integration to provide TUI visibility into the work
 New module structure:
 
 ```
-ccmux-server/src/beads/
+fugue-server/src/beads/
   mod.rs         - Module exports
   client.rs      - RPC client for daemon
   discovery.rs   - Socket path discovery
@@ -47,7 +47,7 @@ ccmux-server/src/beads/
 **Client implementation**:
 
 ```rust
-// ccmux-server/src/beads/client.rs
+// fugue-server/src/beads/client.rs
 
 use std::path::{Path, PathBuf};
 use tokio::net::UnixStream;
@@ -87,7 +87,7 @@ impl BeadsClient {
 **Socket discovery**:
 
 ```rust
-// ccmux-server/src/beads/discovery.rs
+// fugue-server/src/beads/discovery.rs
 
 pub fn discover_beads_socket(working_dir: &Path) -> Option<PathBuf> {
     let mut current = working_dir.to_path_buf();
@@ -122,7 +122,7 @@ pub fn discover_beads_root(working_dir: &Path) -> Option<PathBuf> {
 
 ### 2. Protocol Messages
 
-Add to `ccmux-protocol/src/lib.rs`:
+Add to `fugue-protocol/src/lib.rs`:
 
 ```rust
 /// Beads work queue status for a pane/repo
@@ -179,7 +179,7 @@ pub struct BeadsReadyResponse {
 ### 3. Server-Side Beads Manager
 
 ```rust
-// ccmux-server/src/beads/manager.rs
+// fugue-server/src/beads/manager.rs
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -216,7 +216,7 @@ impl BeadsManager {
 ### 4. Status Bar Integration
 
 ```rust
-// ccmux-client/src/ui/status.rs
+// fugue-client/src/ui/status.rs
 
 impl StatusBar {
     pub fn set_beads_status(&mut self, status: BeadsStatus) {
@@ -250,7 +250,7 @@ impl StatusBar {
 ### 5. Beads Panel Component
 
 ```rust
-// ccmux-client/src/ui/beads_panel.rs
+// fugue-client/src/ui/beads_panel.rs
 
 pub struct BeadsPanel {
     visible: bool,
@@ -401,7 +401,7 @@ pub enum BeadsPanelAction {
 
 ### 6. Input Handling
 
-Add to `ccmux-client/src/input/mod.rs`:
+Add to `fugue-client/src/input/mod.rs`:
 
 ```rust
 // In prefix command handling (after Ctrl+B pressed)
@@ -413,7 +413,7 @@ KeyCode::Char('b') => {
 
 ### 7. Configuration
 
-Add to `ccmux-server/src/config.rs`:
+Add to `fugue-server/src/config.rs`:
 
 ```rust
 #[derive(Debug, Clone, Deserialize, Default)]

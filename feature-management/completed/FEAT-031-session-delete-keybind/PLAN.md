@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-031
 
 **Work Item**: [FEAT-031: Session Delete/Kill Keybind in Session Select UI](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P2
 **Created**: 2026-01-09
 
@@ -41,10 +41,10 @@ The message should include only the session_id. Server responds by broadcasting 
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-protocol/src/lib.rs | Add new message variant | Low |
-| ccmux-client/src/ui/app.rs | Add keybind handler | Low |
-| ccmux-server/src/server.rs | Add message handler | Medium |
-| ccmux-server/src/session.rs | Session removal logic | Medium |
+| fugue-protocol/src/lib.rs | Add new message variant | Low |
+| fugue-client/src/ui/app.rs | Add keybind handler | Low |
+| fugue-server/src/server.rs | Add message handler | Medium |
+| fugue-server/src/session.rs | Session removal logic | Medium |
 
 ## Dependencies
 
@@ -88,7 +88,7 @@ The message should include only the session_id. Server responds by broadcasting 
 ### Protocol Change
 
 ```rust
-// ccmux-protocol/src/lib.rs
+// fugue-protocol/src/lib.rs
 pub enum ClientMessage {
     // ... existing variants ...
     DestroySession { session_id: String },
@@ -98,7 +98,7 @@ pub enum ClientMessage {
 ### Client Keybind
 
 ```rust
-// ccmux-client/src/ui/app.rs in handle_session_select_input()
+// fugue-client/src/ui/app.rs in handle_session_select_input()
 KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
     if let Some(idx) = self.session_select_index {
         if let Some(session) = self.sessions.get(idx) {
@@ -113,7 +113,7 @@ KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
 ### Server Handler
 
 ```rust
-// ccmux-server/src/server.rs in handle_client_message()
+// fugue-server/src/server.rs in handle_client_message()
 ClientMessage::DestroySession { session_id } => {
     info!("Destroying session: {}", session_id);
     if let Err(e) = self.session_manager.destroy_session(&session_id).await {
@@ -127,7 +127,7 @@ ClientMessage::DestroySession { session_id } => {
 ### SessionManager Method
 
 ```rust
-// ccmux-server/src/session.rs
+// fugue-server/src/session.rs
 impl SessionManager {
     pub async fn destroy_session(&mut self, session_id: &str) -> Result<()> {
         if let Some(session) = self.sessions.remove(session_id) {

@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-026",
   "title": "Input Handling Integration and Testing",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "priority": "P1",
   "status": "new",
   "type": "enhancement",

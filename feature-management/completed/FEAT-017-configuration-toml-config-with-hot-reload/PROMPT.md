@@ -1,7 +1,7 @@
 # FEAT-017: Configuration - TOML Config with Hot Reload
 
 **Priority**: P2
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: medium
@@ -23,9 +23,9 @@ TOML configuration with hot-reload via notify, lock-free access using ArcSwap, a
 
 ## Affected Files
 
-- `ccmux-server/src/config/loader.rs`
-- `ccmux-server/src/config/schema.rs`
-- `ccmux-server/src/config/mod.rs`
+- `fugue-server/src/config/loader.rs`
+- `fugue-server/src/config/schema.rs`
+- `fugue-server/src/config/mod.rs`
 
 ## Implementation Tasks
 
@@ -50,9 +50,9 @@ TOML configuration with hot-reload via notify, lock-free access using ArcSwap, a
 
 ### Section 4: XDG Compliance
 - [x] Implement XDG config path detection
-- [x] Support ~/.config/ccmux/config.toml
-- [x] Support /etc/ccmux/config.toml fallback
-- [x] Support CCMUX_CONFIG env var override
+- [x] Support ~/.config/fugue/config.toml
+- [x] Support /etc/fugue/config.toml fallback
+- [x] Support FUGUE_CONFIG env var override
 
 ### Section 5: Hot Reload
 - [x] Implement file watcher using notify crate

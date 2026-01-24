@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-041",
-  "title": "MCP Explicit Session and Window Targeting for ccmux_create_pane",
-  "component": "ccmux-server (MCP)",
+  "title": "MCP Explicit Session and Window Targeting for fugue_create_pane",
+  "component": "fugue-server (MCP)",
   "priority": "P1",
   "status": "new",
   "type": "enhancement",
@@ -11,7 +11,7 @@
   "tags": ["mcp", "session-management", "orchestration"],
   "estimated_effort": "small",
   "dependencies": [],
-  "description": "The ccmux_create_pane MCP tool lacks explicit session and window targeting parameters. While handle_create_pane_with_options already supports session_filter and window_filter parameters, the MCP bridge hardcodes these to None, always using the 'first session' heuristic. This prevents Claude from orchestrating panes across multiple sessions.",
+  "description": "The fugue_create_pane MCP tool lacks explicit session and window targeting parameters. While handle_create_pane_with_options already supports session_filter and window_filter parameters, the MCP bridge hardcodes these to None, always using the 'first session' heuristic. This prevents Claude from orchestrating panes across multiple sessions.",
   "business_value": "high",
   "technical_complexity": "low",
   "user_impact": "Enables Claude to orchestrate panes across multiple sessions (e.g., 'create a new session in the background, launch 4 panes each with a relevant command'). Essential for reliable multi-session workflows."

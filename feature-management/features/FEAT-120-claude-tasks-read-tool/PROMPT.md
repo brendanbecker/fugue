@@ -1,14 +1,14 @@
-# FEAT-120: ccmux_tasks_read - Read Claude Code task files
+# FEAT-120: fugue_tasks_read - Read Claude Code task files
 
 **Priority**: P2
-**Component**: ccmux-server/mcp
+**Component**: fugue-server/mcp
 **Type**: feature
 **Estimated Effort**: medium
 **Business Value**: high
 
 ## Overview
 
-Add a new MCP tool `ccmux_tasks_read` that directly reads Claude Code task files from `~/.claude/tasks/<list-id>/`. This enables orchestrators to monitor task progress without asking Claude instances.
+Add a new MCP tool `fugue_tasks_read` that directly reads Claude Code task files from `~/.claude/tasks/<list-id>/`. This enables orchestrators to monitor task progress without asking Claude instances.
 
 ## Problem Statement
 
@@ -19,7 +19,7 @@ Claude Code's task system provides excellent dependency-aware task tracking, but
 3. **No aggregation**: Can't see tasks across multiple workers
 4. **Blocked detection**: Hard to know when a task is blocked without asking
 
-Since tasks are stored as simple JSON files, ccmux can read them directly and surface this information to orchestrators.
+Since tasks are stored as simple JSON files, fugue can read them directly and surface this information to orchestrators.
 
 ## Solution
 
@@ -35,7 +35,7 @@ Create an MCP tool that reads the task JSON files directly, providing:
 
 ```json
 {
-  "name": "ccmux_tasks_read",
+  "name": "fugue_tasks_read",
   "description": "Read Claude Code task files directly. Returns task graph with dependencies and status.",
   "inputSchema": {
     "type": "object",
@@ -110,7 +110,7 @@ Create an MCP tool that reads the task JSON files directly, providing:
 Create a new module similar to `beads.rs` for Claude Code task integration:
 
 ```rust
-// ccmux-server/src/claude_tasks.rs
+// fugue-server/src/claude_tasks.rs
 
 use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
@@ -196,7 +196,7 @@ pub fn is_blocked(task: &ClaudeTask, all_tasks: &[ClaudeTask]) -> bool {
 
 ### MCP Handler
 
-Add handler in `ccmux-server/src/mcp/bridge/handlers.rs`:
+Add handler in `fugue-server/src/mcp/bridge/handlers.rs`:
 
 ```rust
 pub async fn tool_tasks_read(&mut self, arguments: &serde_json::Value) -> Result<ToolResult, McpError> {
@@ -223,7 +223,7 @@ pub async fn tool_tasks_read(&mut self, arguments: &serde_json::Value) -> Result
 
 ### Section 1: Create claude_tasks module
 
-- [ ] Create `ccmux-server/src/claude_tasks.rs`
+- [ ] Create `fugue-server/src/claude_tasks.rs`
 - [ ] Implement `ClaudeTask` struct matching Claude Code's schema
 - [ ] Implement `tasks_dir()` function
 - [ ] Implement `read_task_list()` function
@@ -232,13 +232,13 @@ pub async fn tool_tasks_read(&mut self, arguments: &serde_json::Value) -> Result
 
 ### Section 2: Add MCP Tool Schema
 
-- [ ] Edit `ccmux-server/src/mcp/tools.rs`
-- [ ] Add `ccmux_tasks_read` tool definition
+- [ ] Edit `fugue-server/src/mcp/tools.rs`
+- [ ] Add `fugue_tasks_read` tool definition
 - [ ] Document parameters and response format
 
 ### Section 3: Implement Handler
 
-- [ ] Edit `ccmux-server/src/mcp/bridge/handlers.rs`
+- [ ] Edit `fugue-server/src/mcp/bridge/handlers.rs`
 - [ ] Add `tool_tasks_read` function
 - [ ] Wire up in tool dispatch
 - [ ] Handle status filtering
@@ -255,15 +255,15 @@ pub async fn tool_tasks_read(&mut self, arguments: &serde_json::Value) -> Result
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/claude_tasks.rs` | **New** - Claude task reading module |
-| `ccmux-server/src/lib.rs` | Add `pub mod claude_tasks` |
-| `ccmux-server/src/mcp/tools.rs` | Add tool schema |
-| `ccmux-server/src/mcp/bridge/handlers.rs` | Add handler |
-| `ccmux-server/src/mcp/bridge/mod.rs` | Wire up handler dispatch |
+| `fugue-server/src/claude_tasks.rs` | **New** - Claude task reading module |
+| `fugue-server/src/lib.rs` | Add `pub mod claude_tasks` |
+| `fugue-server/src/mcp/tools.rs` | Add tool schema |
+| `fugue-server/src/mcp/bridge/handlers.rs` | Add handler |
+| `fugue-server/src/mcp/bridge/mod.rs` | Wire up handler dispatch |
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_tasks_read` tool available via MCP
+- [ ] `fugue_tasks_read` tool available via MCP
 - [ ] Can read task list by ID
 - [ ] Returns task graph with dependencies
 - [ ] Status filtering works (pending, in_progress, completed, blocked)
@@ -282,7 +282,7 @@ pub mod task_keys {
 }
 ```
 
-When `ccmux_create_session` is called with `task_list_id` (FEAT-119), also store it in session metadata. Then `ccmux_tasks_read` could auto-discover from session context.
+When `fugue_create_session` is called with `task_list_id` (FEAT-119), also store it in session metadata. Then `fugue_tasks_read` could auto-discover from session context.
 
 ## Future Enhancements
 
@@ -298,4 +298,4 @@ When `ccmux_create_session` is called with `task_list_id` (FEAT-119), also store
 
 - Claude Code Task System: `~/.claude/tasks/<list-id>/<task-id>.json`
 - Related: FEAT-119 (task_list_id propagation)
-- Similar pattern: `ccmux-server/src/beads.rs`
+- Similar pattern: `fugue-server/src/beads.rs`

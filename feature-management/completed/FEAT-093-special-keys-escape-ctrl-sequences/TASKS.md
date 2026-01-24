@@ -20,13 +20,13 @@
 
 ## Protocol Tasks
 
-- [ ] Add `PressKey` message to ccmux-protocol/src/types.rs
+- [ ] Add `PressKey` message to fugue-protocol/src/types.rs
 - [ ] Define key parameters (key name, count, modifiers)
 - [ ] Add response type if different from SendInput
 
 ## Implementation Tasks
 
-- [ ] Create ccmux-server/src/keys.rs module
+- [ ] Create fugue-server/src/keys.rs module
 - [ ] Implement key name parsing (case-insensitive)
 - [ ] Implement modifier parsing (Ctrl+, Alt+, Shift+)
 - [ ] Implement escape sequence generation for:
@@ -36,7 +36,7 @@
   - [ ] Navigation keys (Home, End, PageUp, PageDown)
   - [ ] Editing keys (Backspace, Delete, Insert)
   - [ ] Function keys (F1-F12)
-- [ ] Add `ccmux_press_key` tool handler in handlers/mcp.rs
+- [ ] Add `fugue_press_key` tool handler in handlers/mcp.rs
 - [ ] Register tool in MCP tool list
 - [ ] Self-review changes
 

@@ -1,7 +1,7 @@
 # FEAT-046: MCP Focus/Select Control
 
 **Priority**: P1
-**Component**: ccmux-server (MCP)
+**Component**: fugue-server (MCP)
 **Type**: enhancement
 **Estimated Effort**: small
 **Business Value**: high
@@ -10,11 +10,11 @@
 
 ## Overview
 
-Add MCP tools for explicit focus/selection control at all three levels (session, window, pane), and change the default behavior of `ccmux_create_pane` to NOT auto-switch focus.
+Add MCP tools for explicit focus/selection control at all three levels (session, window, pane), and change the default behavior of `fugue_create_pane` to NOT auto-switch focus.
 
 ## Problem Statement
 
-Currently, when `ccmux_create_pane` is called via MCP:
+Currently, when `fugue_create_pane` is called via MCP:
 1. A new pane is created
 2. Focus automatically switches to the new pane in the TUI
 
@@ -30,7 +30,7 @@ Additionally, there's no MCP tool to:
 
 ## Requirements
 
-### Part 1: Change `ccmux_create_pane` Default Behavior
+### Part 1: Change `fugue_create_pane` Default Behavior
 
 **Current behavior**: Auto-switches focus to new pane
 **New behavior**: Keep focus on current pane (default), with opt-in to switch
@@ -48,7 +48,7 @@ Add new optional parameter:
 }
 ```
 
-### Part 2: `ccmux_select_pane` Tool
+### Part 2: `fugue_select_pane` Tool
 
 Switch focus to a specific pane.
 
@@ -56,7 +56,7 @@ Switch focus to a specific pane.
 
 ```json
 {
-    "name": "ccmux_select_pane",
+    "name": "fugue_select_pane",
     "description": "Switch focus to a specific pane",
     "input_schema": {
         "type": "object",
@@ -82,7 +82,7 @@ Switch focus to a specific pane.
 }
 ```
 
-### Part 3: `ccmux_select_window` Tool
+### Part 3: `fugue_select_window` Tool
 
 Switch to a specific window (tab) within the current or specified session.
 
@@ -90,7 +90,7 @@ Switch to a specific window (tab) within the current or specified session.
 
 ```json
 {
-    "name": "ccmux_select_window",
+    "name": "fugue_select_window",
     "description": "Switch to a specific window (tab)",
     "input_schema": {
         "type": "object",
@@ -121,7 +121,7 @@ Switch to a specific window (tab) within the current or specified session.
 }
 ```
 
-### Part 4: `ccmux_select_session` Tool
+### Part 4: `fugue_select_session` Tool
 
 Switch to a different session entirely.
 
@@ -129,7 +129,7 @@ Switch to a different session entirely.
 
 ```json
 {
-    "name": "ccmux_select_session",
+    "name": "fugue_select_session",
     "description": "Switch to a different session",
     "input_schema": {
         "type": "object",
@@ -156,7 +156,7 @@ Switch to a different session entirely.
 }
 ```
 
-### Part 5: Update `ccmux_list_panes` Response
+### Part 5: Update `fugue_list_panes` Response
 
 Add a `focused` field to indicate which pane currently has focus.
 
@@ -182,17 +182,17 @@ Add a `focused` field to indicate which pane currently has focus.
 ### 1. Create Worker Panes Without Losing Focus
 
 ```
-LLM: ccmux_create_pane(direction="vertical", cwd="/project/worktree-1")
-     ccmux_create_pane(direction="vertical", cwd="/project/worktree-2")
-     ccmux_create_pane(direction="vertical", cwd="/project/worktree-3")
+LLM: fugue_create_pane(direction="vertical", cwd="/project/worktree-1")
+     fugue_create_pane(direction="vertical", cwd="/project/worktree-2")
+     fugue_create_pane(direction="vertical", cwd="/project/worktree-3")
      // Focus stays on original pane throughout
 ```
 
 ### 2. Orchestrator Spawns Workers Then Monitors
 
 ```
-LLM: ccmux_create_pane(direction="vertical", command="claude 'work on task 1'")
-     ccmux_create_pane(direction="vertical", command="claude 'work on task 2'")
+LLM: fugue_create_pane(direction="vertical", command="claude 'work on task 1'")
+     fugue_create_pane(direction="vertical", command="claude 'work on task 2'")
      // Still focused on orchestrator pane
      // Can read worker outputs without switching
 ```
@@ -200,22 +200,22 @@ LLM: ccmux_create_pane(direction="vertical", command="claude 'work on task 1'")
 ### 3. Explicit Navigation
 
 ```
-LLM: ccmux_list_panes()  // Find pane IDs
-     ccmux_select_pane(pane_id="abc-123")  // Switch to specific pane
+LLM: fugue_list_panes()  // Find pane IDs
+     fugue_select_pane(pane_id="abc-123")  // Switch to specific pane
 ```
 
 ### 4. Session Switching
 
 ```
-LLM: ccmux_list_sessions()  // See all sessions
-     ccmux_select_session(session="development")  // Switch sessions
+LLM: fugue_list_sessions()  // See all sessions
+     fugue_select_session(session="development")  // Switch sessions
 ```
 
 ### 5. Window/Tab Navigation
 
 ```
-LLM: ccmux_select_window(window="1")  // Switch to second tab
-     ccmux_select_window(window="tests")  // Switch by name
+LLM: fugue_select_window(window="1")  // Switch to second tab
+     fugue_select_window(window="tests")  // Switch by name
 ```
 
 ## Implementation Approach
@@ -226,9 +226,9 @@ LLM: ccmux_select_window(window="1")  // Switch to second tab
 
 2. **Add focus control message type** - New protocol message to tell TUI to change focus
 
-3. **Update `ccmux_create_pane` handler** - Don't send focus message unless `select: true`
+3. **Update `fugue_create_pane` handler** - Don't send focus message unless `select: true`
 
-4. **Add new tool handlers** - Implement `ccmux_select_pane`, `ccmux_select_window`, `ccmux_select_session`
+4. **Add new tool handlers** - Implement `fugue_select_pane`, `fugue_select_window`, `fugue_select_session`
 
 ### Protocol Changes
 
@@ -261,12 +261,12 @@ ServerMessage::FocusSession { session_id } => {
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/mcp/tools.rs` | Add tool definitions |
-| `ccmux-server/src/mcp/handlers.rs` | Implement handlers |
-| `ccmux-server/src/handlers/mcp_bridge.rs` | Route focus commands, update create_pane |
-| `ccmux-protocol/src/messages.rs` | Add focus message types |
-| `ccmux-client/src/ui/app.rs` | Handle focus messages |
-| `ccmux-server/src/session/manager.rs` | Track active pane/window per client |
+| `fugue-server/src/mcp/tools.rs` | Add tool definitions |
+| `fugue-server/src/mcp/handlers.rs` | Implement handlers |
+| `fugue-server/src/handlers/mcp_bridge.rs` | Route focus commands, update create_pane |
+| `fugue-protocol/src/messages.rs` | Add focus message types |
+| `fugue-client/src/ui/app.rs` | Handle focus messages |
+| `fugue-server/src/session/manager.rs` | Track active pane/window per client |
 
 ## Implementation Tasks
 
@@ -274,27 +274,27 @@ ServerMessage::FocusSession { session_id } => {
 - [ ] Add `FocusPane`, `FocusWindow`, `FocusSession` message types to protocol
 - [ ] Update serialization/deserialization
 
-### Section 2: Update ccmux_create_pane
+### Section 2: Update fugue_create_pane
 - [ ] Add `select` parameter to tool schema
 - [ ] Default to NOT sending focus message
 - [ ] Only send focus message when `select: true`
 
-### Section 3: Implement ccmux_select_pane
+### Section 3: Implement fugue_select_pane
 - [ ] Add tool definition
 - [ ] Implement handler that sends FocusPane message
 - [ ] Return current focus state in response
 
-### Section 4: Implement ccmux_select_window
+### Section 4: Implement fugue_select_window
 - [ ] Add tool definition
 - [ ] Implement handler that sends FocusWindow message
 - [ ] Support window by UUID, name, or index
 
-### Section 5: Implement ccmux_select_session
+### Section 5: Implement fugue_select_session
 - [ ] Add tool definition
 - [ ] Implement handler that sends FocusSession message
 - [ ] Switches TUI to different session
 
-### Section 6: Update ccmux_list_panes
+### Section 6: Update fugue_list_panes
 - [ ] Add `focused` field to response items
 - [ ] Track which pane is currently focused
 
@@ -307,19 +307,19 @@ ServerMessage::FocusSession { session_id } => {
 ### Section 8: Testing
 - [ ] Test create_pane no longer auto-focuses
 - [ ] Test create_pane with select: true does focus
-- [ ] Test ccmux_select_pane switches focus
-- [ ] Test ccmux_select_window switches tabs
-- [ ] Test ccmux_select_session switches sessions
+- [ ] Test fugue_select_pane switches focus
+- [ ] Test fugue_select_window switches tabs
+- [ ] Test fugue_select_session switches sessions
 - [ ] Test focused field in list_panes response
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_create_pane` does NOT auto-switch focus by default
-- [ ] `ccmux_create_pane` with `select: true` DOES switch focus
-- [ ] `ccmux_select_pane` switches focus to specified pane
-- [ ] `ccmux_select_window` switches to specified window/tab
-- [ ] `ccmux_select_session` switches to specified session
-- [ ] `ccmux_list_panes` includes `focused` field
+- [ ] `fugue_create_pane` does NOT auto-switch focus by default
+- [ ] `fugue_create_pane` with `select: true` DOES switch focus
+- [ ] `fugue_select_pane` switches focus to specified pane
+- [ ] `fugue_select_window` switches to specified window/tab
+- [ ] `fugue_select_session` switches to specified session
+- [ ] `fugue_list_panes` includes `focused` field
 - [ ] All existing tests pass
 - [ ] New tools have test coverage
 

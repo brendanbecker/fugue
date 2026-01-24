@@ -4,7 +4,7 @@
   "priority": "P2",
   "type": "enhancement",
   "status": "open",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "created": "2026-01-11",
   "reporter": "QA-demo-orchestrator",
   "description": "Implement tmux-compatible keybindings (Ctrl-b prefix) for window/pane navigation in TUI",

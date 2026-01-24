@@ -1,6 +1,6 @@
 # Task Breakdown: BUG-040
 
-**Work Item**: [BUG-040: ccmux_create_window returns success but doesn't actually create windows](PROMPT.md)
+**Work Item**: [BUG-040: fugue_create_window returns success but doesn't actually create windows](PROMPT.md)
 **Status**: Not Started
 **Last Updated**: 2026-01-11
 
@@ -12,8 +12,8 @@
 
 ## Investigation Tasks
 
-- [ ] Review `ccmux-server/src/mcp/handlers.rs` create_window handler
-- [ ] Review `ccmux-server/src/session/manager.rs` window creation methods
+- [ ] Review `fugue-server/src/mcp/handlers.rs` create_window handler
+- [ ] Review `fugue-server/src/session/manager.rs` window creation methods
 - [ ] Trace code path from create_window call to response
 - [ ] Identify where window is created but not persisted
 - [ ] Compare with working window creation paths (e.g., initial session setup)

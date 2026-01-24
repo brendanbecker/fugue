@@ -8,10 +8,10 @@
   "created_date": "2026-01-13",
   "updated_date": "2026-01-13",
   "assigned_to": null,
-  "tags": ["gastown", "orchestration", "networking", "remote", "ccmux-integration"],
+  "tags": ["gastown", "orchestration", "networking", "remote", "fugue-integration"],
   "estimated_effort": "medium",
   "dependencies": ["FEAT-066", "FEAT-067", "FEAT-068"],
-  "description": "Extend the gastown multi-agent system to support remote pane execution via ccmux TCP connections. This enables hybrid orchestration where the Mayor runs locally (laptop) while polecats/agents execute remotely (gaming PC), leveraging ccmux remote peering for compute offload and token distribution. Currently, gastown agents (Mayor, polecats, convoys) all run on the same machine as ccmux. With ccmux remote peering support (FEAT-066, FEAT-067, FEAT-068), gastown needs integration to spawn remote panes via the GASTOWN_CCMUX_ADDR environment variable. This enables Mayor orchestrator on low-latency local machine while heavy compute agents run on remote machine, distributing token burn across multiple Claude instances.",
+  "description": "Extend the gastown multi-agent system to support remote pane execution via fugue TCP connections. This enables hybrid orchestration where the Mayor runs locally (laptop) while polecats/agents execute remotely (gaming PC), leveraging fugue remote peering for compute offload and token distribution. Currently, gastown agents (Mayor, polecats, convoys) all run on the same machine as fugue. With fugue remote peering support (FEAT-066, FEAT-067, FEAT-068), gastown needs integration to spawn remote panes via the GASTOWN_CCMUX_ADDR environment variable. This enables Mayor orchestrator on low-latency local machine while heavy compute agents run on remote machine, distributing token burn across multiple Claude instances.",
   "business_value": "high",
   "technical_complexity": "medium",
   "user_impact": "Enables distributed gastown workflows with remote pane execution. Users can run Mayor locally on laptop while offloading heavy compute tasks (polecats) to remote gaming PC, improving responsiveness and distributing token costs across multiple Claude API instances."

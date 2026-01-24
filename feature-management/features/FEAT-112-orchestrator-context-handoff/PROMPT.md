@@ -87,7 +87,7 @@ The watchdog detects orchestrator context size and sends different messages:
 
 ### Option C: Hybrid
 
-- Watchdog queries orchestrator's agent state via `ccmux_get_status`
+- Watchdog queries orchestrator's agent state via `fugue_get_status`
 - If token count > threshold, sends "handoff" trigger
 - Orchestrator skill handles the actual handoff process
 - After clear, watchdog sends normal "check workers"
@@ -96,11 +96,11 @@ The watchdog detects orchestrator context size and sends different messages:
 
 ### From Agent State
 
-ccmux tracks agent state including token usage (when detectable):
+fugue tracks agent state including token usage (when detectable):
 
 ```json
 {
-  "tool": "ccmux_get_status",
+  "tool": "fugue_get_status",
   "input": {"pane_id": "<orchestrator_pane>"}
 }
 ```

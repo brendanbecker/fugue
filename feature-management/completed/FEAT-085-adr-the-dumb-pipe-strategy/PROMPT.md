@@ -9,7 +9,7 @@
 
 ## Overview
 
-Draft an Architectural Decision Record (ADR) defining the 'Dumb Pipe' philosophy for ccmux. Explicitly forbid future application-specific logic in the core server/protocol. Define the standard for Sideband usage as the primary integration point.
+Draft an Architectural Decision Record (ADR) defining the 'Dumb Pipe' philosophy for fugue. Explicitly forbid future application-specific logic in the core server/protocol. Define the standard for Sideband usage as the primary integration point.
 
 ## Deliverables
 
@@ -29,7 +29,7 @@ Created `docs/adr/ADR-001-dumb-pipe-strategy.md` with:
    - Beads-specific MCP tools in handlers.rs
    - Problems with tight coupling (fragility, maintenance burden, limited extensibility)
 
-2. **Decision**: ccmux evolves toward a "dumb pipe" - a minimal, reliable multiplexer that:
+2. **Decision**: fugue evolves toward a "dumb pipe" - a minimal, reliable multiplexer that:
    - Multiplexes PTY streams reliably
    - Provides generic metadata storage
    - Offers simple message passing

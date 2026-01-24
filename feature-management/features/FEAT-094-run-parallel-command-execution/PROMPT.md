@@ -1,14 +1,14 @@
-# FEAT-094: ccmux_run_parallel - Parallel Command Execution
+# FEAT-094: fugue_run_parallel - Parallel Command Execution
 
 **Priority**: P1
-**Component**: ccmux-server/mcp
+**Component**: fugue-server/mcp
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
 
 ## Overview
 
-Create a high-level MCP tool `ccmux_run_parallel` that executes multiple commands in parallel across separate panes and returns aggregated results. This is a bridge-only implementation requiring no protocol changes.
+Create a high-level MCP tool `fugue_run_parallel` that executes multiple commands in parallel across separate panes and returns aggregated results. This is a bridge-only implementation requiring no protocol changes.
 
 ## Problem Statement
 
@@ -27,7 +27,7 @@ This consumes significant context (~500-1000 tokens per parallel task managed). 
 
 ```json
 {
-  "name": "ccmux_run_parallel",
+  "name": "fugue_run_parallel",
   "description": "Execute commands in parallel across separate panes",
   "inputSchema": {
     "type": "object",
@@ -102,10 +102,10 @@ All logic resides in MCP bridge handlers using existing daemon primitives:
 Use shell prompt pattern matching or command wrapper:
 ```bash
 # Wrapper approach
-{ <command> ; } ; echo "___CCMUX_EXIT_$?___"
+{ <command> ; } ; echo "___FUGUE_EXIT_$?___"
 ```
 
-Poll `read_pane` output for `___CCMUX_EXIT_<code>___` pattern.
+Poll `read_pane` output for `___FUGUE_EXIT_<code>___` pattern.
 
 ### Layout Modes
 
@@ -123,8 +123,8 @@ Poll `read_pane` output for `___CCMUX_EXIT_<code>___` pattern.
 
 ### Section 1: Create Orchestration Module
 
-- [ ] Create `ccmux-server/src/mcp/bridge/orchestration.rs`
-- [ ] Add module to `ccmux-server/src/mcp/bridge/mod.rs`
+- [ ] Create `fugue-server/src/mcp/bridge/orchestration.rs`
+- [ ] Add module to `fugue-server/src/mcp/bridge/mod.rs`
 - [ ] Define `RunParallelRequest` and `RunParallelResponse` types
 - [ ] Implement command validation (max 10, required fields)
 
@@ -157,8 +157,8 @@ Poll `read_pane` output for `___CCMUX_EXIT_<code>___` pattern.
 
 ### Section 6: Tool Registration
 
-- [ ] Add tool schema to `ccmux-server/src/mcp/tools.rs`
-- [ ] Register handler in `ccmux-server/src/mcp/bridge/handlers.rs`
+- [ ] Add tool schema to `fugue-server/src/mcp/tools.rs`
+- [ ] Register handler in `fugue-server/src/mcp/bridge/handlers.rs`
 - [ ] Add to `available_tools` list
 
 ### Section 7: Testing
@@ -173,14 +173,14 @@ Poll `read_pane` output for `___CCMUX_EXIT_<code>___` pattern.
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/mcp/bridge/orchestration.rs` | **NEW** - Core implementation |
-| `ccmux-server/src/mcp/bridge/mod.rs` | Add orchestration module |
-| `ccmux-server/src/mcp/bridge/handlers.rs` | Register handler |
-| `ccmux-server/src/mcp/tools.rs` | Add tool schema |
+| `fugue-server/src/mcp/bridge/orchestration.rs` | **NEW** - Core implementation |
+| `fugue-server/src/mcp/bridge/mod.rs` | Add orchestration module |
+| `fugue-server/src/mcp/bridge/handlers.rs` | Register handler |
+| `fugue-server/src/mcp/tools.rs` | Add tool schema |
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_run_parallel` tool available in MCP
+- [ ] `fugue_run_parallel` tool available in MCP
 - [ ] Executes up to 10 commands in parallel
 - [ ] Returns aggregated results with exit codes
 - [ ] `hidden` layout uses `__orchestration__` session
@@ -199,7 +199,7 @@ Poll `read_pane` output for `___CCMUX_EXIT_<code>___` pattern.
 ### Context Savings
 
 Typical parallel workflow without this tool: ~800-1200 tokens
-With `ccmux_run_parallel`: ~200 tokens (single tool call + response)
+With `fugue_run_parallel`: ~200 tokens (single tool call + response)
 
 **Savings: 70-80% context reduction**
 

@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-028
 
 **Work Item**: [FEAT-028: Orchestration Flexibility Refactor](PROMPT.md)
-**Component**: ccmux-protocol
+**Component**: fugue-protocol
 **Priority**: P1
 **Created**: 2026-01-09
 
 ## Overview
 
-Replace methodology-specific orchestration concepts with generic primitives so ccmux can support any workflow (Context Engineering, Gas Town, custom) rather than hardcoding a specific coordination pattern.
+Replace methodology-specific orchestration concepts with generic primitives so fugue can support any workflow (Context Engineering, Gas Town, custom) rather than hardcoding a specific coordination pattern.
 
 ## Architecture Decisions
 
@@ -48,7 +48,7 @@ Replace methodology-specific orchestration concepts with generic primitives so c
 
 **Rationale**:
 - Broadcast is workflow-agnostic (useful for any pattern)
-- Worktree routing is ccmux-specific infrastructure concern
+- Worktree routing is fugue-specific infrastructure concern
 - Avoids forcing users to manage "all" tags
 - Backward compatible conceptually
 
@@ -58,7 +58,7 @@ Replace methodology-specific orchestration concepts with generic primitives so c
 
 **Rationale**:
 - The old types embed assumptions that can't be cleanly mapped
-- ccmux is pre-1.0, breaking changes are expected
+- fugue is pre-1.0, breaking changes are expected
 - Simpler implementation without compatibility shims
 - Cleaner documentation and examples
 
@@ -66,10 +66,10 @@ Replace methodology-specific orchestration concepts with generic primitives so c
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-protocol/src/messages.rs | Major refactor (types) | Medium |
-| ccmux-protocol/src/types.rs | Modify SessionInfo | Low |
-| ccmux-server/src/orchestration/router.rs | Major refactor (logic) | Medium |
-| ccmux-server/src/orchestration/mod.rs | Update exports if needed | Low |
+| fugue-protocol/src/messages.rs | Major refactor (types) | Medium |
+| fugue-protocol/src/types.rs | Modify SessionInfo | Low |
+| fugue-server/src/orchestration/router.rs | Major refactor (logic) | Medium |
+| fugue-server/src/orchestration/mod.rs | Update exports if needed | Low |
 | Any code using old message types | Breaking change | High |
 
 ## Implementation Order

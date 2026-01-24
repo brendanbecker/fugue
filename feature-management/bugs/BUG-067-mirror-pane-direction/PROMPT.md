@@ -7,19 +7,19 @@
 
 ## Problem
 
-`ccmux_mirror_pane` with `direction: "vertical"` creates a horizontal split (top/bottom stacked panes) instead of a vertical split (side-by-side panes).
+`fugue_mirror_pane` with `direction: "vertical"` creates a horizontal split (top/bottom stacked panes) instead of a vertical split (side-by-side panes).
 
 ## Reproduction Steps
 
-1. Have an active ccmux session with a pane
-2. Call `ccmux_mirror_pane(source_pane_id: "<pane-id>", direction: "vertical")`
+1. Have an active fugue session with a pane
+2. Call `fugue_mirror_pane(source_pane_id: "<pane-id>", direction: "vertical")`
 3. Observe the resulting layout
 
 ## Expected Behavior
 
-`direction: "vertical"` should create side-by-side panes (left/right arrangement), consistent with the documentation and other ccmux tools like `ccmux_create_pane` and `ccmux_split_pane`.
+`direction: "vertical"` should create side-by-side panes (left/right arrangement), consistent with the documentation and other fugue tools like `fugue_create_pane` and `fugue_split_pane`.
 
-The MCP tool schema for `ccmux_create_pane` states:
+The MCP tool schema for `fugue_create_pane` states:
 > "Split direction: 'vertical' creates side-by-side panes, 'horizontal' creates stacked panes"
 
 ## Actual Behavior
@@ -34,15 +34,15 @@ Likely one of two issues:
 
 ## Relevant Code
 
-- `ccmux-server/src/mcp/bridge/handlers.rs` - MCP handler for mirror_pane
-- `ccmux-server/src/handlers/pane.rs` - `handle_create_mirror` implementation
+- `fugue-server/src/mcp/bridge/handlers.rs` - MCP handler for mirror_pane
+- `fugue-server/src/handlers/pane.rs` - `handle_create_mirror` implementation
 - Compare with `handle_split_pane` for consistency
 
 ## Acceptance Criteria
 
 - [ ] `direction: "vertical"` creates side-by-side (left/right) panes
 - [ ] `direction: "horizontal"` creates stacked (top/bottom) panes
-- [ ] Behavior matches `ccmux_create_pane` and `ccmux_split_pane` semantics
+- [ ] Behavior matches `fugue_create_pane` and `fugue_split_pane` semantics
 - [ ] Documentation accurately describes the behavior
 
 ## Impact

@@ -1,7 +1,7 @@
 # FEAT-019: Sideband Protocol - XML Command Parsing from Claude Output
 
 **Priority**: P2
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: medium
@@ -9,25 +9,25 @@
 
 ## Overview
 
-Parse XML-style commands from Claude output (`<ccmux:spawn>`, `<ccmux:input>`) for lightweight Claude-ccmux communication.
+Parse XML-style commands from Claude output (`<fugue:spawn>`, `<fugue:input>`) for lightweight Claude-fugue communication.
 
 ## Requirements
 
 - XML-style command parsing from PTY output stream
 - Supported commands:
-  - `<ccmux:spawn cmd="..." cwd="..."/>` - Spawn new pane
-  - `<ccmux:input target="pane-id">text</ccmux:input>` - Send input to pane
-  - `<ccmux:control action="focus" target="pane-id"/>` - Control commands
-  - `<ccmux:canvas type="diff" path="..."/>` - Spawn canvas widget
+  - `<fugue:spawn cmd="..." cwd="..."/>` - Spawn new pane
+  - `<fugue:input target="pane-id">text</fugue:input>` - Send input to pane
+  - `<fugue:control action="focus" target="pane-id"/>` - Control commands
+  - `<fugue:canvas type="diff" path="..."/>` - Spawn canvas widget
 - Command validation and error handling
 - Strip sideband commands from rendered output
 - Event emission for parsed commands
 
 ## Affected Files
 
-- `ccmux-server/src/sideband/parser.rs`
-- `ccmux-server/src/sideband/commands.rs`
-- `ccmux-server/src/sideband/mod.rs`
+- `fugue-server/src/sideband/parser.rs`
+- `fugue-server/src/sideband/commands.rs`
+- `fugue-server/src/sideband/mod.rs`
 
 ## Implementation Tasks
 
@@ -48,7 +48,7 @@ Parse XML-style commands from Claude output (`<ccmux:spawn>`, `<ccmux:input>`) f
 
 ### Section 3: XML Parser
 - [ ] Implement streaming XML tag detection in output
-- [ ] Parse `<ccmux:*>` opening tags with attributes
+- [ ] Parse `<fugue:*>` opening tags with attributes
 - [ ] Handle self-closing tags (`/>`)
 - [ ] Parse closing tags and extract content
 - [ ] Handle malformed XML gracefully (log warning, pass through)

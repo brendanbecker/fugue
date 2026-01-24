@@ -1,7 +1,7 @@
 # BUG-038: MCP Handlers Return Wrong Response Types (Comprehensive)
 
 **Priority**: P1
-**Component**: ccmux-server (handlers/mcp_bridge.rs)
+**Component**: fugue-server (handlers/mcp_bridge.rs)
 **Severity**: high
 **Status**: new
 
@@ -34,19 +34,19 @@ This is a systemic issue affecting multiple operation types.
 
 ### Reproduce list_windows issue:
 ```
-ccmux_list_windows(session: "session-name")
+fugue_list_windows(session: "session-name")
 -> MCP error -32603: Unexpected response: SessionList { sessions: [...] }
 ```
 
 ### Reproduce list_panes issue:
 ```
-ccmux_list_panes(session: "session-name")
+fugue_list_panes(session: "session-name")
 -> MCP error -32603: Unexpected response: WindowList { windows: [...] }
 ```
 
 ### Reproduce create_pane issue:
 ```
-ccmux_create_pane(direction: "vertical", name: "test")
+fugue_create_pane(direction: "vertical", name: "test")
 -> MCP error -32603: Unexpected response: SessionList { sessions: [...] }
 ```
 
@@ -60,16 +60,16 @@ ccmux_create_pane(direction: "vertical", name: "test")
 
 ### From BUG-035 QA run:
 ```
-ccmux_list_windows(session: "session-0")
+fugue_list_windows(session: "session-0")
 -> Error: Unexpected response: SessionList { sessions: [SessionInfo {...}] }
 
-ccmux_list_panes(session: "session-0")
+fugue_list_panes(session: "session-0")
 -> Error: Unexpected response: WindowList { windows: [WindowInfo {...}] }
 ```
 
 ### From BUG-038 QA run:
 ```
-ccmux_create_pane(direction: "vertical", name: "demo-pane")
+fugue_create_pane(direction: "vertical", name: "demo-pane")
 -> MCP error -32603: Unexpected response: SessionList { sessions: [
      SessionInfo { id: cebaa25e-..., name: "session-0", ... },
      SessionInfo { id: 7e4aca93-..., name: "dev-qa", ... }

@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-031",
   "title": "Session Delete/Kill Keybind in Session Select UI",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "priority": "P2",
   "status": "complete",
   "type": "enhancement",

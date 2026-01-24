@@ -19,7 +19,7 @@
 
 ## Implementation Tasks
 
-- [ ] Modify `analyze()` in `ccmux-server/src/agents/claude/mod.rs`
+- [ ] Modify `analyze()` in `fugue-server/src/agents/claude/mod.rs`
 - [ ] Change from ignoring `inner.analyze()` return value to using it
 - [ ] Self-review changes
 

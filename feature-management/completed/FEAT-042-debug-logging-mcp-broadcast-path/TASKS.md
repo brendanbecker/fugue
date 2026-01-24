@@ -14,7 +14,7 @@
 ## Phase 1: Server Handler Logging (mcp_bridge.rs)
 
 ### 1.1 Locate Handler Function
-- [ ] Find `handle_create_pane_with_options` in ccmux-server/src/handlers/mcp_bridge.rs
+- [ ] Find `handle_create_pane_with_options` in fugue-server/src/handlers/mcp_bridge.rs
 - [ ] Identify entry point and return points
 - [ ] Note the session_id variable used for broadcast
 
@@ -52,7 +52,7 @@
 ## Phase 3: Server Registry Logging (registry.rs)
 
 ### 3.1 Locate broadcast_to_session_except
-- [ ] Find `broadcast_to_session_except` in ccmux-server/src/registry.rs
+- [ ] Find `broadcast_to_session_except` in fugue-server/src/registry.rs
 - [ ] Understand how it iterates over session_clients
 
 ### 3.2 Add Session Clients Dump
@@ -98,7 +98,7 @@
 ## Phase 5: Client Connection Logging (client.rs)
 
 ### 5.1 Locate Message Reception
-- [ ] Find message reading code in ccmux-client/src/connection/client.rs
+- [ ] Find message reading code in fugue-client/src/connection/client.rs
 - [ ] Identify where frames are read from socket
 
 ### 5.2 Add Raw Frame Logging
@@ -114,7 +114,7 @@
 ## Phase 6: Client App Logging (app.rs)
 
 ### 6.1 Locate poll_server_messages
-- [ ] Find `poll_server_messages` in ccmux-client/src/ui/app.rs
+- [ ] Find `poll_server_messages` in fugue-client/src/ui/app.rs
 - [ ] Understand how it processes messages
 
 ### 6.2 Add Message Found Logging
@@ -150,7 +150,7 @@
 - [ ] pane_id where applicable
 
 ### 7.4 Live Test
-- [ ] Start ccmux with `RUST_LOG=debug ccmux`
+- [ ] Start fugue with `RUST_LOG=debug fugue`
 - [ ] Create/attach to a session
 - [ ] Trigger MCP pane creation
 - [ ] Capture log output

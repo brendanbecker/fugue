@@ -1,4 +1,4 @@
-# BUG-058: ccmux_kill_session causes client hang
+# BUG-058: fugue_kill_session causes client hang
 
 **Priority**: P2
 **Component**: mcp, client
@@ -7,12 +7,12 @@
 
 ## Problem
 
-When calling `ccmux_kill_session` via MCP, the ccmux client hangs. The TUI remains responsive to keybindings (Ctrl+b commands work), but the client appears frozen and doesn't return control properly.
+When calling `fugue_kill_session` via MCP, the fugue client hangs. The TUI remains responsive to keybindings (Ctrl+b commands work), but the client appears frozen and doesn't return control properly.
 
 ## Reproduction Steps
 
-1. Create a session: `ccmux_create_session(name: "test-session")`
-2. Kill the session: `ccmux_kill_session(session: "test-session")`
+1. Create a session: `fugue_create_session(name: "test-session")`
+2. Kill the session: `fugue_kill_session(session: "test-session")`
 3. Observe: Client hangs
 
 ## Expected Behavior
@@ -68,17 +68,17 @@ The client may not be receiving or processing the session removal notification, 
 
 ## Acceptance Criteria
 
-- [x] `ccmux_kill_session` completes without hanging the client
+- [x] `fugue_kill_session` completes without hanging the client
 - [x] Client remains fully responsive after session kill
 - [x] Session removal is properly propagated to all clients
 - [x] No regressions in session management
 
 ## Related Files
 
-- `ccmux-server/src/mcp/bridge/handlers.rs` - kill_session handler
-- `ccmux-server/src/session/manager.rs` - Session management
-- `ccmux-client/src/ui/app.rs` - Client state management
-- `ccmux-protocol/src/messages.rs` - Session removal messages
+- `fugue-server/src/mcp/bridge/handlers.rs` - kill_session handler
+- `fugue-server/src/session/manager.rs` - Session management
+- `fugue-client/src/ui/app.rs` - Client state management
+- `fugue-protocol/src/messages.rs` - Session removal messages
 
 ## Notes
 

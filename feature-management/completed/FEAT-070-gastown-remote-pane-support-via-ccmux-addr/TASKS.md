@@ -1,6 +1,6 @@
 # Task Breakdown: FEAT-070
 
-**Work Item**: [FEAT-070: gastown remote pane support via CCMUX_ADDR](PROMPT.md)
+**Work Item**: [FEAT-070: gastown remote pane support via FUGUE_ADDR](PROMPT.md)
 **Status**: Not Started
 **Last Updated**: 2026-01-13
 
@@ -9,12 +9,12 @@
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
 - [ ] Verify FEAT-066, FEAT-067, FEAT-068 are complete
-- [ ] Set up test environment with ccmux TCP listener
+- [ ] Set up test environment with fugue TCP listener
 - [ ] Clone/fork gastown repository
 
 ## Section 1: Environment Variable Support
 
-- [ ] Add GASTOWN_CCMUX_ADDR environment variable reading
+- [ ] Add GASTOWN_FUGUE_ADDR environment variable reading
 - [ ] Implement URL parsing (tcp:// and unix:// schemes)
 - [ ] Add URL validation logic
 - [ ] Handle missing/invalid URL gracefully
@@ -26,7 +26,7 @@
 
 - [ ] Locate agent spawn code in gastown
 - [ ] Update spawn commands to accept --addr parameter
-- [ ] Pass GASTOWN_CCMUX_ADDR to ccmux-client calls
+- [ ] Pass GASTOWN_FUGUE_ADDR to fugue-client calls
 - [ ] Update Mayor spawn logic
 - [ ] Update polecat spawn logic
 - [ ] Update convoy spawn logic (if applicable)
@@ -62,13 +62,13 @@
 
 ## Section 5: Testing and Validation
 
-- [ ] Test local execution (GASTOWN_CCMUX_ADDR unset)
+- [ ] Test local execution (GASTOWN_FUGUE_ADDR unset)
   - [ ] Mayor spawns locally
   - [ ] Polecats spawn locally
   - [ ] All functionality unchanged
-- [ ] Test remote execution (GASTOWN_CCMUX_ADDR set)
-  - [ ] Set up SSH tunnel to remote ccmux
-  - [ ] Export GASTOWN_CCMUX_ADDR=tcp://localhost:9999
+- [ ] Test remote execution (GASTOWN_FUGUE_ADDR set)
+  - [ ] Set up SSH tunnel to remote fugue
+  - [ ] Export GASTOWN_FUGUE_ADDR=tcp://localhost:9999
   - [ ] Verify agents spawn on remote machine
 - [ ] Test hybrid workflow
   - [ ] Run Mayor locally
@@ -87,12 +87,12 @@
 
 ## Section 6: Documentation
 
-- [ ] Write GASTOWN_CCMUX_ADDR usage guide
+- [ ] Write GASTOWN_FUGUE_ADDR usage guide
   - [ ] Environment variable syntax
   - [ ] URL scheme documentation
   - [ ] Examples for common scenarios
 - [ ] Write remote workflow setup guide
-  - [ ] Prerequisites (ccmux remote peering)
+  - [ ] Prerequisites (fugue remote peering)
   - [ ] SSH tunnel setup (reference FEAT-068)
   - [ ] Configuration steps
   - [ ] Verification steps
@@ -118,7 +118,7 @@
 ## Verification Tasks
 
 - [ ] All acceptance criteria from PROMPT.md met
-  - [ ] GASTOWN_CCMUX_ADDR controls remote pane spawning
+  - [ ] GASTOWN_FUGUE_ADDR controls remote pane spawning
   - [ ] Mayor can run locally while polecats run remotely
   - [ ] Remote panes spawn correctly via TCP
   - [ ] State sync works across hosts

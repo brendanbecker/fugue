@@ -14,7 +14,7 @@
   "reproducibility": "always",
   "description": "MCP tool handlers receive 'Unexpected response: Sequenced { ... }' errors because the daemon wraps responses in ServerMessage::Sequenced for persistence tracking (FEAT-075), but the MCP bridge's response reception pipeline doesn't unwrap them. This breaks multiple MCP tools that rely on recv_response_from_daemon().",
   "steps_to_reproduce": [
-    "Start ccmux daemon with persistence enabled (FEAT-075)",
+    "Start fugue daemon with persistence enabled (FEAT-075)",
     "Call any MCP tool that uses recv_response_from_daemon() (e.g., kill_session, set_tags, broadcast)",
     "Observe error: 'Unexpected response: Sequenced { seq: N, inner: ActualMessage }'",
     "Compare with working tools (create_pane, list_panes) that use recv_filtered() with specific predicates"
@@ -45,8 +45,8 @@
     ],
     "working_tools_reason": "These use recv_filtered() with specific predicates that bypass the issue",
     "affected_files": [
-      "ccmux-server/src/mcp/bridge/connection.rs",
-      "ccmux-server/src/mcp/bridge/handlers.rs"
+      "fugue-server/src/mcp/bridge/connection.rs",
+      "fugue-server/src/mcp/bridge/handlers.rs"
     ]
   },
   "root_cause": "The is_broadcast_message() function (connection.rs:390-427) doesn't include ServerMessage::Sequenced variant, so wrapped responses pass through the filter unchanged. Tool handlers expect unwrapped message types like SessionList or TagsList but receive Sequenced { inner: Box<SessionList> }.",

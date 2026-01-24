@@ -8,13 +8,13 @@
 
 - [x] Read and understand PROMPT.md
 - [x] Review PLAN.md and update if needed
-- [x] Understand ccmux input data flow (client -> socket -> server -> PTY)
+- [x] Understand fugue input data flow (client -> socket -> server -> PTY)
 
 ## Investigation Tasks
 
 ### Reproduce the Crash
 
-- [ ] Start ccmux session
+- [ ] Start fugue session
 - [ ] Generate large test content (1MB, 10MB, 100MB files)
 - [ ] Attempt paste of each size
 - [ ] Document which size causes crash
@@ -38,12 +38,12 @@
 
 ### Code Analysis
 
-- [x] Read `ccmux-client/src/input/mod.rs` - input handling
-- [x] Read `ccmux-client/src/socket.rs` - client socket code
-- [x] Read `ccmux-protocol/src/lib.rs` - message types
+- [x] Read `fugue-client/src/input/mod.rs` - input handling
+- [x] Read `fugue-client/src/socket.rs` - client socket code
+- [x] Read `fugue-protocol/src/lib.rs` - message types
 - [x] Read message framing/serialization code
-- [x] Read `ccmux-server/src/handlers/` - message handlers
-- [x] Read `ccmux-server/src/pty/` - PTY write handling
+- [x] Read `fugue-server/src/handlers/` - message handlers
+- [x] Read `fugue-server/src/pty/` - PTY write handling
 - [x] Document findings in PLAN.md
 
 ### Root Cause Determination

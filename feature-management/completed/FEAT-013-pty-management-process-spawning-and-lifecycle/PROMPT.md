@@ -1,7 +1,7 @@
 # FEAT-013: PTY Management - Process Spawning and Lifecycle
 
 **Priority**: P1
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
@@ -17,15 +17,15 @@ PTY spawning via portable-pty, process lifecycle management (spawn/kill/wait), r
 - Process lifecycle management (spawn, kill, wait for exit)
 - PTY resize support (SIGWINCH)
 - Async I/O for PTY read/write
-- Environment variable setup (TERM, CCMUX_* vars)
+- Environment variable setup (TERM, FUGUE_* vars)
 - Working directory configuration
 - Shell detection and configuration
 
 ## Affected Files
 
-- `ccmux-server/src/pty/handle.rs`
-- `ccmux-server/src/pty/config.rs`
-- `ccmux-server/src/pty/mod.rs`
+- `fugue-server/src/pty/handle.rs`
+- `fugue-server/src/pty/config.rs`
+- `fugue-server/src/pty/mod.rs`
 
 ## Implementation Tasks
 
@@ -38,7 +38,7 @@ PTY spawning via portable-pty, process lifecycle management (spawn/kill/wait), r
 ### Section 2: PTY Spawning
 - [x] Implement PTY spawning with portable-pty
 - [x] Configure shell detection (SHELL env, /etc/passwd, fallback)
-- [x] Set up environment variables (TERM, CCMUX_PANE_ID, etc.)
+- [x] Set up environment variables (TERM, FUGUE_PANE_ID, etc.)
 - [x] Configure working directory
 - [x] Handle spawn errors gracefully
 

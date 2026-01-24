@@ -9,8 +9,8 @@
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
 - [ ] Verify FEAT-029 (MCP Natural Language Control) is implemented
-- [ ] Identify current MCP tool implementations in ccmux-server/src/mcp/
-- [ ] Understand current session data model in ccmux-server/src/session/
+- [ ] Identify current MCP tool implementations in fugue-server/src/mcp/
+- [ ] Understand current session data model in fugue-server/src/session/
 
 ## Phase 1: Data Model Updates
 
@@ -82,26 +82,26 @@
 
 ## Phase 4: Update Existing MCP Tools
 
-### 4.1 Update ccmux_list_windows
-- [ ] Find handler in ccmux-server/src/mcp/handlers.rs
+### 4.1 Update fugue_list_windows
+- [ ] Find handler in fugue-server/src/mcp/handlers.rs
 - [ ] Use get_active_session() when session_id not provided
 - [ ] Update tool description: "uses active session if omitted"
 - [ ] Add session_context to response
 
-### 4.2 Update ccmux_create_window
+### 4.2 Update fugue_create_window
 - [ ] Find handler in handlers.rs
 - [ ] Use get_active_session() when session_id not provided
 - [ ] Update tool description
 - [ ] Add session_context to response
 
-### 4.3 Update ccmux_create_pane
+### 4.3 Update fugue_create_pane
 - [ ] Find handler in handlers.rs
 - [ ] Use get_active_session() when session_id not provided
 - [ ] Update tool description
 - [ ] Add session_context to response
 - [ ] Add name parameter to schema (see Phase 5)
 
-### 4.4 Update ccmux_list_panes
+### 4.4 Update fugue_list_panes
 - [ ] Find handler in handlers.rs
 - [ ] Use get_active_session() when session_id filter not provided
 - [ ] Update tool description
@@ -110,32 +110,32 @@
 ### 4.5 Update Other Session-Scoped Tools
 - [ ] Audit all tools for session-scoped operations
 - [ ] Apply same pattern to any other affected tools
-- [ ] ccmux_get_output - if session-scoped
-- [ ] ccmux_send_input - if session-scoped
+- [ ] fugue_get_output - if session-scoped
+- [ ] fugue_send_input - if session-scoped
 
 ### 4.6 Tool Update Tests
-- [ ] Test ccmux_list_windows uses active session
-- [ ] Test ccmux_create_window uses active session
-- [ ] Test ccmux_create_pane uses active session
-- [ ] Test ccmux_list_panes uses active session
+- [ ] Test fugue_list_windows uses active session
+- [ ] Test fugue_create_window uses active session
+- [ ] Test fugue_create_pane uses active session
+- [ ] Test fugue_list_panes uses active session
 - [ ] Test explicit session_id still works (not overridden)
 
 ## Phase 5: Pane Naming on Creation
 
-### 5.1 Update ccmux_create_pane Schema
+### 5.1 Update fugue_create_pane Schema
 - [ ] Add "name" field to input_schema in tools.rs
 - [ ] Make name optional with description
 - [ ] Schema: `{"name": {"type": "string", "description": "Optional display name for the pane"}}`
 
-### 5.2 Update ccmux_create_pane Handler
+### 5.2 Update fugue_create_pane Handler
 - [ ] Parse name from arguments
 - [ ] Pass name to pane creation
 - [ ] Store name in Pane struct
 
 ### 5.3 Update List Outputs
-- [ ] Update ccmux_list_panes to include "name" in pane objects
+- [ ] Update fugue_list_panes to include "name" in pane objects
 - [ ] Handle None name (omit or return null)
-- [ ] Update ccmux_list_windows to include window names
+- [ ] Update fugue_list_windows to include window names
 
 ### 5.4 Pane Naming Tests
 - [ ] Test create pane with name
@@ -145,7 +145,7 @@
 
 ## Phase 6: Rename Tools
 
-### 6.1 Implement ccmux_rename_pane
+### 6.1 Implement fugue_rename_pane
 - [ ] Add tool definition in tools.rs
 - [ ] Schema: pane_id (required), name (required)
 - [ ] Implement handler in handlers.rs
@@ -153,7 +153,7 @@
 - [ ] Update name field
 - [ ] Return success with updated pane info
 
-### 6.2 Implement ccmux_rename_window
+### 6.2 Implement fugue_rename_window
 - [ ] Add tool definition in tools.rs
 - [ ] Schema: window_id (required), name (required)
 - [ ] Implement handler in handlers.rs
@@ -179,12 +179,12 @@
 - [ ] Fields: session_id, session_name
 
 ### 7.2 Update All Session-Scoped Responses
-- [ ] ccmux_list_windows - add session_context
-- [ ] ccmux_create_window - add session_context
-- [ ] ccmux_create_pane - add session_context
-- [ ] ccmux_list_panes - add session_context
-- [ ] ccmux_rename_pane - add session_context
-- [ ] ccmux_rename_window - add session_context
+- [ ] fugue_list_windows - add session_context
+- [ ] fugue_create_window - add session_context
+- [ ] fugue_create_pane - add session_context
+- [ ] fugue_list_panes - add session_context
+- [ ] fugue_rename_pane - add session_context
+- [ ] fugue_rename_window - add session_context
 
 ### 7.3 Response Format Tests
 - [ ] Verify all responses include session_context
@@ -223,10 +223,10 @@
 ## Phase 9: Documentation
 
 ### 9.1 Update Tool Descriptions
-- [ ] ccmux_list_windows: "uses active session if omitted"
-- [ ] ccmux_create_window: "uses active session if omitted"
-- [ ] ccmux_create_pane: "uses active session if omitted"
-- [ ] ccmux_list_panes: "uses active session if omitted"
+- [ ] fugue_list_windows: "uses active session if omitted"
+- [ ] fugue_create_window: "uses active session if omitted"
+- [ ] fugue_create_pane: "uses active session if omitted"
+- [ ] fugue_list_panes: "uses active session if omitted"
 
 ### 9.2 Document Active Session Behavior
 - [ ] Add comment in handlers.rs explaining active session logic

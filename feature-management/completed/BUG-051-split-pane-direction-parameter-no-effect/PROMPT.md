@@ -7,7 +7,7 @@
 
 ## Problem Statement
 
-When using `ccmux_split_pane` with `direction: "vertical"` or `direction: "horizontal"`, both produce the same result - horizontally stacked panes (one above the other). The direction parameter appears to have no effect on the actual layout.
+When using `fugue_split_pane` with `direction: "vertical"` or `direction: "horizontal"`, both produce the same result - horizontally stacked panes (one above the other). The direction parameter appears to have no effect on the actual layout.
 
 ## Evidence
 
@@ -67,7 +67,7 @@ To be determined. Possible causes:
 - [ ] Manual test: split with horizontal direction
 - [ ] Manual test: split with vertical direction
 - [ ] Verify visually distinct layouts for each direction
-- [ ] Test direction parameter with ccmux_create_pane if it also has this parameter
+- [ ] Test direction parameter with fugue_create_pane if it also has this parameter
 
 ### Section 4: Verification
 - [ ] Confirm both directions work correctly

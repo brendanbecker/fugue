@@ -1,20 +1,20 @@
 # BUG-031: Session Metadata Not Persisting Across Daemon Restarts
 
 ## Summary
-Session metadata set via `ccmux_set_metadata` is lost when the daemon restarts. This violates FEAT-050's acceptance criteria which states "Metadata persists across server restarts".
+Session metadata set via `fugue_set_metadata` is lost when the daemon restarts. This violates FEAT-050's acceptance criteria which states "Metadata persists across server restarts".
 
 ## Steps to Reproduce
 
-1. Create a session: `ccmux_create_session` with name "test-session"
-2. Set metadata: `ccmux_set_metadata(session="test-session", key="qa.tester", value="claude")`
-3. Verify metadata: `ccmux_get_metadata(session="test-session")` returns `{"qa.tester": "claude"}`
-4. Restart the daemon (kill ccmux-server or full ccmux restart)
-5. Check metadata: `ccmux_get_metadata(session="test-session")` returns `{}`
+1. Create a session: `fugue_create_session` with name "test-session"
+2. Set metadata: `fugue_set_metadata(session="test-session", key="qa.tester", value="claude")`
+3. Verify metadata: `fugue_get_metadata(session="test-session")` returns `{"qa.tester": "claude"}`
+4. Restart the daemon (kill fugue-server or full fugue restart)
+5. Check metadata: `fugue_get_metadata(session="test-session")` returns `{}`
 
 ## Expected Behavior
 - Metadata should be saved to checkpoint files
 - On daemon restart, metadata should be restored from checkpoints
-- `ccmux_get_metadata` should return the same values after restart
+- `fugue_get_metadata` should return the same values after restart
 
 ## Actual Behavior
 - Metadata is stored in memory only
@@ -56,9 +56,9 @@ From FEAT-050 Acceptance Criteria:
 
 | File | Investigation |
 |------|---------------|
-| `ccmux-persistence/src/checkpoint.rs` | Check if metadata is included in checkpoint format |
-| `ccmux-session/src/session.rs` | Verify metadata field exists and is serializable |
-| `ccmux-server/src/persistence.rs` | Check checkpoint save/restore logic |
+| `fugue-persistence/src/checkpoint.rs` | Check if metadata is included in checkpoint format |
+| `fugue-session/src/session.rs` | Verify metadata field exists and is serializable |
+| `fugue-server/src/persistence.rs` | Check checkpoint save/restore logic |
 
 ## Impact
 - **Severity**: P2 Medium - Feature works but lacks durability

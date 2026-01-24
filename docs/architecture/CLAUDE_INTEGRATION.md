@@ -4,7 +4,7 @@
 
 ## Overview
 
-ccmux provides first-class support for Claude Code by detecting its state, managing session identifiers for crash recovery, and enabling structured communication between Claude and the multiplexer.
+fugue provides first-class support for Claude Code by detecting its state, managing session identifiers for crash recovery, and enabling structured communication between Claude and the multiplexer.
 
 ## State Detection Methods
 
@@ -173,7 +173,7 @@ claude -c
 claude --fork-session <session_id>
 ```
 
-**ccmux integration**:
+**fugue integration**:
 ```rust
 impl Pane {
     pub fn spawn_claude(&mut self, resume_id: Option<&str>) -> Result<()> {
@@ -210,7 +210,7 @@ Instance A reads:  { "current_session": "xyz" }  # Wrong session!
 Each Claude pane gets its own config directory:
 
 ```
-~/.ccmux/claude-configs/
+~/.fugue/claude-configs/
 ├── pane-<uuid1>/
 │   └── .claude.json
 ├── pane-<uuid2>/
@@ -222,7 +222,7 @@ Each Claude pane gets its own config directory:
 ```rust
 impl Pane {
     pub fn config_dir(&self) -> PathBuf {
-        let state_dir = ccmux_utils::state_dir();
+        let state_dir = fugue_utils::state_dir();
         state_dir
             .join("claude-configs")
             .join(format!("pane-{}", self.id))
@@ -247,14 +247,14 @@ See [ADR-003](./ADR/003-session-isolation.md) for the full decision rationale.
 
 ### Protocol A: MCP Server
 
-ccmux exposes an MCP (Model Context Protocol) server via the `mcp-bridge` subcommand. This allows Claude to control ccmux sessions programmatically.
+fugue exposes an MCP (Model Context Protocol) server via the `mcp-bridge` subcommand. This allows Claude to control fugue sessions programmatically.
 
 **MCP Configuration** (add to `~/.claude/mcp.json`):
 ```json
 {
   "mcpServers": {
-    "ccmux": {
-      "command": "/path/to/ccmux-server",
+    "fugue": {
+      "command": "/path/to/fugue-server",
       "args": ["mcp-bridge"]
     }
   }
@@ -265,41 +265,41 @@ ccmux exposes an MCP (Model Context Protocol) server via the `mcp-bridge` subcom
 
 | Category | Tool | Description |
 |----------|------|-------------|
-| **Sessions** | `ccmux_list_sessions` | List all sessions with metadata |
-| | `ccmux_create_session` | Create a new session |
-| | `ccmux_rename_session` | Rename a session for easier identification |
-| | `ccmux_select_session` | Switch to a different session |
-| | `ccmux_kill_session` | Destroy a session |
-| **Windows** | `ccmux_list_windows` | List windows in a session |
-| | `ccmux_create_window` | Create a new window |
-| | `ccmux_select_window` | Switch to a different window |
-| | `ccmux_rename_window` | Rename a window |
-| **Panes** | `ccmux_list_panes` | List all panes with metadata |
-| | `ccmux_create_pane` | Create a new pane (split) |
-| | `ccmux_close_pane` | Close a pane |
-| | `ccmux_focus_pane` | Focus a specific pane |
-| | `ccmux_rename_pane` | Rename a pane |
-| **I/O** | `ccmux_read_pane` | Read output buffer from pane |
-| | `ccmux_send_input` | Send keystrokes to pane (use `\n` for Enter) |
-| | `ccmux_get_status` | Get pane state (shell, Claude, etc.) |
-| **Layouts** | `ccmux_create_layout` | Create complex layouts declaratively |
-| | `ccmux_split_pane` | Split a pane with custom ratio |
-| | `ccmux_resize_pane` | Resize a pane dynamically |
-| **Environment** | `ccmux_set_environment` | Set session environment variable |
-| | `ccmux_get_environment` | Get session environment variables |
-| **Metadata** | `ccmux_set_metadata` | Set session metadata |
-| | `ccmux_get_metadata` | Get session metadata |
-| **Orchestration** | `ccmux_send_orchestration` | Send orchestration message with tag-based routing |
-| | `ccmux_set_tags` | Add/remove tags on a session |
-| | `ccmux_get_tags` | Query session tags |
-| | `ccmux_report_status` | Report status to orchestrator sessions |
-| | `ccmux_request_help` | Request help from orchestrator |
-| | `ccmux_broadcast` | Broadcast message to all sessions |
+| **Sessions** | `fugue_list_sessions` | List all sessions with metadata |
+| | `fugue_create_session` | Create a new session |
+| | `fugue_rename_session` | Rename a session for easier identification |
+| | `fugue_select_session` | Switch to a different session |
+| | `fugue_kill_session` | Destroy a session |
+| **Windows** | `fugue_list_windows` | List windows in a session |
+| | `fugue_create_window` | Create a new window |
+| | `fugue_select_window` | Switch to a different window |
+| | `fugue_rename_window` | Rename a window |
+| **Panes** | `fugue_list_panes` | List all panes with metadata |
+| | `fugue_create_pane` | Create a new pane (split) |
+| | `fugue_close_pane` | Close a pane |
+| | `fugue_focus_pane` | Focus a specific pane |
+| | `fugue_rename_pane` | Rename a pane |
+| **I/O** | `fugue_read_pane` | Read output buffer from pane |
+| | `fugue_send_input` | Send keystrokes to pane (use `\n` for Enter) |
+| | `fugue_get_status` | Get pane state (shell, Claude, etc.) |
+| **Layouts** | `fugue_create_layout` | Create complex layouts declaratively |
+| | `fugue_split_pane` | Split a pane with custom ratio |
+| | `fugue_resize_pane` | Resize a pane dynamically |
+| **Environment** | `fugue_set_environment` | Set session environment variable |
+| | `fugue_get_environment` | Get session environment variables |
+| **Metadata** | `fugue_set_metadata` | Set session metadata |
+| | `fugue_get_metadata` | Get session metadata |
+| **Orchestration** | `fugue_send_orchestration` | Send orchestration message with tag-based routing |
+| | `fugue_set_tags` | Add/remove tags on a session |
+| | `fugue_get_tags` | Query session tags |
+| | `fugue_report_status` | Report status to orchestrator sessions |
+| | `fugue_request_help` | Request help from orchestrator |
+| | `fugue_broadcast` | Broadcast message to all sessions |
 
 **Example: Create a pane**:
 ```json
 {
-  "tool": "ccmux_create_pane",
+  "tool": "fugue_create_pane",
   "input": {
     "direction": "horizontal",
     "command": "npm test"
@@ -307,7 +307,7 @@ ccmux exposes an MCP (Model Context Protocol) server via the `mcp-bridge` subcom
 }
 ```
 
-**Example: Declarative layout** (via `ccmux_create_layout`):
+**Example: Declarative layout** (via `fugue_create_layout`):
 ```json
 {
   "layout": {
@@ -331,7 +331,7 @@ This creates a 60/40 horizontal split with vim on the left, and a vertical split
 **Example: Send input with Enter**:
 ```json
 {
-  "tool": "ccmux_send_input",
+  "tool": "fugue_send_input",
   "input": {
     "pane_id": "abc-123",
     "input": "ls -la\n"
@@ -339,10 +339,10 @@ This creates a 60/40 horizontal split with vim on the left, and a vertical split
 }
 ```
 
-**Example: Send orchestration message** (via `ccmux_send_orchestration`):
+**Example: Send orchestration message** (via `fugue_send_orchestration`):
 ```json
 {
-  "tool": "ccmux_send_orchestration",
+  "tool": "fugue_send_orchestration",
   "input": {
     "target": {"tag": "orchestrator"},
     "msg_type": "task.complete",
@@ -360,7 +360,7 @@ Target variants:
 **Example: Tag a session as orchestrator**:
 ```json
 {
-  "tool": "ccmux_set_tags",
+  "tool": "fugue_set_tags",
   "input": {
     "add": ["orchestrator", "primary"]
   }
@@ -370,7 +370,7 @@ Target variants:
 **Example: Report status to orchestrator** (convenience tool):
 ```json
 {
-  "tool": "ccmux_report_status",
+  "tool": "fugue_report_status",
   "input": {
     "status": "working",
     "message": "Implementing FEAT-048"
@@ -380,13 +380,13 @@ Target variants:
 
 ### Protocol B: XML Sideband
 
-Claude can emit structured commands in its output that ccmux parses:
+Claude can emit structured commands in its output that fugue parses:
 
 **Command format**:
 ```xml
-<ccmux:spawn direction="vertical" command="cargo build" />
-<ccmux:input pane="1">ls -la</ccmux:input>
-<ccmux:control action="focus" pane="0" />
+<fugue:spawn direction="vertical" command="cargo build" />
+<fugue:input pane="1">ls -la</fugue:input>
+<fugue:control action="focus" pane="0" />
 ```
 
 **Implementation**:
@@ -400,7 +400,7 @@ impl SidebandParser {
         let mut commands = Vec::new();
         let mut display = String::new();
 
-        let re = regex::Regex::new(r"<ccmux:(\w+)([^>]*)(?:>(.*?)</ccmux:\1>|/>)").unwrap();
+        let re = regex::Regex::new(r"<fugue:(\w+)([^>]*)(?:>(.*?)</fugue:\1>|/>)").unwrap();
 
         let mut last_end = 0;
         for cap in re.captures_iter(output) {
@@ -424,7 +424,7 @@ impl SidebandParser {
 }
 ```
 
-**Sideband commands are hidden from display** - only the non-ccmux portions are rendered.
+**Sideband commands are hidden from display** - only the non-fugue portions are rendered.
 
 See [ADR-002](./ADR/002-claude-communication.md) for protocol selection rationale.
 
@@ -507,8 +507,8 @@ impl SessionManager {
 Child Claude instances know their depth:
 
 ```rust
-cmd.env("CCMUX_SESSION_DEPTH", depth.to_string());
-cmd.env("CCMUX_PARENT_PANE", parent_id.to_string());
+cmd.env("FUGUE_SESSION_DEPTH", depth.to_string());
+cmd.env("FUGUE_PARENT_PANE", parent_id.to_string());
 ```
 
 ## Status Bar Integration

@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-056
 
 **Work Item**: [FEAT-056: User Priority Lockout for MCP Focus Control](PROMPT.md)
-**Component**: ccmux-server, ccmux-client, ccmux-protocol
+**Component**: fugue-server, fugue-client, fugue-protocol
 **Priority**: P2
 **Created**: 2026-01-11
 
@@ -22,19 +22,19 @@ Implement a user priority lockout system that prevents MCP focus operations from
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-protocol/src/lib.rs | Add 2 new message types | Low |
-| ccmux-server/src/session/mod.rs | Add UserPriorityState struct | Low |
-| ccmux-server/src/mcp/handlers.rs | Add lock checks to 3 handlers | Medium |
-| ccmux-server/src/handlers/client.rs | Handle new messages | Low |
-| ccmux-server/src/config.rs | Add configuration section | Low |
-| ccmux-client/src/input/mod.rs | Send lock messages | Medium |
-| ccmux-client/src/ui/app.rs | Wire message sending | Low |
+| fugue-protocol/src/lib.rs | Add 2 new message types | Low |
+| fugue-server/src/session/mod.rs | Add UserPriorityState struct | Low |
+| fugue-server/src/mcp/handlers.rs | Add lock checks to 3 handlers | Medium |
+| fugue-server/src/handlers/client.rs | Handle new messages | Low |
+| fugue-server/src/config.rs | Add configuration section | Low |
+| fugue-client/src/input/mod.rs | Send lock messages | Medium |
+| fugue-client/src/ui/app.rs | Wire message sending | Low |
 
 ## Implementation Details
 
 ### 1. Protocol Messages
 
-Add to `ccmux-protocol/src/lib.rs`:
+Add to `fugue-protocol/src/lib.rs`:
 
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,7 +54,7 @@ pub enum ClientMessage {
 
 ### 2. Server-Side State
 
-New struct in `ccmux-server/src/session/user_priority.rs`:
+New struct in `fugue-server/src/session/user_priority.rs`:
 
 ```rust
 use std::time::{Duration, Instant};
@@ -104,7 +104,7 @@ impl UserPriorityState {
 
 ### 3. MCP Handler Lock Check
 
-Add to each focus handler in `ccmux-server/src/mcp/handlers.rs`:
+Add to each focus handler in `fugue-server/src/mcp/handlers.rs`:
 
 ```rust
 async fn check_user_priority(&self) -> Result<(), McpError> {
@@ -161,7 +161,7 @@ async fn wait_for_release(&self) -> Result<(), McpError> {
 
 ### 4. Client Input Integration
 
-Modify `ccmux-client/src/input/mod.rs`:
+Modify `fugue-client/src/input/mod.rs`:
 
 ```rust
 // When prefix key detected (entering PrefixPending state)
@@ -191,7 +191,7 @@ fn exit_prefix_mode(&mut self) {
 
 ### 5. Configuration
 
-Add to `ccmux-server/src/config.rs`:
+Add to `fugue-server/src/config.rs`:
 
 ```rust
 #[derive(Debug, Clone, Deserialize)]
@@ -226,7 +226,7 @@ fn default_timeout() -> u32 { 500 }
 
 ## Dependencies
 
-- FEAT-046: MCP Focus/Select Control (provides ccmux_focus_pane, ccmux_select_window, ccmux_select_session)
+- FEAT-046: MCP Focus/Select Control (provides fugue_focus_pane, fugue_select_window, fugue_select_session)
 
 ## Risk Assessment
 

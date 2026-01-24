@@ -9,7 +9,7 @@
 - [x] Read and understand PROMPT.md
 - [x] Review PLAN.md and update if needed
 - [x] Verify FEAT-007 (Protocol codec) is available
-- [x] Review ccmux-utils for error types and utilities
+- [x] Review fugue-utils for error types and utilities
 
 ## Design Tasks
 

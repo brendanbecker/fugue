@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-033
 
 **Work Item**: [FEAT-033: tmux-like Auto-Start Behavior](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P1
 **Created**: 2026-01-09
 
 ## Overview
 
-When user runs `ccmux`, the client should automatically start the server daemon if it's not already running, then connect. This provides the same UX as tmux where a single command handles everything.
+When user runs `fugue`, the client should automatically start the server daemon if it's not already running, then connect. This provides the same UX as tmux where a single command handles everything.
 
 ## Architecture Decisions
 
@@ -81,9 +81,9 @@ When user runs `ccmux`, the client should automatically start the server daemon 
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-client/src/main.rs | Add auto-start logic | Low |
-| ccmux-client/src/connection.rs (or similar) | Add retry wrapper | Low |
-| ccmux-client CLI | Add --no-auto-start flag | Low |
+| fugue-client/src/main.rs | Add auto-start logic | Low |
+| fugue-client/src/connection.rs (or similar) | Add retry wrapper | Low |
+| fugue-client CLI | Add --no-auto-start flag | Low |
 
 ## Implementation Order
 
@@ -150,7 +150,7 @@ fn find_server_binary() -> Result<PathBuf> {
     // 1. Same directory as current executable
     if let Ok(current_exe) = std::env::current_exe() {
         let server_path = current_exe.parent()
-            .map(|p| p.join("ccmux-server"));
+            .map(|p| p.join("fugue-server"));
         if let Some(path) = server_path {
             if path.is_file() {
                 return Ok(path);
@@ -159,11 +159,11 @@ fn find_server_binary() -> Result<PathBuf> {
     }
 
     // 2. Search PATH
-    if let Ok(path) = which::which("ccmux-server") {
+    if let Ok(path) = which::which("fugue-server") {
         return Ok(path);
     }
 
-    Err(anyhow!("ccmux-server binary not found. Ensure it's in the same directory as ccmux or in your PATH."))
+    Err(anyhow!("fugue-server binary not found. Ensure it's in the same directory as fugue or in your PATH."))
 }
 ```
 

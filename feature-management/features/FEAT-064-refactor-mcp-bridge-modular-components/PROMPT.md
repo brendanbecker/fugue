@@ -1,14 +1,14 @@
 # FEAT-064: Refactor MCP bridge.rs into modular components
 
 **Priority**: P2
-**Component**: ccmux-server (mcp module)
+**Component**: fugue-server (mcp module)
 **Type**: improvement
 **Estimated Effort**: large
 **Business Value**: high
 
 ## Overview
 
-The MCP bridge implementation (`ccmux-server/src/mcp/bridge.rs`) has grown to over 33,000 tokens and needs to be refactored into smaller, more maintainable modules.
+The MCP bridge implementation (`fugue-server/src/mcp/bridge.rs`) has grown to over 33,000 tokens and needs to be refactored into smaller, more maintainable modules.
 
 ## Problem Statement
 
@@ -20,7 +20,7 @@ The MCP bridge implementation (`ccmux-server/src/mcp/bridge.rs`) has grown to ov
 ## Proposed Module Structure
 
 ```
-ccmux-server/src/mcp/
+fugue-server/src/mcp/
 ├── mod.rs              # Module exports
 ├── bridge.rs           # Main McpBridge struct, high-level orchestration (slimmed down)
 ├── connection.rs       # Connection state, connect_to_daemon(), reconnection logic

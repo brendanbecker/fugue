@@ -1,10 +1,10 @@
-# ccmux Architecture
+# fugue Architecture
 
 > High-level system architecture for the Claude Code-aware terminal multiplexer
 
 ## Overview
 
-ccmux is a terminal multiplexer designed with first-class awareness of Claude Code. Unlike traditional multiplexers (tmux, screen) that treat all processes as opaque byte streams, ccmux understands Claude Code's state, can detect activity patterns, and enables intelligent session management including crash recovery.
+fugue is a terminal multiplexer designed with first-class awareness of Claude Code. Unlike traditional multiplexers (tmux, screen) that treat all processes as opaque byte streams, fugue understands Claude Code's state, can detect activity patterns, and enables intelligent session management including crash recovery.
 
 ## Design Philosophy
 
@@ -19,7 +19,7 @@ ccmux is a terminal multiplexer designed with first-class awareness of Claude Co
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              User Terminal                                   │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │                           ccmux-client                                 │  │
+│  │                           fugue-client                                 │  │
 │  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐   │  │
 │  │  │   Ratatui UI    │  │  Input Handler  │  │  Protocol Client    │   │  │
 │  │  │  (rendering)    │  │  (keys, mouse)  │  │  (IPC messages)     │   │  │
@@ -31,10 +31,10 @@ ccmux is a terminal multiplexer designed with first-class awareness of Claude Co
 └───────────────────────────────────┼──────────────────────────────────────────┘
                                     │
                               Unix Socket
-                         (~/.ccmux/ccmux.sock)
+                         (~/.fugue/fugue.sock)
                                     │
 ┌───────────────────────────────────┼──────────────────────────────────────────┐
-│                              ccmux-server (daemon)                           │
+│                              fugue-server (daemon)                           │
 │  ┌────────────────────────────────┴───────────────────────────────────────┐  │
 │  │                         Protocol Server                                 │  │
 │  │                      (IPC message handling)                             │  │
@@ -82,13 +82,13 @@ ccmux is a terminal multiplexer designed with first-class awareness of Claude Co
 
 ### Communication
 
-- **Transport**: Unix domain socket (`~/.ccmux/ccmux.sock`)
+- **Transport**: Unix domain socket (`~/.fugue/fugue.sock`)
 - **Protocol**: Length-prefixed binary frames with serde serialization
 - **Serialization**: bincode for performance, JSON for debugging
 
 ## Component Responsibilities
 
-### ccmux-client
+### fugue-client
 
 | Component | Responsibility |
 |-----------|----------------|
@@ -98,7 +98,7 @@ ccmux is a terminal multiplexer designed with first-class awareness of Claude Co
 
 The client is intentionally thin. It maintains minimal state and can be replaced or restarted without affecting sessions.
 
-### ccmux-server
+### fugue-server
 
 | Component | Responsibility |
 |-----------|----------------|
@@ -110,7 +110,7 @@ The client is intentionally thin. It maintains minimal state and can be replaced
 | **Persistence Layer** | Checkpoint state, maintain WAL |
 | **Config Watcher** | Monitor config files, trigger hot-reload |
 
-### ccmux-protocol
+### fugue-protocol
 
 Defines all IPC messages between client and server:
 
@@ -135,7 +135,7 @@ enum ServerMessage {
 }
 ```
 
-### ccmux-utils
+### fugue-utils
 
 Shared utilities used by both client and server:
 - Configuration parsing and validation
@@ -146,7 +146,7 @@ Shared utilities used by both client and server:
 ## Session Hierarchy
 
 ```
-ccmux-server
+fugue-server
 └── Session "work"
     ├── Window 0 "main"
     │   ├── Pane 0 (Claude Code, session: abc123)

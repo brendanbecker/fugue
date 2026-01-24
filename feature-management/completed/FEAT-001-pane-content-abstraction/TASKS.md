@@ -9,11 +9,11 @@
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
 - [ ] Review current pane.rs implementation
-- [ ] Review ccmux-protocol/src/lib.rs structure
+- [ ] Review fugue-protocol/src/lib.rs structure
 
 ## Phase 1: Core Type Definitions
 
-### Protocol Types (ccmux-protocol)
+### Protocol Types (fugue-protocol)
 - [ ] Define `CanvasAction` enum (Close, Scroll, Custom)
 - [ ] Define `Canvas` trait with render(), handle_input(), title()
 - [ ] Define `TerminalState` wrapper type (if needed)
@@ -28,7 +28,7 @@
 
 ## Phase 2: Pane Refactor
 
-### Update Pane Struct (ccmux-server)
+### Update Pane Struct (fugue-server)
 - [ ] Add `content: PaneContent` field to `Pane`
 - [ ] Update `Pane::new()` to accept content type parameter
 - [ ] Add `Pane::new_terminal()` convenience constructor
@@ -54,9 +54,9 @@
 ## Phase 3: Canvas Implementations
 
 ### Canvas Module Setup
-- [ ] Create `ccmux-server/src/canvas/mod.rs`
-- [ ] Create `ccmux-server/src/canvas/diff.rs`
-- [ ] Create `ccmux-server/src/canvas/test_results.rs`
+- [ ] Create `fugue-server/src/canvas/mod.rs`
+- [ ] Create `fugue-server/src/canvas/diff.rs`
+- [ ] Create `fugue-server/src/canvas/test_results.rs`
 - [ ] Export canvas module from session/mod.rs
 
 ### DiffCanvas Implementation
@@ -85,7 +85,7 @@
 ## Phase 4: Sideband Integration
 
 ### Parser Updates
-- [ ] Add `<ccmux:canvas>` command to sideband parser
+- [ ] Add `<fugue:canvas>` command to sideband parser
 - [ ] Parse `type` attribute (diff, test_results)
 - [ ] Parse content/data (path or inline JSON)
 - [ ] Handle malformed canvas commands gracefully

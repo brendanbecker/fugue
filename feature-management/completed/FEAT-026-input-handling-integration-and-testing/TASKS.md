@@ -15,13 +15,13 @@
 ## Code Review Tasks
 
 ### Review keys.rs
-- [ ] Read through `ccmux-client/src/input/keys.rs`
+- [ ] Read through `fugue-client/src/input/keys.rs`
 - [ ] Verify all KeyEvent types are handled
 - [ ] Check modifier key handling (Ctrl, Alt, Shift)
 - [ ] Document any gaps or issues found
 
 ### Review input_handler.rs
-- [ ] Read through `ccmux-client/src/input/input_handler.rs`
+- [ ] Read through `fugue-client/src/input/input_handler.rs`
 - [ ] Verify byte conversion logic
 - [ ] Check control character sequences
 - [ ] Check special key escape sequences

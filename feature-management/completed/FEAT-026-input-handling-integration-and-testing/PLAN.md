@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-026
 
 **Work Item**: [FEAT-026: Input Handling Integration and Testing](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P1
 **Created**: 2026-01-09
 
@@ -53,10 +53,10 @@ PTY - Process input, generate output
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-client/src/input/keys.rs | Verify/Test | Low |
-| ccmux-client/src/input/input_handler.rs | Verify/Test | Low |
-| ccmux-client/src/input/mod.rs | May add tests | Low |
-| ccmux-client/tests/ | Add integration tests | Low |
+| fugue-client/src/input/keys.rs | Verify/Test | Low |
+| fugue-client/src/input/input_handler.rs | Verify/Test | Low |
+| fugue-client/src/input/mod.rs | May add tests | Low |
+| fugue-client/tests/ | Add integration tests | Low |
 
 ## Dependencies
 

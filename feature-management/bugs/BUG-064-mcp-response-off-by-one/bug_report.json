@@ -9,8 +9,8 @@
   "description": "MCP tool calls intermittently receive responses meant for previous requests due to stale responses in channel after timeout",
   "root_cause": "No request-response correlation by ID; stale responses accumulate in channel after timeouts",
   "affected_files": [
-    "ccmux-server/src/mcp/bridge/connection.rs",
-    "ccmux-protocol/src/lib.rs"
+    "fugue-server/src/mcp/bridge/connection.rs",
+    "fugue-protocol/src/lib.rs"
   ],
   "reproduction_steps": [
     "Run daemon with multiple active sessions",

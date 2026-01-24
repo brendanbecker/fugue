@@ -7,7 +7,7 @@
 
 ## Problem
 
-`ccmux_send_input` with `submit: true` doesn't actually submit the input in Gemini CLI. The text appears in the input field but Enter is not triggered. A separate `key: "Enter"` call is required.
+`fugue_send_input` with `submit: true` doesn't actually submit the input in Gemini CLI. The text appears in the input field but Enter is not triggered. A separate `key: "Enter"` call is required.
 
 ## Code Analysis
 

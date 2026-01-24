@@ -1,7 +1,7 @@
 # FEAT-007: Protocol Layer - IPC Message Types and Codec
 
 **Priority**: P1
-**Component**: ccmux-protocol
+**Component**: fugue-protocol
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
@@ -43,8 +43,8 @@ Client/server IPC message types (ClientMessage, ServerMessage), shared data type
 
 ## Affected Files
 
-- `ccmux-protocol/src/lib.rs` - Main protocol types and exports
-- `ccmux-protocol/src/codec.rs` - Tokio codec implementation
+- `fugue-protocol/src/lib.rs` - Main protocol types and exports
+- `fugue-protocol/src/codec.rs` - Tokio codec implementation
 
 ## Implementation Tasks
 

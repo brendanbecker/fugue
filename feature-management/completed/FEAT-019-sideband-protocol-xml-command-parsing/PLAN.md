@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-019
 
 **Work Item**: [FEAT-019: Sideband Protocol - XML Command Parsing from Claude Output](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P2
 **Created**: 2026-01-08
 
 ## Overview
 
-Parse XML-style commands from Claude output (`<ccmux:spawn>`, `<ccmux:input>`) for lightweight Claude-ccmux communication.
+Parse XML-style commands from Claude output (`<fugue:spawn>`, `<fugue:input>`) for lightweight Claude-fugue communication.
 
 ## Architecture Decisions
 
@@ -46,7 +46,7 @@ pub struct CanvasCommand {
 ### Parsing Strategy
 
 Two-phase parsing approach:
-1. **Tag Detection**: Scan output for `<ccmux:` prefix
+1. **Tag Detection**: Scan output for `<fugue:` prefix
 2. **Command Parsing**: Extract tag name, attributes, and content
 
 State machine for handling partial commands:
@@ -60,8 +60,8 @@ Passthrough -> TagStart -> TagName -> Attributes -> Content -> TagEnd
 ### Output Filtering
 
 The parser maintains a buffer for incomplete tags:
-- Output before `<ccmux:` is passed through immediately
-- Content between `<ccmux:` and `/>` or `</ccmux:*>` is buffered
+- Output before `<fugue:` is passed through immediately
+- Content between `<fugue:` and `/>` or `</fugue:*>` is buffered
 - Complete commands are parsed and stripped
 - Incomplete commands at buffer end are held for next read
 
@@ -80,9 +80,9 @@ Events are sent via tokio::sync::mpsc channel to the session manager.
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/sideband/parser.rs | New - XML parser implementation | Medium |
-| ccmux-server/src/sideband/commands.rs | New - Command type definitions | Low |
-| ccmux-server/src/sideband/mod.rs | New - Module exports | Low |
+| fugue-server/src/sideband/parser.rs | New - XML parser implementation | Medium |
+| fugue-server/src/sideband/commands.rs | New - Command type definitions | Low |
+| fugue-server/src/sideband/mod.rs | New - Module exports | Low |
 
 ## Dependencies
 
@@ -124,7 +124,7 @@ Events are sent via tokio::sync::mpsc channel to the session manager.
 
 If implementation causes issues:
 1. Revert commits associated with this work item
-2. Remove sideband module from ccmux-server
+2. Remove sideband module from fugue-server
 3. Disable sideband parsing in PTY output path
 4. Document what went wrong in comments.md
 

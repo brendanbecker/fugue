@@ -1,14 +1,14 @@
 # FEAT-115: Web Voice Input
 
 **Priority**: P3
-**Component**: ccmux-web
+**Component**: fugue-web
 **Effort**: Small
 **Status**: new
 **Depends On**: FEAT-113 (FEAT-114 recommended)
 
 ## Summary
 
-Add voice-to-text input for the ccmux web interface using the Web Speech API. Users can speak commands naturally, which are transcribed and sent to the active terminal pane. Primary use case is mobile interaction with Claude agents.
+Add voice-to-text input for the fugue web interface using the Web Speech API. Users can speak commands naturally, which are transcribed and sent to the active terminal pane. Primary use case is mobile interaction with Claude agents.
 
 ## Related Features
 
@@ -392,7 +392,7 @@ const voiceUI = new VoiceUI(voiceInput, document.body);
 
 ## Configuration
 
-**Extend** `~/.ccmux/config.toml`:
+**Extend** `~/.fugue/config.toml`:
 ```toml
 [web.voice]
 enabled = true           # Enable voice input
@@ -457,14 +457,14 @@ if (!SpeechRecognition) {
 ## Privacy Considerations
 
 - Speech is processed by browser's speech service (Google for Chrome, Apple for Safari)
-- Audio is not stored by ccmux
+- Audio is not stored by fugue
 - Consider noting this in UI: "Voice processed by [browser vendor]"
-- No server-side speech processing in ccmux
+- No server-side speech processing in fugue
 
 ## Future Enhancements (Out of Scope)
 
 - Text-to-speech for Claude responses
-- Custom wake word ("Hey ccmux")
+- Custom wake word ("Hey fugue")
 - Multi-language support
 - Offline speech recognition (when browsers support it)
 - Voice commands for navigation ("next pane", "scroll up")

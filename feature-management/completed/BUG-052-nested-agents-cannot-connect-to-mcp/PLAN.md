@@ -1,13 +1,13 @@
 # Implementation Plan: BUG-052
 
-**Work Item**: [BUG-052: Agents inside ccmux panes cannot connect to ccmux MCP server](PROMPT.md)
+**Work Item**: [BUG-052: Agents inside fugue panes cannot connect to fugue MCP server](PROMPT.md)
 **Component**: mcp-bridge
 **Priority**: P1
 **Created**: 2026-01-17
 
 ## Overview
 
-When an AI agent (e.g., Gemini CLI) is launched inside a ccmux pane, it cannot connect to the ccmux MCP server. This breaks the core orchestration use case where agents inside ccmux should be able to control ccmux (create panes, split windows, orchestrate other agents, etc.).
+When an AI agent (e.g., Gemini CLI) is launched inside a fugue pane, it cannot connect to the fugue MCP server. This breaks the core orchestration use case where agents inside fugue should be able to control fugue (create panes, split windows, orchestrate other agents, etc.).
 
 ## Architecture Decisions
 
@@ -15,7 +15,7 @@ When an AI agent (e.g., Gemini CLI) is launched inside a ccmux pane, it cannot c
 
 The MCP bridge currently uses stdio-based communication:
 - Single client connects via stdin/stdout
-- This works for the outer agent (Claude Code) running ccmux
+- This works for the outer agent (Claude Code) running fugue
 - Agents spawned INSIDE panes cannot use the same stdio channel
 
 ### Potential Solutions
@@ -80,9 +80,9 @@ If implementation causes issues:
 
 Before implementation, must determine:
 
-- [ ] How does Claude Code currently connect to ccmux MCP?
+- [ ] How does Claude Code currently connect to fugue MCP?
 - [ ] What transport does the MCP bridge use (stdio, socket, etc.)?
-- [ ] What environment variables are available inside ccmux PTY?
+- [ ] What environment variables are available inside fugue PTY?
 - [ ] Does Gemini CLI support the same MCP transport types?
 - [ ] Is the bridge rejecting connections or is the client unable to find it?
 

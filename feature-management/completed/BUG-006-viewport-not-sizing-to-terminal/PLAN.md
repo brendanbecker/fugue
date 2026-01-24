@@ -2,7 +2,7 @@
 
 ## Overview
 
-Fix the viewport sizing issue where ccmux-client renders panes at 80x24 regardless of actual terminal size when attaching to an existing session.
+Fix the viewport sizing issue where fugue-client renders panes at 80x24 regardless of actual terminal size when attaching to an existing session.
 
 ## Root Cause Summary
 
@@ -60,7 +60,7 @@ Client                          Server
 
 ## Implementation Details
 
-### File: `ccmux-client/src/ui/app.rs`
+### File: `fugue-client/src/ui/app.rs`
 
 #### Change 1: Calculate pane dimensions from terminal size
 

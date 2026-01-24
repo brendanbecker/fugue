@@ -1,6 +1,6 @@
 {
   "id": "BUG-025",
-  "title": "ccmux_create_pane response direction doesn't match request",
+  "title": "fugue_create_pane response direction doesn't match request",
   "priority": "P2",
   "severity": "low",
   "status": "open",

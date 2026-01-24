@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-038
 
 **Work Item**: [FEAT-038: Split Pane Rendering - Layout Manager for Multi-Pane Display](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P1
 **Created**: 2026-01-09
 
@@ -13,7 +13,7 @@ Integrate the existing `LayoutManager` from `layout.rs` into the `App` struct an
 
 ### Approach: Integrate Existing LayoutManager
 
-The `LayoutManager` in `ccmux-client/src/ui/layout.rs` already provides:
+The `LayoutManager` in `fugue-client/src/ui/layout.rs` already provides:
 - Tree-based layout with `LayoutNode::Pane` and `LayoutNode::Split`
 - `add_pane(target, new, direction)` for splitting
 - `remove_pane()` for closure
@@ -92,9 +92,9 @@ This happens in both:
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-client/src/ui/app.rs` | Major - add layout, rewrite draw_attached | Medium |
-| `ccmux-client/src/ui/pane.rs` | Minor - may add border variant | Low |
-| `ccmux-client/src/ui/layout.rs` | Minor - may need root_mut() accessor | Low |
+| `fugue-client/src/ui/app.rs` | Major - add layout, rewrite draw_attached | Medium |
+| `fugue-client/src/ui/pane.rs` | Minor - may add border variant | Low |
+| `fugue-client/src/ui/layout.rs` | Minor - may need root_mut() accessor | Low |
 
 ## Dependencies
 

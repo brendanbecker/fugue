@@ -61,12 +61,12 @@ the next wave can begin (dependencies are satisfied).
 
 | ID | Title | Component | Tests |
 |----|-------|-----------|-------|
-| FEAT-007 | Protocol Layer - IPC Message Types and Codec | ccmux-protocol | 86 |
-| FEAT-008 | Utilities - Error Types, Logging, Path Helpers | ccmux-utils | 108 |
-| FEAT-011 | Client Connection - Unix Socket Client | ccmux-client | 31 |
-| FEAT-012 | Session Management - Session/Window/Pane Hierarchy | ccmux-server | 88 |
-| FEAT-013 | PTY Management - Process Spawning and Lifecycle | ccmux-server | 17 |
-| FEAT-017 | Configuration - TOML Config with Hot Reload | ccmux-server | 38 |
+| FEAT-007 | Protocol Layer - IPC Message Types and Codec | fugue-protocol | 86 |
+| FEAT-008 | Utilities - Error Types, Logging, Path Helpers | fugue-utils | 108 |
+| FEAT-011 | Client Connection - Unix Socket Client | fugue-client | 31 |
+| FEAT-012 | Session Management - Session/Window/Pane Hierarchy | fugue-server | 88 |
+| FEAT-013 | PTY Management - Process Spawning and Lifecycle | fugue-server | 17 |
+| FEAT-017 | Configuration - TOML Config with Hot Reload | fugue-server | 38 |
 
 **Status**: ✅ All 6 features completed (368 tests).
 
@@ -84,8 +84,8 @@ the next wave can begin (dependencies are satisfied).
 | FEAT-004c | Cross-Session Messaging | orchestration | 45 |
 | FEAT-005 | Response Channel | orchestration | 72 |
 | FEAT-006 | Per-Session Log Levels | logging | 40 |
-| FEAT-009 | Client UI | ccmux-client | 97 |
-| FEAT-016 | Persistence | ccmux-server | 85 |
+| FEAT-009 | Client UI | fugue-client | 97 |
+| FEAT-016 | Persistence | fugue-server | 85 |
 
 **Status**: ✅ All 10 features completed (452 tests).
 
@@ -97,9 +97,9 @@ the next wave can begin (dependencies are satisfied).
 
 | ID | Title | Component | Tests |
 |----|-------|-----------|-------|
-| FEAT-010 | Client Input - Keyboard and Mouse Handling | ccmux-client | 87 |
-| FEAT-015 | Claude Detection - State from PTY Output | ccmux-server | 45 |
-| FEAT-019 | Sideband Protocol - XML Command Parsing | ccmux-server | 92 |
+| FEAT-010 | Client Input - Keyboard and Mouse Handling | fugue-client | 87 |
+| FEAT-015 | Claude Detection - State from PTY Output | fugue-server | 45 |
+| FEAT-019 | Sideband Protocol - XML Command Parsing | fugue-server | 92 |
 
 **Status**: ✅ All 3 features completed (224 tests).
 
@@ -109,8 +109,8 @@ the next wave can begin (dependencies are satisfied).
 
 | ID | Title | Component | Tests |
 |----|-------|-----------|-------|
-| FEAT-018 | MCP Server - Model Context Protocol | ccmux-server | 32 |
-| FEAT-020 | Session Isolation - Per-Pane CLAUDE_CONFIG_DIR | ccmux-server | 17 |
+| FEAT-018 | MCP Server - Model Context Protocol | fugue-server | 32 |
+| FEAT-020 | Session Isolation - Per-Pane CLAUDE_CONFIG_DIR | fugue-server | 17 |
 
 **Status**: ✅ All 2 features completed (49 tests).
 
@@ -131,13 +131,13 @@ FEAT-021 → FEAT-027 → FEAT-022 → FEAT-023 → FEAT-025 → FEAT-026
 
 | ID | Title | Component | Priority | Effort | Dependencies |
 |----|-------|-----------|----------|--------|--------------|
-| FEAT-021 | Server Socket Listen Loop | ccmux-server | P0 | large (4-6h) | None |
-| FEAT-027 | Client Connection Registry | ccmux-server | P0 | small (1-2h) | FEAT-021 |
-| FEAT-022 | Client Message Routing | ccmux-server | P0 | large (6-8h) | FEAT-027 |
-| FEAT-023 | PTY Output Broadcasting | ccmux-server | P0 | medium (2-3h) | FEAT-027 |
-| FEAT-024 | Session Selection UI | ccmux-client | P1 | small (2h) | FEAT-022 |
-| FEAT-025 | Pane Output Rendering | ccmux-client | P0 | medium (3-4h) | FEAT-022, FEAT-023 |
-| FEAT-026 | Input Testing | ccmux-client | P1 | small (1-2h) | FEAT-025 |
+| FEAT-021 | Server Socket Listen Loop | fugue-server | P0 | large (4-6h) | None |
+| FEAT-027 | Client Connection Registry | fugue-server | P0 | small (1-2h) | FEAT-021 |
+| FEAT-022 | Client Message Routing | fugue-server | P0 | large (6-8h) | FEAT-027 |
+| FEAT-023 | PTY Output Broadcasting | fugue-server | P0 | medium (2-3h) | FEAT-027 |
+| FEAT-024 | Session Selection UI | fugue-client | P1 | small (2h) | FEAT-022 |
+| FEAT-025 | Pane Output Rendering | fugue-client | P0 | medium (3-4h) | FEAT-022, FEAT-023 |
+| FEAT-026 | Input Testing | fugue-client | P1 | small (1-2h) | FEAT-025 |
 
 ### Wave 4 Summary
 
@@ -161,7 +161,7 @@ FEAT-021 → FEAT-027 → FEAT-022 → FEAT-023 → FEAT-025 → FEAT-026
 
 ### What Wave 4 Enables
 
-After Wave 4 completion, ccmux will be a **fully functional terminal multiplexer**:
+After Wave 4 completion, fugue will be a **fully functional terminal multiplexer**:
 - Start server daemon
 - Connect client
 - Create/attach sessions
@@ -272,4 +272,4 @@ For consumption by worktree orchestration (FEAT-004):
    - Integration tests with completed dependencies
    - End-to-end smoke test (after FEAT-025)
 
-7. **Worktree Naming Convention**: `ccmux-wt-{name}` (e.g., `ccmux-wt-socket`)
+7. **Worktree Naming Convention**: `fugue-wt-{name}` (e.g., `fugue-wt-socket`)

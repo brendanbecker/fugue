@@ -1,4 +1,4 @@
-# BUG-047: Clean up compiler warnings across ccmux crates
+# BUG-047: Clean up compiler warnings across fugue crates
 
 **Priority**: P3
 **Component**: build
@@ -7,7 +7,7 @@
 
 ## Problem Statement
 
-The build produces 51+ warnings across ccmux-server, ccmux-client, and ccmux-protocol. These should be cleaned up to maintain code quality and prevent important warnings from being buried in noise.
+The build produces 51+ warnings across fugue-server, fugue-client, and fugue-protocol. These should be cleaned up to maintain code quality and prevent important warnings from being buried in noise.
 
 ## Evidence
 
@@ -31,11 +31,11 @@ These can be fixed automatically with `cargo fix`:
 
 Should use `PaneState::Agent` instead:
 
-- ccmux-protocol/src/types.rs:527
-- ccmux-client/src/ui/app.rs:1882
-- ccmux-server/src/handlers/mcp_bridge.rs:57
-- ccmux-server/src/persistence/restoration.rs:308
-- ccmux-server/src/persistence/restoration.rs:354
+- fugue-protocol/src/types.rs:527
+- fugue-client/src/ui/app.rs:1882
+- fugue-server/src/handlers/mcp_bridge.rs:57
+- fugue-server/src/persistence/restoration.rs:308
+- fugue-server/src/persistence/restoration.rs:354
 
 #### 3. Dead Code - Unused Structs/Functions/Methods (~30 warnings)
 
@@ -98,11 +98,11 @@ Should use `PaneState::Agent` instead:
 - agents/claude/mod.rs:67: `text`
 - handlers/pane.rs:469: `pane`
 - mcp/handlers.rs:1112: `split_direction`
-- ccmux-client/src/ui/app.rs:2213: `ui_pane`
+- fugue-client/src/ui/app.rs:2213: `ui_pane`
 
 ## Steps to Reproduce
 
-1. Run `cargo build` or `cargo check` in the ccmux workspace
+1. Run `cargo build` or `cargo check` in the fugue workspace
 2. Observe 51+ warnings across the three crates
 
 ## Expected Behavior

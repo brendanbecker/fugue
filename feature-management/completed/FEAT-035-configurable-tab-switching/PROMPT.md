@@ -1,7 +1,7 @@
 # FEAT-035: Configurable Tab/Pane Switching
 
 **Priority**: P2
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: enhancement
 **Estimated Effort**: medium
 **Business Value**: high
@@ -9,11 +9,11 @@
 
 ## Overview
 
-Add keyboard navigation to switch between windows and panes using configurable keybindings. The default keybindings will use Ctrl+Tab for window cycling and Alt+Tab for pane cycling within the current window, with Shift variants for reverse cycling. All keybindings should be configurable in `~/.config/ccmux/config.toml`.
+Add keyboard navigation to switch between windows and panes using configurable keybindings. The default keybindings will use Ctrl+Tab for window cycling and Alt+Tab for pane cycling within the current window, with Shift variants for reverse cycling. All keybindings should be configurable in `~/.config/fugue/config.toml`.
 
 ## Problem Statement
 
-Currently, ccmux has limited keyboard navigation for switching between windows and panes:
+Currently, fugue has limited keyboard navigation for switching between windows and panes:
 - Prefix+n/p for next/previous pane
 - Prefix+h/j/k/l for directional pane navigation
 - No dedicated window switching keybindings without prefix
@@ -84,7 +84,7 @@ These are "quick" bindings (no prefix required). Existing prefix-based bindings 
 
 ### Configuration Format
 
-Add to `~/.config/ccmux/config.toml`:
+Add to `~/.config/fugue/config.toml`:
 
 ```toml
 [keybindings]
@@ -214,7 +214,7 @@ impl InputHandler {
 
 ### Config Schema Updates
 
-Add to `KeybindingConfig` in `ccmux-server/src/config/schema.rs`:
+Add to `KeybindingConfig` in `fugue-server/src/config/schema.rs`:
 
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -295,28 +295,28 @@ impl App {
 
 ## Files to Modify
 
-### ccmux-client/src/input/mod.rs
+### fugue-client/src/input/mod.rs
 - Add `QuickBindings` struct to hold parsed bindings
 - Add `check_quick_bindings()` method to `InputHandler`
 - Modify `handle_normal_key()` to check quick bindings first
 - Add `set_quick_bindings()` method for configuration
 
-### ccmux-client/src/input/keys.rs (NEW or modify)
+### fugue-client/src/input/keys.rs (NEW or modify)
 - Add `parse_key_binding()` function
 - Add `parse_key_code()` function
 - Add `KeyBindingError` type
 - Add `KeyBinding` wrapper type with `matches()` method
 
-### ccmux-server/src/config/schema.rs
+### fugue-server/src/config/schema.rs
 - Add `next_window_quick`, `prev_window_quick`, `next_pane_quick`, `prev_pane_quick` to `KeybindingConfig`
 - Update `Default` impl with new defaults
 
-### ccmux-client/src/ui/app.rs
+### fugue-client/src/ui/app.rs
 - Add `cycle_window()` method
 - Update `handle_client_command()` to handle `NextWindow`/`PreviousWindow`
 - Wire up quick bindings from config (needs config loading in client)
 
-### ccmux-client/src/main.rs
+### fugue-client/src/main.rs
 - Load config and pass keybindings to `InputHandler`
 
 ## Implementation Tasks

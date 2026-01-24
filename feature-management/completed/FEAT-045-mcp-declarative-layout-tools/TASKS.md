@@ -8,8 +8,8 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Review existing `ccmux-client/src/ui/layout.rs` implementation
-- [ ] Review current MCP tools in `ccmux-server/src/mcp/tools.rs`
+- [ ] Review existing `fugue-client/src/ui/layout.rs` implementation
+- [ ] Review current MCP tools in `fugue-server/src/mcp/tools.rs`
 - [ ] Verify FEAT-029 (MCP base) is implemented
 - [ ] Check FEAT-039 (MCP broadcast) status for client sync
 
@@ -25,19 +25,19 @@
 
 ### Tool Definitions (tools.rs)
 
-- [ ] Add `ccmux_create_layout` tool definition
+- [ ] Add `fugue_create_layout` tool definition
   - [ ] Define nested layout schema
   - [ ] Define preset option schema
   - [ ] Define pane_commands array schema
-- [ ] Add `ccmux_split_pane` tool definition
+- [ ] Add `fugue_split_pane` tool definition
   - [ ] pane_id parameter
   - [ ] direction parameter
   - [ ] ratio parameter (0.1-0.9)
   - [ ] command/cwd/name parameters
-- [ ] Add `ccmux_resize_pane` tool definition
+- [ ] Add `fugue_resize_pane` tool definition
   - [ ] pane_id parameter
   - [ ] delta parameter (-0.5 to 0.5)
-- [ ] Update `ccmux_create_pane` tool definition
+- [ ] Update `fugue_create_pane` tool definition
   - [ ] Add ratio parameter
   - [ ] Add source_pane parameter
 
@@ -82,10 +82,10 @@
 
 ### Bridge/Router Updates
 
-- [ ] Add routing for `ccmux_create_layout` in bridge.rs
-- [ ] Add routing for `ccmux_split_pane` in bridge.rs
-- [ ] Add routing for `ccmux_resize_pane` in bridge.rs
-- [ ] Update `ccmux_create_pane` routing for new params
+- [ ] Add routing for `fugue_create_layout` in bridge.rs
+- [ ] Add routing for `fugue_split_pane` in bridge.rs
+- [ ] Add routing for `fugue_resize_pane` in bridge.rs
+- [ ] Update `fugue_create_pane` routing for new params
 
 ### Session Manager Updates
 

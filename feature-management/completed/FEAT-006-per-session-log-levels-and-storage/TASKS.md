@@ -8,8 +8,8 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Review current logging in ccmux-utils/src/logging.rs
-- [ ] Review session management in ccmux-server/src/session/
+- [ ] Review current logging in fugue-utils/src/logging.rs
+- [ ] Review session management in fugue-server/src/session/
 
 ## Design Tasks
 
@@ -23,7 +23,7 @@
 ## Implementation Tasks
 
 ### Core Logging Infrastructure
-- [ ] Create SessionLogLevel enum in ccmux-utils
+- [ ] Create SessionLogLevel enum in fugue-utils
 - [ ] Implement level hierarchy (spawns < signals < prompts < full)
 - [ ] Create StructuredLogEntry struct
 - [ ] Implement JSON Lines log writer
@@ -45,7 +45,7 @@
 - [ ] Add session_log_level to config schema
 - [ ] Add default_session_log_level global setting
 - [ ] Add log_rotation config (max_size, retention_days)
-- [ ] Support CCMUX_SESSION_LOG env override
+- [ ] Support FUGUE_SESSION_LOG env override
 
 ### Session Manager Integration
 - [ ] Create SessionLogger on session spawn

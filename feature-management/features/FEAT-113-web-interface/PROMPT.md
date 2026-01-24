@@ -1,13 +1,13 @@
 # FEAT-113: Web Interface Core (Desktop MVP)
 
 **Priority**: P2
-**Component**: ccmux-web (new crate)
+**Component**: fugue-web (new crate)
 **Effort**: Medium
 **Status**: new
 
 ## Summary
 
-Add a web interface to ccmux that allows browser-based access to the terminal multiplexer. Stream the existing TUI through xterm.js over WebSocket, enabling remote access without SSH.
+Add a web interface to fugue that allows browser-based access to the terminal multiplexer. Stream the existing TUI through xterm.js over WebSocket, enabling remote access without SSH.
 
 ## Related Features
 
@@ -17,7 +17,7 @@ Add a web interface to ccmux that allows browser-based access to the terminal mu
 
 ## Motivation
 
-- **Remote Access**: Users need to access ccmux sessions from anywhere without SSH
+- **Remote Access**: Users need to access fugue sessions from anywhere without SSH
 - **Unified Interface**: Same TUI experience in browser as native terminal
 - **Foundation**: Enables mobile and voice features in subsequent work
 
@@ -34,18 +34,18 @@ Add a web interface to ccmux that allows browser-based access to the terminal mu
 ```
 Browser (xterm.js)
     ↕ WebSocket
-ccmux-web server
+fugue-web server
     ↕ PTY
-ccmux-client (existing TUI)
+fugue-client (existing TUI)
     ↕ Unix socket
-ccmux-server (existing daemon)
+fugue-server (existing daemon)
 ```
 
 ## Implementation
 
-### New Crate: `ccmux-web`
+### New Crate: `fugue-web`
 
-**Location**: `ccmux-web/` alongside existing crates
+**Location**: `fugue-web/` alongside existing crates
 
 **Dependencies**:
 ```toml
@@ -68,7 +68,7 @@ tracing = "0.1"
    - Connection lifecycle management
 
 2. **PTY Bridge** (`src/pty_bridge.rs`)
-   - Spawn `ccmux-client` in PTY
+   - Spawn `fugue-client` in PTY
    - Bridge PTY I/O to WebSocket bidirectionally
    - Handle resize events
 
@@ -83,7 +83,7 @@ tracing = "0.1"
 
 ### Frontend (Static Assets)
 
-**Location**: `ccmux-web/static/`
+**Location**: `fugue-web/static/`
 
 **Files**:
 - `index.html` - Main page with xterm container
@@ -148,17 +148,17 @@ window.addEventListener('resize', () => {
 
 ```
 1. Browser connects to /ws
-2. Server spawns: ccmux-client --connect <socket>
+2. Server spawns: fugue-client --connect <socket>
 3. PTY stdout → WebSocket send
 4. WebSocket recv → PTY stdin
 5. On WebSocket close:
    - Keep PTY alive for reconnect_timeout (default 30s)
-   - After timeout, SIGHUP to ccmux-client
+   - After timeout, SIGHUP to fugue-client
 ```
 
 ## Configuration
 
-**New section in** `~/.ccmux/config.toml`:
+**New section in** `~/.fugue/config.toml`:
 ```toml
 [web]
 enabled = false          # Disabled by default
@@ -180,9 +180,9 @@ reconnect_timeout = 30   # Seconds to keep PTY alive after disconnect
 
 ## Acceptance Criteria
 
-- [ ] New `ccmux-web` crate compiles and runs
-- [ ] `ccmux-web` binary starts HTTP/WebSocket server
-- [ ] Browser at `http://localhost:8080` shows ccmux TUI
+- [ ] New `fugue-web` crate compiles and runs
+- [ ] `fugue-web` binary starts HTTP/WebSocket server
+- [ ] Browser at `http://localhost:8080` shows fugue TUI
 - [ ] Keyboard input works (all keybinds functional)
 - [ ] Mouse events forwarded correctly (pane selection works)
 - [ ] Copy/paste with Shift+drag works
@@ -199,7 +199,7 @@ reconnect_timeout = 30   # Seconds to keep PTY alive after disconnect
 - Session management
 
 ### Integration Tests
-- End-to-end: browser → WebSocket → PTY → ccmux-client → ccmux-server
+- End-to-end: browser → WebSocket → PTY → fugue-client → fugue-server
 - Reconnection after disconnect
 - Multiple simultaneous connections
 

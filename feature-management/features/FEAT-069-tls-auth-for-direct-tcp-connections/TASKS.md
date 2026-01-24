@@ -10,15 +10,15 @@
 - [ ] Review PLAN.md and update if needed
 - [ ] Verify FEAT-066, FEAT-067, FEAT-068 are complete
 - [ ] Review rustls documentation
-- [ ] Review ccmux-tcp-implementation-plan.md Phase 4
-- [ ] Review ccmux-peering-design.md security considerations
+- [ ] Review fugue-tcp-implementation-plan.md Phase 4
+- [ ] Review fugue-peering-design.md security considerations
 
 ## Phase 1: TLS Infrastructure (3-5 days)
 
 - [ ] Add rustls dependency to workspace Cargo.toml
 - [ ] Add tokio-rustls for async TLS support
-- [ ] Create `ccmux-server/src/tls.rs` module
-- [ ] Create `ccmux-client/src/tls.rs` module
+- [ ] Create `fugue-server/src/tls.rs` module
+- [ ] Create `fugue-client/src/tls.rs` module
 - [ ] Implement TLS acceptor wrapper for daemon
 - [ ] Implement TLS connector wrapper for client
 - [ ] Add TLS configuration structs
@@ -30,7 +30,7 @@
 ## Phase 2: Authentication Mechanism (2-3 days)
 
 - [ ] Design simple handshake protocol
-- [ ] Create `ccmux-protocol/src/auth.rs` module
+- [ ] Create `fugue-protocol/src/auth.rs` module
 - [ ] Add AUTH message type to protocol
 - [ ] Implement token hashing (SHA-256)
 - [ ] Implement auth validation in daemon
@@ -108,7 +108,7 @@
 - [ ] Identify performance bottlenecks
 
 ### Integration Testing
-- [ ] Test with ccmux-client and ccmux-server
+- [ ] Test with fugue-client and fugue-server
 - [ ] Test error handling end-to-end
 - [ ] Test configuration file loading
 - [ ] Test CLI parameter handling
@@ -178,7 +178,7 @@
 - [ ] Connection establishment is fast enough
 
 ### Integration
-- [ ] Works with existing ccmux infrastructure
+- [ ] Works with existing fugue infrastructure
 - [ ] Config file format is consistent
 - [ ] CLI interface is intuitive
 - [ ] Error handling is robust

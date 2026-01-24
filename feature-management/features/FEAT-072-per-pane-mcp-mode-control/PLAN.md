@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-072
 
 **Work Item**: [FEAT-072: Per-pane MCP mode control (full/minimal/none)](PROMPT.md)
-**Component**: ccmux-server, ccmux-protocol
+**Component**: fugue-server, fugue-protocol
 **Priority**: P2
 **Created**: 2026-01-13
 
@@ -33,7 +33,7 @@ Add per-pane MCP mode control so each pane can choose how much MCP tooling is av
 
 ### 3. Minimal MCP Allowlist
 
-**Approach**: Define a small default allowlist in ccmux config (and/or presets) and make it overrideable.
+**Approach**: Define a small default allowlist in fugue config (and/or presets) and make it overrideable.
 
 **Rationale**: Minimal needs to be predictable yet configurable to user needs.
 
@@ -52,10 +52,10 @@ Add per-pane MCP mode control so each pane can choose how much MCP tooling is av
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-protocol/src/messages.rs | Add `mcp_mode` to CreatePane | Low |
-| ccmux-server/src/mcp/tools.rs | Add MCP tool parameter | Low |
-| ccmux-server/src/session/pane.rs | Per-pane config creation + MCP filtering | Medium |
-| ccmux-server/src/config.rs | Preset + allowlist config | Low |
+| fugue-protocol/src/messages.rs | Add `mcp_mode` to CreatePane | Low |
+| fugue-server/src/mcp/tools.rs | Add MCP tool parameter | Low |
+| fugue-server/src/session/pane.rs | Per-pane config creation + MCP filtering | Medium |
+| fugue-server/src/config.rs | Preset + allowlist config | Low |
 | docs/architecture/CLAUDE_INTEGRATION.md | MCP config guidance | Low |
 
 ## Dependencies

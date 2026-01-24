@@ -6,9 +6,9 @@ MCP list handlers are returning the wrong response enum variants, causing deseri
 ## Steps to Reproduce
 
 1. Run several MCP operations (create sessions, windows, panes)
-2. Call `ccmux_list_windows` with a session parameter
+2. Call `fugue_list_windows` with a session parameter
 3. Observe: Returns `SessionList` variant instead of `WindowList`
-4. Call `ccmux_list_panes` with a session parameter
+4. Call `fugue_list_panes` with a session parameter
 5. Observe: Returns `WindowList` variant instead of `PaneList`
 
 ## Expected Behavior
@@ -29,16 +29,16 @@ MCP error -32603: Unexpected response: WindowList { windows: [...] }
 
 ```
 # list_windows for session-0
-ccmux_list_windows(session: "session-0")
+fugue_list_windows(session: "session-0")
 -> Error: Unexpected response: SessionList { sessions: [SessionInfo {...}] }
 
 # list_panes for session-0
-ccmux_list_panes(session: "session-0")
+fugue_list_panes(session: "session-0")
 -> Error: Unexpected response: WindowList { windows: [WindowInfo {...}] }
 ```
 
 ## Environment
-- ccmux version: current main branch (commit c8b0904)
+- fugue version: current main branch (commit c8b0904)
 - Platform: Linux (WSL2)
 - Triggered during: QA demo run
 - Note: These same calls worked earlier in the session

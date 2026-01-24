@@ -2,9 +2,9 @@
 
 ## 2026-01-13 - Feature Created
 
-Created FEAT-066 as Phase 1 of remote peering support for ccmux.
+Created FEAT-066 as Phase 1 of remote peering support for fugue.
 
-**Context**: This feature enables the ccmux daemon to accept TCP connections in addition to Unix socket connections. This is essential for remote workflows, such as controlling ccmux sessions on a gaming PC from a laptop via SSH tunnels.
+**Context**: This feature enables the fugue daemon to accept TCP connections in addition to Unix socket connections. This is essential for remote workflows, such as controlling fugue sessions on a gaming PC from a laptop via SSH tunnels.
 
 **Key Design Points**:
 - Default to localhost-only binding (127.0.0.1) for security
@@ -13,7 +13,7 @@ Created FEAT-066 as Phase 1 of remote peering support for ccmux.
 - Reuse existing connection handler logic (transport-agnostic)
 
 **Related Work**:
-- Follows `ccmux-tcp-implementation-plan.md` Phase 1 design
+- Follows `fugue-tcp-implementation-plan.md` Phase 1 design
 - Blocks FEAT-067 (Client TCP connection support)
 - Phase 2 (SSH tunnels) requires both FEAT-066 and FEAT-067
 

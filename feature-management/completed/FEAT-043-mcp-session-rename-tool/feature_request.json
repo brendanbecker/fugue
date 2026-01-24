@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-043",
   "title": "MCP Session Rename Tool",
-  "component": "ccmux-server (MCP)",
+  "component": "fugue-server (MCP)",
   "priority": "P2",
   "status": "completed",
   "type": "enhancement",

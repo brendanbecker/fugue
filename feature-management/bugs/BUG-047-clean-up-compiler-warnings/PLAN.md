@@ -1,13 +1,13 @@
 # Implementation Plan: BUG-047
 
-**Work Item**: [BUG-047: Clean up compiler warnings across ccmux crates](PROMPT.md)
+**Work Item**: [BUG-047: Clean up compiler warnings across fugue crates](PROMPT.md)
 **Component**: build
 **Priority**: P3
 **Created**: 2026-01-16
 
 ## Overview
 
-Clean up 51+ compiler warnings across ccmux-server, ccmux-client, and ccmux-protocol to improve code quality and maintainability.
+Clean up 51+ compiler warnings across fugue-server, fugue-client, and fugue-protocol to improve code quality and maintainability.
 
 ## Architecture Decisions
 
@@ -47,16 +47,16 @@ Clean up 51+ compiler warnings across ccmux-server, ccmux-client, and ccmux-prot
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/handlers/ | Remove unused imports | Low |
-| ccmux-server/src/mcp/ | Remove imports, fix deprecated | Low |
-| ccmux-server/src/persistence/ | Dead code triage | Medium |
-| ccmux-server/src/orchestration/ | Dead code triage | Low |
-| ccmux-server/src/beads.rs | Dead code triage | Low |
-| ccmux-server/src/observability/ | Remove unused imports/code | Low |
-| ccmux-server/src/agents/ | Dead code, unused vars | Low |
-| ccmux-client/src/ui/app.rs | Fix deprecated, unused vars | Low |
-| ccmux-protocol/src/types.rs | Fix deprecated | Low |
-| ccmux-protocol/src/codec.rs | Remove unused imports | Low |
+| fugue-server/src/handlers/ | Remove unused imports | Low |
+| fugue-server/src/mcp/ | Remove imports, fix deprecated | Low |
+| fugue-server/src/persistence/ | Dead code triage | Medium |
+| fugue-server/src/orchestration/ | Dead code triage | Low |
+| fugue-server/src/beads.rs | Dead code triage | Low |
+| fugue-server/src/observability/ | Remove unused imports/code | Low |
+| fugue-server/src/agents/ | Dead code, unused vars | Low |
+| fugue-client/src/ui/app.rs | Fix deprecated, unused vars | Low |
+| fugue-protocol/src/types.rs | Fix deprecated | Low |
+| fugue-protocol/src/codec.rs | Remove unused imports | Low |
 
 ## Risk Assessment
 

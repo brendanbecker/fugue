@@ -1,4 +1,4 @@
-# ccmux Visibility Dashboard
+# fugue Visibility Dashboard
 
 High-level design for oversight features addressing multi-agent tracking pain (progress, stuck tasks, relationships, review queue).
 
@@ -14,7 +14,7 @@ High-level design for oversight features addressing multi-agent tracking pain (p
 
 2. **Mailbox / output inbox**  
    - Dedicated widget (Ratatui List/Table) collecting worker summaries/alerts.  
-   - Workers send via sideband: `<ccmux:mail priority="info/warn/error" summary="Task X complete">`.  
+   - Workers send via sideband: `<fugue:mail priority="info/warn/error" summary="Task X complete">`.  
    - Fields: from_pane, timestamp, summary, priority (color-coded).  
    - Select → jump to pane or expand full log.
 
@@ -28,7 +28,7 @@ High-level design for oversight features addressing multi-agent tracking pain (p
 ## Flows
 
 ### Stuck Detection
-Worker pane → Thinking > timeout → ccmux flags → red badge in TUI + mailbox entry "Pane-5 stuck in Thinking 3min"
+Worker pane → Thinking > timeout → fugue flags → red badge in TUI + mailbox entry "Pane-5 stuck in Thinking 3min"
 
 ### Mailbox
 Worker → MCP mail "Task complete: refactored auth" → orchestrator inbox updates → user selects → jumps to pane

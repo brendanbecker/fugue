@@ -2,7 +2,7 @@
 
 ## Summary
 
-Add a `ccmux_drain_messages` MCP tool that clears stale broadcast messages from the response channel, providing a workaround for INQ-004 (MCP Response Integrity) while root cause investigation continues.
+Add a `fugue_drain_messages` MCP tool that clears stale broadcast messages from the response channel, providing a workaround for INQ-004 (MCP Response Integrity) while root cause investigation continues.
 
 ## Problem
 
@@ -22,7 +22,7 @@ Add an explicit drain tool that:
 
 ```json
 {
-  "name": "ccmux_drain_messages",
+  "name": "fugue_drain_messages",
   "description": "Drain stale broadcast messages from the MCP response channel. Use this to clear accumulated PaneResized, SessionList, or other broadcast messages that may interfere with subsequent requests. Returns the count of messages drained.",
   "inputSchema": {
     "type": "object",
@@ -50,15 +50,15 @@ Add an explicit drain tool that:
 ## Implementation
 
 ### Location
-`ccmux-server/src/mcp/bridge/connection.rs`
+`fugue-server/src/mcp/bridge/connection.rs`
 
 ### Approach
 
-1. **Add tool schema** in `ccmux-server/src/mcp/tools.rs`
+1. **Add tool schema** in `fugue-server/src/mcp/tools.rs`
 
-2. **Add handler** in `ccmux-server/src/mcp/bridge/handlers.rs`:
+2. **Add handler** in `fugue-server/src/mcp/bridge/handlers.rs`:
    ```rust
-   "ccmux_drain_messages" => {
+   "fugue_drain_messages" => {
        let timeout_ms = params.get("timeout_ms")
            .and_then(|v| v.as_u64())
            .unwrap_or(100) as u64;
@@ -95,7 +95,7 @@ Add an explicit drain tool that:
    }
    ```
 
-4. **Add type_name to ServerMessage** in `ccmux-protocol/src/types/`:
+4. **Add type_name to ServerMessage** in `fugue-protocol/src/types/`:
    ```rust
    impl ServerMessage {
        pub fn type_name(&self) -> &'static str {
@@ -119,7 +119,7 @@ Add an explicit drain tool that:
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_drain_messages` tool is available in MCP
+- [ ] `fugue_drain_messages` tool is available in MCP
 - [ ] Returns count of drained messages
 - [ ] Returns list of message types for diagnostics
 - [ ] Clears channel without blocking indefinitely

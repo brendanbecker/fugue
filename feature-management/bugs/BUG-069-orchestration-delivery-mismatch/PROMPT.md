@@ -7,11 +7,11 @@
 
 ## Problem
 
-Orchestration messages sent via `ccmux_send_orchestration` (and by extension `ccmux_report_status`) report successful delivery but the target orchestrator session never receives the messages via `ccmux_poll_messages`.
+Orchestration messages sent via `fugue_send_orchestration` (and by extension `fugue_report_status`) report successful delivery but the target orchestrator session never receives the messages via `fugue_poll_messages`.
 
 ## Observed Behavior (from __watchdog session)
 
-The watchdog successfully called `ccmux_send_orchestration`:
+The watchdog successfully called `fugue_send_orchestration`:
 ```
 target: {"tag": "orchestrator"}
 msg_type: "worker.complete"
@@ -33,25 +33,25 @@ The response indicated success:
 }
 ```
 
-However, the orchestrator (session-0) never received this message via `ccmux_poll_messages`.
+However, the orchestrator (session-0) never received this message via `fugue_poll_messages`.
 
 ## Reproduction Steps
 
 1. Create orchestrator session tagged with `orchestrator`
 2. Create watchdog session tagged with `watchdog`
-3. From watchdog, call `ccmux_send_orchestration` targeting `{"tag": "orchestrator"}`
+3. From watchdog, call `fugue_send_orchestration` targeting `{"tag": "orchestrator"}`
 4. Observe: Response shows `delivered_count: 1, success: true`
-5. In orchestrator, call `ccmux_poll_messages`
+5. In orchestrator, call `fugue_poll_messages`
 6. Observe: No messages received despite "successful" delivery
 
 ## Expected Behavior
 
-When `ccmux_send_orchestration` returns `delivered_count: 1`, the target session should actually receive the message via `ccmux_poll_messages`.
+When `fugue_send_orchestration` returns `delivered_count: 1`, the target session should actually receive the message via `fugue_poll_messages`.
 
 ## Actual Behavior
 
 - Send returns success with `delivered_count: 1`
-- Target session's `ccmux_poll_messages` returns no messages
+- Target session's `fugue_poll_messages` returns no messages
 - Message is lost somewhere between "delivery" and poll queue
 
 ## Root Cause Analysis
@@ -61,19 +61,19 @@ Possible causes:
 2. **Wrong session targeted**: `delivered_count: 1` may be counting wrong session
 3. **Poll queue clearing**: Messages may be cleared before orchestrator polls
 4. **Session attachment issue**: Orchestrator may need explicit attachment to receive messages
-5. **Worker ID mismatch**: `ccmux_poll_messages(worker_id)` may expect different ID format
+5. **Worker ID mismatch**: `fugue_poll_messages(worker_id)` may expect different ID format
 
 ## Relevant Code
 
-- `ccmux-server/src/mcp/bridge/handlers.rs` - `handle_report_status` implementation
-- `ccmux-server/src/mcp/bridge/handlers.rs` - `handle_poll_messages` implementation
-- `ccmux-server/src/session/` - Tag-based routing logic
+- `fugue-server/src/mcp/bridge/handlers.rs` - `handle_report_status` implementation
+- `fugue-server/src/mcp/bridge/handlers.rs` - `handle_poll_messages` implementation
+- `fugue-server/src/session/` - Tag-based routing logic
 - Orchestration message infrastructure
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_report_status` successfully delivers messages to `orchestrator`-tagged sessions
-- [ ] `ccmux_poll_messages` returns status updates sent via `ccmux_report_status`
+- [ ] `fugue_report_status` successfully delivers messages to `orchestrator`-tagged sessions
+- [ ] `fugue_poll_messages` returns status updates sent via `fugue_report_status`
 - [ ] Status updates include the status enum and message text
 - [ ] Works in the watchdog -> orchestrator communication pattern
 
@@ -86,8 +86,8 @@ This bug breaks the core watchdog monitoring pattern documented in AGENTS.md and
 
 ## Workarounds
 
-1. Use `ccmux_send_orchestration` directly with explicit target
-2. Use `ccmux_read_pane` to poll worker output manually
+1. Use `fugue_send_orchestration` directly with explicit target
+2. Use `fugue_read_pane` to poll worker output manually
 3. Orchestrator manually checks worker sessions periodically
 
 ## Related

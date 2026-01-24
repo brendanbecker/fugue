@@ -1,21 +1,21 @@
 # FEAT-054: Pane-bounded text selection in copy mode
 
 **Priority**: P2
-**Component**: ccmux-client (UI/Input)
+**Component**: fugue-client (UI/Input)
 **Type**: new_feature
 **Estimated Effort**: large
 **Business Value**: high
 
 ## Overview
 
-Currently, shift+click text selection is handled by the user's terminal emulator, which doesn't know about ccmux pane boundaries. This results in selection spanning across panes or including border characters.
+Currently, shift+click text selection is handled by the user's terminal emulator, which doesn't know about fugue pane boundaries. This results in selection spanning across panes or including border characters.
 
 Implement proper text selection within copy mode that respects pane boundaries.
 
 ## Current State
 
 - Copy mode exists (`Prefix+[`) but only supports scrolling (j/k)
-- `FocusState::Selecting` is defined in `ccmux-client/src/ui/pane.rs` but unused
+- `FocusState::Selecting` is defined in `fugue-client/src/ui/pane.rs` but unused
 - No selection tracking or rendering implemented
 
 ## Core Features
@@ -142,10 +142,10 @@ Implement proper text selection within copy mode that respects pane boundaries.
 
 | File | Changes |
 |------|---------|
-| `ccmux-client/src/ui/pane.rs` | Add selection state, rendering |
-| `ccmux-client/src/input/mod.rs` | Handle selection keys in copy mode |
-| `ccmux-client/src/input/mouse.rs` | Handle mouse drag for selection |
-| `ccmux-client/src/ui/app.rs` | Coordinate selection and clipboard |
+| `fugue-client/src/ui/pane.rs` | Add selection state, rendering |
+| `fugue-client/src/input/mod.rs` | Handle selection keys in copy mode |
+| `fugue-client/src/input/mouse.rs` | Handle mouse drag for selection |
+| `fugue-client/src/ui/app.rs` | Coordinate selection and clipboard |
 
 ## Dependencies
 

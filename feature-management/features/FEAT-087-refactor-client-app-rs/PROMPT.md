@@ -1,7 +1,7 @@
-# FEAT-087: Refactor ccmux-client/src/ui/app.rs
+# FEAT-087: Refactor fugue-client/src/ui/app.rs
 
 **Priority**: P2
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: refactor
 **Estimated Effort**: medium
 **Current Size**: 31.8k tokens (3021 lines)
@@ -27,7 +27,7 @@ The file likely contains:
 ## Proposed Module Structure
 
 ```
-ccmux-client/src/ui/
+fugue-client/src/ui/
 ├── app.rs              # Main App struct, event loop coordination (<5k)
 ├── state.rs            # AppState, focus management, selection
 ├── render.rs           # Frame building, layout coordination

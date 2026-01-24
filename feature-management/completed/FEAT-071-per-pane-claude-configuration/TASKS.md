@@ -23,7 +23,7 @@
 
 ## Section 2: Configuration Types
 
-- [ ] Define `ClaudeConfig` struct in ccmux-server/src/config.rs
+- [ ] Define `ClaudeConfig` struct in fugue-server/src/config.rs
 - [ ] Add model field
 - [ ] Add context_limit field
 - [ ] Add temperature field
@@ -69,7 +69,7 @@
 
 ## Section 5: MCP Tool Updates
 
-- [ ] Add `model` parameter to ccmux_create_pane tool
+- [ ] Add `model` parameter to fugue_create_pane tool
 - [ ] Add `config` parameter (JSON object)
 - [ ] Add `preset` parameter (string)
 - [ ] Update tool schema in mcp/tools.rs
@@ -99,7 +99,7 @@
 
 - [ ] Document `--claude-model` in CLI help (if CLI support added)
 - [ ] Document MCP tool parameters in MCP bridge docs
-- [ ] Document configuration options in ccmux docs
+- [ ] Document configuration options in fugue docs
 - [ ] Document preset system and built-in presets
 - [ ] Add example configurations to docs
 - [ ] Add example MCP tool calls

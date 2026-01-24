@@ -1,7 +1,7 @@
 # FEAT-071: Per-pane Claude configuration on spawn
 
 **Priority**: P2
-**Component**: ccmux-server, ccmux-protocol
+**Component**: fugue-server, fugue-protocol
 **Type**: enhancement
 **Estimated Effort**: medium
 **Business Value**: high
@@ -59,15 +59,15 @@ This requires extending pane spawn to accept configuration parameters and creati
 - [ ] Write merged config to pane's CLAUDE_CONFIG_DIR
 
 ### Section 3: MCP Tool Updates
-- [ ] Add `model` parameter to ccmux_create_pane
+- [ ] Add `model` parameter to fugue_create_pane
 - [ ] Add `config` parameter for full configuration
 - [ ] Add `preset` parameter for named configurations
 - [ ] Update tool schema and documentation
 - [ ] Maintain backward compatibility (optional parameters)
 
 ### Section 4: Configuration Presets
-- [ ] Design preset storage format (in ccmux config.toml)
-- [ ] Load presets from ccmux config
+- [ ] Design preset storage format (in fugue config.toml)
+- [ ] Load presets from fugue config
 - [ ] Support built-in presets (haiku-worker, sonnet-default, opus-heavy)
 - [ ] Allow custom user presets
 - [ ] Preset inheritance and overrides
@@ -112,18 +112,18 @@ This requires extending pane spawn to accept configuration parameters and creati
 
 ## Related Files
 
-- `ccmux-protocol/src/messages.rs` - CreatePane message structure
-- `ccmux-server/src/mcp/tools.rs` - MCP tool implementations
-- `ccmux-server/src/session/pane.rs` - Pane config creation logic
-- `ccmux-server/config.toml` - Configuration and preset definitions
-- `ccmux-server/src/config.rs` - Configuration loading and validation
+- `fugue-protocol/src/messages.rs` - CreatePane message structure
+- `fugue-server/src/mcp/tools.rs` - MCP tool implementations
+- `fugue-server/src/session/pane.rs` - Pane config creation logic
+- `fugue-server/config.toml` - Configuration and preset definitions
+- `fugue-server/src/config.rs` - Configuration loading and validation
 
 ## Example Usage
 
 ### MCP Tool Call
 ```json
 {
-  "name": "ccmux_create_pane",
+  "name": "fugue_create_pane",
   "arguments": {
     "session": "my-session",
     "command": "claude --resume",
@@ -136,7 +136,7 @@ This requires extending pane spawn to accept configuration parameters and creati
 ### With Preset
 ```json
 {
-  "name": "ccmux_create_pane",
+  "name": "fugue_create_pane",
   "arguments": {
     "session": "my-session",
     "command": "claude --resume",
@@ -149,7 +149,7 @@ This requires extending pane spawn to accept configuration parameters and creati
 ### With Full Config
 ```json
 {
-  "name": "ccmux_create_pane",
+  "name": "fugue_create_pane",
   "arguments": {
     "session": "my-session",
     "command": "claude --resume",
@@ -165,7 +165,7 @@ This requires extending pane spawn to accept configuration parameters and creati
 
 ## Example Preset Configuration
 
-In `ccmux-server/config.toml`:
+In `fugue-server/config.toml`:
 
 ```toml
 [presets.haiku-worker]
@@ -191,7 +191,7 @@ description = "Minimal context for focused tasks"
 
 ## Notes
 
-This feature generalizes the "MCP worker mode" concept from ccmux-mcp-worker-mode.md into a flexible per-pane configuration system. Instead of just minimal/none MCP modes, users can configure any Claude setting per-pane.
+This feature generalizes the "MCP worker mode" concept from fugue-mcp-worker-mode.md into a flexible per-pane configuration system. Instead of just minimal/none MCP modes, users can configure any Claude setting per-pane.
 
 **Design Considerations:**
 

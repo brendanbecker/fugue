@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-035
 
 **Work Item**: [FEAT-035: Configurable Tab/Pane Switching](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P2
 **Created**: 2026-01-09
 
@@ -80,7 +80,7 @@ f_key := "F" number (1-12)
 - Hot-reload can be added later if needed
 
 **Implementation Path**:
-- Client reads `~/.config/ccmux/config.toml` directly (or from XDG path)
+- Client reads `~/.config/fugue/config.toml` directly (or from XDG path)
 - Parse `[keybindings]` section into `QuickBindings`
 - Pass to `InputHandler` during initialization
 
@@ -108,11 +108,11 @@ f_key := "F" number (1-12)
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-client/src/input/keys.rs | Add key binding parser | Low |
-| ccmux-client/src/input/mod.rs | Add quick bindings support | Medium |
-| ccmux-client/src/ui/app.rs | Add window cycling | Low |
-| ccmux-server/src/config/schema.rs | Add keybinding fields | Low |
-| ccmux-client/src/main.rs | Load config, pass bindings | Low |
+| fugue-client/src/input/keys.rs | Add key binding parser | Low |
+| fugue-client/src/input/mod.rs | Add quick bindings support | Medium |
+| fugue-client/src/ui/app.rs | Add window cycling | Low |
+| fugue-server/src/config/schema.rs | Add keybinding fields | Low |
+| fugue-client/src/main.rs | Load config, pass bindings | Low |
 
 ## Implementation Order
 
@@ -245,7 +245,7 @@ impl Default for QuickBindings {
 
 ### Config Integration Points
 
-1. **Server Config** (`ccmux-server/src/config/schema.rs`):
+1. **Server Config** (`fugue-server/src/config/schema.rs`):
    - Add fields to `KeybindingConfig`
    - These are the canonical config definitions
 

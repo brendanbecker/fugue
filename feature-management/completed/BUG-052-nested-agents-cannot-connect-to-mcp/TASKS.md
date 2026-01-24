@@ -1,6 +1,6 @@
 # Task Breakdown: BUG-052
 
-**Work Item**: [BUG-052: Agents inside ccmux panes cannot connect to ccmux MCP server](PROMPT.md)
+**Work Item**: [BUG-052: Agents inside fugue panes cannot connect to fugue MCP server](PROMPT.md)
 **Status**: Not Started
 **Last Updated**: 2026-01-17
 
@@ -12,9 +12,9 @@
 
 ## Investigation Tasks
 
-- [ ] Analyze how Claude Code connects to ccmux MCP (stdio? socket?)
+- [ ] Analyze how Claude Code connects to fugue MCP (stdio? socket?)
 - [ ] Check MCP configuration for Claude Code vs Gemini CLI
-- [ ] List environment variables inside a ccmux PTY pane
+- [ ] List environment variables inside a fugue PTY pane
 - [ ] Determine if MCP bridge socket/path is accessible from PTY
 - [ ] Trace Gemini CLI's MCP connection attempt to identify failure point
 - [ ] Review mcp-bridge crate for transport implementation
@@ -65,7 +65,7 @@
 
 ## Verification Tasks
 
-- [ ] Confirm nested agents can connect to ccmux MCP
+- [ ] Confirm nested agents can connect to fugue MCP
 - [ ] Verify all MCP tools work from nested agents
 - [ ] Test multi-agent orchestration workflow end-to-end
 - [ ] Update bug_report.json status

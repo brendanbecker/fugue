@@ -1,7 +1,7 @@
 # Implementation Plan: BUG-020
 
 **Work Item**: [BUG-020: Session Reattach from Session Manager Creates Client Without PTY](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P1
 **Created**: 2026-01-10
 
@@ -64,11 +64,11 @@ After investigation, the fix likely involves one of:
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-server/src/handlers/attach.rs` | Primary | Medium |
-| `ccmux-server/src/handlers/session.rs` | Primary | Medium |
-| `ccmux-server/src/pty/output.rs` | Secondary | Medium |
-| `ccmux-server/src/registry/` | Secondary | Low |
-| `ccmux-client/src/ui/` | Investigation | Low |
+| `fugue-server/src/handlers/attach.rs` | Primary | Medium |
+| `fugue-server/src/handlers/session.rs` | Primary | Medium |
+| `fugue-server/src/pty/output.rs` | Secondary | Medium |
+| `fugue-server/src/registry/` | Secondary | Low |
+| `fugue-client/src/ui/` | Investigation | Low |
 
 ## Risk Assessment
 

@@ -1,7 +1,7 @@
 # FEAT-086: Environment Variable Persistence Across Daemon Restarts
 
 ## Overview
-Follow-up to BUG-031 (metadata persistence). Session environment variables set via `ccmux_set_environment` are currently lost when the daemon restarts. This feature adds WAL-based persistence for environment variables, mirroring the approach used for metadata.
+Follow-up to BUG-031 (metadata persistence). Session environment variables set via `fugue_set_environment` are currently lost when the daemon restarts. This feature adds WAL-based persistence for environment variables, mirroring the approach used for metadata.
 
 ## Motivation
 - **Consistency**: Metadata now persists (BUG-031 fix), but environment variables do not
@@ -24,7 +24,7 @@ This feature applies the same pattern to environment variables.
 ## Tasks
 
 ### Section 1: Data Model Updates
-- [x] Add `environment: HashMap<String, String>` field to `SessionSnapshot` in `ccmux-persistence`
+- [x] Add `environment: HashMap<String, String>` field to `SessionSnapshot` in `fugue-persistence`
 - [x] Add `SessionEnvironmentSet { session_id, key, value }` WAL entry variant
 - [x] Ensure backward compatibility with existing checkpoint files (`#[serde(default)]`)
 
@@ -41,18 +41,18 @@ This feature applies the same pattern to environment variables.
 
 | File | Changes |
 |------|---------|
-| `ccmux-persistence/src/snapshot.rs` | Add `environment` field to `SessionSnapshot` |
-| `ccmux-persistence/src/wal.rs` | Add `SessionEnvironmentSet` entry variant |
-| `ccmux-persistence/src/recovery.rs` | Replay environment entries during recovery |
-| `ccmux-server/src/handlers/mcp_bridge.rs` | Log WAL entry in `handle_set_environment` |
+| `fugue-persistence/src/snapshot.rs` | Add `environment` field to `SessionSnapshot` |
+| `fugue-persistence/src/wal.rs` | Add `SessionEnvironmentSet` entry variant |
+| `fugue-persistence/src/recovery.rs` | Replay environment entries during recovery |
+| `fugue-server/src/handlers/mcp_bridge.rs` | Log WAL entry in `handle_set_environment` |
 
 ## Acceptance Criteria
-- [x] `ccmux_set_environment` changes persist across daemon restarts
-- [x] `ccmux_get_session_info` returns correct environment after restart
+- [x] `fugue_set_environment` changes persist across daemon restarts
+- [x] `fugue_get_session_info` returns correct environment after restart
 - [x] Existing checkpoints without environment data load without error
 - [x] WAL replay correctly reconstructs environment state
 
 ## Reference
 - **BUG-031 fix**: Commit `2286aab` - pattern to follow for WAL logging
-- **Persistence crate**: `ccmux-persistence/`
-- **MCP handlers**: `ccmux-server/src/handlers/mcp_bridge.rs`
+- **Persistence crate**: `fugue-persistence/`
+- **MCP handlers**: `fugue-server/src/handlers/mcp_bridge.rs`

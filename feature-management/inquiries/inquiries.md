@@ -1,6 +1,6 @@
 # Inquiries (Deliberation Processes)
 
-**Project**: ccmux
+**Project**: fugue
 **Last Updated**: 2026-01-20
 
 ## Summary Statistics
@@ -20,7 +20,7 @@
 | INQ-002 | Intelligent Pipe Fabric | P1 | research | 3 | - | `INQ-002-intelligent-pipe-fabric/` |
 | INQ-003 | Hierarchical Orchestration Messaging | P1 | research | 3 | - | `INQ-003-hierarchical-orchestration-messaging/` |
 | INQ-004 | MCP Response Integrity | P1 | research | 2 | - | `INQ-004-mcp-response-integrity/` |
-| INQ-005 | Submit/Enter Behavior in ccmux Input Tools | P2 | research | 2 | - | `INQ-005-submit-enter-behavior/` |
+| INQ-005 | Submit/Enter Behavior in fugue Input Tools | P2 | research | 2 | - | `INQ-005-submit-enter-behavior/` |
 
 ## Completed Inquiries
 

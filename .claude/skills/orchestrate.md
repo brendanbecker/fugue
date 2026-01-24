@@ -21,10 +21,10 @@ Spawn a new worker agent for a task.
 
 **Implementation:**
 ```
-1. ccmux_create_session(name: "<task>-worker", cwd: $PWD)
-2. ccmux_set_tags(session: "<task>-worker", add: ["worker"])
+1. fugue_create_session(name: "<task>-worker", cwd: $PWD)
+2. fugue_set_tags(session: "<task>-worker", add: ["worker"])
 3. Get pane_id from the new session
-4. ccmux_send_input(pane_id: <pane>, input: "claude --dangerously-skip-permissions '<task>'", submit: true)
+4. fugue_send_input(pane_id: <pane>, input: "claude --dangerously-skip-permissions '<task>'", submit: true)
 ```
 
 ---
@@ -45,9 +45,9 @@ Show status of all worker agents.
 
 **Implementation:**
 ```
-1. ccmux_list_panes to get all panes
+1. fugue_list_panes to get all panes
 2. Filter for sessions matching *-worker or having tag:worker
-3. For each: ccmux_get_status to get Claude state
+3. For each: fugue_get_status to get Claude state
 4. Format and display summary table
 ```
 
@@ -66,17 +66,17 @@ Start the watchdog agent that monitors workers.
 **What it does:**
 1. Creates a `__watchdog` session with `watchdog` tag
 2. Launches a Haiku-powered Claude with monitoring prompt
-3. Starts native ccmux timer that sends "check" at intervals
+3. Starts native fugue timer that sends "check" at intervals
 4. Tags current session as `orchestrator` to receive alerts
 
 **Implementation:**
 ```
-1. Tag self as orchestrator: ccmux_set_tags(add: ["orchestrator"])
-2. Create watchdog session: ccmux_create_session(name: "__watchdog")
-3. Tag watchdog: ccmux_set_tags(session: "__watchdog", add: ["watchdog"])
+1. Tag self as orchestrator: fugue_set_tags(add: ["orchestrator"])
+2. Create watchdog session: fugue_create_session(name: "__watchdog")
+3. Tag watchdog: fugue_set_tags(session: "__watchdog", add: ["watchdog"])
 4. Get watchdog pane_id
-5. Launch Claude: ccmux_send_input(pane_id: <watchdog_pane>, input: "claude --model haiku ...", submit: true)
-6. Start timer: ccmux_watchdog_start(pane_id: <watchdog_pane>, interval_secs: 90)
+5. Launch Claude: fugue_send_input(pane_id: <watchdog_pane>, input: "claude --model haiku ...", submit: true)
+6. Start timer: fugue_watchdog_start(pane_id: <watchdog_pane>, interval_secs: 90)
 ```
 
 **Watchdog Model:** Uses Claude Haiku for cost efficiency (monitoring is frequent, simple).
@@ -98,8 +98,8 @@ Stop the watchdog agent and timer.
 
 **Implementation:**
 ```
-1. ccmux_watchdog_stop()
-2. ccmux_kill_session(session: "__watchdog")
+1. fugue_watchdog_stop()
+2. fugue_kill_session(session: "__watchdog")
 ```
 
 ---
@@ -119,7 +119,7 @@ Kill a specific worker session.
 
 **Implementation:**
 ```
-1. ccmux_kill_session(session: "<session>")
+1. fugue_kill_session(session: "<session>")
 ```
 
 ---
@@ -141,10 +141,10 @@ Collect work from completed workers.
 
 **Implementation:**
 ```
-1. ccmux_list_panes to find completed workers (idle state)
-2. For each (or specified): ccmux_read_pane(pane_id, lines: 200)
+1. fugue_list_panes to find completed workers (idle state)
+2. For each (or specified): fugue_read_pane(pane_id, lines: 200)
 3. Parse output for completion summary
-4. Optionally: ccmux_kill_session to clean up
+4. Optionally: fugue_kill_session to clean up
 ```
 
 ---
@@ -157,14 +157,14 @@ The watchdog uses this specialized system prompt:
 You are a worker agent monitor. Your job is to periodically check on worker agents and alert the orchestrator when they need attention.
 
 When you receive "check":
-1. Use ccmux_list_panes to find all panes
+1. Use fugue_list_panes to find all panes
 2. Filter for worker sessions (tag:worker or session names matching *-worker)
 3. For each worker:
-   - ccmux_get_status to get current state
-   - ccmux_read_pane (last 30 lines) if state unclear
+   - fugue_get_status to get current state
+   - fugue_read_pane (last 30 lines) if state unclear
 4. Classify each: working, complete, waiting, stuck, errored
 5. If any workers need attention (complete, waiting, stuck, errored):
-   - ccmux_send_orchestration to tag:orchestrator with summary
+   - fugue_send_orchestration to tag:orchestrator with summary
 6. If all workers healthy and working, respond briefly: "All N workers healthy"
 
 Be concise. The orchestrator is busy - only interrupt when necessary.
@@ -177,7 +177,7 @@ Classification rules:
 - stuck: Idle for over 5 minutes with no completion message
 - errored: Error messages visible in output
 
-Alert format (use ccmux_send_orchestration):
+Alert format (use fugue_send_orchestration):
 {
   "target": {"tag": "orchestrator"},
   "msg_type": "worker.alert",
@@ -199,18 +199,18 @@ As the orchestrator, you should:
 
 1. **Tag yourself** at startup:
    ```
-   ccmux_set_tags(add: ["orchestrator"])
+   fugue_set_tags(add: ["orchestrator"])
    ```
 
 2. **Poll for messages** periodically:
    ```
-   ccmux_poll_messages(worker_id: <your_session>)
+   fugue_poll_messages(worker_id: <your_session>)
    ```
 
 3. **Act on alerts** from the watchdog:
    - `complete` → Run `/orchestrate collect <session>`
-   - `waiting` → Check what input is needed, provide it via `ccmux_send_input`
-   - `stuck` → Investigate with `ccmux_read_pane`, decide whether to restart
+   - `waiting` → Check what input is needed, provide it via `fugue_send_input`
+   - `stuck` → Investigate with `fugue_read_pane`, decide whether to restart
    - `errored` → Read error, decide whether to fix and retry
 
 ---

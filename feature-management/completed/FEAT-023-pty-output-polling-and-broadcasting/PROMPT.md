@@ -1,7 +1,7 @@
 # FEAT-023: PTY Output Polling and Broadcasting
 
 **Priority**: P0 (Critical)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: medium (2-3 hours)
 **Business Value**: high
@@ -28,14 +28,14 @@ Poll PTY output in background tasks and broadcast to connected clients. This fea
 - `ScrollbackBuffer` available for output buffering
 - Need to integrate with client tracking (which clients are attached to which sessions)
 
-**Location:** New polling module or extend `ccmux-server/src/pty/`
+**Location:** New polling module or extend `fugue-server/src/pty/`
 
 ## Affected Files
 
-- `ccmux-server/src/pty/mod.rs` - Module exports
-- `ccmux-server/src/pty/output.rs` - New polling/broadcasting module
-- `ccmux-server/src/server/mod.rs` - Integration with server event loop
-- `ccmux-protocol/src/messages.rs` - ServerMessage::Output type
+- `fugue-server/src/pty/mod.rs` - Module exports
+- `fugue-server/src/pty/output.rs` - New polling/broadcasting module
+- `fugue-server/src/server/mod.rs` - Integration with server event loop
+- `fugue-protocol/src/messages.rs` - ServerMessage::Output type
 
 ## Implementation Tasks
 

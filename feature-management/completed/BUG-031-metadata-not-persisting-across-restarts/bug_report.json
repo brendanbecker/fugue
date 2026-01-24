@@ -16,8 +16,8 @@
   "blocking": false,
   "affects_features": ["FEAT-050-session-metadata-storage"],
   "symptoms": [
-    "Metadata set via ccmux_set_metadata is lost after daemon restart",
-    "ccmux_get_metadata returns empty {} after restart",
+    "Metadata set via fugue_set_metadata is lost after daemon restart",
+    "fugue_get_metadata returns empty {} after restart",
     "list_sessions shows empty metadata after restart"
   ],
   "workaround": "Re-set metadata after each daemon restart",

@@ -1,4 +1,4 @@
-# BUG-061: ccmux_send_orchestration target parameter parsing fails
+# BUG-061: fugue_send_orchestration target parameter parsing fails
 
 **Priority**: P2
 **Component**: mcp
@@ -7,7 +7,7 @@
 
 ## Problem
 
-`ccmux_send_orchestration` fails with "Invalid target" error even when valid target objects are provided. The target parameter is not being parsed correctly when passed through the MCP protocol.
+`fugue_send_orchestration` fails with "Invalid target" error even when valid target objects are provided. The target parameter is not being parsed correctly when passed through the MCP protocol.
 
 ```
 MCP error -32602: Invalid target: must specify 'tag', 'session', 'broadcast', or 'worktree'
@@ -15,8 +15,8 @@ MCP error -32602: Invalid target: must specify 'tag', 'session', 'broadcast', or
 
 ## Reproduction Steps
 
-1. Attach to a session: `ccmux_attach_session`
-2. Call `ccmux_send_orchestration` with any valid target:
+1. Attach to a session: `fugue_attach_session`
+2. Call `fugue_send_orchestration` with any valid target:
    - `{"target": {"broadcast": true}, "msg_type": "test", "payload": {}}`
    - `{"target": {"tag": "orchestrator"}, "msg_type": "test", "payload": {}}`
 3. Observe: "Invalid target" error returned
@@ -31,12 +31,12 @@ All target formats fail with the same error, indicating the target object is not
 
 ## Root Cause Analysis
 
-The `ccmux_send_orchestration` handler in `mod.rs:502-508` extracts the target as:
+The `fugue_send_orchestration` handler in `mod.rs:502-508` extracts the target as:
 ```rust
 let target = &arguments["target"];
 ```
 
-But when MCP clients (including Claude Code) pass object parameters, they may arrive as JSON strings rather than parsed objects. The `ccmux_create_layout` tool handles this case (lines 447-455):
+But when MCP clients (including Claude Code) pass object parameters, they may arrive as JSON strings rather than parsed objects. The `fugue_create_layout` tool handles this case (lines 447-455):
 
 ```rust
 let layout = match &raw_layout {
@@ -49,14 +49,14 @@ let layout = match &raw_layout {
 };
 ```
 
-The `ccmux_send_orchestration` tool lacks this string-to-object parsing.
+The `fugue_send_orchestration` tool lacks this string-to-object parsing.
 
 ## Fix
 
-Add the same string parsing logic to `ccmux_send_orchestration` in `ccmux-server/src/mcp/bridge/mod.rs`:
+Add the same string parsing logic to `fugue_send_orchestration` in `fugue-server/src/mcp/bridge/mod.rs`:
 
 ```rust
-"ccmux_send_orchestration" => {
+"fugue_send_orchestration" => {
     let raw_target = arguments["target"].clone();
     let target = match &raw_target {
         serde_json::Value::String(s) => {
@@ -76,19 +76,19 @@ Add the same string parsing logic to `ccmux_send_orchestration` in `ccmux-server
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_send_orchestration` accepts target as JSON object
-- [ ] `ccmux_send_orchestration` accepts target as JSON string (for compatibility)
+- [ ] `fugue_send_orchestration` accepts target as JSON object
+- [ ] `fugue_send_orchestration` accepts target as JSON string (for compatibility)
 - [ ] All target types work: `tag`, `session`, `broadcast`, `worktree`
 - [ ] Add test coverage for both object and string parameter formats
 
 ## Related Files
 
-- `ccmux-server/src/mcp/bridge/mod.rs:502-508` - dispatch logic (needs fix)
-- `ccmux-server/src/mcp/bridge/mod.rs:447-455` - reference implementation in create_layout
-- `ccmux-server/src/mcp/bridge/handlers.rs:1027-1073` - handler (correct, issue is in dispatch)
+- `fugue-server/src/mcp/bridge/mod.rs:502-508` - dispatch logic (needs fix)
+- `fugue-server/src/mcp/bridge/mod.rs:447-455` - reference implementation in create_layout
+- `fugue-server/src/mcp/bridge/handlers.rs:1027-1073` - handler (correct, issue is in dispatch)
 
 ## Notes
 
 - Discovered during QA of BUG-060 fix
-- Other orchestration tools (`ccmux_report_status`, `ccmux_broadcast`, `ccmux_set_tags`) work correctly
-- Only `ccmux_send_orchestration` is affected due to its complex object parameter
+- Other orchestration tools (`fugue_report_status`, `fugue_broadcast`, `fugue_set_tags`) work correctly
+- Only `fugue_send_orchestration` is affected due to its complex object parameter

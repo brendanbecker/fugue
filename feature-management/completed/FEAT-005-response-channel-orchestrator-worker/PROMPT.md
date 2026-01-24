@@ -34,8 +34,8 @@ Only delivers to sessions in input-wait state. Not an interrupt mechanism.
 
 ## Current State
 
-- Sideband protocol designed (`<ccmux:input target="...">`) but not implemented
-- ClaudeActivity enum includes AwaitingConfirmation state (in `ccmux-protocol/src/types.rs`)
+- Sideband protocol designed (`<fugue:input target="...">`) but not implemented
+- ClaudeActivity enum includes AwaitingConfirmation state (in `fugue-protocol/src/types.rs`)
 - Parent-child tracking documented (parent_pane field)
 - Parsing code is pseudocode/stubs only
 
@@ -43,14 +43,14 @@ Only delivers to sessions in input-wait state. Not an interrupt mechanism.
 
 | File | Change Type | Description |
 |------|-------------|-------------|
-| `ccmux-client/src/commands.rs` | Add | /reply command handler |
-| `ccmux-server/src/session/pane.rs` | Modify | Input-wait detection logic |
-| `ccmux-protocol/src/lib.rs` | Add | Reply message type |
+| `fugue-client/src/commands.rs` | Add | /reply command handler |
+| `fugue-server/src/session/pane.rs` | Modify | Input-wait detection logic |
+| `fugue-protocol/src/lib.rs` | Add | Reply message type |
 
 ## Implementation Tasks
 
 ### Section 1: Protocol Layer
-- [ ] Add ReplyMessage type to ccmux-protocol
+- [ ] Add ReplyMessage type to fugue-protocol
 - [ ] Define message format: target pane ID + message content
 - [ ] Add serialization/deserialization support
 - [ ] Update protocol exports in lib.rs
@@ -97,7 +97,7 @@ Only delivers to sessions in input-wait state. Not an interrupt mechanism.
 
 ## Technical Notes
 
-### ClaudeActivity Enum (from ccmux-protocol/src/types.rs)
+### ClaudeActivity Enum (from fugue-protocol/src/types.rs)
 
 ```rust
 pub enum ClaudeActivity {
@@ -111,12 +111,12 @@ pub enum ClaudeActivity {
 
 ### Sideband Protocol Reference (from ADR-002)
 
-The `<ccmux:input>` tag was designed for Claude-initiated input:
+The `<fugue:input>` tag was designed for Claude-initiated input:
 
 ```xml
-<ccmux:input to="worker-1">
+<fugue:input to="worker-1">
 use async approach
-</ccmux:input>
+</fugue:input>
 ```
 
 This feature implements the complementary direction: user/orchestrator to worker.

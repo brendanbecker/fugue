@@ -1,7 +1,7 @@
 {
   "bug_id": "BUG-020",
   "title": "Session reattach from session manager creates client without PTY",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "severity": "high",
   "priority": "P1",
   "status": "new",
@@ -14,7 +14,7 @@
   "reproducibility": "always",
   "description": "When a user selects an existing session from the session manager/session selection UI, it creates an additional client connection to the session but the client doesn't get a PTY. The user cannot interact with the terminal - they see the pane but can't type or see output.",
   "steps_to_reproduce": [
-    "Start ccmux and create a session",
+    "Start fugue and create a session",
     "Detach from the session (Ctrl+B d) or open session manager",
     "From the session manager UI, select the existing session to reattach",
     "Observe that the client appears to connect (additional client registered)",

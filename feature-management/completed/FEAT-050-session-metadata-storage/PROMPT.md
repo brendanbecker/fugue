@@ -1,7 +1,7 @@
 # FEAT-050: Session Metadata Storage for Agent Identity
 
 **Priority**: P3
-**Component**: ccmux-server (MCP)
+**Component**: fugue-server (MCP)
 **Type**: new_feature
 **Estimated Effort**: small
 **Business Value**: low
@@ -35,18 +35,18 @@ This is fragile and workflow-specific. A generic metadata storage system would:
 Add a `HashMap<String, String>` to store arbitrary key-value pairs:
 
 ```rust
-// In ccmux-session/src/session.rs
+// In fugue-session/src/session.rs
 pub struct Session {
     // existing fields...
     pub metadata: HashMap<String, String>,
 }
 ```
 
-### 2. Add MCP Tool: `ccmux_set_metadata`
+### 2. Add MCP Tool: `fugue_set_metadata`
 
 ```json
 {
-  "name": "ccmux_set_metadata",
+  "name": "fugue_set_metadata",
   "description": "Set a metadata key-value pair on a session",
   "inputSchema": {
     "type": "object",
@@ -69,11 +69,11 @@ pub struct Session {
 }
 ```
 
-### 3. Add MCP Tool: `ccmux_get_metadata`
+### 3. Add MCP Tool: `fugue_get_metadata`
 
 ```json
 {
-  "name": "ccmux_get_metadata",
+  "name": "fugue_get_metadata",
   "description": "Get metadata from a session",
   "inputSchema": {
     "type": "object",
@@ -92,7 +92,7 @@ pub struct Session {
 }
 ```
 
-### 4. Include Metadata in `ccmux_list_sessions` Response
+### 4. Include Metadata in `fugue_list_sessions` Response
 
 Extend the session list response to include metadata:
 
@@ -120,26 +120,26 @@ Update the checkpoint format to include session metadata. Ensure metadata is res
 
 ```
 # Set agent identity
-ccmux_set_metadata(session="gt-alpha-Toast", key="role", value="polecat")
-ccmux_set_metadata(session="gt-alpha-Toast", key="rig", value="alpha")
-ccmux_set_metadata(session="gt-alpha-Toast", key="agent_name", value="Toast")
+fugue_set_metadata(session="gt-alpha-Toast", key="role", value="polecat")
+fugue_set_metadata(session="gt-alpha-Toast", key="rig", value="alpha")
+fugue_set_metadata(session="gt-alpha-Toast", key="agent_name", value="Toast")
 
 # Query a specific key
-ccmux_get_metadata(session="gt-alpha-Toast", key="role")
+fugue_get_metadata(session="gt-alpha-Toast", key="role")
 # Returns: {"role": "polecat"}
 
 # Get all metadata
-ccmux_get_metadata(session="gt-alpha-Toast")
+fugue_get_metadata(session="gt-alpha-Toast")
 # Returns: {"role": "polecat", "rig": "alpha", "agent_name": "Toast"}
 
 # List sessions shows metadata
-ccmux_list_sessions()
+fugue_list_sessions()
 # Returns sessions with their metadata for filtering
 ```
 
-**Future Enhancement**: Add `ccmux_find_sessions` tool to query by metadata:
+**Future Enhancement**: Add `fugue_find_sessions` tool to query by metadata:
 ```
-ccmux_find_sessions(metadata={"role": "polecat", "rig": "alpha"})
+fugue_find_sessions(metadata={"role": "polecat", "rig": "alpha"})
 # Returns all polecat sessions in rig alpha
 ```
 
@@ -147,11 +147,11 @@ ccmux_find_sessions(metadata={"role": "polecat", "rig": "alpha"})
 
 | File | Change |
 |------|--------|
-| `ccmux-session/src/session.rs` | Add `metadata: HashMap<String, String>` to Session |
-| `ccmux-server/src/mcp/tools.rs` | Add `ccmux_set_metadata` and `ccmux_get_metadata` tools |
-| `ccmux-server/src/mcp/handlers.rs` | Implement tool handlers |
-| `ccmux-protocol/src/types.rs` | Add metadata to SessionInfo if needed |
-| `ccmux-persistence/src/checkpoint.rs` | Persist metadata in checkpoints |
+| `fugue-session/src/session.rs` | Add `metadata: HashMap<String, String>` to Session |
+| `fugue-server/src/mcp/tools.rs` | Add `fugue_set_metadata` and `fugue_get_metadata` tools |
+| `fugue-server/src/mcp/handlers.rs` | Implement tool handlers |
+| `fugue-protocol/src/types.rs` | Add metadata to SessionInfo if needed |
+| `fugue-persistence/src/checkpoint.rs` | Persist metadata in checkpoints |
 
 ## Implementation Tasks
 
@@ -161,10 +161,10 @@ ccmux_find_sessions(metadata={"role": "polecat", "rig": "alpha"})
 - [ ] Add `get_metadata()`, `set_metadata()`, `remove_metadata()` methods
 
 ### Section 2: MCP Tools
-- [ ] Add `ccmux_set_metadata` tool definition
-- [ ] Add `ccmux_get_metadata` tool definition
+- [ ] Add `fugue_set_metadata` tool definition
+- [ ] Add `fugue_get_metadata` tool definition
 - [ ] Implement handlers for both tools
-- [ ] Add metadata to `ccmux_list_sessions` response
+- [ ] Add metadata to `fugue_list_sessions` response
 
 ### Section 3: Persistence
 - [ ] Update checkpoint format to include metadata
@@ -180,8 +180,8 @@ ccmux_find_sessions(metadata={"role": "polecat", "rig": "alpha"})
 ## Acceptance Criteria
 
 - [ ] Sessions can store arbitrary string key-value pairs
-- [ ] MCP tool `ccmux_set_metadata` works correctly
-- [ ] MCP tool `ccmux_get_metadata` works correctly
+- [ ] MCP tool `fugue_set_metadata` works correctly
+- [ ] MCP tool `fugue_get_metadata` works correctly
 - [ ] Session list includes metadata
 - [ ] Metadata persists across server restarts
 - [ ] Existing sessions without metadata load without errors
@@ -190,7 +190,7 @@ ccmux_find_sessions(metadata={"role": "polecat", "rig": "alpha"})
 
 - This is a convenience feature; callers can use environment variables as a workaround
 - Consider size limits on metadata to prevent abuse (e.g., 100 keys, 1KB per value)
-- Future: `ccmux_find_sessions` for querying by metadata could be a separate feature
+- Future: `fugue_find_sessions` for querying by metadata could be a separate feature
 - Complements FEAT-028 (tag-based routing) but serves a different purpose:
   - Tags are for message routing
   - Metadata is for arbitrary application data

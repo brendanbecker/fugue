@@ -1,7 +1,7 @@
 {
   "bug_id": "BUG-013",
   "title": "Mouse scroll wheel not working for scrollback",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "severity": "medium",
   "priority": "P2",
   "status": "new",
@@ -14,7 +14,7 @@
   "reproducibility": "always",
   "description": "Mouse scroll wheel does not scroll through terminal scrollback history. FEAT-034 (Mouse Scroll Support) was supposedly implemented and merged, but scrolling with the mouse wheel is not functioning. This appears to be a regression or incomplete implementation.",
   "steps_to_reproduce": [
-    "Start ccmux and attach to a session",
+    "Start fugue and attach to a session",
     "Run commands that produce enough output to create scrollback (e.g., ls -laR /)",
     "Attempt to scroll up using mouse scroll wheel",
     "Observe that scroll wheel does nothing",

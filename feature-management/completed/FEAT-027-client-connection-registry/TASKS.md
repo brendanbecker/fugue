@@ -9,9 +9,9 @@
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
 - [ ] Verify FEAT-021 provides client connection context
-- [ ] Review existing ccmux-server structure
+- [ ] Review existing fugue-server structure
 - [ ] Check for existing SessionId type definition
-- [ ] Review ccmux-protocol ServerMessage type
+- [ ] Review fugue-protocol ServerMessage type
 
 ## Design Tasks
 
@@ -23,21 +23,21 @@
 
 ## Implementation Tasks
 
-### Module Setup (ccmux-server/Cargo.toml, src/lib.rs)
+### Module Setup (fugue-server/Cargo.toml, src/lib.rs)
 
 - [ ] Add dashmap dependency to Cargo.toml
 - [ ] Create registry.rs module file
 - [ ] Export registry module from lib.rs or main.rs
 - [ ] Add necessary imports (tokio, dashmap, etc.)
 
-### Core Types (ccmux-server/src/registry.rs)
+### Core Types (fugue-server/src/registry.rs)
 
 - [ ] Define `ClientId` newtype with derive macros
 - [ ] Define `ClientEntry` struct
 - [ ] Define `SendError` enum for send failures
 - [ ] Implement Display/Debug for ClientId
 
-### ClientRegistry Struct (ccmux-server/src/registry.rs)
+### ClientRegistry Struct (fugue-server/src/registry.rs)
 
 - [ ] Create `ClientRegistry` struct with DashMap fields
 - [ ] Add AtomicU64 for client ID generation
@@ -73,7 +73,7 @@
 - [ ] Implement `get_session_clients(session_id)` -> Vec<ClientId>
 - [ ] Implement `is_client_attached(client_id)` -> bool
 
-### Server Integration (ccmux-server/src/server.rs)
+### Server Integration (fugue-server/src/server.rs)
 
 - [ ] Add `registry: ClientRegistry` field to Server struct
 - [ ] Initialize registry in Server::new()

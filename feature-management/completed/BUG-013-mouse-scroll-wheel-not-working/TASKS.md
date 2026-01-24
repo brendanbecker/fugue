@@ -22,7 +22,7 @@
 
 ### Verify Mouse Capture is Enabled
 
-- [ ] Find `EnableMouseCapture` in `ccmux-client/src/main.rs`
+- [ ] Find `EnableMouseCapture` in `fugue-client/src/main.rs`
 - [ ] Verify it includes scroll events
 - [ ] Check if it's ever disabled during operation
 - [ ] Verify crossterm version supports scroll events
@@ -32,7 +32,7 @@
 - [ ] Add debug logging to event loop (temporary)
 - [ ] Log all mouse events received
 - [ ] Specifically log `MouseEvent::ScrollUp` and `MouseEvent::ScrollDown`
-- [ ] Run ccmux and attempt to scroll
+- [ ] Run fugue and attempt to scroll
 - [ ] Check logs to see if events are received
 
 ### Trace Event Handling Path

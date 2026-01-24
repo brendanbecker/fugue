@@ -7,12 +7,12 @@
 
 ## Problem Statement
 
-When calling `ccmux_select_session` or `ccmux_select_window` via MCP, the command returns success but the TUI view does not change. The MCP bridge and TUI are separate clients with independent focus states, so MCP commands only update the MCP bridge's focus, not the human's TUI view.
+When calling `fugue_select_session` or `fugue_select_window` via MCP, the command returns success but the TUI view does not change. The MCP bridge and TUI are separate clients with independent focus states, so MCP commands only update the MCP bridge's focus, not the human's TUI view.
 
 ## Symptoms
 
-1. `ccmux_select_session` returns `{"session_id": "...", "status": "selected"}` successfully
-2. `ccmux_select_window` returns `{"window_id": "...", "status": "selected"}` successfully
+1. `fugue_select_session` returns `{"session_id": "...", "status": "selected"}` successfully
+2. `fugue_select_window` returns `{"window_id": "...", "status": "selected"}` successfully
 3. The TUI remains on the previous session/window - no visual change occurs
 4. User must manually switch sessions/windows in TUI despite MCP "success"
 
@@ -37,15 +37,15 @@ The MCP bridge and TUI are registered as separate clients with separate `ClientI
 
 | File | Function | Issue |
 |------|----------|-------|
-| `ccmux-server/src/handlers/session.rs` | `handle_select_session()` | Updates requesting client's focus only |
-| `ccmux-server/src/handlers/session.rs` | `handle_select_window()` | Updates requesting client's focus only |
-| `ccmux-server/src/registry.rs` | `update_client_focus()` | Per-client focus by design |
+| `fugue-server/src/handlers/session.rs` | `handle_select_session()` | Updates requesting client's focus only |
+| `fugue-server/src/handlers/session.rs` | `handle_select_window()` | Updates requesting client's focus only |
+| `fugue-server/src/registry.rs` | `update_client_focus()` | Per-client focus by design |
 
 ## Steps to Reproduce
 
-1. Start ccmux with TUI attached to a session
-2. Create additional sessions via MCP: `ccmux_create_session(name: "test")`
-3. Call `ccmux_select_session(session_id: "<new-session-id>")`
+1. Start fugue with TUI attached to a session
+2. Create additional sessions via MCP: `fugue_create_session(name: "test")`
+3. Call `fugue_select_session(session_id: "<new-session-id>")`
 4. Observe: MCP returns success, but TUI still shows original session
 5. Manually press session-switch key in TUI - now it changes
 
@@ -87,7 +87,7 @@ HandlerResult::Targeted {
 Allow MCP to specify which client type to control:
 
 ```rust
-ccmux_select_session(session_id: "...", target: "tui")
+fugue_select_session(session_id: "...", target: "tui")
 ```
 
 ### Recommendation
@@ -120,8 +120,8 @@ Option 1 is most intuitive - MCP is acting on behalf of the human, so it should 
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_select_session` via MCP changes the TUI's displayed session
-- [ ] `ccmux_select_window` via MCP changes the TUI's displayed window
+- [ ] `fugue_select_session` via MCP changes the TUI's displayed session
+- [ ] `fugue_select_window` via MCP changes the TUI's displayed window
 - [ ] Human sees visual confirmation of the switch
 - [ ] MCP response still indicates success
 - [ ] Works with multiple attached TUI clients (all switch, or primary switches)

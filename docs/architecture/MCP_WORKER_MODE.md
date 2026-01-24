@@ -1,4 +1,4 @@
-# ccmux MCP Worker Mode
+# fugue MCP Worker Mode
 
 Spec for reducing MCP overhead in non-orchestrator panes (workers, polecats, subagents) to save tokens and improve startup/performance.
 
@@ -21,10 +21,10 @@ Spec for reducing MCP overhead in non-orchestrator panes (workers, polecats, sub
      - none: no MCP servers loaded
 
 2. **Implementation levers**  
-   - Isolated `CLAUDE_CONFIG_DIR` per pane (already in ccmux).  
+   - Isolated `CLAUDE_CONFIG_DIR` per pane (already in fugue).  
    - On spawn: create stripped config dir for workers (copy original, remove MCP sections or set `mcp_servers = []`).  
    - Or env override: `CLAUDE_MCP_ENABLED=false` or `CLAUDE_MCP_SERVERS=""` (check Claude Code env support).  
-   - Future: MCP call from orchestrator to grant tools dynamically (`<ccmux:enable-tool name="git">`).
+   - Future: MCP call from orchestrator to grant tools dynamically (`<fugue:enable-tool name="git">`).
 
 3. **Flows**
 
@@ -36,15 +36,15 @@ Claude sees full tool list → can use GitHub, Playwright, etc.
 
 ### Worker (none / minimal)
 ```
-ccmux-server → spawn worker → create stripped config dir
-Set CLAUDE_CONFIG_DIR=/tmp/ccmux-worker-123/.claude
+fugue-server → spawn worker → create stripped config dir
+Set CLAUDE_CONFIG_DIR=/tmp/fugue-worker-123/.claude
 Claude starts with near-zero MCP overhead
 ```
 
 ### Dynamic Grant (stretch)
 ```
 Worker needs tool → errors or escalates
-Orchestrator sends <ccmux:enable-tool>
+Orchestrator sends <fugue:enable-tool>
 Worker reloads config with added tool
 ```
 

@@ -32,7 +32,7 @@
 - [ ] Test split_pane with direction="horizontal"
 - [ ] Test split_pane with direction="vertical"
 - [ ] Verify the two directions produce different layouts
-- [ ] Test ccmux_create_pane direction parameter (if applicable)
+- [ ] Test fugue_create_pane direction parameter (if applicable)
 - [ ] Run existing test suite
 
 ## Verification Tasks

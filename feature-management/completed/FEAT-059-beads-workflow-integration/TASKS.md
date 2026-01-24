@@ -24,7 +24,7 @@
 
 ## Implementation Tasks
 
-### Core Data Structures (ccmux-server/src/beads/workflow.rs)
+### Core Data Structures (fugue-server/src/beads/workflow.rs)
 - [ ] Create `beads/workflow.rs` module
 - [ ] Define `PaneWorkflowState` struct
 - [ ] Define `IssueHistoryEntry` struct
@@ -35,22 +35,22 @@
 - [ ] Add serde derives for serialization
 - [ ] Add module to `beads/mod.rs`
 
-### Pane Metadata Integration (ccmux-server/src/session/pane.rs)
+### Pane Metadata Integration (fugue-server/src/session/pane.rs)
 - [ ] Add `workflow: PaneWorkflowState` field to Pane struct
 - [ ] Initialize workflow state in Pane::new()
 - [ ] Ensure workflow state serializes with pane
 - [ ] Ensure workflow state deserializes on load
 - [ ] Add workflow state to pane clone/copy operations
 
-### MCP Tool Definitions (ccmux-server/src/mcp/tools.rs)
-- [ ] Add `ccmux_beads_assign` tool definition
-- [ ] Add `ccmux_beads_release` tool definition
-- [ ] Add `ccmux_beads_find_pane` tool definition
-- [ ] Add `ccmux_beads_pane_history` tool definition
+### MCP Tool Definitions (fugue-server/src/mcp/tools.rs)
+- [ ] Add `fugue_beads_assign` tool definition
+- [ ] Add `fugue_beads_release` tool definition
+- [ ] Add `fugue_beads_find_pane` tool definition
+- [ ] Add `fugue_beads_pane_history` tool definition
 - [ ] Register tools in tool list
 - [ ] Add tools to documentation
 
-### MCP Handlers (ccmux-server/src/mcp/handlers.rs)
+### MCP Handlers (fugue-server/src/mcp/handlers.rs)
 - [ ] Define `BeadsAssignParams` struct
 - [ ] Define `BeadsReleaseParams` struct
 - [ ] Define `BeadsFindPaneParams` struct
@@ -62,7 +62,7 @@
 - [ ] Add handlers to dispatch match
 - [ ] Broadcast pane updates on assignment change
 
-### Command Interception (ccmux-server/src/handlers/pty.rs)
+### Command Interception (fugue-server/src/handlers/pty.rs)
 - [ ] Create `CommandInterceptor` struct
 - [ ] Implement `is_bd_close_command()` detection
 - [ ] Implement `inject_session()` logic
@@ -71,7 +71,7 @@
 - [ ] Log intercepted/modified commands
 - [ ] Handle edge cases (quotes, escapes)
 
-### Crash Handling (ccmux-server/src/handlers/pane.rs)
+### Crash Handling (fugue-server/src/handlers/pane.rs)
 - [ ] Define `CrashIssue` struct
 - [ ] Create `PaneCrashHandler` struct
 - [ ] Implement `handle_exit()` method
@@ -81,7 +81,7 @@
 - [ ] Define `ServerEvent::PaneCrash` variant
 - [ ] Connect handler to pane exit events
 
-### Orchestration Protocol (ccmux-protocol/src/messages.rs)
+### Orchestration Protocol (fugue-protocol/src/messages.rs)
 - [ ] Add `current_issue_id: Option<String>` to StatusUpdate
 - [ ] Add `issue_status: Option<String>` to StatusUpdate
 - [ ] Update StatusUpdate serialization
@@ -89,7 +89,7 @@
 - [ ] Update status update builders to include issue
 - [ ] Document protocol change
 
-### Configuration (ccmux-server/src/config.rs)
+### Configuration (fugue-server/src/config.rs)
 - [ ] Define `BeadsWorkflowConfig` struct
 - [ ] Add `enabled: bool` field (default: true)
 - [ ] Add `auto_inject_session: bool` field (default: true)
@@ -101,7 +101,7 @@
 - [ ] Add serde deserialization with defaults
 - [ ] Document configuration options
 
-### UI Integration (ccmux-client/src/ui/pane.rs)
+### UI Integration (fugue-client/src/ui/pane.rs)
 - [ ] Add issue display to pane status rendering
 - [ ] Format issue ID for display (truncate if long)
 - [ ] Respect `show_issue_in_status` config
@@ -128,16 +128,16 @@
 - [ ] Test interception when disabled
 
 ### MCP Tool Tests
-- [ ] Test ccmux_beads_assign with valid issue
-- [ ] Test ccmux_beads_assign with pane_id
-- [ ] Test ccmux_beads_assign with focused pane default
-- [ ] Test ccmux_beads_assign with invalid pane
-- [ ] Test ccmux_beads_release with outcome
-- [ ] Test ccmux_beads_release without outcome
-- [ ] Test ccmux_beads_find_pane found case
-- [ ] Test ccmux_beads_find_pane not found case
-- [ ] Test ccmux_beads_pane_history with history
-- [ ] Test ccmux_beads_pane_history empty history
+- [ ] Test fugue_beads_assign with valid issue
+- [ ] Test fugue_beads_assign with pane_id
+- [ ] Test fugue_beads_assign with focused pane default
+- [ ] Test fugue_beads_assign with invalid pane
+- [ ] Test fugue_beads_release with outcome
+- [ ] Test fugue_beads_release without outcome
+- [ ] Test fugue_beads_find_pane found case
+- [ ] Test fugue_beads_find_pane not found case
+- [ ] Test fugue_beads_pane_history with history
+- [ ] Test fugue_beads_pane_history empty history
 
 ### Integration Tests
 - [ ] Test full assign -> work -> release flow
@@ -159,8 +159,8 @@
 - [ ] Assign issue via MCP, verify status display
 - [ ] Run `bd close`, inspect command for --session
 - [ ] Kill pane with assigned issue, check crash event
-- [ ] Query pane by issue with ccmux_beads_find_pane
-- [ ] View history with ccmux_beads_pane_history
+- [ ] Query pane by issue with fugue_beads_find_pane
+- [ ] View history with fugue_beads_pane_history
 - [ ] Restart server, verify workflow state restored
 
 ## Documentation Tasks

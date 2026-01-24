@@ -9,7 +9,7 @@
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
 - [ ] Understand beads daemon RPC protocol
-- [ ] Review existing status bar implementation in ccmux-client
+- [ ] Review existing status bar implementation in fugue-client
 - [ ] Review input handling for adding new keybinds
 - [ ] FEAT-057 (Beads Passive Awareness) completed
 
@@ -24,14 +24,14 @@
 
 ## Implementation Tasks
 
-### Beads Client Module (ccmux-server/src/beads/)
+### Beads Client Module (fugue-server/src/beads/)
 
-- [ ] Create `ccmux-server/src/beads/mod.rs` module structure
-- [ ] Create `ccmux-server/src/beads/types.rs` with BeadsTask, BeadsStatus
-- [ ] Create `ccmux-server/src/beads/discovery.rs`
+- [ ] Create `fugue-server/src/beads/mod.rs` module structure
+- [ ] Create `fugue-server/src/beads/types.rs` with BeadsTask, BeadsStatus
+- [ ] Create `fugue-server/src/beads/discovery.rs`
 - [ ] Implement `discover_beads_socket()` function
 - [ ] Implement `discover_beads_root()` function
-- [ ] Create `ccmux-server/src/beads/client.rs`
+- [ ] Create `fugue-server/src/beads/client.rs`
 - [ ] Implement `BeadsClient::new()`
 - [ ] Implement `BeadsClient::connect()` with async socket
 - [ ] Implement `BeadsClient::query_ready()` RPC call
@@ -39,9 +39,9 @@
 - [ ] Add timeout handling to all socket operations
 - [ ] Implement graceful error handling (no panics)
 
-### Beads Manager (ccmux-server/src/beads/)
+### Beads Manager (fugue-server/src/beads/)
 
-- [ ] Create `ccmux-server/src/beads/manager.rs`
+- [ ] Create `fugue-server/src/beads/manager.rs`
 - [ ] Implement client caching per repo root
 - [ ] Implement status caching with TTL
 - [ ] Implement `get_status()` with cache check
@@ -49,7 +49,7 @@
 - [ ] Implement refresh loop task
 - [ ] Integrate manager with server state
 
-### Protocol Messages (ccmux-protocol)
+### Protocol Messages (fugue-protocol)
 
 - [ ] Add `BeadsStatus` struct to protocol
 - [ ] Add `BeadsTask` struct to protocol
@@ -59,7 +59,7 @@
 - [ ] Add serde derives for all new types
 - [ ] Add unit tests for serialization
 
-### Configuration (ccmux-server/src/config.rs)
+### Configuration (fugue-server/src/config.rs)
 
 - [ ] Add `BeadsConfig` struct
 - [ ] Add `BeadsQueryConfig` struct
@@ -80,7 +80,7 @@
 - [ ] Send BeadsReadyResponse with task list
 - [ ] Honor enabled config flag
 
-### Status Bar Integration (ccmux-client/src/ui/status.rs)
+### Status Bar Integration (fugue-client/src/ui/status.rs)
 
 - [ ] Add `beads_status: Option<BeadsStatus>` to StatusBar
 - [ ] Implement `set_beads_status()` method
@@ -89,7 +89,7 @@
 - [ ] Handle daemon unavailable state
 - [ ] Position indicator appropriately in status bar
 
-### Beads Panel Component (ccmux-client/src/ui/beads_panel.rs)
+### Beads Panel Component (fugue-client/src/ui/beads_panel.rs)
 
 - [ ] Create new file `beads_panel.rs`
 - [ ] Implement `BeadsPanel` struct
@@ -110,7 +110,7 @@
 - [ ] Implement Esc/q for close
 - [ ] Add `BeadsPanelAction` enum
 
-### Input Handling (ccmux-client/src/input/mod.rs)
+### Input Handling (fugue-client/src/input/mod.rs)
 
 - [ ] Add `KeyCode::Char('b')` handler in prefix mode
 - [ ] Map to `Action::OpenBeadsPanel`
@@ -119,7 +119,7 @@
 - [ ] Add `Action::BeadsClaim(String)` variant
 - [ ] Add `Action::BeadsViewDetails(String)` variant
 
-### Client App Integration (ccmux-client/src/ui/app.rs)
+### Client App Integration (fugue-client/src/ui/app.rs)
 
 - [ ] Add BeadsPanel to App state
 - [ ] Handle BeadsStatusUpdate server message
@@ -131,10 +131,10 @@
 
 ### MCP Tools (Optional - Lower Priority)
 
-- [ ] Add `ccmux_beads_ready` tool schema
-- [ ] Implement `ccmux_beads_ready` handler
-- [ ] Add `ccmux_beads_status` tool schema
-- [ ] Implement `ccmux_beads_status` handler
+- [ ] Add `fugue_beads_ready` tool schema
+- [ ] Implement `fugue_beads_ready` handler
+- [ ] Add `fugue_beads_status` tool schema
+- [ ] Implement `fugue_beads_status` handler
 - [ ] Add tool documentation
 
 ## Testing Tasks
@@ -179,12 +179,12 @@
 - [ ] Verify Esc closes panel
 - [ ] Test in non-beads repo (no indicator)
 - [ ] Test with daemon stopped (graceful fallback)
-- [ ] Test daemon restart while ccmux running
+- [ ] Test daemon restart while fugue running
 - [ ] Test config changes (refresh interval)
 
 ## Documentation Tasks
 
-- [ ] Document beads integration in ccmux docs
+- [ ] Document beads integration in fugue docs
 - [ ] Document configuration options
 - [ ] Document Ctrl+B b keybind
 - [ ] Add code comments to BeadsClient

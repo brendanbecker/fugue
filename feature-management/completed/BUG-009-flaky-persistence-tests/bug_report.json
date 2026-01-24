@@ -1,7 +1,7 @@
 {
   "bug_id": "BUG-009",
   "title": "Flaky persistence/recovery tests due to test isolation issues",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "severity": "medium",
   "priority": "P2",
   "status": "new",
@@ -12,7 +12,7 @@
   "affected_versions": ["0.1.0"],
   "environment": "Test environment (cargo test)",
   "reproducibility": "sometimes",
-  "description": "The persistence/recovery tests in ccmux-server have intermittent race conditions. A different test fails on each run - it's not one specific test but rather test isolation issues affecting the entire persistence test suite. Tests pass when run individually but fail approximately 30% of the time when run in parallel with the full workspace.",
+  "description": "The persistence/recovery tests in fugue-server have intermittent race conditions. A different test fails on each run - it's not one specific test but rather test isolation issues affecting the entire persistence test suite. Tests pass when run individually but fail approximately 30% of the time when run in parallel with the full workspace.",
   "steps_to_reproduce": [
     "Run cargo test --workspace multiple times",
     "Observe intermittent failures in persistence tests",
@@ -25,12 +25,12 @@
   "evidence": [
     {
       "type": "file",
-      "location": "ccmux-server/src/persistence/recovery.rs",
+      "location": "fugue-server/src/persistence/recovery.rs",
       "description": "Contains test_recovery_from_wal, test_recovery_active_window_pane, test_recovery_pane_updates"
     },
     {
       "type": "file",
-      "location": "ccmux-server/src/persistence/mod.rs",
+      "location": "fugue-server/src/persistence/mod.rs",
       "description": "Contains test_persistence_log_operations"
     },
     {

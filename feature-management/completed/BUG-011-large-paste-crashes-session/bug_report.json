@@ -1,7 +1,7 @@
 {
   "bug_id": "BUG-011",
-  "title": "Large paste input crashes ccmux session",
-  "component": "ccmux-client / ccmux-server",
+  "title": "Large paste input crashes fugue session",
+  "component": "fugue-client / fugue-server",
   "severity": "medium",
   "priority": "P2",
   "status": "new",
@@ -12,11 +12,11 @@
   "affected_versions": ["0.1.0"],
   "environment": "Linux terminal (WSL2)",
   "reproducibility": "always",
-  "description": "Pasting an extremely large amount of text into a ccmux terminal session causes the session to crash. The user was working in ccmux when they attempted to paste a large block of text, and the entire session crashed. There is no graceful handling or error message - the session simply dies.",
+  "description": "Pasting an extremely large amount of text into a fugue terminal session causes the session to crash. The user was working in fugue when they attempted to paste a large block of text, and the entire session crashed. There is no graceful handling or error message - the session simply dies.",
   "steps_to_reproduce": [
-    "Start ccmux and attach to a session",
+    "Start fugue and attach to a session",
     "Copy an extremely large block of text to clipboard (e.g., >1MB)",
-    "Paste into the ccmux terminal",
+    "Paste into the fugue terminal",
     "Observe session crash"
   ],
   "expected_behavior": "Large paste should either be handled gracefully (chunked and sent to PTY) or fail with a clear error message without crashing the session",

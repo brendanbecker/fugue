@@ -11,7 +11,7 @@
 
 ## Problem
 
-ccmux's screen rendering produces visual artifacts when displaying Claude Code's TUI output. Multiple stacked "thinking" messages, ghost content, and overlapping UI elements create an unpleasant and confusing viewing experience.
+fugue's screen rendering produces visual artifacts when displaying Claude Code's TUI output. Multiple stacked "thinking" messages, ghost content, and overlapping UI elements create an unpleasant and confusing viewing experience.
 
 ### Observed Issues
 
@@ -30,7 +30,7 @@ Claude Code's TUI uses ANSI escape sequences for:
 - Scrolling regions
 - Overwriting previous content in-place
 
-ccmux's rendering may not be properly handling:
+fugue's rendering may not be properly handling:
 1. In-place content updates (cursor moves + overwrites)
 2. Line/screen clear sequences
 3. Scrolling regions
@@ -57,9 +57,9 @@ Review these for context:
 
 ## Key Files to Review
 
-- `ccmux-server/src/pty/` - PTY handling
-- `ccmux-client/src/render.rs` - Client rendering (from FEAT-087 refactor)
-- `ccmux-client/src/app.rs` - Client app logic
+- `fugue-server/src/pty/` - PTY handling
+- `fugue-client/src/render.rs` - Client rendering (from FEAT-087 refactor)
+- `fugue-client/src/app.rs` - Client app logic
 - Terminal emulation/screen buffer code
 
 ## Proposed Approach
@@ -83,13 +83,13 @@ Review these for context:
 
 ## Visual Reference
 
-Screenshot saved at: `/mnt/c/Users/Brend/Pictures/Screenshots/SSccmux.png`
+Screenshot saved at: `/mnt/c/Users/Brend/Pictures/Screenshots/SSfugue.png`
 
 Shows the rendering artifacts - stacked thinking messages, multiple divider lines, cluttered appearance.
 
 ## Notes
 
 - This may reveal deeper issues with the terminal emulation approach
-- Consider whether ccmux needs a proper screen buffer (like tmux's)
+- Consider whether fugue needs a proper screen buffer (like tmux's)
 - May need to intercept and process escape sequences more thoroughly
 - Performance implications of more sophisticated rendering

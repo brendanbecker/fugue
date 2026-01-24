@@ -1,20 +1,20 @@
 # FEAT-119: Auto-propagate CLAUDE_CODE_TASK_LIST_ID on session creation
 
 **Priority**: P2
-**Component**: ccmux-server/mcp
+**Component**: fugue-server/mcp
 **Type**: enhancement
 **Estimated Effort**: small
 **Business Value**: high
 
 ## Overview
 
-Add a `task_list_id` parameter to `ccmux_create_session` that automatically sets the `CLAUDE_CODE_TASK_LIST_ID` environment variable. This enables all Claude instances spawned in that session to share the same task graph.
+Add a `task_list_id` parameter to `fugue_create_session` that automatically sets the `CLAUDE_CODE_TASK_LIST_ID` environment variable. This enables all Claude instances spawned in that session to share the same task graph.
 
 ## Problem Statement
 
 Claude Code's new task system stores tasks in `~/.claude/tasks/<list-id>/`. By default, each session gets a unique list-id (session UUID), so tasks don't persist across sessions or share between agents.
 
-When orchestrating multiple Claude workers via ccmux:
+When orchestrating multiple Claude workers via fugue:
 1. Each worker has its own isolated task list
 2. Orchestrators can't see worker task progress
 3. Task dependencies can't span workers
@@ -24,7 +24,7 @@ Setting `CLAUDE_CODE_TASK_LIST_ID` env var causes Claude to use a shared task li
 
 ## Solution
 
-Add `task_list_id` parameter to `ccmux_create_session`. When provided, automatically set `CLAUDE_CODE_TASK_LIST_ID` in the session environment.
+Add `task_list_id` parameter to `fugue_create_session`. When provided, automatically set `CLAUDE_CODE_TASK_LIST_ID` in the session environment.
 
 ## API Design
 
@@ -32,7 +32,7 @@ Add `task_list_id` parameter to `ccmux_create_session`. When provided, automatic
 
 ```json
 {
-  "name": "ccmux_create_session",
+  "name": "fugue_create_session",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -66,7 +66,7 @@ Add `task_list_id` parameter to `ccmux_create_session`. When provided, automatic
 
 ```json
 {
-  "tool": "ccmux_create_session",
+  "tool": "fugue_create_session",
   "input": {
     "name": "worker-1",
     "cwd": "/home/user/project",
@@ -83,7 +83,7 @@ All Claude instances spawned in this session will read/write tasks to `~/.claude
 
 ### Where to Implement
 
-**File**: `ccmux-server/src/mcp/bridge/handlers.rs` or the session creation handler
+**File**: `fugue-server/src/mcp/bridge/handlers.rs` or the session creation handler
 
 In the `tool_create_session` function:
 1. Extract `task_list_id` from arguments (optional)
@@ -107,13 +107,13 @@ if let Some(task_list_id) = arguments.get("task_list_id").and_then(|v| v.as_str(
 
 ### Section 1: Update Tool Schema
 
-- [ ] Edit `ccmux-server/src/mcp/tools.rs`
-- [ ] Add `task_list_id` property to `ccmux_create_session` schema
+- [ ] Edit `fugue-server/src/mcp/tools.rs`
+- [ ] Add `task_list_id` property to `fugue_create_session` schema
 - [ ] Add description explaining its purpose
 
 ### Section 2: Update Handler
 
-- [ ] Edit `ccmux-server/src/mcp/bridge/handlers.rs`
+- [ ] Edit `fugue-server/src/mcp/bridge/handlers.rs`
 - [ ] Extract `task_list_id` from request arguments
 - [ ] If present, inject into session environment
 - [ ] Verify env var propagates to panes
@@ -129,12 +129,12 @@ if let Some(task_list_id) = arguments.get("task_list_id").and_then(|v| v.as_str(
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/mcp/tools.rs` | Add `task_list_id` to schema |
-| `ccmux-server/src/mcp/bridge/handlers.rs` | Inject env var on session creation |
+| `fugue-server/src/mcp/tools.rs` | Add `task_list_id` to schema |
+| `fugue-server/src/mcp/bridge/handlers.rs` | Inject env var on session creation |
 
 ## Acceptance Criteria
 
-- [ ] `task_list_id` parameter available on `ccmux_create_session`
+- [ ] `task_list_id` parameter available on `fugue_create_session`
 - [ ] Parameter is optional (backwards compatible)
 - [ ] When provided, `CLAUDE_CODE_TASK_LIST_ID` env var is set in session
 - [ ] New panes in session inherit the env var
@@ -143,10 +143,10 @@ if let Some(task_list_id) = arguments.get("task_list_id").and_then(|v| v.as_str(
 ## Future Enhancements
 
 - Store `task_list_id` in session metadata for querying
-- Add to `ccmux_create_pane` for per-pane override
-- Integration with FEAT-120 (`ccmux_tasks_read`) for direct task file access
+- Add to `fugue_create_pane` for per-pane override
+- Integration with FEAT-120 (`fugue_tasks_read`) for direct task file access
 
 ## References
 
 - Claude Code Task System: Tasks stored in `~/.claude/tasks/<list-id>/`
-- Related: FEAT-120 (ccmux_tasks_read tool)
+- Related: FEAT-120 (fugue_tasks_read tool)

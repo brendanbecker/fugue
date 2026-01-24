@@ -1,7 +1,7 @@
-# FEAT-089: Refactor ccmux-protocol/src/types.rs
+# FEAT-089: Refactor fugue-protocol/src/types.rs
 
 **Priority**: P3
-**Component**: ccmux-protocol
+**Component**: fugue-protocol
 **Type**: refactor
 **Estimated Effort**: medium
 **Current Size**: 20.5k tokens (2755 lines)
@@ -26,7 +26,7 @@ The file likely contains:
 ## Proposed Module Structure
 
 ```
-ccmux-protocol/src/types/
+fugue-protocol/src/types/
 ├── mod.rs              # Re-exports all types (<2k)
 ├── session.rs          # Session-related types
 ├── window.rs           # Window-related types

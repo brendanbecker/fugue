@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-027
 
 **Work Item**: [FEAT-027: Client Connection Registry](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P0 (Critical - FEAT-022 and FEAT-023 depend on it)
 **Created**: 2026-01-09
 
@@ -138,10 +138,10 @@ impl ClientRegistry {
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/registry.rs | New file | Low |
-| ccmux-server/src/lib.rs | Add module export | Low |
-| ccmux-server/src/server.rs | Add registry field | Low |
-| ccmux-server/Cargo.toml | Add dashmap dependency | Low |
+| fugue-server/src/registry.rs | New file | Low |
+| fugue-server/src/lib.rs | Add module export | Low |
+| fugue-server/src/server.rs | Add registry field | Low |
+| fugue-server/Cargo.toml | Add dashmap dependency | Low |
 
 ## Dependencies
 

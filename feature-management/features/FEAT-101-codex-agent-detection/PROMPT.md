@@ -6,7 +6,7 @@ Extend the agent detection system to recognize OpenAI Codex CLI alongside Claude
 
 ## Background
 
-Codex CLI is OpenAI's terminal-based coding agent. Like Claude Code and Gemini CLI, it runs in a TUI and has distinct visual patterns for presence and activity states. Adding detection enables ccmux to provide the same orchestration awareness for Codex sessions.
+Codex CLI is OpenAI's terminal-based coding agent. Like Claude Code and Gemini CLI, it runs in a TUI and has distinct visual patterns for presence and activity states. Adding detection enables fugue to provide the same orchestration awareness for Codex sessions.
 
 ## Detection Patterns
 
@@ -49,7 +49,7 @@ Codex CLI is OpenAI's terminal-based coding agent. Like Claude Code and Gemini C
 ### File Structure
 
 ```
-ccmux-server/src/agents/
+fugue-server/src/agents/
 ├── mod.rs          # Add `pub mod codex;` and register in with_defaults()
 └── codex/
     └── mod.rs      # CodexAgentDetector implementation
@@ -78,7 +78,7 @@ pub struct CodexAgentDetector {
 
 ### Registry Integration
 
-Update `DetectorRegistry::with_defaults()` in `ccmux-server/src/agents/mod.rs`:
+Update `DetectorRegistry::with_defaults()` in `fugue-server/src/agents/mod.rs`:
 
 ```rust
 pub fn with_defaults() -> Self {

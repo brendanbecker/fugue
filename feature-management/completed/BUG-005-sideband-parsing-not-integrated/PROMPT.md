@@ -1,7 +1,7 @@
 # BUG-005: Sideband Parsing Not Integrated into PTY Output Flow
 
 **Priority**: P1 (High)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Status**: implemented
 **Created**: 2026-01-09
 **Implemented**: 2026-01-09
@@ -9,18 +9,18 @@
 
 ## Summary
 
-Sideband commands (`<ccmux:spawn>`, `<ccmux:focus>`, `<ccmux:input>`, etc.) output by Claude are displayed as literal XML text in the terminal instead of being parsed and executed. The sideband parsing infrastructure from FEAT-019 and FEAT-030 exists but was never wired into the PTY output flow.
+Sideband commands (`<fugue:spawn>`, `<fugue:focus>`, `<fugue:input>`, etc.) output by Claude are displayed as literal XML text in the terminal instead of being parsed and executed. The sideband parsing infrastructure from FEAT-019 and FEAT-030 exists but was never wired into the PTY output flow.
 
 ## Reproduction Steps
 
-1. Start ccmux server: `./target/release/ccmux-server`
-2. Start ccmux client: `./target/release/ccmux`
+1. Start fugue server: `./target/release/fugue-server`
+2. Start fugue client: `./target/release/fugue`
 3. Create and attach to a session
-4. In the pane's shell, manually test with: `echo '<ccmux:spawn direction="vertical" />'`
+4. In the pane's shell, manually test with: `echo '<fugue:spawn direction="vertical" />'`
 5. Observe the XML tag displayed as literal text in the terminal
 6. No new pane is created
 
-**Expected**: The `<ccmux:spawn ...>` tag should be parsed, stripped from display, and a new pane created.
+**Expected**: The `<fugue:spawn ...>` tag should be parsed, stripped from display, and a new pane created.
 **Actual**: The XML tag is displayed verbatim and no pane is created.
 
 ## Root Cause Analysis
@@ -28,9 +28,9 @@ Sideband commands (`<ccmux:spawn>`, `<ccmux:focus>`, `<ccmux:input>`, etc.) outp
 ### The Missing Integration Point
 
 The sideband system has three components:
-1. **SidebandParser** (`ccmux-server/src/sideband/parser.rs`) - Parses XML commands from text
-2. **CommandExecutor** (`ccmux-server/src/sideband/executor.rs`) - Executes parsed commands
-3. **PtyOutputPoller** (`ccmux-server/src/pty/output.rs`) - Reads PTY output and broadcasts to clients
+1. **SidebandParser** (`fugue-server/src/sideband/parser.rs`) - Parses XML commands from text
+2. **CommandExecutor** (`fugue-server/src/sideband/executor.rs`) - Executes parsed commands
+3. **PtyOutputPoller** (`fugue-server/src/pty/output.rs`) - Reads PTY output and broadcasts to clients
 
 The intended flow (documented in `sideband/mod.rs:36-42`):
 ```
@@ -50,7 +50,7 @@ The parser and executor exist but are **never instantiated** in the server runti
 
 ### Evidence 1: PtyOutputPoller bypasses parsing
 
-In `ccmux-server/src/pty/output.rs`, the `flush()` method broadcasts raw data:
+In `fugue-server/src/pty/output.rs`, the `flush()` method broadcasts raw data:
 
 ```rust
 // Lines 374-403
@@ -79,10 +79,10 @@ async fn flush(&mut self) {
 Search for `SidebandParser::new()` - only appears in test code:
 
 ```
-ccmux-server/src/sideband/mod.rs:80      let mut parser = SidebandParser::new();  // In test fn
-ccmux-server/src/sideband/mod.rs:119     let mut parser = SidebandParser::new();  // In test fn
-ccmux-server/src/sideband/mod.rs:155     let mut parser = SidebandParser::new();  // In test fn
-ccmux-server/src/sideband/parser.rs:297  let mut parser = SidebandParser::new();  // In test fn
+fugue-server/src/sideband/mod.rs:80      let mut parser = SidebandParser::new();  // In test fn
+fugue-server/src/sideband/mod.rs:119     let mut parser = SidebandParser::new();  // In test fn
+fugue-server/src/sideband/mod.rs:155     let mut parser = SidebandParser::new();  // In test fn
+fugue-server/src/sideband/parser.rs:297  let mut parser = SidebandParser::new();  // In test fn
 ... (all test code)
 ```
 
@@ -91,13 +91,13 @@ ccmux-server/src/sideband/parser.rs:297  let mut parser = SidebandParser::new();
 Search for `CommandExecutor::new()` - only appears in test code:
 
 ```
-ccmux-server/src/sideband/mod.rs:67      let executor = CommandExecutor::new(...);  // In test fn
-ccmux-server/src/sideband/executor.rs:500 (executor, manager)  // In test fn
+fugue-server/src/sideband/mod.rs:67      let executor = CommandExecutor::new(...);  // In test fn
+fugue-server/src/sideband/executor.rs:500 (executor, manager)  // In test fn
 ```
 
 ### Evidence 4: No sideband integration in main.rs
 
-`ccmux-server/src/main.rs` declares `pub mod sideband;` but:
+`fugue-server/src/main.rs` declares `pub mod sideband;` but:
 - No `use sideband::*;` imports for runtime use
 - No instantiation of `SidebandParser` or `CommandExecutor`
 - No integration with `PtyOutputPoller`
@@ -111,10 +111,10 @@ Both features were developed in isolation with excellent unit tests, but the fin
 
 ## Impact
 
-- **Claude cannot control ccmux**: The core value proposition of Claude-ccmux integration is non-functional
-- **No autonomous pane spawning**: `<ccmux:spawn>` commands are ignored
-- **No input routing**: `<ccmux:input>` commands are ignored
-- **No notifications**: `<ccmux:notify>` commands are ignored
+- **Claude cannot control fugue**: The core value proposition of Claude-fugue integration is non-functional
+- **No autonomous pane spawning**: `<fugue:spawn>` commands are ignored
+- **No input routing**: `<fugue:input>` commands are ignored
+- **No notifications**: `<fugue:notify>` commands are ignored
 - **All sideband commands display as garbage**: Users see raw XML tags in terminal output
 
 ## Implementation Plan
@@ -236,10 +236,10 @@ Keep the integration simple. PtyOutputPoller already has access to everything ne
 
 ## Acceptance Criteria
 
-- [x] `echo '<ccmux:spawn direction="vertical" />'` in a pane creates a new pane (code implemented)
+- [x] `echo '<fugue:spawn direction="vertical" />'` in a pane creates a new pane (code implemented)
 - [x] The XML tag is NOT displayed in terminal output (parser strips commands)
-- [x] `<ccmux:notify>` commands appear in server logs (and eventually client notifications)
-- [x] `<ccmux:input>` commands logged (routing not yet fully implemented)
+- [x] `<fugue:notify>` commands appear in server logs (and eventually client notifications)
+- [x] `<fugue:input>` commands logged (routing not yet fully implemented)
 - [x] Commands split across PTY reads are handled correctly (parser buffering)
 - [x] Non-command output is displayed without modification
 - [x] All existing tests continue to pass (729 tests passing)
@@ -249,11 +249,11 @@ Keep the integration simple. PtyOutputPoller already has access to everything ne
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/main.rs` | Create CommandExecutor in SharedState |
-| `ccmux-server/src/pty/output.rs` | Add parser/executor, modify handle_output() |
-| `ccmux-server/src/pty/mod.rs` | Export any new types if needed |
-| `ccmux-server/src/sideband/executor.rs` | Possible: add method to handle spawn + poller setup |
-| `ccmux-server/src/handlers/session.rs` | Pass executor to output pollers |
+| `fugue-server/src/main.rs` | Create CommandExecutor in SharedState |
+| `fugue-server/src/pty/output.rs` | Add parser/executor, modify handle_output() |
+| `fugue-server/src/pty/mod.rs` | Export any new types if needed |
+| `fugue-server/src/sideband/executor.rs` | Possible: add method to handle spawn + poller setup |
+| `fugue-server/src/handlers/session.rs` | Pass executor to output pollers |
 
 ## Risk Assessment
 
@@ -273,7 +273,7 @@ Keep the integration simple. PtyOutputPoller already has access to everything ne
 
 ## Notes
 
-This is a critical bug that blocks the core Claude-ccmux integration functionality. The fix is conceptually straightforward - just wire existing components together - but requires careful attention to:
+This is a critical bug that blocks the core Claude-fugue integration functionality. The fix is conceptually straightforward - just wire existing components together - but requires careful attention to:
 
 1. **Ownership**: CommandExecutor needs Arc references to managers
 2. **Async handling**: Spawn commands create panes asynchronously

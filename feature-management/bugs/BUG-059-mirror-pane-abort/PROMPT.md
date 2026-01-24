@@ -1,4 +1,4 @@
-# BUG-059: ccmux_mirror_pane tool aborts with error
+# BUG-059: fugue_mirror_pane tool aborts with error
 
 **Priority**: P3
 **Component**: mcp
@@ -7,7 +7,7 @@
 
 ## Problem
 
-Calling `ccmux_mirror_pane` via MCP returns an abort error:
+Calling `fugue_mirror_pane` via MCP returns an abort error:
 
 ```
 MCP error -32001: AbortError: The operation was aborted.
@@ -16,7 +16,7 @@ MCP error -32001: AbortError: The operation was aborted.
 ## Reproduction Steps
 
 1. Have a pane running (e.g., Claude Code)
-2. Call `ccmux_mirror_pane(source_pane_id: "<pane-uuid>")`
+2. Call `fugue_mirror_pane(source_pane_id: "<pane-uuid>")`
 3. Observe: AbortError returned
 
 ## Expected Behavior
@@ -40,7 +40,7 @@ Looking at BUG-047, `mirror_pane` method in `mcp/handlers.rs` is listed as **dea
 ## Investigation Steps
 
 ### Section 1: Check Implementation Status
-- [ ] Review `ccmux-server/src/mcp/bridge/handlers.rs` for mirror_pane handler
+- [ ] Review `fugue-server/src/mcp/bridge/handlers.rs` for mirror_pane handler
 - [ ] Check if it's actually wired up to the MCP router
 - [ ] Verify if backend support exists in session manager
 
@@ -56,16 +56,16 @@ Looking at BUG-047, `mirror_pane` method in `mcp/handlers.rs` is listed as **dea
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_mirror_pane` creates a working mirror pane
+- [ ] `fugue_mirror_pane` creates a working mirror pane
 - [ ] Mirror displays source pane output in real-time
 - [ ] Mirror is read-only (input disabled)
 - [ ] No AbortError on valid source_pane_id
 
 ## Related Files
 
-- `ccmux-server/src/mcp/bridge/handlers.rs` - mirror_pane handler (dead code per BUG-047)
-- `ccmux-server/src/mcp/tools.rs` - MCP tool schema
-- `ccmux-server/src/session/pane.rs` - Pane management
+- `fugue-server/src/mcp/bridge/handlers.rs` - mirror_pane handler (dead code per BUG-047)
+- `fugue-server/src/mcp/tools.rs` - MCP tool schema
+- `fugue-server/src/session/pane.rs` - Pane management
 
 ## Notes
 

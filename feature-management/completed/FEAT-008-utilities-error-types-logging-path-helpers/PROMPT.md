@@ -1,7 +1,7 @@
 # FEAT-008: Utilities - Error Types, Logging, and Path Helpers
 
 **Priority**: P1
-**Component**: ccmux-utils
+**Component**: fugue-utils
 **Type**: new_feature
 **Estimated Effort**: small
 **Business Value**: high
@@ -11,7 +11,7 @@
 
 Common utilities including CcmuxError enum, logging infrastructure with tracing, and XDG-compliant path utilities for config/state/runtime directories.
 
-This feature provides foundational infrastructure that all other ccmux crates depend on for consistent error handling, structured logging, and platform-appropriate file path management.
+This feature provides foundational infrastructure that all other fugue crates depend on for consistent error handling, structured logging, and platform-appropriate file path management.
 
 ## Technical Design
 
@@ -47,7 +47,7 @@ pub type Result<T> = std::result::Result<T, CcmuxError>;
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 pub struct LogConfig {
-    /// Filter string (e.g., "ccmux=debug,warn")
+    /// Filter string (e.g., "fugue=debug,warn")
     pub filter: String,
     /// Output mode: stderr, file, or both
     pub output: LogOutput,
@@ -65,13 +65,13 @@ pub fn init_logging(config: &LogConfig) -> Result<()>;
 ### XDG Path Utilities
 
 ```rust
-/// Get config directory: $XDG_CONFIG_HOME/ccmux or ~/.config/ccmux
+/// Get config directory: $XDG_CONFIG_HOME/fugue or ~/.config/fugue
 pub fn config_dir() -> PathBuf;
 
-/// Get state directory: $XDG_STATE_HOME/ccmux or ~/.local/state/ccmux
+/// Get state directory: $XDG_STATE_HOME/fugue or ~/.local/state/fugue
 pub fn state_dir() -> PathBuf;
 
-/// Get runtime directory: $XDG_RUNTIME_DIR/ccmux or /tmp/ccmux-$UID
+/// Get runtime directory: $XDG_RUNTIME_DIR/fugue or /tmp/fugue-$UID
 pub fn runtime_dir() -> PathBuf;
 
 /// Get log directory: state_dir()/logs
@@ -100,7 +100,7 @@ pub fn log_dir() -> PathBuf;
    - Provide sensible defaults for each platform
    - Auto-create directories on first access
 
-5. **CCMUX_LOG environment variable override**
+5. **FUGUE_LOG environment variable override**
    - Override config file log settings via environment
    - Consistent with RUST_LOG format
    - Takes precedence over all other log configuration
@@ -109,16 +109,16 @@ pub fn log_dir() -> PathBuf;
 
 | File | Type of Change |
 |------|----------------|
-| `ccmux-utils/src/lib.rs` | Module exports and re-exports |
-| `ccmux-utils/src/error.rs` | CcmuxError enum definition |
-| `ccmux-utils/src/logging.rs` | Logging infrastructure |
-| `ccmux-utils/src/paths.rs` | XDG path utilities |
-| `ccmux-utils/Cargo.toml` | Dependencies (thiserror, tracing, dirs) |
+| `fugue-utils/src/lib.rs` | Module exports and re-exports |
+| `fugue-utils/src/error.rs` | CcmuxError enum definition |
+| `fugue-utils/src/logging.rs` | Logging infrastructure |
+| `fugue-utils/src/paths.rs` | XDG path utilities |
+| `fugue-utils/Cargo.toml` | Dependencies (thiserror, tracing, dirs) |
 
 ## Implementation Tasks
 
 ### Section 1: Error Types
-- [x] Create ccmux-utils crate with Cargo.toml
+- [x] Create fugue-utils crate with Cargo.toml
 - [x] Define CcmuxError enum with thiserror
 - [x] Implement From traits for std::io::Error
 - [x] Define Result<T> type alias
@@ -129,7 +129,7 @@ pub fn log_dir() -> PathBuf;
 - [x] Define LogConfig struct
 - [x] Define LogOutput enum
 - [x] Implement init_logging function
-- [x] Add CCMUX_LOG environment variable support
+- [x] Add FUGUE_LOG environment variable support
 - [x] Add optional JSON formatting
 
 ### Section 3: Path Utilities
@@ -144,7 +144,7 @@ pub fn log_dir() -> PathBuf;
 - [x] Unit tests for error type conversions
 - [x] Unit tests for path functions
 - [x] Integration tests for logging initialization
-- [x] Test CCMUX_LOG override behavior
+- [x] Test FUGUE_LOG override behavior
 
 ### Section 5: Verification
 - [x] All unit tests passing
@@ -156,7 +156,7 @@ pub fn log_dir() -> PathBuf;
 - [x] CcmuxError enum covers all error categories
 - [x] Error messages are clear and actionable
 - [x] Logging can be configured via LogConfig
-- [x] CCMUX_LOG environment variable overrides config
+- [x] FUGUE_LOG environment variable overrides config
 - [x] Path utilities return correct XDG paths
 - [x] Path utilities respect environment variables
 - [x] All tests passing
@@ -172,7 +172,7 @@ pub fn log_dir() -> PathBuf;
 
 3. **Platform Compatibility**: Path utilities must work on Linux, macOS, and Windows (WSL). Use dirs-next for cross-platform XDG support.
 
-4. **Runtime Directory**: On systems without XDG_RUNTIME_DIR (e.g., macOS), fall back to /tmp/ccmux-$UID with appropriate permissions.
+4. **Runtime Directory**: On systems without XDG_RUNTIME_DIR (e.g., macOS), fall back to /tmp/fugue-$UID with appropriate permissions.
 
 ### Dependencies
 

@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-059
 
 **Work Item**: [FEAT-059: Beads Workflow Integration - Pane-Issue Correlation and Audit Trail](PROMPT.md)
-**Component**: ccmux-server, ccmux-protocol
+**Component**: fugue-server, fugue-protocol
 **Priority**: P3
 **Created**: 2026-01-11
 
 ## Overview
 
-Add deep workflow integration between ccmux panes and beads issues, enabling automatic correlation, audit trails, and recovery hints for multi-agent development workflows.
+Add deep workflow integration between fugue panes and beads issues, enabling automatic correlation, audit trails, and recovery hints for multi-agent development workflows.
 
 ## Architecture Decisions
 
@@ -22,21 +22,21 @@ Add deep workflow integration between ccmux panes and beads issues, enabling aut
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/session/pane.rs | Add PaneWorkflowState | Low |
-| ccmux-server/src/beads/workflow.rs | New module | Low |
-| ccmux-server/src/mcp/tools.rs | Add 4 new tools | Medium |
-| ccmux-server/src/mcp/handlers.rs | Implement handlers | Medium |
-| ccmux-server/src/handlers/pane.rs | Crash detection hooks | Medium |
-| ccmux-server/src/handlers/pty.rs | Command interception | Medium |
-| ccmux-protocol/src/messages.rs | Add issue to StatusUpdate | Low |
-| ccmux-server/src/config.rs | Add workflow config | Low |
-| ccmux-client/src/ui/pane.rs | Display issue in status | Low |
+| fugue-server/src/session/pane.rs | Add PaneWorkflowState | Low |
+| fugue-server/src/beads/workflow.rs | New module | Low |
+| fugue-server/src/mcp/tools.rs | Add 4 new tools | Medium |
+| fugue-server/src/mcp/handlers.rs | Implement handlers | Medium |
+| fugue-server/src/handlers/pane.rs | Crash detection hooks | Medium |
+| fugue-server/src/handlers/pty.rs | Command interception | Medium |
+| fugue-protocol/src/messages.rs | Add issue to StatusUpdate | Low |
+| fugue-server/src/config.rs | Add workflow config | Low |
+| fugue-client/src/ui/pane.rs | Display issue in status | Low |
 
 ## Implementation Details
 
 ### 1. Core Data Structures
 
-Add to `ccmux-server/src/session/pane.rs` or new `workflow.rs`:
+Add to `fugue-server/src/session/pane.rs` or new `workflow.rs`:
 
 ```rust
 use chrono::{DateTime, Utc};
@@ -106,11 +106,11 @@ impl PaneWorkflowState {
 
 ### 2. MCP Tools
 
-Add to `ccmux-server/src/mcp/tools.rs`:
+Add to `fugue-server/src/mcp/tools.rs`:
 
 ```rust
 pub const BEADS_ASSIGN_TOOL: Tool = Tool {
-    name: "ccmux_beads_assign",
+    name: "fugue_beads_assign",
     description: "Assign a beads issue to a pane for tracking",
     input_schema: json!({
         "type": "object",
@@ -129,7 +129,7 @@ pub const BEADS_ASSIGN_TOOL: Tool = Tool {
 };
 
 pub const BEADS_RELEASE_TOOL: Tool = Tool {
-    name: "ccmux_beads_release",
+    name: "fugue_beads_release",
     description: "Release/unassign the current issue from a pane",
     input_schema: json!({
         "type": "object",
@@ -148,7 +148,7 @@ pub const BEADS_RELEASE_TOOL: Tool = Tool {
 };
 
 pub const BEADS_FIND_PANE_TOOL: Tool = Tool {
-    name: "ccmux_beads_find_pane",
+    name: "fugue_beads_find_pane",
     description: "Find which pane is working on an issue",
     input_schema: json!({
         "type": "object",
@@ -163,7 +163,7 @@ pub const BEADS_FIND_PANE_TOOL: Tool = Tool {
 };
 
 pub const BEADS_PANE_HISTORY_TOOL: Tool = Tool {
-    name: "ccmux_beads_pane_history",
+    name: "fugue_beads_pane_history",
     description: "Get issue history for a pane",
     input_schema: json!({
         "type": "object",
@@ -179,7 +179,7 @@ pub const BEADS_PANE_HISTORY_TOOL: Tool = Tool {
 
 ### 3. MCP Handlers
 
-Add to `ccmux-server/src/mcp/handlers.rs`:
+Add to `fugue-server/src/mcp/handlers.rs`:
 
 ```rust
 async fn handle_beads_assign(&self, params: BeadsAssignParams) -> Result<Value, McpError> {
@@ -228,7 +228,7 @@ async fn handle_beads_find_pane(&self, params: BeadsFindPaneParams) -> Result<Va
 
 ### 4. Command Interception
 
-Add to `ccmux-server/src/handlers/pty.rs`:
+Add to `fugue-server/src/handlers/pty.rs`:
 
 ```rust
 impl CommandInterceptor {
@@ -271,7 +271,7 @@ impl CommandInterceptor {
 
 ### 5. Crash Handling
 
-Add to `ccmux-server/src/handlers/pane.rs`:
+Add to `fugue-server/src/handlers/pane.rs`:
 
 ```rust
 #[derive(Debug, Clone, Serialize)]
@@ -331,7 +331,7 @@ impl PaneCrashHandler {
 
 ### 6. Orchestration Protocol Update
 
-Modify `ccmux-protocol/src/messages.rs`:
+Modify `fugue-protocol/src/messages.rs`:
 
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -354,7 +354,7 @@ pub struct StatusUpdate {
 
 ### 7. Configuration
 
-Add to `ccmux-server/src/config.rs`:
+Add to `fugue-server/src/config.rs`:
 
 ```rust
 #[derive(Debug, Clone, Deserialize)]

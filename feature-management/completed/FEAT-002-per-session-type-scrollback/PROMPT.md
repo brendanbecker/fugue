@@ -12,10 +12,10 @@ Support per-session-type buffer sizes instead of global-only scrollback. This en
 
 ## Current State
 
-- Global `scrollback_lines: 10000` exists in `TerminalConfig` (`ccmux-server/src/config/schema.rs`)
+- Global `scrollback_lines: 10000` exists in `TerminalConfig` (`fugue-server/src/config/schema.rs`)
 - Config is hot-reloadable via ArcSwap
 - No actual scrollback buffer implementation exists (parser.rs was planned but not created)
-- No per-pane override capability in `Pane` struct (`ccmux-server/src/session/pane.rs`)
+- No per-pane override capability in `Pane` struct (`fugue-server/src/session/pane.rs`)
 
 ## Requirements
 
@@ -43,10 +43,10 @@ Or in JSON representation:
 
 ### 2. Runtime Override via Spawn Directive
 
-Allow scrollback override at spawn time via the `<ccmux:spawn>` directive:
+Allow scrollback override at spawn time via the `<fugue:spawn>` directive:
 
 ```xml
-<ccmux:spawn scrollback="10000">command args</ccmux:spawn>
+<fugue:spawn scrollback="10000">command args</fugue:spawn>
 ```
 
 This should take precedence over session-type defaults.
@@ -72,10 +72,10 @@ Implement memory management for large buffers across many panes:
 
 | File | Changes Required |
 |------|------------------|
-| `ccmux-server/src/config/schema.rs` | Add `ScrollbackConfig` struct, update `TerminalConfig` |
-| `ccmux-server/src/pty/` | Add new `buffer.rs` module for scrollback buffer |
-| `ccmux-server/src/session/pane.rs` | Add scrollback buffer field, per-pane override |
-| `ccmux-server/src/pty/handle.rs` | Integrate scrollback buffer with PTY output |
+| `fugue-server/src/config/schema.rs` | Add `ScrollbackConfig` struct, update `TerminalConfig` |
+| `fugue-server/src/pty/` | Add new `buffer.rs` module for scrollback buffer |
+| `fugue-server/src/session/pane.rs` | Add scrollback buffer field, per-pane override |
+| `fugue-server/src/pty/handle.rs` | Integrate scrollback buffer with PTY output |
 
 ## Technical Approach
 
@@ -124,7 +124,7 @@ impl ScrollbackBuffer {
 - [ ] Configuration supports per-session-type scrollback values
 - [ ] Default, orchestrator, and worker types work correctly
 - [ ] Custom session types can be defined in config
-- [ ] `<ccmux:spawn scrollback="N">` overrides session-type default
+- [ ] `<fugue:spawn scrollback="N">` overrides session-type default
 - [ ] Scrollback buffer actually stores and retrieves historical output
 - [ ] Memory usage is bounded and predictable
 - [ ] Hot-reload updates scrollback settings (new panes use new values)

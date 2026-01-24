@@ -1,6 +1,6 @@
 {
   "id": "BUG-028",
-  "title": "Daemon Crashes on ccmux_create_layout",
+  "title": "Daemon Crashes on fugue_create_layout",
   "priority": "P0",
   "severity": "critical",
   "status": "open",
@@ -20,5 +20,5 @@
     "All subsequent MCP calls fail",
     "Daemon process appears to crash"
   ],
-  "workaround": "Restart ccmux daemon (loses sessions)"
+  "workaround": "Restart fugue daemon (loses sessions)"
 }

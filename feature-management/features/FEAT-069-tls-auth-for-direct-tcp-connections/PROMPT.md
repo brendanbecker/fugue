@@ -1,7 +1,7 @@
 # FEAT-069: TLS/auth for direct TCP connections
 
 **Priority**: P3
-**Component**: ccmux-server, ccmux-client
+**Component**: fugue-server, fugue-client
 **Type**: enhancement
 **Estimated Effort**: large
 **Business Value**: medium
@@ -14,7 +14,7 @@ While SSH tunnels (FEAT-068) provide secure remote access, they require SSH setu
 
 ## Problem Statement
 
-Currently, remote ccmux access requires either:
+Currently, remote fugue access requires either:
 1. **Unix sockets** - Limited to local connections
 2. **Unencrypted TCP** - Insecure for remote access
 3. **SSH tunnels** - Secure but requires SSH configuration
@@ -144,19 +144,19 @@ None - this is an optional enhancement that does not block other features.
 
 ## Related Files
 
-- `ccmux-server/src/tls.rs` (new)
-- `ccmux-client/src/tls.rs` (new)
-- `ccmux-protocol/src/auth.rs` (new)
+- `fugue-server/src/tls.rs` (new)
+- `fugue-client/src/tls.rs` (new)
+- `fugue-protocol/src/auth.rs` (new)
 - `Cargo.toml` (rustls dependency)
-- `ccmux-server/src/main.rs` (TLS listener setup)
-- `ccmux-client/src/main.rs` (TLS connection support)
+- `fugue-server/src/main.rs` (TLS listener setup)
+- `fugue-client/src/main.rs` (TLS connection support)
 - `docs/tls-setup.md` (new documentation)
 
 ## Notes
 
 ### Design Considerations
 
-This is Phase 4 from `ccmux-tcp-implementation-plan.md` and marked as "future" in `ccmux-peering-design.md`. SSH tunnels (FEAT-068) are the recommended MVP approach. This feature is for advanced use cases where SSH tunnels are not preferred.
+This is Phase 4 from `fugue-tcp-implementation-plan.md` and marked as "future" in `fugue-peering-design.md`. SSH tunnels (FEAT-068) are the recommended MVP approach. This feature is for advanced use cases where SSH tunnels are not preferred.
 
 ### Security Considerations
 

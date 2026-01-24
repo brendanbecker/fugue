@@ -1,12 +1,12 @@
-# BUG-025: ccmux_create_pane response direction doesn't match request
+# BUG-025: fugue_create_pane response direction doesn't match request
 
 ## Summary
 
-When calling `ccmux_create_pane` with `direction: "vertical"`, the pane is created correctly (side-by-side split), but the JSON response incorrectly reports `direction: "horizontal"`.
+When calling `fugue_create_pane` with `direction: "vertical"`, the pane is created correctly (side-by-side split), but the JSON response incorrectly reports `direction: "horizontal"`.
 
 ## Steps to Reproduce
 
-1. Call `ccmux_create_pane` with parameter `direction: "vertical"`
+1. Call `fugue_create_pane` with parameter `direction: "vertical"`
 2. Observe the response JSON
 
 ## Expected Behavior
@@ -21,7 +21,7 @@ Request:
 ```json
 {
   "direction": "vertical",
-  "cwd": "/home/becker/projects/tools/ccmux"
+  "cwd": "/home/becker/projects/tools/fugue"
 }
 ```
 
@@ -44,7 +44,7 @@ Response:
 
 ## Component
 
-MCP handler for `ccmux_create_pane`
+MCP handler for `fugue_create_pane`
 
 ## Notes
 

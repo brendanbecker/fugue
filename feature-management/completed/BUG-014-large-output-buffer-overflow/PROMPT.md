@@ -28,7 +28,7 @@ Both may share underlying causes related to buffer management, but this bug focu
 
 ## Data Flow to Investigate
 
-The output flow in ccmux is:
+The output flow in fugue is:
 
 ```
 PTY -> PtyOutputPoller -> Broadcast -> Unix Socket -> TUI Client -> Viewport
@@ -36,26 +36,26 @@ PTY -> PtyOutputPoller -> Broadcast -> Unix Socket -> TUI Client -> Viewport
 
 Key components in this path:
 
-1. **PTY Output** (`ccmux-server/src/pty/`)
+1. **PTY Output** (`fugue-server/src/pty/`)
    - Reads from PTY master
    - Accumulates output in buffer
    - Flushes periodically
 
-2. **Output Broadcaster** (`ccmux-server/src/handlers/`)
+2. **Output Broadcaster** (`fugue-server/src/handlers/`)
    - Receives flushed output
    - Broadcasts to all attached clients
    - May queue messages if clients are slow
 
-3. **Unix Socket** (`ccmux-protocol/`)
+3. **Unix Socket** (`fugue-protocol/`)
    - Serializes and sends output messages
    - May have write buffer limits
 
-4. **TUI Client** (`ccmux-client/src/`)
+4. **TUI Client** (`fugue-client/src/`)
    - Receives output messages
    - Updates terminal emulator state
    - Renders to viewport
 
-5. **Terminal Emulator / Scrollback** (`ccmux-client/src/terminal/` or screen buffer)
+5. **Terminal Emulator / Scrollback** (`fugue-client/src/terminal/` or screen buffer)
    - Stores screen content
    - Maintains scrollback history
    - May have no size limits
@@ -76,7 +76,7 @@ The terminal emulator or screen buffer may grow unboundedly as output is receive
 Large output may be broadcast to clients faster than they can render it, causing message queue backup that blocks the event loop or input processing.
 
 **Files to check:**
-- `ccmux-server/src/pty/output.rs` - output polling/broadcasting
+- `fugue-server/src/pty/output.rs` - output polling/broadcasting
 - Client message receive loop
 - Input event interleaving
 
@@ -94,8 +94,8 @@ There may be no backpressure between the server's output broadcast and client co
 The client's event loop may be so busy processing output that it never gets to input events, making it appear unresponsive.
 
 **Files to check:**
-- `ccmux-client/src/main.rs` - main event loop
-- `ccmux-client/src/ui/app.rs` - application loop
+- `fugue-client/src/main.rs` - main event loop
+- `fugue-client/src/ui/app.rs` - application loop
 - Input vs output event priority
 
 ### 5. Server-Side State Bloat
@@ -175,7 +175,7 @@ Based on root cause, implement appropriate fix:
 ## Resolution
 
 ### Root Cause
-The issue was **event loop starvation** in the client. The `poll_server_messages()` function in `ccmux-client/src/ui/app.rs` used a `while let` loop that processed ALL pending server messages before returning:
+The issue was **event loop starvation** in the client. The `poll_server_messages()` function in `fugue-client/src/ui/app.rs` used a `while let` loop that processed ALL pending server messages before returning:
 
 ```rust
 // BEFORE (problematic):
@@ -227,7 +227,7 @@ This ensures:
 - The event loop remains responsive
 
 ### Files Changed
-- `ccmux-client/src/ui/app.rs`: Added `MAX_MESSAGES_PER_TICK` constant and modified `poll_server_messages()`
+- `fugue-client/src/ui/app.rs`: Added `MAX_MESSAGES_PER_TICK` constant and modified `poll_server_messages()`
 
 ### Tests Added
 - `test_max_messages_per_tick_is_reasonable`

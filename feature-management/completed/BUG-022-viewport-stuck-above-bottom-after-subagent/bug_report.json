@@ -12,9 +12,9 @@
   "affected_versions": [],
   "environment": "development",
   "reproducibility": "sometimes",
-  "description": "When a Claude Code subagent finishes in ccmux, the viewport sometimes doesn't render all the way to the bottom - it appears offset a few lines above where it should be. The issue is intermittent and doesn't happen every time.",
+  "description": "When a Claude Code subagent finishes in fugue, the viewport sometimes doesn't render all the way to the bottom - it appears offset a few lines above where it should be. The issue is intermittent and doesn't happen every time.",
   "steps_to_reproduce": [
-    "Run ccmux with Claude Code session",
+    "Run fugue with Claude Code session",
     "Have Claude Code spawn a subagent task",
     "Wait for the subagent to complete",
     "Observe that the viewport may be stuck showing content from a few lines above the actual bottom"
@@ -22,7 +22,7 @@
   "expected_behavior": "Viewport should always show the live bottom of the terminal after a subagent completes, with scrollback offset at 0",
   "actual_behavior": "Viewport sometimes shows content from a few lines above the bottom, appearing 'stuck' with an invalid scrollback offset",
   "evidence": {
-    "files_modified": ["ccmux-client/src/ui/pane.rs"],
+    "files_modified": ["fugue-client/src/ui/pane.rs"],
     "root_cause_location": "resize() and process_output() methods in Pane struct"
   },
   "root_cause": "Scrollback synchronization issue when the VT100 parser is resized. When terminal size changes (even by 1 row due to layout recalculations), the scrollback offset could become invalid, causing the viewport to show content from a few lines up rather than the live bottom. Potential triggers include: split pane closes/creates, window size changes, layout constraints recalculated, race condition between terminal.size() and frame.area() in the draw loop.",

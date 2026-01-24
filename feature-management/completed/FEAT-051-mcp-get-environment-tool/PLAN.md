@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-051
 
-**Work Item**: [FEAT-051: Add ccmux_get_environment MCP tool](PROMPT.md)
-**Component**: ccmux-server (MCP)
+**Work Item**: [FEAT-051: Add fugue_get_environment MCP tool](PROMPT.md)
+**Component**: fugue-server (MCP)
 **Priority**: P2
 **Created**: 2026-01-10
 
 ## Overview
 
-Allow reading environment variables from a session via MCP. This provides parity with the existing ccmux_set_environment tool and enables session introspection.
+Allow reading environment variables from a session via MCP. This provides parity with the existing fugue_set_environment tool and enables session introspection.
 
 ## Architecture Decisions
 
@@ -30,19 +30,19 @@ Allow reading environment variables from a session via MCP. This provides parity
 
 **Decision**: Use existing session resolution (UUID or name lookup).
 
-**Rationale**: Consistency with other MCP tools like ccmux_set_environment.
+**Rationale**: Consistency with other MCP tools like fugue_set_environment.
 
 ## Affected Components
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-protocol | Add message variants | Low |
-| ccmux-server (MCP) | Add tool definition and handler | Low |
-| ccmux-server (handlers) | Add message handler | Low |
+| fugue-protocol | Add message variants | Low |
+| fugue-server (MCP) | Add tool definition and handler | Low |
+| fugue-server (handlers) | Add message handler | Low |
 
 ## Implementation Steps
 
-### Step 1: Protocol Changes (ccmux-protocol)
+### Step 1: Protocol Changes (fugue-protocol)
 
 ```rust
 // In ClientMessage enum
@@ -60,7 +60,7 @@ Environment {
 
 ### Step 2: Server Handler
 
-Location: `ccmux-server/src/handlers.rs` (or equivalent)
+Location: `fugue-server/src/handlers.rs` (or equivalent)
 
 ```rust
 async fn handle_get_environment(
@@ -83,7 +83,7 @@ async fn handle_get_environment(
 
 ```json
 {
-  "name": "ccmux_get_environment",
+  "name": "fugue_get_environment",
   "description": "Get environment variables from a session",
   "inputSchema": {
     "type": "object",
@@ -118,7 +118,7 @@ If implementation causes issues:
 
 ## Implementation Notes
 
-- Look at ccmux_set_environment implementation as reference
+- Look at fugue_set_environment implementation as reference
 - Ensure consistent error messages with other MCP tools
 - Consider adding to MCP tool documentation
 

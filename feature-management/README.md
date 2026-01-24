@@ -1,6 +1,6 @@
-# ccmux Feature Management
+# fugue Feature Management
 
-This directory contains bug reports, feature requests, and task tracking for the ccmux project.
+This directory contains bug reports, feature requests, and task tracking for the fugue project.
 
 ## Directory Structure
 
@@ -33,7 +33,7 @@ Project Type: standard
 
 ## Project Components
 
-ccmux is organized into these logical components:
+fugue is organized into these logical components:
 
 | Component | Description |
 |-----------|-------------|

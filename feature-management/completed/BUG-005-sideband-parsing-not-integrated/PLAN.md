@@ -1,7 +1,7 @@
 # Implementation Plan: BUG-005
 
 **Work Item**: [BUG-005: Sideband Parsing Not Integrated into PTY Output Flow](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P1
 **Created**: 2026-01-09
 
@@ -148,11 +148,11 @@ async fn handle_output(&mut self, data: &[u8]) {
 }
 ```
 
-**Key insight**: If no `<ccmux:` prefix is found, the parser returns input unchanged. We can detect this and pass original bytes through, preserving binary data.
+**Key insight**: If no `<fugue:` prefix is found, the parser returns input unchanged. We can detect this and pass original bytes through, preserving binary data.
 
-### Edge Case: `<ccmux:` Split Across Reads
+### Edge Case: `<fugue:` Split Across Reads
 
-The parser already handles this via internal buffering. When it sees `<ccmux:` but no closing `>` or `/>`, it buffers until more data arrives.
+The parser already handles this via internal buffering. When it sees `<fugue:` but no closing `>` or `/>`, it buffers until more data arrives.
 
 ## Modified Signatures
 
@@ -279,9 +279,9 @@ If integration causes issues:
 
 ## Success Criteria
 
-- [ ] `echo '<ccmux:spawn direction="v" />'` creates new pane
+- [ ] `echo '<fugue:spawn direction="v" />'` creates new pane
 - [ ] XML tag not visible in terminal
-- [ ] `<ccmux:notify>` appears in server logs
+- [ ] `<fugue:notify>` appears in server logs
 - [ ] All 135+ existing tests pass
 - [ ] New integration tests pass
 - [ ] No measurable performance impact on normal output

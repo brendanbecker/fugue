@@ -15,10 +15,10 @@
 
 ## Phase 1: List Tools (Read-Only, Lowest Risk)
 
-### 1.1 Add ccmux_list_sessions
+### 1.1 Add fugue_list_sessions
 
 #### Tool Definition (tools.rs)
-- [ ] Add `ccmux_list_sessions` tool definition
+- [ ] Add `fugue_list_sessions` tool definition
 - [ ] Define empty input schema (no required parameters)
 - [ ] Write clear description for Claude
 
@@ -30,17 +30,17 @@
 
 #### Routing (server.rs)
 - [ ] Find handle_call_tool or equivalent routing function
-- [ ] Add case for "ccmux_list_sessions"
+- [ ] Add case for "fugue_list_sessions"
 - [ ] Call ctx.list_sessions()
 
 #### Tests
 - [ ] Add `test_list_sessions_empty`
 - [ ] Add `test_list_sessions_with_sessions`
 
-### 1.2 Add ccmux_list_windows
+### 1.2 Add fugue_list_windows
 
 #### Tool Definition (tools.rs)
-- [ ] Add `ccmux_list_windows` tool definition
+- [ ] Add `fugue_list_windows` tool definition
 - [ ] Define optional "session" parameter
 - [ ] Write clear description for Claude
 
@@ -52,7 +52,7 @@
 - [ ] Return JSON array with: id, index, name, pane_count, is_active
 
 #### Routing (server.rs)
-- [ ] Add case for "ccmux_list_windows"
+- [ ] Add case for "fugue_list_windows"
 - [ ] Extract optional session parameter
 - [ ] Call ctx.list_windows(session)
 
@@ -63,10 +63,10 @@
 
 ## Phase 2: Create Tools (Builds on BUG-003 Pattern)
 
-### 2.1 Add ccmux_create_session
+### 2.1 Add fugue_create_session
 
 #### Tool Definition (tools.rs)
-- [ ] Add `ccmux_create_session` tool definition
+- [ ] Add `fugue_create_session` tool definition
 - [ ] Define optional "name" parameter
 - [ ] Write clear description for Claude
 
@@ -81,7 +81,7 @@
 - [ ] Return JSON with: session_id, session_name, window_id, pane_id, status
 
 #### Routing (server.rs)
-- [ ] Add case for "ccmux_create_session"
+- [ ] Add case for "fugue_create_session"
 - [ ] Extract optional name parameter
 - [ ] Call ctx.create_session(name)
 
@@ -90,10 +90,10 @@
 - [ ] Add `test_create_session_custom_name`
 - [ ] Add `test_create_session_has_default_pane_with_pty`
 
-### 2.2 Add ccmux_create_window
+### 2.2 Add fugue_create_window
 
 #### Tool Definition (tools.rs)
-- [ ] Add `ccmux_create_window` tool definition
+- [ ] Add `fugue_create_window` tool definition
 - [ ] Define optional parameters: session, name, command
 - [ ] Write clear description for Claude
 
@@ -107,7 +107,7 @@
 - [ ] Return JSON with: window_id, pane_id, session (name), status
 
 #### Routing (server.rs)
-- [ ] Add case for "ccmux_create_window"
+- [ ] Add case for "fugue_create_window"
 - [ ] Extract optional parameters: session, name, command
 - [ ] Call ctx.create_window(session, name, command)
 
@@ -143,16 +143,16 @@
 - [ ] Verify test still lists all expected tool names
 
 ### 4.2 Run All Tests
-- [ ] Run `cargo test -p ccmux-server`
+- [ ] Run `cargo test -p fugue-server`
 - [ ] Fix any failing tests
 - [ ] Verify no regressions in existing functionality
 
 ### 4.3 Manual Integration Test
 - [ ] Start server with MCP enabled
-- [ ] Test `ccmux_list_sessions` returns correct data
-- [ ] Test `ccmux_create_session` creates working session
-- [ ] Test `ccmux_list_windows` shows windows
-- [ ] Test `ccmux_create_window` creates working window
+- [ ] Test `fugue_list_sessions` returns correct data
+- [ ] Test `fugue_create_session` creates working session
+- [ ] Test `fugue_list_windows` shows windows
+- [ ] Test `fugue_create_window` creates working window
 - [ ] Test natural language scenario end-to-end
 
 ### 4.4 Documentation

@@ -1,14 +1,14 @@
 # FEAT-114: Web Mobile Responsive Layout
 
 **Priority**: P2
-**Component**: ccmux-web
+**Component**: fugue-web
 **Effort**: Small
 **Status**: new
 **Depends On**: FEAT-113
 
 ## Summary
 
-Add mobile-optimized layout to the ccmux web interface. Automatically detect mobile viewports and switch to a single-pane fullscreen mode with touch-friendly navigation controls.
+Add mobile-optimized layout to the fugue web interface. Automatically detect mobile viewports and switch to a single-pane fullscreen mode with touch-friendly navigation controls.
 
 ## Related Features
 
@@ -87,7 +87,7 @@ window.addEventListener('resize', () => {
 
 ## Implementation
 
-### Frontend Changes (`ccmux-web/static/`)
+### Frontend Changes (`fugue-web/static/`)
 
 **New file**: `mobile.js`
 ```javascript
@@ -186,14 +186,14 @@ class MobileLayout {
 { type: 'pane_switched', pane_id: string }
 ```
 
-### Server Changes (`ccmux-web/src/`)
+### Server Changes (`fugue-web/src/`)
 
 **Add to** `ws.rs`:
 ```rust
 // Handle pane_switch message
 async fn handle_pane_switch(&mut self, pane_id: Uuid) -> Result<()> {
     // For mobile mode, we redirect the PTY bridge to a specific pane
-    // This may involve sending a focus command to ccmux-client
+    // This may involve sending a focus command to fugue-client
     // or maintaining separate PTY connections per pane
 }
 ```
@@ -255,7 +255,7 @@ function toggleKeyboard() {
 
 ## Configuration
 
-**Extend** `~/.ccmux/config.toml`:
+**Extend** `~/.fugue/config.toml`:
 ```toml
 [web.mobile]
 enabled = true                # Enable mobile layout

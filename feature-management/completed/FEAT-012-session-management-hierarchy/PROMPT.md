@@ -1,7 +1,7 @@
 # FEAT-012: Session Management - Session/Window/Pane Hierarchy
 
 **Priority**: P1
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
@@ -63,10 +63,10 @@ Session/Window/Pane hierarchy data model, CRUD operations, active selection trac
 
 ## Affected Files
 
-- `ccmux-server/src/session/manager.rs` - SessionManager implementation
-- `ccmux-server/src/session/session.rs` - Session struct
-- `ccmux-server/src/session/window.rs` - Window struct
-- `ccmux-server/src/session/pane.rs` - Pane struct
+- `fugue-server/src/session/manager.rs` - SessionManager implementation
+- `fugue-server/src/session/session.rs` - Session struct
+- `fugue-server/src/session/window.rs` - Window struct
+- `fugue-server/src/session/pane.rs` - Pane struct
 
 ## Implementation Tasks
 
@@ -127,6 +127,6 @@ Session/Window/Pane hierarchy data model, CRUD operations, active selection trac
 ## Notes
 
 - This is a foundational feature for the session management system
-- Protocol types should match ccmux-protocol definitions
+- Protocol types should match fugue-protocol definitions
 - Event system should be non-blocking for performance
 - Consider thread safety for concurrent access

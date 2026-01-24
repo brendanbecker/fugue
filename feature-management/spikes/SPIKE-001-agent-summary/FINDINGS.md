@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-The ccmux codebase already has robust agent detection infrastructure that makes an "Agent Summary" MCP tool highly feasible. The existing `ClaudeDetector`, `DetectorRegistry`, and PTY processing pipeline provide the foundation needed. Implementation would primarily involve:
+The fugue codebase already has robust agent detection infrastructure that makes an "Agent Summary" MCP tool highly feasible. The existing `ClaudeDetector`, `DetectorRegistry`, and PTY processing pipeline provide the foundation needed. Implementation would primarily involve:
 
 1. Aggregating existing data into a summary format
 2. Adding spinner text extraction for activity descriptions
@@ -23,7 +23,7 @@ Estimated effort: Small feature (~1-2 sessions)
 
 ### Q1: How is agent state currently detected?
 
-**Answer:** Via `DetectorRegistry` in `ccmux-server/src/agents/mod.rs` which manages multiple `AgentDetector` implementations:
+**Answer:** Via `DetectorRegistry` in `fugue-server/src/agents/mod.rs` which manages multiple `AgentDetector` implementations:
 
 - **ClaudeAgentDetector** - Detects Claude Code presence and activity
 - **GeminiAgentDetector** - Detects Gemini CLI
@@ -34,7 +34,7 @@ Detection flow:
 PTY Output → Pane::process() → DetectorRegistry::analyze() → AgentState
 ```
 
-Key file: `ccmux-server/src/claude/detector.rs:186-249` - The `analyze()` method:
+Key file: `fugue-server/src/claude/detector.rs:186-249` - The `analyze()` method:
 1. Strips ANSI escape sequences
 2. Detects agent presence via string patterns
 3. Extracts session ID and model
@@ -43,7 +43,7 @@ Key file: `ccmux-server/src/claude/detector.rs:186-249` - The `analyze()` method
 
 ### Q2: What activity states are currently tracked?
 
-**Answer:** From `ccmux-protocol/src/types/agent.rs:94-108`:
+**Answer:** From `fugue-protocol/src/types/agent.rs:94-108`:
 
 ```rust
 pub enum AgentActivity {
@@ -56,7 +56,7 @@ pub enum AgentActivity {
 }
 ```
 
-For Claude specifically, `ClaudeActivity` in `ccmux-protocol/src/types/agent.rs:143-154`:
+For Claude specifically, `ClaudeActivity` in `fugue-protocol/src/types/agent.rs:143-154`:
 ```rust
 pub enum ClaudeActivity {
     Idle,
@@ -76,7 +76,7 @@ Detection patterns (from `detector.rs`):
 
 ### Q3: What data is available in the scrollback buffer?
 
-**Answer:** From `ccmux-server/src/pty/buffer.rs`:
+**Answer:** From `fugue-server/src/pty/buffer.rs`:
 
 The `ScrollbackBuffer` provides:
 - Line-by-line terminal history (VT100 escape sequences preserved)
@@ -144,18 +144,18 @@ The token display in Claude's TUI appears in the bottom-right status line. We wo
 
 **Answer:** Well-established with ~50+ existing tools.
 
-1. **Define tool schema** in `ccmux-server/src/mcp/tools.rs`:
+1. **Define tool schema** in `fugue-server/src/mcp/tools.rs`:
 ```rust
 Tool {
-    name: "ccmux_agent_summary".into(),
+    name: "fugue_agent_summary".into(),
     description: "Get summary of agent activity in a pane".into(),
     input_schema: serde_json::json!({...}),
 }
 ```
 
-2. **Implement handler** in `ccmux-server/src/mcp/bridge/handlers.rs`:
+2. **Implement handler** in `fugue-server/src/mcp/bridge/handlers.rs`:
 ```rust
-"ccmux_agent_summary" => {
+"fugue_agent_summary" => {
     let pane_id = get_pane_id(arguments)?;
     // Gather data from pane state, scrollback, detector
     Ok(serde_json::to_value(summary)?)
@@ -164,7 +164,7 @@ Tool {
 
 3. **Add tests** in handler tests file
 
-### Q7: What does `ccmux_get_status` currently return?
+### Q7: What does `fugue_get_status` currently return?
 
 **Answer:** From `handlers.rs`, it returns:
 
@@ -197,7 +197,7 @@ This is a good starting point but doesn't include:
 
 ## Proposed API Schema
 
-### Tool: `ccmux_agent_summary`
+### Tool: `fugue_agent_summary`
 
 **Input:**
 ```json
@@ -262,7 +262,7 @@ This is a good starting point but doesn't include:
 
 ## Implementation Approach
 
-### Option A: Extend `ccmux_get_status` (Minimal Change)
+### Option A: Extend `fugue_get_status` (Minimal Change)
 
 Add optional parameters to existing tool:
 ```json
@@ -276,7 +276,7 @@ Add optional parameters to existing tool:
 **Pros:** No new tool, backward compatible
 **Cons:** Overloads existing tool, mixed concerns
 
-### Option B: New `ccmux_agent_summary` Tool (Recommended)
+### Option B: New `fugue_agent_summary` Tool (Recommended)
 
 Dedicated tool with focused purpose.
 
@@ -345,10 +345,10 @@ Priority: Medium (valuable for orchestration workflows but not blocking)
 
 | File | Purpose |
 |------|---------|
-| `ccmux-server/src/claude/detector.rs` | Claude state detection logic |
-| `ccmux-server/src/agents/mod.rs` | Generic agent detection registry |
-| `ccmux-server/src/session/pane.rs` | Pane state and process() method |
-| `ccmux-server/src/pty/buffer.rs` | Scrollback buffer implementation |
-| `ccmux-server/src/mcp/tools.rs` | MCP tool definitions |
-| `ccmux-server/src/mcp/bridge/handlers.rs` | MCP tool handlers |
-| `ccmux-protocol/src/types/agent.rs` | AgentState, ClaudeActivity types |
+| `fugue-server/src/claude/detector.rs` | Claude state detection logic |
+| `fugue-server/src/agents/mod.rs` | Generic agent detection registry |
+| `fugue-server/src/session/pane.rs` | Pane state and process() method |
+| `fugue-server/src/pty/buffer.rs` | Scrollback buffer implementation |
+| `fugue-server/src/mcp/tools.rs` | MCP tool definitions |
+| `fugue-server/src/mcp/bridge/handlers.rs` | MCP tool handlers |
+| `fugue-protocol/src/types/agent.rs` | AgentState, ClaudeActivity types |

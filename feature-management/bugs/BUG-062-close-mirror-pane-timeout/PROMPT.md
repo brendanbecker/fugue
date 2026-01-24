@@ -1,4 +1,4 @@
-# BUG-062: ccmux_close_pane times out for mirror panes
+# BUG-062: fugue_close_pane times out for mirror panes
 
 **Priority**: P2
 **Component**: mcp
@@ -7,7 +7,7 @@
 
 ## Problem
 
-Closing a mirror pane via `ccmux_close_pane` times out after 24 seconds, even though the pane is successfully closed.
+Closing a mirror pane via `fugue_close_pane` times out after 24 seconds, even though the pane is successfully closed.
 
 ```
 MCP error -32603: Timeout waiting for daemon response after 24s
@@ -15,14 +15,14 @@ MCP error -32603: Timeout waiting for daemon response after 24s
 
 ## Reproduction Steps
 
-1. Create a mirror pane: `ccmux_mirror_pane(source_pane_id: "<pane-uuid>")`
-2. Close the mirror: `ccmux_close_pane(pane_id: "<mirror-uuid>")`
+1. Create a mirror pane: `fugue_mirror_pane(source_pane_id: "<pane-uuid>")`
+2. Close the mirror: `fugue_close_pane(pane_id: "<mirror-uuid>")`
 3. Observe: Timeout error after ~24s
 4. List panes: Mirror is gone (close succeeded)
 
 ## Expected Behavior
 
-`ccmux_close_pane` returns success response when mirror pane is closed.
+`fugue_close_pane` returns success response when mirror pane is closed.
 
 ## Actual Behavior
 
@@ -36,11 +36,11 @@ The close pane handler needs to detect when closing a mirror pane and return `Re
 
 ## Fix
 
-Check the close pane handler in `ccmux-server/src/handlers/pane.rs` (likely `handle_close_pane` or similar). If it's using `BroadcastToSession`, change to `RespondWithBroadcast` for mirror pane closures.
+Check the close pane handler in `fugue-server/src/handlers/pane.rs` (likely `handle_close_pane` or similar). If it's using `BroadcastToSession`, change to `RespondWithBroadcast` for mirror pane closures.
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_close_pane` returns success for mirror panes
+- [ ] `fugue_close_pane` returns success for mirror panes
 - [ ] No timeout when closing mirror panes
 - [ ] Normal pane close behavior unaffected
 

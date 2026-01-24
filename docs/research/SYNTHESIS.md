@@ -1,4 +1,4 @@
-# ccmux Research Synthesis
+# fugue Research Synthesis
 
 > Cross-source unified analysis from Claude, Gemini, and ChatGPT research documents
 > Generated: 2026-01-07 | Stage 3 Output
@@ -57,7 +57,7 @@ All three sources recommend tmux-style daemon separation:
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                  ccmux-server                    │
+│                  fugue-server                    │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐         │
 │  │  PTY 1  │  │  PTY 2  │  │  PTY N  │  ...    │
 │  │ (Claude)│  │ (Shell) │  │         │         │
@@ -69,7 +69,7 @@ All three sources recommend tmux-style daemon separation:
 └────────────────────┼────────────────────────────┘
                      │
 ┌────────────────────┼────────────────────────────┐
-│                ccmux-client                      │
+│                fugue-client                      │
 │            ┌───────┴───────┐                    │
 │            │   Ratatui UI  │                    │
 │            └───────────────┘                    │
@@ -87,11 +87,11 @@ All three sources recommend tmux-style daemon separation:
 Recommended workspace layout (from all sources):
 
 ```
-ccmux/
-├── ccmux-client/     # UI and user interaction
-├── ccmux-server/     # PTY management, session state
-├── ccmux-protocol/   # IPC message definitions
-└── ccmux-utils/      # Shared utilities
+fugue/
+├── fugue-client/     # UI and user interaction
+├── fugue-server/     # PTY management, session state
+├── fugue-protocol/   # IPC message definitions
+└── fugue-utils/      # Shared utilities
 ```
 
 ### 2.3 Session Hierarchy
@@ -143,13 +143,13 @@ Session IDs are UUIDs stored in `~/.claude/projects/[encoded-path]/[uuid].jsonl`
 ### 3.4 Communication Protocol
 
 **Option A: MCP Server** (Gemini recommendation)
-- ccmux exposes tools via `mcp-rust-sdk`
+- fugue exposes tools via `mcp-rust-sdk`
 - Claude calls `create_pane()`, `read_pane_output()`, `list_panes()`
 - Deterministic, structured interaction
 
 **Option B: XML Sideband** (Claude recommendation)
 - Define protocol in SKILL.md/CLAUDE.md
-- Parse `<ccmux:spawn>`, `<ccmux:input>`, `<ccmux:control>` from stream
+- Parse `<fugue:spawn>`, `<fugue:input>`, `<fugue:control>` from stream
 - Hides control messages from display
 - 95-98% compliance rate
 
@@ -179,7 +179,7 @@ Session IDs are UUIDs stored in `~/.claude/projects/[encoded-path]/[uuid].jsonl`
 
 ### 4.2 Recovery Flow
 
-1. On startup, check for crash state file (`~/.ccmux/last_session.json`)
+1. On startup, check for crash state file (`~/.fugue/last_session.json`)
 2. For Claude panes: `claude --resume <saved_session_id>`
 3. For shell panes: Start fresh, display saved screen as "ghost image"
 4. Replay WAL tail after checkpoint
@@ -247,7 +247,7 @@ Environment variable tracking:
 const MAX_DEPTH: u32 = 5;
 
 fn spawn_child() {
-    let current = std::env::var("CCMUX_SESSION_DEPTH")
+    let current = std::env::var("FUGUE_SESSION_DEPTH")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
@@ -256,7 +256,7 @@ fn spawn_child() {
         return Err("Maximum session depth exceeded");
     }
 
-    cmd.env("CCMUX_SESSION_DEPTH", (current + 1).to_string());
+    cmd.env("FUGUE_SESSION_DEPTH", (current + 1).to_string());
 }
 ```
 

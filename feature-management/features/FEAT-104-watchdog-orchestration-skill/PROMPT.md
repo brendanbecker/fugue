@@ -58,7 +58,7 @@ A background process that triggers the watchdog periodically:
 ```bash
 # Runs in background, sends "check" to watchdog every N seconds
 while true; do
-  ccmux_send_input --pane $WATCHDOG_PANE "check"
+  fugue_send_input --pane $WATCHDOG_PANE "check"
   sleep ${INTERVAL:-90}
 done
 ```
@@ -69,16 +69,16 @@ Workers follow naming/tagging conventions for discovery:
 
 - **Session naming**: `<type>-<id>-worker` (e.g., `bug-066-worker`, `feat-103-worker`)
 - **Tag**: `worker`
-- **Status reporting**: Workers use `ccmux_report_status` to report state
+- **Status reporting**: Workers use `fugue_report_status` to report state
 
 ## Watchdog Agent Behavior
 
 When triggered with "check", the watchdog:
 
-1. **Discover workers**: `ccmux_list_panes` → filter by tag:worker or session pattern
+1. **Discover workers**: `fugue_list_panes` → filter by tag:worker or session pattern
 2. **Assess each worker**:
-   - `ccmux_get_status` for state (Processing, Idle, Waiting for input)
-   - `ccmux_read_pane` for recent output (errors, completion messages)
+   - `fugue_get_status` for state (Processing, Idle, Waiting for input)
+   - `fugue_read_pane` for recent output (errors, completion messages)
 3. **Classify status**:
    - `working` - Actively processing
    - `complete` - Finished successfully (prompt shows completion)
@@ -86,7 +86,7 @@ When triggered with "check", the watchdog:
    - `stuck` - Idle for too long or error state
    - `errored` - Error detected in output
 4. **Notify orchestrator** (if needed):
-   - Use `ccmux_send_orchestration` to `tag:orchestrator`
+   - Use `fugue_send_orchestration` to `tag:orchestrator`
    - Include summary and recommended action
 5. **Be concise**: Don't interrupt unless necessary
 
@@ -96,14 +96,14 @@ When triggered with "check", the watchdog:
 You are a worker agent monitor. Your job is to periodically check on worker agents and alert the orchestrator when they need attention.
 
 When you receive "check":
-1. Use ccmux_list_panes to find all panes
+1. Use fugue_list_panes to find all panes
 2. Filter for worker sessions (tag:worker or session names matching *-worker)
 3. For each worker:
-   - ccmux_get_status to get current state
-   - ccmux_read_pane (last 30 lines) if state unclear
+   - fugue_get_status to get current state
+   - fugue_read_pane (last 30 lines) if state unclear
 4. Classify each: working, complete, waiting, stuck, errored
 5. If any workers need attention (complete, waiting, stuck, errored):
-   - ccmux_send_orchestration to tag:orchestrator with summary
+   - fugue_send_orchestration to tag:orchestrator with summary
 6. If all workers healthy and working, respond briefly: "All N workers healthy"
 
 Be concise. The orchestrator is busy - only interrupt when necessary.
@@ -114,8 +114,8 @@ Summarize, don't dump raw output.
 
 The orchestrator session:
 
-1. **Tags itself**: `ccmux_set_tags(add: ["orchestrator"])`
-2. **Polls messages**: Periodically `ccmux_poll_messages` for watchdog alerts
+1. **Tags itself**: `fugue_set_tags(add: ["orchestrator"])`
+2. **Polls messages**: Periodically `fugue_poll_messages` for watchdog alerts
 3. **Receives alerts**: Watchdog sends orchestration messages with worker summaries
 4. **Takes action**: Reviews alerts, checks on workers, collects completed work
 
@@ -140,39 +140,39 @@ The orchestrator session:
 
 ```bash
 # Creates worker session with proper tags and launches Claude
-ccmux_create_session(name: "<task>-worker", cwd: $PWD)
-ccmux_set_tags(session: "<task>-worker", add: ["worker"])
-ccmux_send_input(pane: <new_pane>, input: "claude --dangerously-skip-permissions '<task>'")
+fugue_create_session(name: "<task>-worker", cwd: $PWD)
+fugue_set_tags(session: "<task>-worker", add: ["worker"])
+fugue_send_input(pane: <new_pane>, input: "claude --dangerously-skip-permissions '<task>'")
 ```
 
 ### `/orchestrate monitor start`
 
 ```bash
 # Create watchdog session
-ccmux_create_session(name: "__watchdog")
-ccmux_set_tags(session: "__watchdog", add: ["watchdog"])
+fugue_create_session(name: "__watchdog")
+fugue_set_tags(session: "__watchdog", add: ["watchdog"])
 
 # Launch watchdog Claude with monitoring prompt
-ccmux_send_input(pane: <watchdog_pane>, input: "claude --system-prompt '<watchdog_prompt>'")
+fugue_send_input(pane: <watchdog_pane>, input: "claude --system-prompt '<watchdog_prompt>'")
 
 # Start background timer (in hidden pane or background shell)
-ccmux_create_pane(session: "__watchdog", command: "while true; do echo check; sleep 90; done")
+fugue_create_pane(session: "__watchdog", command: "while true; do echo check; sleep 90; done")
 ```
 
 ### `/orchestrate monitor stop`
 
 ```bash
 # Kill the watchdog session
-ccmux_kill_session(session: "__watchdog")
+fugue_kill_session(session: "__watchdog")
 ```
 
 ### `/orchestrate status`
 
 ```bash
 # List all workers and their current status
-ccmux_list_panes | filter workers
+fugue_list_panes | filter workers
 for each worker:
-  ccmux_get_status
+  fugue_get_status
   format and display
 ```
 
@@ -180,9 +180,9 @@ for each worker:
 
 ```bash
 # Read worker's final output
-ccmux_read_pane(session: <session>, lines: 100)
+fugue_read_pane(session: <session>, lines: 100)
 # Optionally kill worker session
-ccmux_kill_session(session: <session>)
+fugue_kill_session(session: <session>)
 ```
 
 ## Configuration
@@ -198,16 +198,16 @@ Configurable via skill arguments or environment:
 
 ## Implementation Notes
 
-### Using ccmux MCP Tools
+### Using fugue MCP Tools
 
-The skill leverages existing ccmux MCP tools:
+The skill leverages existing fugue MCP tools:
 
-- `ccmux_create_session` / `ccmux_kill_session` - Session lifecycle
-- `ccmux_set_tags` / `ccmux_get_tags` - Tag-based routing
-- `ccmux_send_orchestration` - Inter-agent messaging
-- `ccmux_get_status` / `ccmux_read_pane` - Worker inspection
-- `ccmux_send_input` - Trigger watchdog and spawn workers
-- `ccmux_list_panes` - Worker discovery
+- `fugue_create_session` / `fugue_kill_session` - Session lifecycle
+- `fugue_set_tags` / `fugue_get_tags` - Tag-based routing
+- `fugue_send_orchestration` - Inter-agent messaging
+- `fugue_get_status` / `fugue_read_pane` - Worker inspection
+- `fugue_send_input` - Trigger watchdog and spawn workers
+- `fugue_list_panes` - Worker discovery
 
 ### Haiku for Watchdog
 
@@ -216,13 +216,13 @@ The watchdog should use Claude Haiku:
 - Fast (just checking status)
 - Sufficient (no complex reasoning needed)
 
-Use `ccmux_create_pane` with `preset: "haiku-worker"` or configure model directly.
+Use `fugue_create_pane` with `preset: "haiku-worker"` or configure model directly.
 
 ### Background Timer Implementation
 
 Options:
 1. **Separate pane**: Background shell in watchdog session
-2. **ccmux_run_parallel**: With infinite loop command
+2. **fugue_run_parallel**: With infinite loop command
 3. **External cron**: System-level scheduling
 
 Recommend option 1 for simplicity and containment.
@@ -250,8 +250,8 @@ Recommend option 1 for simplicity and containment.
 
 ## Related
 
-- FEAT-094: ccmux_run_parallel (parallel command execution)
-- FEAT-097: ccmux_get_worker_status / ccmux_poll_messages
+- FEAT-094: fugue_run_parallel (parallel command execution)
+- FEAT-097: fugue_get_worker_status / fugue_poll_messages
 - FEAT-102: Agent Status Pane
 - BUG-065: Parallel MCP request serialization (now fixed)
 - BUG-066: Mirror pane cross-session output

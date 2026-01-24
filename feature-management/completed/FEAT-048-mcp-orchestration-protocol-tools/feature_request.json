@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-048",
   "title": "Expose orchestration protocol via MCP tools",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P2",
   "status": "ready",
   "type": "new_feature",
@@ -11,7 +11,7 @@
   "tags": ["orchestration", "claude-code", "enhancement", "mcp", "tag-routing"],
   "estimated_effort": "medium",
   "dependencies": ["FEAT-028 (completed)", "FEAT-050 (completed)"],
-  "description": "Add MCP tools for the tag-based orchestration protocol, enabling agents to communicate directly without going through shell commands. This exposes the generic OrchestrationMessage (msg_type + payload) and tag-based OrchestrationTarget types as first-class MCP tools. Also includes tag management tools (ccmux_set_tags, ccmux_get_tags) for session classification.",
+  "description": "Add MCP tools for the tag-based orchestration protocol, enabling agents to communicate directly without going through shell commands. This exposes the generic OrchestrationMessage (msg_type + payload) and tag-based OrchestrationTarget types as first-class MCP tools. Also includes tag management tools (fugue_set_tags, fugue_get_tags) for session classification.",
   "business_value": "high",
   "technical_complexity": "medium",
   "user_impact": "Agents become first-class participants in orchestration rather than passive recipients of nudges. This is the 'Orchestrator API Surface' that enables true agent-to-agent coordination."

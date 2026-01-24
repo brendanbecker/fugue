@@ -14,8 +14,8 @@
   "reproducibility": "sometimes",
   "description": "When creating a new pane, session, or window via MCP tools, the new shell does not always launch in the expected working directory. It may launch in home directory, daemon's directory, or other unexpected location.",
   "steps_to_reproduce": [
-    "Start ccmux in a specific project directory",
-    "Call ccmux_create_pane without explicit cwd parameter",
+    "Start fugue in a specific project directory",
+    "Call fugue_create_pane without explicit cwd parameter",
     "Observe the new pane's working directory",
     "Note that it may not match the expected directory"
   ],

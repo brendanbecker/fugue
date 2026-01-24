@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-036",
   "title": "Session-aware MCP Commands with Window/Pane Naming",
-  "component": "ccmux-server (MCP)",
+  "component": "fugue-server (MCP)",
   "priority": "P1",
   "status": "new",
   "type": "enhancement",

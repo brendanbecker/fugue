@@ -1,7 +1,7 @@
 # FEAT-045: MCP Declarative Layout Tools
 
 **Priority**: P1
-**Component**: ccmux-server (MCP)
+**Component**: fugue-server (MCP)
 **Type**: enhancement
 **Estimated Effort**: medium
 **Business Value**: high
@@ -14,7 +14,7 @@ Add declarative layout control to MCP tools, allowing LLMs to create complex ter
 
 ## Problem Statement
 
-The current `ccmux_create_pane` tool only creates a single pane with basic direction (horizontal/vertical). While the underlying `layout.rs` already supports:
+The current `fugue_create_pane` tool only creates a single pane with basic direction (horizontal/vertical). While the underlying `layout.rs` already supports:
 
 - Nested layouts via `LayoutNode` tree structure
 - Custom ratios via `split_with_ratios()`
@@ -31,7 +31,7 @@ The current `ccmux_create_pane` tool only creates a single pane with basic direc
 ### Current MCP Capabilities
 
 ```rust
-// ccmux_create_pane - only creates one pane at a time
+// fugue_create_pane - only creates one pane at a time
 {
     "session": "optional",
     "window": "optional",
@@ -44,7 +44,7 @@ The current `ccmux_create_pane` tool only creates a single pane with basic direc
 ### Desired MCP Capabilities
 
 ```rust
-// ccmux_create_layout - create complex layout in one call
+// fugue_create_layout - create complex layout in one call
 {
     "direction": "horizontal",
     "splits": [
@@ -59,7 +59,7 @@ The current `ccmux_create_pane` tool only creates a single pane with basic direc
 
 ## Requirements
 
-### Part 1: `ccmux_create_layout` Tool
+### Part 1: `fugue_create_layout` Tool
 
 Create a new MCP tool that builds complex layouts declaratively in a single call.
 
@@ -67,7 +67,7 @@ Create a new MCP tool that builds complex layouts declaratively in a single call
 
 ```json
 {
-    "name": "ccmux_create_layout",
+    "name": "fugue_create_layout",
     "description": "Create a complex pane layout declaratively. Supports nested splits with custom ratios.",
     "input_schema": {
         "type": "object",
@@ -196,7 +196,7 @@ Create a new MCP tool that builds complex layouts declaratively in a single call
 }
 ```
 
-### Part 2: `ccmux_split_pane` Tool
+### Part 2: `fugue_split_pane` Tool
 
 Split a specific pane with custom ratio (not just 50/50).
 
@@ -204,7 +204,7 @@ Split a specific pane with custom ratio (not just 50/50).
 
 ```json
 {
-    "name": "ccmux_split_pane",
+    "name": "fugue_split_pane",
     "description": "Split a specific pane with a custom size ratio",
     "input_schema": {
         "type": "object",
@@ -256,7 +256,7 @@ Split a specific pane with custom ratio (not just 50/50).
 }
 ```
 
-### Part 3: `ccmux_resize_pane` Tool
+### Part 3: `fugue_resize_pane` Tool
 
 Adjust pane sizes after creation.
 
@@ -264,7 +264,7 @@ Adjust pane sizes after creation.
 
 ```json
 {
-    "name": "ccmux_resize_pane",
+    "name": "fugue_resize_pane",
     "description": "Resize a pane by adjusting its ratio relative to its sibling",
     "input_schema": {
         "type": "object",
@@ -296,7 +296,7 @@ Adjust pane sizes after creation.
 }
 ```
 
-### Part 4: Enhanced `ccmux_create_pane`
+### Part 4: Enhanced `fugue_create_pane`
 
 Update the existing tool to support custom ratios.
 
@@ -459,20 +459,20 @@ The `layout.rs` file already has the necessary primitives:
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/mcp/tools.rs` | Add tool definitions for create_layout, split_pane, resize_pane |
-| `ccmux-server/src/mcp/handlers.rs` | Implement handlers for new tools |
-| `ccmux-server/src/mcp/bridge.rs` | Route new tool calls |
-| `ccmux-server/src/session/manager.rs` | Add layout application methods |
-| `ccmux-client/src/ui/layout.rs` | May need additional methods for client-side layout sync |
-| `ccmux-protocol/src/messages.rs` | Add layout-related message types if needed |
+| `fugue-server/src/mcp/tools.rs` | Add tool definitions for create_layout, split_pane, resize_pane |
+| `fugue-server/src/mcp/handlers.rs` | Implement handlers for new tools |
+| `fugue-server/src/mcp/bridge.rs` | Route new tool calls |
+| `fugue-server/src/session/manager.rs` | Add layout application methods |
+| `fugue-client/src/ui/layout.rs` | May need additional methods for client-side layout sync |
+| `fugue-protocol/src/messages.rs` | Add layout-related message types if needed |
 
 ## Implementation Tasks
 
 ### Section 1: Tool Definitions
-- [ ] Add `ccmux_create_layout` tool definition to `tools.rs`
-- [ ] Add `ccmux_split_pane` tool definition to `tools.rs`
-- [ ] Add `ccmux_resize_pane` tool definition to `tools.rs`
-- [ ] Update `ccmux_create_pane` with `ratio` and `source_pane` parameters
+- [ ] Add `fugue_create_layout` tool definition to `tools.rs`
+- [ ] Add `fugue_split_pane` tool definition to `tools.rs`
+- [ ] Add `fugue_resize_pane` tool definition to `tools.rs`
+- [ ] Update `fugue_create_pane` with `ratio` and `source_pane` parameters
 
 ### Section 2: Layout Parsing
 - [ ] Implement `parse_layout_spec()` to convert JSON to `LayoutNode`
@@ -522,12 +522,12 @@ The `layout.rs` file already has the necessary primitives:
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_create_layout` creates multi-pane layouts in one call
+- [ ] `fugue_create_layout` creates multi-pane layouts in one call
 - [ ] Nested layouts (splits within splits) work correctly
 - [ ] Custom ratios are respected (not just 50/50)
 - [ ] Presets (`main_left`, `grid_2x2`, etc.) work with custom commands
-- [ ] `ccmux_split_pane` splits a specific pane with custom ratio
-- [ ] `ccmux_resize_pane` adjusts pane sizes dynamically
+- [ ] `fugue_split_pane` splits a specific pane with custom ratio
+- [ ] `fugue_resize_pane` adjusts pane sizes dynamically
 - [ ] TUI clients display correct layout after MCP operations
 - [ ] All existing tests pass
 - [ ] New tools have comprehensive test coverage
@@ -536,7 +536,7 @@ The `layout.rs` file already has the necessary primitives:
 
 **User**: "Create a development workspace with vim on the left taking 60% of the space, and two Claude instances stacked on the right"
 
-**LLM uses `ccmux_create_layout`**:
+**LLM uses `fugue_create_layout`**:
 ```json
 {
     "layout": {
@@ -573,8 +573,8 @@ The `layout.rs` file already has the necessary primitives:
 
 ## Notes
 
-- The `layout.rs` infrastructure already exists in `ccmux-client` - this feature primarily exposes it via MCP
+- The `layout.rs` infrastructure already exists in `fugue-client` - this feature primarily exposes it via MCP
 - Ratio normalization should be forgiving (auto-normalize if ratios don't sum to 1.0)
-- Consider adding a `ccmux_get_layout` tool to query current layout structure
+- Consider adding a `fugue_get_layout` tool to query current layout structure
 - Future enhancement: save/restore named layouts
 - Future enhancement: animated resize transitions

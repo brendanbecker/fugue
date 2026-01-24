@@ -1,7 +1,7 @@
 # BUG-007: Shift+Tab Not Passed Through to PTY
 
 **Priority**: P1 (High)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Status**: resolved
 **Resolved**: 2026-01-09
 **Created**: 2026-01-09
@@ -9,11 +9,11 @@
 
 ## Summary
 
-Shift+Tab keystrokes are not being passed through to programs running in the PTY (e.g., Claude Code). Something in the ccmux client input handling is intercepting or dropping the Shift+Tab combination.
+Shift+Tab keystrokes are not being passed through to programs running in the PTY (e.g., Claude Code). Something in the fugue client input handling is intercepting or dropping the Shift+Tab combination.
 
 ## Reproduction Steps
 
-1. Start ccmux and create/attach to a session
+1. Start fugue and create/attach to a session
 2. Run Claude Code or another program that uses Shift+Tab
 3. Press Shift+Tab
 4. Observe that the keystroke is not received by the program
@@ -31,7 +31,7 @@ Shift+Tab keystrokes are not being passed through to programs running in the PTY
 
 ## Investigation Areas
 
-### 1. Key Translation (`ccmux-client/src/input/keys.rs`)
+### 1. Key Translation (`fugue-client/src/input/keys.rs`)
 
 Check if Shift+Tab is being translated correctly:
 ```rust
@@ -39,24 +39,24 @@ Check if Shift+Tab is being translated correctly:
 // Should produce: \x1b[Z (CSI Z)
 ```
 
-### 2. Input Handler (`ccmux-client/src/input/mod.rs`)
+### 2. Input Handler (`fugue-client/src/input/mod.rs`)
 
 Check if Shift+Tab is being consumed by:
 - Quick bindings check
 - Prefix key handling
 - Any special case handling
 
-### 3. Mouse Handler (`ccmux-client/src/input/mouse.rs`)
+### 3. Mouse Handler (`fugue-client/src/input/mouse.rs`)
 
 Unlikely but check if there's any Tab-related handling.
 
-### 4. App Event Handling (`ccmux-client/src/ui/app.rs`)
+### 4. App Event Handling (`fugue-client/src/ui/app.rs`)
 
 Check `handle_input_action()` for any Shift+Tab specific handling.
 
 ## Root Cause (CONFIRMED)
 
-In `ccmux-client/src/input/keys.rs:111`, the catch-all `_ => None` drops any unhandled key codes.
+In `fugue-client/src/input/keys.rs:111`, the catch-all `_ => None` drops any unhandled key codes.
 
 The code at line 21-28 handles `KeyCode::Tab` with SHIFT modifier:
 ```rust
@@ -87,9 +87,9 @@ This should be added near the `KeyCode::Tab` handling (around line 28).
 
 | File | Purpose |
 |------|---------|
-| `ccmux-client/src/input/keys.rs` | Key-to-escape-sequence translation |
-| `ccmux-client/src/input/mod.rs` | Input state machine and routing |
-| `ccmux-client/src/ui/app.rs` | High-level input action handling |
+| `fugue-client/src/input/keys.rs` | Key-to-escape-sequence translation |
+| `fugue-client/src/input/mod.rs` | Input state machine and routing |
+| `fugue-client/src/ui/app.rs` | High-level input action handling |
 
 ## Notes
 

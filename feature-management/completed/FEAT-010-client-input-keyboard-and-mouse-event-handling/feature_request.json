@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-010",
   "title": "Client Input - Keyboard and Mouse Event Handling",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "priority": "P1",
   "status": "new",
   "type": "new_feature",

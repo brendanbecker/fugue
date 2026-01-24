@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-046",
   "title": "MCP Focus/Select Control",
-  "component": "ccmux-server (MCP)",
+  "component": "fugue-server (MCP)",
   "priority": "P1",
   "status": "new",
   "type": "enhancement",
@@ -11,7 +11,7 @@
   "tags": ["mcp", "terminal", "tui", "navigation", "enhancement"],
   "estimated_effort": "small",
   "dependencies": [],
-  "description": "Add MCP tools for explicit focus/selection control: ccmux_select_pane, ccmux_select_window, ccmux_select_session. Also change ccmux_create_pane to NOT auto-switch focus by default, with an optional 'select' parameter to opt-in.",
+  "description": "Add MCP tools for explicit focus/selection control: fugue_select_pane, fugue_select_window, fugue_select_session. Also change fugue_create_pane to NOT auto-switch focus by default, with an optional 'select' parameter to opt-in.",
   "business_value": "high",
   "technical_complexity": "low",
   "user_impact": "Enables LLMs to control terminal navigation explicitly, and prevents unwanted focus switches when creating panes programmatically. Critical for multi-pane orchestration workflows."

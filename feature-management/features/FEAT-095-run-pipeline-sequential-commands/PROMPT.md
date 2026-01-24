@@ -1,14 +1,14 @@
-# FEAT-095: ccmux_run_pipeline - Sequential Command Pipeline
+# FEAT-095: fugue_run_pipeline - Sequential Command Pipeline
 
 **Priority**: P1
-**Component**: ccmux-server/mcp
+**Component**: fugue-server/mcp
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
 
 ## Overview
 
-Create a high-level MCP tool `ccmux_run_pipeline` that executes commands sequentially within a single pane. Supports `stop_on_error` mode for immediate failure on non-zero exit. Returns structured results per step. Bridge-only implementation.
+Create a high-level MCP tool `fugue_run_pipeline` that executes commands sequentially within a single pane. Supports `stop_on_error` mode for immediate failure on non-zero exit. Returns structured results per step. Bridge-only implementation.
 
 ## Problem Statement
 
@@ -22,7 +22,7 @@ Sequential workflows (build -> test -> deploy) require:
 
 Each step consumes ~100-200 tokens. A 5-step pipeline: 500-1000 tokens.
 
-With `ccmux_run_pipeline`: ~150 tokens total.
+With `fugue_run_pipeline`: ~150 tokens total.
 
 ## API Design
 
@@ -30,7 +30,7 @@ With `ccmux_run_pipeline`: ~150 tokens total.
 
 ```json
 {
-  "name": "ccmux_run_pipeline",
+  "name": "fugue_run_pipeline",
   "description": "Execute commands sequentially in a single pane",
   "inputSchema": {
     "type": "object",
@@ -111,7 +111,7 @@ Uses existing primitives:
 
 ```
 for each command in commands:
-    1. Wrap command: { <cmd> ; } ; echo "___CCMUX_EXIT_$?___"
+    1. Wrap command: { <cmd> ; } ; echo "___FUGUE_EXIT_$?___"
     2. send_input(wrapped_command)
     3. Poll read_pane for exit marker
     4. Parse exit code
@@ -124,7 +124,7 @@ return aggregated results
 
 Same pattern as FEAT-094:
 ```bash
-{ npm run build ; } ; echo "___CCMUX_EXIT_$?___"
+{ npm run build ; } ; echo "___FUGUE_EXIT_$?___"
 ```
 
 Ensures exit code is captured even for commands that produce no output.
@@ -134,7 +134,7 @@ Ensures exit code is captured even for commands that produce no output.
 ### Section 1: Add to Orchestration Module
 
 - [ ] Add `RunPipelineRequest` and `RunPipelineResponse` types
-- [ ] Implement in `ccmux-server/src/mcp/bridge/orchestration.rs`
+- [ ] Implement in `fugue-server/src/mcp/bridge/orchestration.rs`
 - [ ] Share exit code parsing with FEAT-094
 
 ### Section 2: Pane Management
@@ -172,8 +172,8 @@ Ensures exit code is captured even for commands that produce no output.
 
 ### Section 7: Tool Registration
 
-- [ ] Add tool schema to `ccmux-server/src/mcp/tools.rs`
-- [ ] Register handler in `ccmux-server/src/mcp/bridge/handlers.rs`
+- [ ] Add tool schema to `fugue-server/src/mcp/tools.rs`
+- [ ] Register handler in `fugue-server/src/mcp/bridge/handlers.rs`
 
 ### Section 8: Testing
 
@@ -187,13 +187,13 @@ Ensures exit code is captured even for commands that produce no output.
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/mcp/bridge/orchestration.rs` | Add pipeline implementation |
-| `ccmux-server/src/mcp/bridge/handlers.rs` | Register handler |
-| `ccmux-server/src/mcp/tools.rs` | Add tool schema |
+| `fugue-server/src/mcp/bridge/orchestration.rs` | Add pipeline implementation |
+| `fugue-server/src/mcp/bridge/handlers.rs` | Register handler |
+| `fugue-server/src/mcp/tools.rs` | Add tool schema |
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_run_pipeline` tool available in MCP
+- [ ] `fugue_run_pipeline` tool available in MCP
 - [ ] Executes commands sequentially in single pane
 - [ ] `stop_on_error: true` halts on first failure
 - [ ] `stop_on_error: false` continues through failures
@@ -213,7 +213,7 @@ Ensures exit code is captured even for commands that produce no output.
 ### Context Savings
 
 Typical 5-step sequential workflow: ~700-1000 tokens
-With `ccmux_run_pipeline`: ~150 tokens
+With `fugue_run_pipeline`: ~150 tokens
 
 **Savings: 75-85% context reduction**
 

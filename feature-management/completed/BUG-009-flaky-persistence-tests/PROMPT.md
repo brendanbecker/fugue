@@ -1,14 +1,14 @@
 # BUG-009: Flaky Persistence/Recovery Tests Due to Test Isolation Issues
 
 **Priority**: P2 (Medium)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Status**: resolved
 **Resolved**: 2026-01-10
 **Created**: 2026-01-09
 
 ## Summary
 
-The persistence/recovery tests in ccmux-server have intermittent race conditions causing non-deterministic test failures. A different test fails on each run - it's not one specific test but rather test isolation issues affecting the entire persistence test suite.
+The persistence/recovery tests in fugue-server have intermittent race conditions causing non-deterministic test failures. A different test fails on each run - it's not one specific test but rather test isolation issues affecting the entire persistence test suite.
 
 ## Symptoms
 
@@ -23,7 +23,7 @@ The persistence/recovery tests in ccmux-server have intermittent race conditions
 
 ## Location
 
-Tests are in `ccmux-server/src/persistence/` directory:
+Tests are in `fugue-server/src/persistence/` directory:
 
 | File | Affected Tests |
 |------|----------------|
@@ -40,7 +40,7 @@ Related files that may contribute to the issue:
 1. Run `cargo test --workspace` multiple times (at least 5-10 times)
 2. Observe that approximately 30% of runs fail with 1 test failure
 3. Note which test failed
-4. Run that specific test in isolation: `cargo test -p ccmux-server <test_name>`
+4. Run that specific test in isolation: `cargo test -p fugue-server <test_name>`
 5. The test passes when run alone
 6. Run `cargo test --workspace` again
 7. A different test fails this time

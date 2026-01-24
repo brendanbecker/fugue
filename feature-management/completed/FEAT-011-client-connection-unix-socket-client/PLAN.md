@@ -1,14 +1,14 @@
 # Implementation Plan: FEAT-011
 
 **Work Item**: [FEAT-011: Client Connection - Unix Socket Client](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P1
 **Created**: 2026-01-08
 **Status**: Completed
 
 ## Overview
 
-Unix socket client connecting to ccmux-server, async message framing, connection state management, and reconnection logic.
+Unix socket client connecting to fugue-server, async message framing, connection state management, and reconnection logic.
 
 ## Architecture Decisions
 
@@ -77,14 +77,14 @@ Uses `tokio_util::codec::Framed` with `ClientCodec`:
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-client/src/connection/client.rs | New file | Low |
-| ccmux-client/src/connection/handler.rs | New file | Low |
-| ccmux-client/src/connection/mod.rs | Module declaration | Low |
+| fugue-client/src/connection/client.rs | New file | Low |
+| fugue-client/src/connection/handler.rs | New file | Low |
+| fugue-client/src/connection/mod.rs | Module declaration | Low |
 
 ## Dependencies
 
-- `ccmux-protocol`: Provides `ClientCodec`, `ClientMessage`, `ServerMessage`
-- `ccmux-utils`: Provides `socket_path()`, `CcmuxError`, `Result`
+- `fugue-protocol`: Provides `ClientCodec`, `ClientMessage`, `ServerMessage`
+- `fugue-utils`: Provides `socket_path()`, `CcmuxError`, `Result`
 - `tokio`: Async runtime, `UnixStream`, `mpsc` channels
 - `tokio-util`: `Framed` transport, `codec` support
 - `futures`: `SinkExt`, `StreamExt` for async stream operations
@@ -130,8 +130,8 @@ Uses `tokio_util::codec::Framed` with `ClientCodec`:
 ## Rollback Strategy
 
 If implementation causes issues:
-1. Revert commits for ccmux-client/src/connection/
-2. Remove connection module from ccmux-client/src/lib.rs
+1. Revert commits for fugue-client/src/connection/
+2. Remove connection module from fugue-client/src/lib.rs
 3. Client applications use direct socket communication
 4. Document what went wrong in comments.md
 

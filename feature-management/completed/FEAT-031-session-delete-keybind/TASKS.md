@@ -13,10 +13,10 @@
 
 ## Protocol Tasks
 
-- [x] Review existing ClientMessage enum in ccmux-protocol/src/lib.rs
+- [x] Review existing ClientMessage enum in fugue-protocol/src/lib.rs
 - [x] Add `DestroySession { session_id: Uuid }` variant to ClientMessage
 - [x] Verify serde serialization works for new variant
-- [x] Run `cargo check` on ccmux-protocol
+- [x] Run `cargo check` on fugue-protocol
 
 ## Server Tasks
 

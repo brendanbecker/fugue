@@ -1,7 +1,7 @@
 # FEAT-026: Input Handling Integration and Testing
 
 **Priority**: P1
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: enhancement
 **Estimated Effort**: small (1-2 hours)
 **Business Value**: high
@@ -13,8 +13,8 @@ Verify and test keyboard input forwarding from client to server PTY. Input handl
 ## Background
 
 The input handling infrastructure was implemented in FEAT-010:
-- Keyboard parsing exists in `ccmux-client/src/input/keys.rs`
-- Byte conversion exists in `ccmux-client/src/input/input_handler.rs`
+- Keyboard parsing exists in `fugue-client/src/input/keys.rs`
+- Byte conversion exists in `fugue-client/src/input/input_handler.rs`
 - Sending to server already works via `handle_input_action()` and `ClientMessage::Input`
 
 This feature focuses on verification and testing rather than new implementation.
@@ -58,10 +58,10 @@ This feature focuses on verification and testing rather than new implementation.
 ## Location
 
 Primary files to verify/test:
-- `ccmux-client/src/input/keys.rs` - Keyboard event parsing
-- `ccmux-client/src/input/input_handler.rs` - Byte conversion
-- `ccmux-client/src/input/mod.rs` - Input module organization
-- `ccmux-client/src/main.rs` - `handle_input_action()` integration
+- `fugue-client/src/input/keys.rs` - Keyboard event parsing
+- `fugue-client/src/input/input_handler.rs` - Byte conversion
+- `fugue-client/src/input/mod.rs` - Input module organization
+- `fugue-client/src/main.rs` - `handle_input_action()` integration
 
 ## Technical Notes
 

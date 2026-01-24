@@ -1,18 +1,18 @@
 # BUG-037: close_pane Returns AbortError
 
 **Priority**: P2
-**Component**: ccmux-server
+**Component**: fugue-server
 **Severity**: medium
 **Status**: fixed
 
 ## Problem Statement
 
-`ccmux_close_pane` fails with "AbortError: The operation was aborted" instead of closing the pane.
+`fugue_close_pane` fails with "AbortError: The operation was aborted" instead of closing the pane.
 
 ## Steps to Reproduce
 
 1. Have a pane open (e.g., the stray "logs" window pane from BUG-034)
-2. Call `ccmux_close_pane(pane_id: "062d7f57-87d4-40c6-9238-01df075c3cee")`
+2. Call `fugue_close_pane(pane_id: "062d7f57-87d4-40c6-9238-01df075c3cee")`
 3. **Observe**: Returns error instead of closing
 
 ## Expected Behavior
@@ -27,7 +27,7 @@ MCP error -32001: AbortError: The operation was aborted.
 Pane remains open. User had to close it manually.
 
 ## Environment
-- ccmux version: current main branch
+- fugue version: current main branch
 - Platform: Linux (WSL2)
 - Triggered during: QA demo cleanup
 
@@ -82,4 +82,4 @@ The fix is safe because:
 - Blocking the I/O task is worse than buffering messages temporarily
 
 ## Files Changed
-- `ccmux-server/src/mcp/bridge/connection.rs`: Changed to unbounded channel
+- `fugue-server/src/mcp/bridge/connection.rs`: Changed to unbounded channel

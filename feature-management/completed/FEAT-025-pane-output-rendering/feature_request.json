@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-025",
   "title": "Pane Output Rendering",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "priority": "P0",
   "status": "new",
   "type": "new_feature",

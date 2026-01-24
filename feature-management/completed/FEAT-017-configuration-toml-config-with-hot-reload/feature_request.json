@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-017",
   "title": "Configuration - TOML Config with Hot Reload",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P2",
   "status": "completed",
   "type": "new_feature",

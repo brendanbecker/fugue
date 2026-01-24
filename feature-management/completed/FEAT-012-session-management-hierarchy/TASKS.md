@@ -9,7 +9,7 @@
 - [x] Read and understand PROMPT.md
 - [x] Review PLAN.md and update if needed
 - [x] Review existing session module structure
-- [x] Understand ccmux-protocol types for conversion targets
+- [x] Understand fugue-protocol types for conversion targets
 
 ## Design Tasks
 

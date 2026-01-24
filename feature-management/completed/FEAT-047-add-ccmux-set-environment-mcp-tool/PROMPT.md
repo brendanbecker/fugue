@@ -1,18 +1,18 @@
-# FEAT-047: Add ccmux_set_environment MCP tool
+# FEAT-047: Add fugue_set_environment MCP tool
 
 **Priority**: P1
-**Component**: ccmux-server (MCP)
+**Component**: fugue-server (MCP)
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
 
 ## Overview
 
-Allow setting environment variables on a session that will be inherited by panes/processes. Gas Town sets environment variables on tmux sessions using `tmux set-environment -t <session> KEY VALUE`. Critical variables include GT_RIG, GT_POLECAT, BEADS_DIR, BEADS_NO_DAEMON, and BEADS_AGENT_NAME. ccmux currently has no mechanism to store or propagate session-level environment variables.
+Allow setting environment variables on a session that will be inherited by panes/processes. Gas Town sets environment variables on tmux sessions using `tmux set-environment -t <session> KEY VALUE`. Critical variables include GT_RIG, GT_POLECAT, BEADS_DIR, BEADS_NO_DAEMON, and BEADS_AGENT_NAME. fugue currently has no mechanism to store or propagate session-level environment variables.
 
 ## Benefits
 
-- Enables Gas Town integration with ccmux
+- Enables Gas Town integration with fugue
 - Allows session-level environment configuration without modifying shell profiles
 - Provides parity with tmux's `set-environment` functionality
 - Supports multi-session workflows with different environment contexts
@@ -26,8 +26,8 @@ Allow setting environment variables on a session that will be inherited by panes
 - [ ] Document implementation approach
 
 ### Section 2: Implementation
-- [ ] Add `environment: HashMap<String, String>` field to Session struct in `ccmux-server/src/session/session.rs`
-- [ ] Add `SetEnvironment { session_id, key, value }` variant to ClientMessage in `ccmux-protocol/src/messages.rs`
+- [ ] Add `environment: HashMap<String, String>` field to Session struct in `fugue-server/src/session/session.rs`
+- [ ] Add `SetEnvironment { session_id, key, value }` variant to ClientMessage in `fugue-protocol/src/messages.rs`
 - [ ] Add MCP tool definition to tools.rs with schema:
   - `session`: string (required) - Session UUID or name
   - `key`: string (required) - Environment variable name
@@ -57,7 +57,7 @@ Allow setting environment variables on a session that will be inherited by panes
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_set_environment` MCP tool is available and documented
+- [ ] `fugue_set_environment` MCP tool is available and documented
 - [ ] Environment variables can be set on sessions by UUID or name
 - [ ] Environment variables are inherited by newly created panes in the session
 - [ ] Multiple environment variables can be set on a single session
@@ -72,6 +72,6 @@ None
 ## Notes
 
 - This is blocking Gas Town integration
-- Consider also adding `ccmux_get_environment` and `ccmux_unset_environment` tools for completeness
+- Consider also adding `fugue_get_environment` and `fugue_unset_environment` tools for completeness
 - Environment variables should persist across session reconnects (may require persistence layer update)
 - Consider whether environment should be included in session serialization for crash recovery

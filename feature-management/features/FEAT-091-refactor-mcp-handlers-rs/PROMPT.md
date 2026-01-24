@@ -1,7 +1,7 @@
-# FEAT-091: Refactor ccmux-server/src/mcp/handlers.rs
+# FEAT-091: Refactor fugue-server/src/mcp/handlers.rs
 
 **Priority**: P3
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: refactor
 **Estimated Effort**: medium
 **Current Size**: 17.1k tokens (1836 lines)
@@ -18,7 +18,7 @@ This file handles MCP tools when running in standalone mode (not through Claude 
 ## Proposed Module Structure
 
 ```
-ccmux-server/src/mcp/handlers/
+fugue-server/src/mcp/handlers/
 ├── mod.rs              # Handler dispatch, shared utilities (<3k)
 ├── session.rs          # Session handlers
 ├── window.rs           # Window handlers

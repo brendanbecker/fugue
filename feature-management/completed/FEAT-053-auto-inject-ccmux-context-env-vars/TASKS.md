@@ -20,23 +20,23 @@
 
 ## Implementation Tasks
 
-- [ ] Create helper method for ccmux context environment injection
-- [ ] Modify `ccmux-server/src/handlers/mcp_bridge.rs`:
+- [ ] Create helper method for fugue context environment injection
+- [ ] Modify `fugue-server/src/handlers/mcp_bridge.rs`:
   - [ ] Audit and count all PtyConfig creation sites
   - [ ] Add context injection to each site
-- [ ] Modify `ccmux-server/src/mcp/handlers.rs` if PTY spawning present
-- [ ] Modify `ccmux-server/src/session.rs` if PTY spawning present
-- [ ] Modify `ccmux-server/src/sideband/async_executor.rs` for sideband spawns
+- [ ] Modify `fugue-server/src/mcp/handlers.rs` if PTY spawning present
+- [ ] Modify `fugue-server/src/session.rs` if PTY spawning present
+- [ ] Modify `fugue-server/src/sideband/async_executor.rs` for sideband spawns
 - [ ] Verify all spawn paths use the context injection
 - [ ] Self-review changes
 
 ## Testing Tasks
 
 - [ ] Add unit tests for the helper method
-- [ ] Add integration test: spawn pane, verify CCMUX_PANE_ID is set
-- [ ] Add integration test: spawn pane, verify CCMUX_SESSION_ID is set
-- [ ] Add integration test: spawn pane, verify CCMUX_WINDOW_ID is set
-- [ ] Add integration test: spawn pane, verify CCMUX_SESSION_NAME is set
+- [ ] Add integration test: spawn pane, verify FUGUE_PANE_ID is set
+- [ ] Add integration test: spawn pane, verify FUGUE_SESSION_ID is set
+- [ ] Add integration test: spawn pane, verify FUGUE_WINDOW_ID is set
+- [ ] Add integration test: spawn pane, verify FUGUE_SESSION_NAME is set
 - [ ] Manual test: `env | grep CCMUX` in spawned pane
 - [ ] Manual test: verify values are correct UUIDs/names
 - [ ] Test sideband-spawned panes have context

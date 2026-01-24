@@ -1,21 +1,21 @@
 # Implementation Plan: FEAT-049
 
-**Work Item**: [FEAT-049: Add tmux-compatible CLI wrapper (ccmux-compat)](PROMPT.md)
-**Component**: ccmux-compat
+**Work Item**: [FEAT-049: Add tmux-compatible CLI wrapper (fugue-compat)](PROMPT.md)
+**Component**: fugue-compat
 **Priority**: P2
 **Created**: 2026-01-10
 
 ## Overview
 
-Create a CLI binary that accepts tmux command syntax and translates to ccmux MCP calls, enabling drop-in replacement for existing tools like Gas Town.
+Create a CLI binary that accepts tmux command syntax and translates to fugue MCP calls, enabling drop-in replacement for existing tools like Gas Town.
 
 ## Architecture Decisions
 
 ### Approach: New Binary Crate
 
-Create a new crate `ccmux-compat/` in the workspace that:
+Create a new crate `fugue-compat/` in the workspace that:
 1. Uses clap for tmux-compatible argument parsing
-2. Connects to ccmux daemon via existing Unix socket protocol
+2. Connects to fugue daemon via existing Unix socket protocol
 3. Translates tmux commands to MCP tool calls
 4. Formats output to match tmux exactly
 
@@ -24,12 +24,12 @@ Create a new crate `ccmux-compat/` in the workspace that:
 | Decision | Pros | Cons |
 |----------|------|------|
 | New binary crate | Clean separation, can be installed independently | Additional build artifact |
-| Reuse ccmux-protocol | Consistent with existing codebase | Tight coupling to internal protocol |
+| Reuse fugue-protocol | Consistent with existing codebase | Tight coupling to internal protocol |
 | clap for CLI parsing | Robust, well-tested | Additional dependency (though already in workspace) |
 
 ### Alternative Considered: Shell Script Wrapper
 
-A shell script translating args to `ccmux mcp` calls was considered but rejected because:
+A shell script translating args to `fugue mcp` calls was considered but rejected because:
 - Harder to maintain
 - Less portable
 - More difficult to match exact tmux exit codes and output format
@@ -38,10 +38,10 @@ A shell script translating args to `ccmux mcp` calls was considered but rejected
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-compat/ (new) | Primary - new crate | Low |
+| fugue-compat/ (new) | Primary - new crate | Low |
 | Cargo.toml (workspace) | Add new member | Low |
-| ccmux-protocol | Reuse existing | None |
-| ccmux-utils | Reuse existing | None |
+| fugue-protocol | Reuse existing | None |
+| fugue-utils | Reuse existing | None |
 
 ## Command Mapping Details
 
@@ -49,15 +49,15 @@ A shell script translating args to `ccmux mcp` calls was considered but rejected
 
 ```
 tmux: new-session -d -s NAME [-c DIR] [CMD]
-ccmux: ccmux_create_session(name=NAME, working_dir=DIR)
-       + ccmux_send_input(session=NAME, input=CMD) if CMD provided
+fugue: fugue_create_session(name=NAME, working_dir=DIR)
+       + fugue_send_input(session=NAME, input=CMD) if CMD provided
 ```
 
 ### send-keys
 
 ```
 tmux: send-keys -t TARGET [-l] TEXT [TEXT...]
-ccmux: ccmux_send_input(target=TARGET, input=TEXT, literal=true if -l)
+fugue: fugue_send_input(target=TARGET, input=TEXT, literal=true if -l)
 ```
 
 Note: tmux `send-keys` without `-l` interprets special keys like `Enter`, `C-c`, etc.
@@ -66,14 +66,14 @@ Note: tmux `send-keys` without `-l` interprets special keys like `Enter`, `C-c`,
 
 ```
 tmux: kill-session -t NAME
-ccmux: ccmux_kill_session(name=NAME)
+fugue: fugue_kill_session(name=NAME)
 ```
 
 ### has-session
 
 ```
 tmux: has-session -t =NAME
-ccmux: ccmux_list_sessions() | filter by exact name match
+fugue: fugue_list_sessions() | filter by exact name match
        exit 0 if found, exit 1 if not
 ```
 
@@ -81,7 +81,7 @@ ccmux: ccmux_list_sessions() | filter by exact name match
 
 ```
 tmux: list-sessions [-F FORMAT]
-ccmux: ccmux_list_sessions() | format according to FORMAT string
+fugue: fugue_list_sessions() | format according to FORMAT string
 ```
 
 Default format: `#{session_name}: #{session_windows} windows (created #{session_created})`
@@ -90,7 +90,7 @@ Default format: `#{session_name}: #{session_windows} windows (created #{session_
 
 ```
 tmux: capture-pane -p -t TARGET [-S start] [-E end]
-ccmux: ccmux_read_pane(target=TARGET, start_line=start, end_line=end)
+fugue: fugue_read_pane(target=TARGET, start_line=start, end_line=end)
 ```
 
 ## Target Syntax Support
@@ -118,20 +118,20 @@ Common format variables to support:
 | tmux flag incompatibility | Medium | Medium | Start with Gas Town subset, expand as needed |
 | Output format mismatch | Medium | High | Extensive testing against real tmux output |
 | Exit code differences | Low | Medium | Document and match tmux exit codes |
-| Socket connection issues | Low | Low | Reuse proven ccmux-client connection code |
+| Socket connection issues | Low | Low | Reuse proven fugue-client connection code |
 
 ## Testing Strategy
 
 1. **Unit Tests**: Command parsing, format string handling
-2. **Integration Tests**: Compare ccmux-compat vs tmux output for each command
-3. **End-to-End**: Run Gas Town's tmux wrapper with ccmux-compat binary
+2. **Integration Tests**: Compare fugue-compat vs tmux output for each command
+3. **End-to-End**: Run Gas Town's tmux wrapper with fugue-compat binary
 
 ## Rollback Strategy
 
 If implementation causes issues:
 1. The crate is independent - simply don't deploy it
 2. Users can continue using tmux directly
-3. No impact on core ccmux functionality
+3. No impact on core fugue functionality
 
 ## Implementation Notes
 

@@ -11,7 +11,7 @@ The native watchdog timer (FEAT-104) sends periodic messages to a pane, but the 
 
 ## Current Implementation
 
-In `ccmux-server/src/watchdog.rs`, the timer task:
+In `fugue-server/src/watchdog.rs`, the timer task:
 
 1. Sends the message text via `handle.write_all(message.as_bytes())`
 2. Waits 50ms
@@ -34,9 +34,9 @@ Both BUG-054 and BUG-071 share the same underlying issue:
 
 ## Key Files
 
-- `ccmux-server/src/watchdog.rs` - Watchdog timer implementation (lines 141-174)
-- `ccmux-server/src/mcp/bridge/handlers.rs` - send_input handler (compare implementations)
-- `ccmux-server/src/pty/mod.rs` - PTY handle write methods
+- `fugue-server/src/watchdog.rs` - Watchdog timer implementation (lines 141-174)
+- `fugue-server/src/mcp/bridge/handlers.rs` - send_input handler (compare implementations)
+- `fugue-server/src/pty/mod.rs` - PTY handle write methods
 
 ## Investigation Steps
 

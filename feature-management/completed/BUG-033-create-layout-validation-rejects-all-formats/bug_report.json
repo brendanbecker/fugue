@@ -1,6 +1,6 @@
 {
   "id": "BUG-033",
-  "title": "ccmux_create_layout Validation Rejects All Layout Formats",
+  "title": "fugue_create_layout Validation Rejects All Layout Formats",
   "priority": "P1",
   "severity": "high",
   "component": "daemon",
@@ -10,5 +10,5 @@
   "reporter": "claude-qa-demo",
   "labels": ["mcp", "validation", "layout", "regression"],
   "related_bugs": ["BUG-028"],
-  "workaround": "Use ccmux_split_pane repeatedly"
+  "workaround": "Use fugue_split_pane repeatedly"
 }

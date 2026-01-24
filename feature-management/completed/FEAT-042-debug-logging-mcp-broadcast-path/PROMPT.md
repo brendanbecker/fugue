@@ -1,7 +1,7 @@
 # FEAT-042: Debug Logging for MCP Pane Broadcast Path
 
 **Priority**: P0
-**Component**: ccmux-server / ccmux-client
+**Component**: fugue-server / fugue-client
 **Type**: enhancement (diagnostic)
 **Estimated Effort**: medium
 **Business Value**: high
@@ -45,7 +45,7 @@ Any of these steps could be failing silently.
 
 All logging should use the `tracing` crate with appropriate levels (debug/info) and include relevant IDs (client_id, session_id, pane_id) for correlation.
 
-#### 1. Server - Handler (`ccmux-server/src/handlers/mcp_bridge.rs`)
+#### 1. Server - Handler (`fugue-server/src/handlers/mcp_bridge.rs`)
 
 ```rust
 // When handle_create_pane_with_options is called
@@ -65,7 +65,7 @@ tracing::info!(
 );
 ```
 
-#### 2. Server - Main Routing (`ccmux-server/src/main.rs`)
+#### 2. Server - Main Routing (`fugue-server/src/main.rs`)
 
 ```rust
 // When ResponseWithBroadcast is received from handler
@@ -90,7 +90,7 @@ tracing::info!(
 );
 ```
 
-#### 3. Server - Registry (`ccmux-server/src/registry.rs`)
+#### 3. Server - Registry (`fugue-server/src/registry.rs`)
 
 ```rust
 // Log all clients in session_clients[session_id]
@@ -124,7 +124,7 @@ tracing::debug!(
 );
 ```
 
-#### 4. Server - Client Handler (`ccmux-server/src/main.rs`)
+#### 4. Server - Client Handler (`fugue-server/src/main.rs`)
 
 ```rust
 // When broadcast is received on rx.recv()
@@ -142,7 +142,7 @@ tracing::debug!(
 );
 ```
 
-#### 5. Client - Connection (`ccmux-client/src/connection/client.rs`)
+#### 5. Client - Connection (`fugue-client/src/connection/client.rs`)
 
 ```rust
 // When message received from socket
@@ -158,7 +158,7 @@ tracing::debug!(
 );
 ```
 
-#### 6. Client - App (`ccmux-client/src/ui/app.rs`)
+#### 6. Client - App (`fugue-client/src/ui/app.rs`)
 
 ```rust
 // When poll_server_messages finds a message
@@ -215,11 +215,11 @@ tracing::info!(
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/handlers/mcp_bridge.rs` | Add tracing for pane creation handler |
-| `ccmux-server/src/main.rs` | Add tracing for ResponseWithBroadcast routing and client handler |
-| `ccmux-server/src/registry.rs` | Add tracing for broadcast_to_session_except and client tracking |
-| `ccmux-client/src/connection/client.rs` | Add tracing for message reception |
-| `ccmux-client/src/ui/app.rs` | Add tracing for poll_server_messages and PaneCreated handling |
+| `fugue-server/src/handlers/mcp_bridge.rs` | Add tracing for pane creation handler |
+| `fugue-server/src/main.rs` | Add tracing for ResponseWithBroadcast routing and client handler |
+| `fugue-server/src/registry.rs` | Add tracing for broadcast_to_session_except and client tracking |
+| `fugue-client/src/connection/client.rs` | Add tracing for message reception |
+| `fugue-client/src/ui/app.rs` | Add tracing for poll_server_messages and PaneCreated handling |
 
 ## Implementation Tasks
 
@@ -263,7 +263,7 @@ tracing::info!(
 - [ ] All logging points from requirements are implemented
 - [ ] Logs use `tracing` crate with appropriate levels (debug/info)
 - [ ] Logs include relevant IDs (client_id, session_id, pane_id)
-- [ ] Logging can be enabled via RUST_LOG=debug or RUST_LOG=ccmux=debug
+- [ ] Logging can be enabled via RUST_LOG=debug or RUST_LOG=fugue=debug
 - [ ] Running a live test with logging enabled shows complete message path
 - [ ] Or: logging reveals exactly where the message is lost
 
@@ -273,13 +273,13 @@ After implementation, run with debug logging enabled:
 
 ```bash
 # Full debug logging
-RUST_LOG=debug ccmux
+RUST_LOG=debug fugue
 
-# Just ccmux modules
-RUST_LOG=ccmux_server=debug,ccmux_client=debug ccmux
+# Just fugue modules
+RUST_LOG=fugue_server=debug,fugue_client=debug fugue
 
 # Focus on specific area
-RUST_LOG=ccmux_server::registry=debug ccmux
+RUST_LOG=fugue_server::registry=debug fugue
 ```
 
 Then trigger MCP pane creation and inspect logs for the message flow.

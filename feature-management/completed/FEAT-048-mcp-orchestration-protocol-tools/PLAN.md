@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-048
 
 **Work Item**: [FEAT-048: Expose orchestration protocol via MCP tools](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P2
 **Created**: 2026-01-10
 
@@ -13,7 +13,7 @@ Add MCP tools for the existing orchestration message types (StatusUpdate, TaskAs
 
 ### Approach: Layered MCP Surface
 
-1. **Core Tool**: `ccmux_send_orchestration` - full access to all message types and targets
+1. **Core Tool**: `fugue_send_orchestration` - full access to all message types and targets
 2. **Convenience Tools**: Simplified wrappers for common patterns with auto-fill
 3. **Subscription**: Polling-based initially, with potential for MCP notifications
 
@@ -29,8 +29,8 @@ Add MCP tools for the existing orchestration message types (StatusUpdate, TaskAs
 
 The MCP bridge needs to know which session/pane the calling agent is in. Options:
 
-1. **Environment variable**: Set `CCMUX_SESSION_ID` when spawning Claude
-2. **File-based**: Write session info to `$CLAUDE_CONFIG_DIR/.ccmux-session`
+1. **Environment variable**: Set `FUGUE_SESSION_ID` when spawning Claude
+2. **File-based**: Write session info to `$CLAUDE_CONFIG_DIR/.fugue-session`
 3. **Lookup by PID**: Map MCP client PID to pane
 
 Recommend: Environment variable approach (already used for `CLAUDE_CONFIG_DIR`)
@@ -39,28 +39,28 @@ Recommend: Environment variable approach (already used for `CLAUDE_CONFIG_DIR`)
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/mcp/tools.rs | Add new tools | Low |
-| ccmux-server/src/mcp/mod.rs | Register tools | Low |
-| ccmux-server/src/pty/spawn.rs | Set env vars | Low |
-| ccmux-protocol (reference only) | No changes | None |
+| fugue-server/src/mcp/tools.rs | Add new tools | Low |
+| fugue-server/src/mcp/mod.rs | Register tools | Low |
+| fugue-server/src/pty/spawn.rs | Set env vars | Low |
+| fugue-protocol (reference only) | No changes | None |
 
 ## Implementation Phases
 
 ### Phase 1: Core Infrastructure
 
-1. Add `CCMUX_SESSION_ID` environment variable to PTY spawn
-2. Implement `ccmux_send_orchestration` tool
+1. Add `FUGUE_SESSION_ID` environment variable to PTY spawn
+2. Implement `fugue_send_orchestration` tool
 3. Add basic integration test
 
 ### Phase 2: Convenience Tools
 
-1. Implement `ccmux_report_status`
-2. Implement `ccmux_request_help`
-3. Implement `ccmux_broadcast`
+1. Implement `fugue_report_status`
+2. Implement `fugue_request_help`
+3. Implement `fugue_broadcast`
 
 ### Phase 3: Message Subscription
 
-1. Add `ccmux_get_orchestration_messages` polling tool
+1. Add `fugue_get_orchestration_messages` polling tool
 2. Store received messages in per-session queue
 3. Consider notification mechanism for future
 

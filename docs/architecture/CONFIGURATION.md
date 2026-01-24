@@ -4,15 +4,15 @@
 
 ## Overview
 
-ccmux supports hot-reloading of configuration changes without restart. The system uses file watching with debouncing and lock-free atomic config swapping to ensure responsive UI while allowing runtime configuration changes.
+fugue supports hot-reloading of configuration changes without restart. The system uses file watching with debouncing and lock-free atomic config swapping to ensure responsive UI while allowing runtime configuration changes.
 
 ## Configuration Files
 
 ### File Locations
 
 ```
-~/.ccmux/config/
-├── ccmux.toml        # User configuration
+~/.fugue/config/
+├── fugue.toml        # User configuration
 └── themes/
     ├── default.toml  # Built-in theme
     └── custom.toml   # User themes
@@ -23,16 +23,16 @@ ccmux supports hot-reloading of configuration changes without restart. The syste
 Configuration is loaded in order (later overrides earlier):
 
 1. Built-in defaults (compiled in)
-2. `/etc/ccmux/ccmux.toml` (system-wide)
-3. `~/.ccmux/config/ccmux.toml` (user)
-4. `$CCMUX_CONFIG` (environment override)
+2. `/etc/fugue/fugue.toml` (system-wide)
+3. `~/.fugue/config/fugue.toml` (user)
+4. `$FUGUE_CONFIG` (environment override)
 
 ## Configuration Schema
 
 ### Full Configuration
 
 ```toml
-# ~/.ccmux/config/ccmux.toml
+# ~/.fugue/config/fugue.toml
 
 [general]
 # Default shell to spawn in new panes
@@ -137,7 +137,7 @@ screen_snapshot_lines = 500
 enabled = false
 
 # Socket path for MCP server
-socket_path = "~/.ccmux/mcp.sock"
+socket_path = "~/.fugue/mcp.sock"
 
 ### Agent Presets (FEAT-105)
 
@@ -280,7 +280,7 @@ impl ConfigWatcher {
         match event.kind {
             EventKind::Create(_) | EventKind::Modify(_) => {
                 event.paths.iter().any(|p| {
-                    p.file_name() == Some("ccmux.toml".as_ref())
+                    p.file_name() == Some("fugue.toml".as_ref())
                 })
             }
             _ => false,
@@ -316,8 +316,8 @@ impl ConfigWatcher {
 Editors use atomic saves (write temp file, rename):
 
 ```
-1. Editor writes: ccmux.toml.tmp
-2. Editor renames: ccmux.toml.tmp -> ccmux.toml
+1. Editor writes: fugue.toml.tmp
+2. Editor renames: fugue.toml.tmp -> fugue.toml
 ```
 
 If we watch the file directly:
@@ -503,7 +503,7 @@ ServerMessage::ConfigNotification {
 
 ## Default Configuration
 
-Built-in defaults ensure ccmux works without any config file:
+Built-in defaults ensure fugue works without any config file:
 
 ```rust
 impl Default for AppConfig {
@@ -541,7 +541,7 @@ impl Default for AppConfig {
             },
             mcp: McpConfig {
                 enabled: false,
-                socket_path: "~/.ccmux/mcp.sock".into(),
+                socket_path: "~/.fugue/mcp.sock".into(),
             },
         }
     }
@@ -563,16 +563,16 @@ impl Default for AppConfig {
 
 ```bash
 # Generate default config
-ccmux config init
+fugue config init
 
 # Validate config
-ccmux config check
+fugue config check
 
 # Show effective config
-ccmux config show
+fugue config show
 
 # Edit config in $EDITOR
-ccmux config edit
+fugue config edit
 ```
 
 ## Related Documents

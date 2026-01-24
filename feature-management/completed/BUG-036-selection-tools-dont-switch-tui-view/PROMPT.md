@@ -1,7 +1,7 @@
 # BUG-036: Selection Tools Don't Switch TUI View
 
 **Priority**: P0
-**Component**: ccmux-server (handlers/mcp_bridge.rs), ccmux-client (TUI)
+**Component**: fugue-server (handlers/mcp_bridge.rs), fugue-client (TUI)
 **Severity**: critical
 **Status**: new
 
@@ -18,15 +18,15 @@ All calls returned `{"status": "selected"}` or `{"status": "focused"}` but the T
 
 ## Steps to Reproduce
 
-1. Start ccmux with a session (session-0)
-2. From Claude, create a new session: `ccmux_create_session(name: "test-session")`
-3. Call `ccmux_select_session(session_id: "<new-session-id>")`
+1. Start fugue with a session (session-0)
+2. From Claude, create a new session: `fugue_create_session(name: "test-session")`
+3. Call `fugue_select_session(session_id: "<new-session-id>")`
 4. **Observe**: Tool returns `{status: "selected", session_id: "..."}`
 5. **Observe**: TUI still shows session-0, not test-session
 
 Same behavior with:
-- `ccmux_select_window` - returns success, TUI stays on current window
-- `ccmux_focus_pane` - returns success, focus doesn't visibly change
+- `fugue_select_window` - returns success, TUI stays on current window
+- `fugue_focus_pane` - returns success, focus doesn't visibly change
 
 ## Expected Behavior
 
@@ -48,12 +48,12 @@ Same for `select_window` and `focus_pane`.
 
 ```
 # These all returned success but TUI never switched:
-ccmux_select_session(session_id: "58816ea5-...") -> {status: "selected"}
-ccmux_select_session(session_id: "b7fc4a03-...") -> {status: "selected"}
-ccmux_select_session(session_id: "aa869bd1-...") -> {status: "selected"}
-ccmux_select_window(window_id: "e9da9327-...") -> {status: "selected"}
-ccmux_focus_pane(pane_id: "3821fc76-...") -> {status: "focused"}
-ccmux_focus_pane(pane_id: "e0c6c115-...") -> {status: "focused"}
+fugue_select_session(session_id: "58816ea5-...") -> {status: "selected"}
+fugue_select_session(session_id: "b7fc4a03-...") -> {status: "selected"}
+fugue_select_session(session_id: "aa869bd1-...") -> {status: "selected"}
+fugue_select_window(window_id: "e9da9327-...") -> {status: "selected"}
+fugue_focus_pane(pane_id: "3821fc76-...") -> {status: "focused"}
+fugue_focus_pane(pane_id: "e0c6c115-...") -> {status: "focused"}
 
 # User watching TUI: "I watched this session the whole time. Focus auto
 # swapped to the new pane when created. Never else."
@@ -67,7 +67,7 @@ ccmux_focus_pane(pane_id: "e0c6c115-...") -> {status: "focused"}
 
 ## Root Cause (CONFIRMED)
 
-**Location**: `ccmux-client/src/ui/app.rs` lines 1521-1548
+**Location**: `fugue-client/src/ui/app.rs` lines 1521-1548
 
 The TUI handlers for `SessionFocused`, `WindowFocused`, `PaneFocused` only update local state for items already in the currently attached session. They do NOT switch sessions when a different session is focused.
 
@@ -113,7 +113,7 @@ ServerMessage::SessionFocused { session_id } => {
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_select_session` causes TUI to switch to that session
-- [ ] `ccmux_select_window` causes TUI to switch to that window
-- [ ] `ccmux_focus_pane` causes TUI to visually focus that pane
+- [ ] `fugue_select_session` causes TUI to switch to that session
+- [ ] `fugue_select_window` causes TUI to switch to that window
+- [ ] `fugue_focus_pane` causes TUI to visually focus that pane
 - [ ] Changes happen immediately (not requiring user interaction)

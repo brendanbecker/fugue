@@ -1,6 +1,6 @@
 # Task Breakdown: FEAT-049
 
-**Work Item**: [FEAT-049: Add tmux-compatible CLI wrapper (ccmux-compat)](PROMPT.md)
+**Work Item**: [FEAT-049: Add tmux-compatible CLI wrapper (fugue-compat)](PROMPT.md)
 **Status**: Not Started
 **Last Updated**: 2026-01-10
 
@@ -9,13 +9,13 @@
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
 - [ ] Review Gas Town's tmux usage patterns (internal/tmux/tmux.go)
-- [ ] Review existing ccmux MCP tools
+- [ ] Review existing fugue MCP tools
 
 ## Crate Setup Tasks
 
-- [ ] Create ccmux-compat/ directory structure
+- [ ] Create fugue-compat/ directory structure
 - [ ] Create Cargo.toml with dependencies
-- [ ] Add ccmux-compat to workspace Cargo.toml
+- [ ] Add fugue-compat to workspace Cargo.toml
 - [ ] Create src/main.rs with basic structure
 - [ ] Verify crate builds
 
@@ -47,30 +47,30 @@
 
 - [ ] Create connection module
 - [ ] Implement Unix socket connection
-- [ ] Implement protocol codec (reuse from ccmux-protocol)
+- [ ] Implement protocol codec (reuse from fugue-protocol)
 - [ ] Handle connection errors with appropriate exit codes
-- [ ] Auto-start server if not running (like ccmux-client)
+- [ ] Auto-start server if not running (like fugue-client)
 
 ## Command Translation Tasks
 
 - [ ] Create translation module
 - [ ] Implement new-session translation
-  - [ ] Map to ccmux_create_session
-  - [ ] Handle initial command via ccmux_send_input
+  - [ ] Map to fugue_create_session
+  - [ ] Handle initial command via fugue_send_input
 - [ ] Implement send-keys translation
-  - [ ] Map to ccmux_send_input
+  - [ ] Map to fugue_send_input
   - [ ] Handle special keys (Enter, C-c, etc.)
   - [ ] Handle -l literal mode
 - [ ] Implement kill-session translation
-  - [ ] Map to ccmux_kill_session
+  - [ ] Map to fugue_kill_session
 - [ ] Implement has-session translation
-  - [ ] Map to ccmux_list_sessions + filter
+  - [ ] Map to fugue_list_sessions + filter
   - [ ] Return exit code 0/1
 - [ ] Implement list-sessions translation
-  - [ ] Map to ccmux_list_sessions
+  - [ ] Map to fugue_list_sessions
   - [ ] Apply format string
 - [ ] Implement capture-pane translation
-  - [ ] Map to ccmux_read_pane
+  - [ ] Map to fugue_read_pane
   - [ ] Handle line range options
 
 ## Output Formatting Tasks
@@ -100,12 +100,12 @@
 - [ ] Add unit tests for CLI parsing
 - [ ] Add unit tests for format string parsing
 - [ ] Add integration tests for each command
-- [ ] Create comparison test script (tmux vs ccmux-compat)
+- [ ] Create comparison test script (tmux vs fugue-compat)
 - [ ] Test with mock Gas Town usage patterns
 
 ## Documentation Tasks
 
-- [ ] Add README.md for ccmux-compat
+- [ ] Add README.md for fugue-compat
 - [ ] Document supported commands
 - [ ] Document known differences from tmux
 - [ ] Add migration guide

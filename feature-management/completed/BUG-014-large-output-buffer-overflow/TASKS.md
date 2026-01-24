@@ -8,13 +8,13 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Understand ccmux output data flow (PTY -> poller -> broadcast -> client -> screen)
+- [ ] Understand fugue output data flow (PTY -> poller -> broadcast -> client -> screen)
 
 ## Investigation Tasks
 
 ### Reproduce the Bug
 
-- [ ] Start ccmux session with Claude
+- [ ] Start fugue session with Claude
 - [ ] Generate large output (large diff, verbose tool output, etc.)
 - [ ] Confirm input becomes unresponsive
 - [ ] Confirm detach (Ctrl+B d) works

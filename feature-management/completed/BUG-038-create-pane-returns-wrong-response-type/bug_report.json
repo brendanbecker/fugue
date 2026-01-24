@@ -4,7 +4,7 @@
   "priority": "P1",
   "severity": "high",
   "status": "new",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "subcomponent": "handlers/mcp_bridge.rs",
   "created": "2026-01-11",
   "reporter": "claude-qa-demo",

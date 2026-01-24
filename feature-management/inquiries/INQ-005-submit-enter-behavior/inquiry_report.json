@@ -1,20 +1,20 @@
 {
   "inquiry_id": "INQ-005",
-  "title": "Submit/Enter Behavior in ccmux Input Tools",
+  "title": "Submit/Enter Behavior in fugue Input Tools",
   "phase": "research",
   "status": "new",
   "created_date": "2026-01-20",
   "updated_date": "2026-01-20",
   "research_agents": 2,
-  "tags": ["ccmux", "mcp", "input", "watchdog", "submit"],
+  "tags": ["fugue", "mcp", "input", "watchdog", "submit"],
   "constraints": {
     "time_budget": "1 session",
-    "scope": "ccmux input mechanisms only"
+    "scope": "fugue input mechanisms only"
   },
   "research_areas": [
-    "ccmux_send_input submit parameter behavior",
+    "fugue_send_input submit parameter behavior",
     "watchdog timer carriage return mechanism"
   ],
   "spawned_features": [],
-  "description": "Investigate the reliability of Enter/submit behavior in ccmux input mechanisms. Two concerns: (1) ccmux_send_input with submit:true may not reliably send Enter, (2) watchdog timer's 50ms-delayed carriage return may not be working after daemon rebuild."
+  "description": "Investigate the reliability of Enter/submit behavior in fugue input mechanisms. Two concerns: (1) fugue_send_input with submit:true may not reliably send Enter, (2) watchdog timer's 50ms-delayed carriage return may not be working after daemon rebuild."
 }

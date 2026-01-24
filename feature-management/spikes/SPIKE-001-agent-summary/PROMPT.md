@@ -2,18 +2,18 @@
 
 **Type**: spike/investigation
 **Priority**: P2
-**Component**: ccmux-server/mcp
+**Component**: fugue-server/mcp
 **Timeboxed**: 2-4 hours
 **Business Value**: high (if feasible)
 
 ## Overview
 
-Investigate the feasibility of a `ccmux_get_agent_summary` MCP tool that returns structured data about agent state instead of raw pane output. This would dramatically reduce context consumption for orchestration.
+Investigate the feasibility of a `fugue_get_agent_summary` MCP tool that returns structured data about agent state instead of raw pane output. This would dramatically reduce context consumption for orchestration.
 
 ## Motivation
 
 Currently, orchestrators must:
-1. Call `ccmux_read_pane` to get raw terminal output (~500-2000 tokens)
+1. Call `fugue_read_pane` to get raw terminal output (~500-2000 tokens)
 2. Parse that output to extract meaningful information
 3. Much of the content is formatting noise, not semantics
 
@@ -88,7 +88,7 @@ Investigate:
 
 ### Q5: Existing Infrastructure
 
-**Question**: What existing ccmux infrastructure can we leverage?
+**Question**: What existing fugue infrastructure can we leverage?
 
 Review:
 - [ ] `claude_state` detection in handlers.rs
@@ -130,9 +130,9 @@ If feasibility is medium or higher, draft the tool schema.
 
 ### Primary Files
 
-- `ccmux-server/src/mcp/bridge/handlers.rs` - MCP handlers, claude_state detection
-- `ccmux-server/src/pty/` - PTY handling, output buffers
-- `ccmux-server/src/mcp/tools.rs` - Existing tool schemas
+- `fugue-server/src/mcp/bridge/handlers.rs` - MCP handlers, claude_state detection
+- `fugue-server/src/pty/` - PTY handling, output buffers
+- `fugue-server/src/mcp/tools.rs` - Existing tool schemas
 
 ### Secondary Files
 

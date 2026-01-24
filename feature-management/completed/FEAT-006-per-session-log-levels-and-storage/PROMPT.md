@@ -8,7 +8,7 @@
 
 ## Overview
 
-Per-session logging with configurable levels stored in `.ccmux/logs/{session_id}/`. This enables fine-grained control over what gets logged per session without affecting global logging configuration.
+Per-session logging with configurable levels stored in `.fugue/logs/{session_id}/`. This enables fine-grained control over what gets logged per session without affecting global logging configuration.
 
 ## Log Levels
 
@@ -22,15 +22,15 @@ Per-session logging with configurable levels stored in `.ccmux/logs/{session_id}
 ## Current State
 
 - Logging framework exists (LogOutput enum, LogConfig)
-- Server logs to `~/.ccmux/logs/ccmux.log` (single file)
-- Supports filter strings ("info", "debug", "ccmux=debug,tokio=warn")
-- CCMUX_LOG env var override
+- Server logs to `~/.fugue/logs/fugue.log` (single file)
+- Supports filter strings ("info", "debug", "fugue=debug,tokio=warn")
+- FUGUE_LOG env var override
 - No per-session logging, no rotation, no runtime changes
 
 ## Requirements
 
 ### Per-Session Log Directories
-- Create `.ccmux/logs/{session_id}/` for each session
+- Create `.fugue/logs/{session_id}/` for each session
 - Session ID should be a unique identifier (UUID or timestamp-based)
 - Directory structure supports multiple log files per session
 
@@ -66,14 +66,14 @@ Per-session logging with configurable levels stored in `.ccmux/logs/{session_id}
 
 ## Affected Files
 
-- `ccmux-utils/src/logging.rs` - Core logging infrastructure
-- `ccmux-server/src/config/schema.rs` - Log level configuration schema
-- `ccmux-server/src/session/manager.rs` - Per-session log setup
+- `fugue-utils/src/logging.rs` - Core logging infrastructure
+- `fugue-server/src/config/schema.rs` - Log level configuration schema
+- `fugue-server/src/session/manager.rs` - Per-session log setup
 
 ## Implementation Tasks
 
 ### Section 1: Design
-- [ ] Review current logging implementation in ccmux-utils
+- [ ] Review current logging implementation in fugue-utils
 - [ ] Design per-session log directory structure
 - [ ] Define structured log format schema
 - [ ] Design log rotation strategy
@@ -90,7 +90,7 @@ Per-session logging with configurable levels stored in `.ccmux/logs/{session_id}
 - [ ] Add log level to session config schema
 - [ ] Implement default log level in global config
 - [ ] Add runtime log level change API
-- [ ] Support CCMUX_SESSION_LOG env override
+- [ ] Support FUGUE_SESSION_LOG env override
 
 ### Section 4: Log Management
 - [ ] Implement log rotation by size

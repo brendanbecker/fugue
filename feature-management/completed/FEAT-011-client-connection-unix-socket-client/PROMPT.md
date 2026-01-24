@@ -1,7 +1,7 @@
 # FEAT-011: Client Connection - Unix Socket Client
 
 **Priority**: P1
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
@@ -9,19 +9,19 @@
 
 ## Overview
 
-Unix socket client connecting to ccmux-server, async message framing, connection state management, and reconnection logic.
+Unix socket client connecting to fugue-server, async message framing, connection state management, and reconnection logic.
 
 ## Requirements
 
 ### Unix Socket Client Using Tokio
-- Connect to ccmux-server via Unix domain socket
+- Connect to fugue-server via Unix domain socket
 - Use tokio's async runtime for non-blocking I/O
 - Support custom socket paths for testing and configuration
 - Check socket existence before connection attempts
 
 ### Async Message Framing with Protocol Codec
 - Use tokio-util's Framed transport with ClientCodec
-- Handle message serialization/deserialization via ccmux-protocol
+- Handle message serialization/deserialization via fugue-protocol
 - Support bidirectional message flow (ClientMessage/ServerMessage)
 - Maintain message boundaries in the stream
 
@@ -53,7 +53,7 @@ Unix socket client connecting to ccmux-server, async message framing, connection
 
 This feature is **completed**. The implementation includes:
 
-### Connection Client (`ccmux-client/src/connection/client.rs`)
+### Connection Client (`fugue-client/src/connection/client.rs`)
 - `ConnectionState` enum with all four states
 - `Connection` struct with socket path, state, channels, and task handle
 - `connect()` async method with state transitions
@@ -63,7 +63,7 @@ This feature is **completed**. The implementation includes:
 - Background `connection_task` for socket I/O
 - Comprehensive test coverage
 
-### Message Handler (`ccmux-client/src/connection/handler.rs`)
+### Message Handler (`fugue-client/src/connection/handler.rs`)
 - `MessageSender` clonable wrapper for outgoing channel
 - `MessageHandler` trait for incoming message handling
 - `CallbackHandler` implementation for simple callback-based handling
@@ -72,8 +72,8 @@ This feature is **completed**. The implementation includes:
 
 ## Affected Files
 
-- `ccmux-client/src/connection/client.rs` - Core connection implementation
-- `ccmux-client/src/connection/handler.rs` - Message handler trait and utilities
+- `fugue-client/src/connection/client.rs` - Core connection implementation
+- `fugue-client/src/connection/handler.rs` - Message handler trait and utilities
 
 ## Implementation Tasks
 

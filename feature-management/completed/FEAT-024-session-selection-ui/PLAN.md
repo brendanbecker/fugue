@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-024
 
 **Work Item**: [FEAT-024: Session Selection UI](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P1
 **Created**: 2026-01-09
 
@@ -58,7 +58,7 @@ Recommendation: Keep current metadata for now; enhancements can be separate feat
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-client/src/ui/app.rs | Enhancement | Low |
+| fugue-client/src/ui/app.rs | Enhancement | Low |
 
 ## Dependencies
 

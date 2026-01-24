@@ -21,7 +21,7 @@
 
 ## Implementation Tasks
 
-### Isolation Module (ccmux-server/src/claude/isolation.rs)
+### Isolation Module (fugue-server/src/claude/isolation.rs)
 
 - [ ] Create claude module directory structure
 - [ ] Implement `IsolationDir` struct
@@ -32,14 +32,14 @@
 - [ ] Set proper permissions (700) on directories
 - [ ] Add error types for isolation operations
 
-### PTY Configuration (ccmux-server/src/pty/config.rs)
+### PTY Configuration (fugue-server/src/pty/config.rs)
 
 - [ ] Add `isolation_dir: Option<PathBuf>` to PtyConfig
 - [ ] Add CLAUDE_CONFIG_DIR to environment in `build_env()` method
 - [ ] Update PtyConfig builder/constructor
 - [ ] Document new configuration field
 
-### Pane Integration (ccmux-server/src/session/pane.rs)
+### Pane Integration (fugue-server/src/session/pane.rs)
 
 - [ ] Import isolation module
 - [ ] Call `create_isolation_dir()` in pane creation

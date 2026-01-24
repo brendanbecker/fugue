@@ -1,6 +1,6 @@
 # Task Breakdown: FEAT-041
 
-**Work Item**: [FEAT-041: MCP Explicit Session and Window Targeting for ccmux_create_pane](PROMPT.md)
+**Work Item**: [FEAT-041: MCP Explicit Session and Window Targeting for fugue_create_pane](PROMPT.md)
 **Status**: Not Started
 **Last Updated**: 2026-01-10
 
@@ -8,14 +8,14 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Identify current ccmux_create_pane implementation in ccmux-server/src/mcp/
+- [ ] Identify current fugue_create_pane implementation in fugue-server/src/mcp/
 - [ ] Understand SessionFilter and WindowFilter types in handler
 - [ ] Review how handle_create_pane_with_options uses filters
 
 ## Phase 1: Schema Update (tools.rs)
 
 ### 1.1 Locate Tool Definition
-- [ ] Find ccmux_create_pane tool definition in ccmux-server/src/mcp/tools.rs
+- [ ] Find fugue_create_pane tool definition in fugue-server/src/mcp/tools.rs
 - [ ] Understand current input_schema structure
 - [ ] Identify where to add new properties
 
@@ -38,7 +38,7 @@
 ## Phase 2: Parsing Update (server.rs)
 
 ### 2.1 Locate ToolParams Struct
-- [ ] Find ToolParams::CreatePane struct in ccmux-server/src/mcp/server.rs
+- [ ] Find ToolParams::CreatePane struct in fugue-server/src/mcp/server.rs
 - [ ] Or find equivalent argument parsing structure
 
 ### 2.2 Add Session Field
@@ -58,7 +58,7 @@
 - [ ] Parse as UUID first, fall back to name matching
 
 ### 3.2 Update tool_create_pane Function
-- [ ] Locate tool_create_pane() in ccmux-server/src/mcp/bridge.rs
+- [ ] Locate tool_create_pane() in fugue-server/src/mcp/bridge.rs
 - [ ] Add session and window parameters to function signature (or args struct)
 - [ ] Call resolve_session_filter with session argument
 - [ ] Call resolve_window_filter with window argument
@@ -122,7 +122,7 @@
 
 ### 6.4 Regression Tests
 - [ ] Run existing MCP test suite
-- [ ] Verify existing ccmux_create_pane calls still work
+- [ ] Verify existing fugue_create_pane calls still work
 - [ ] Check that callers not using new params see no change
 
 ## Phase 7: Documentation

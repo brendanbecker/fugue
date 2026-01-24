@@ -112,8 +112,8 @@
 ## Phase 4: Integration and Cleanup
 
 ### 4.1 Verify All Tests Pass
-- [ ] Run `cargo test -p ccmux-protocol`
-- [ ] Run `cargo test -p ccmux-server`
+- [ ] Run `cargo test -p fugue-protocol`
+- [ ] Run `cargo test -p fugue-server`
 - [ ] Fix any compilation errors in dependent crates
 
 ### 4.2 Update Dependent Code (if any)

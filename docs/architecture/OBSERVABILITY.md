@@ -1,6 +1,6 @@
-# ccmux Observability
+# fugue Observability
 
-ccmux is an interactive system with a correctness model (snapshot + events) and a persistence model (checkpoint + WAL). Observability focuses on:
+fugue is an interactive system with a correctness model (snapshot + events) and a persistence model (checkpoint + WAL). Observability focuses on:
 
 - correctness signals (desync + resync)
 - latency in interactive command paths
@@ -9,7 +9,7 @@ ccmux is an interactive system with a correctness model (snapshot + events) and 
 
 ## Logging
 
-ccmux uses structured logging (tracing) and supports a human-readable format for development.
+fugue uses structured logging (tracing) and supports a human-readable format for development.
 
 ### Recommended structured fields
 - `client_id`
@@ -34,28 +34,28 @@ ccmux uses structured logging (tracing) and supports a human-readable format for
 ## Metrics (first tranche)
 
 ### Correctness / Convergence
-- `ccmux_client_resync_total{reason, mode}`  
+- `fugue_client_resync_total{reason, mode}`  
   - `mode`: replay|snapshot
-- `ccmux_client_desync_total{reason}`
-- `ccmux_events_replay_requested_total`
-- `ccmux_events_replay_failed_total{reason}` (evicted, restart, unsupported)
+- `fugue_client_desync_total{reason}`
+- `fugue_events_replay_requested_total`
+- `fugue_events_replay_failed_total{reason}` (evicted, restart, unsupported)
 
 ### Latency
-- `ccmux_command_latency_ms{origin}`  
+- `fugue_command_latency_ms{origin}`  
   - `origin`: tui|mcp|internal
-- `ccmux_snapshot_encode_ms`
-- `ccmux_event_dispatch_ms`
+- `fugue_snapshot_encode_ms`
+- `fugue_event_dispatch_ms`
 
 ### Persistence
-- `ccmux_wal_append_ms`
-- `ccmux_checkpoint_duration_ms`
-- `ccmux_wal_bytes_written_total`
-- `ccmux_checkpoint_bytes_written_total`
+- `fugue_wal_append_ms`
+- `fugue_checkpoint_duration_ms`
+- `fugue_wal_bytes_written_total`
+- `fugue_checkpoint_bytes_written_total`
 
 ### Claude Awareness
-- `ccmux_claude_state_transitions_total{source}`
-- `ccmux_claude_state_duration_ms{state, source}`
-- `ccmux_claude_state_flap_total` (rapid toggling heuristic)
+- `fugue_claude_state_transitions_total{source}`
+- `fugue_claude_state_duration_ms{state, source}`
+- `fugue_claude_state_flap_total` (rapid toggling heuristic)
 
 ## Tracing Spans
 
@@ -70,7 +70,7 @@ Recommended span boundaries:
 
 ## Debug Endpoints / Commands (optional)
 
-- `ccmux_get_status` should report:
+- `fugue_get_status` should report:
   - server `commit_seq`
   - number of connected clients
   - replay buffer range (min_seq..max_seq)

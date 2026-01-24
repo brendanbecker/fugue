@@ -1,4 +1,4 @@
-# BUG-023: ccmux_create_session MCP tool doesn't spawn shell in default pane
+# BUG-023: fugue_create_session MCP tool doesn't spawn shell in default pane
 
 **Priority**: P1
 **Component**: mcp
@@ -7,12 +7,12 @@
 
 ## Problem Statement
 
-The `ccmux_create_session` MCP tool creates a session with a window and pane, but the pane has no running process. The PTY exists but no shell is spawned, leaving the pane completely non-functional.
+The `fugue_create_session` MCP tool creates a session with a window and pane, but the pane has no running process. The PTY exists but no shell is spawned, leaving the pane completely non-functional.
 
 ## Evidence
 
-- **Reproduction**: Call `ccmux_create_session` via MCP, attach to the session - pane is blank and unresponsive
-- **Comparison**: `ccmux_create_pane` with explicit `command` parameter works correctly
+- **Reproduction**: Call `fugue_create_session` via MCP, attach to the session - pane is blank and unresponsive
+- **Comparison**: `fugue_create_pane` with explicit `command` parameter works correctly
 
 ```json
 // This creates a broken session:
@@ -24,15 +24,15 @@ The `ccmux_create_session` MCP tool creates a session with a window and pane, bu
 
 ## Steps to Reproduce
 
-1. Call `ccmux_create_session` via MCP with just a name
+1. Call `fugue_create_session` via MCP with just a name
 2. Attach to the session via session picker (`Ctrl+b s`)
 3. Observe blank pane - no shell prompt
-4. `ccmux_send_input` has no effect
-5. `ccmux_read_pane` returns empty
+4. `fugue_send_input` has no effect
+5. `fugue_read_pane` returns empty
 
 ## Expected Behavior
 
-`ccmux_create_session` should:
+`fugue_create_session` should:
 1. Accept an optional `command` parameter to spawn in the default pane
 2. If no command specified, spawn the user's default shell (`$SHELL` or `/bin/sh`)
 
@@ -42,7 +42,7 @@ Session/window/pane structure is created but no process is spawned in the defaul
 
 ## Root Cause
 
-The MCP `ccmux_create_session` handler creates the session structure but doesn't spawn a process in the initial pane. Compare with `ccmux_create_pane` which correctly handles the `command` parameter.
+The MCP `fugue_create_session` handler creates the session structure but doesn't spawn a process in the initial pane. Compare with `fugue_create_pane` which correctly handles the `command` parameter.
 
 ## Implementation Tasks
 
@@ -52,7 +52,7 @@ The MCP `ccmux_create_session` handler creates the session structure but doesn't
 - [ ] Document affected code paths in MCP server
 
 ### Section 2: Fix Implementation
-- [ ] Add optional `command` parameter to `ccmux_create_session` schema
+- [ ] Add optional `command` parameter to `fugue_create_session` schema
 - [ ] Update handler to spawn command (or default shell) in initial pane
 - [ ] Use `$SHELL` env var with fallback to `/bin/sh`
 
@@ -67,7 +67,7 @@ The MCP `ccmux_create_session` handler creates the session structure but doesn't
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_create_session` spawns a working shell by default
+- [ ] `fugue_create_session` spawns a working shell by default
 - [ ] Optional `command` parameter allows custom process
 - [ ] Pane is immediately usable after session creation
 - [ ] No regression in existing session creation flows
@@ -81,7 +81,7 @@ The MCP `ccmux_create_session` handler creates the session structure but doesn't
 **Fix Applied** (2026-01-10):
 
 ### 1. Added `command` parameter to protocol message
-**File**: `ccmux-protocol/src/messages.rs`
+**File**: `fugue-protocol/src/messages.rs`
 ```rust
 CreateSessionWithOptions {
     name: Option<String>,
@@ -90,13 +90,13 @@ CreateSessionWithOptions {
 ```
 
 ### 2. Added `command` to MCP tool schema
-**File**: `ccmux-server/src/mcp/tools.rs`
+**File**: `fugue-server/src/mcp/tools.rs`
 
 ### 3. Updated MCP bridge dispatch
-**File**: `ccmux-server/src/mcp/bridge.rs`
+**File**: `fugue-server/src/mcp/bridge.rs`
 
 ### 4. Fixed handler to start output poller
-**File**: `ccmux-server/src/handlers/mcp_bridge.rs`
+**File**: `fugue-server/src/handlers/mcp_bridge.rs`
 - Now calls `PtyOutputPoller::spawn_with_sideband()` after spawning PTY
 - Uses command parameter with fallback to `$SHELL` or `/bin/sh`
 
@@ -107,6 +107,6 @@ Same issue - wasn't starting output poller. Fixed with same pattern.
 
 ## Notes
 
-- ~~Workaround: After creating session, call `ccmux_create_pane` with a command, then close the empty pane~~
+- ~~Workaround: After creating session, call `fugue_create_pane` with a command, then close the empty pane~~
 - ~~Priority is P1 because this breaks the primary MCP workflow for session management~~
 - **Requires server restart** to pick up changes

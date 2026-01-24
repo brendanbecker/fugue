@@ -5,7 +5,7 @@ Accepted
 
 ## Context
 
-ccmux uses a client-server architecture with a long-running daemon (server) and one or more UI clients (TUI) and automation clients (MCP bridge). Clients may disconnect/reconnect at any time (detach/attach), and the system must remain correct under:
+fugue uses a client-server architecture with a long-running daemon (server) and one or more UI clients (TUI) and automation clients (MCP bridge). Clients may disconnect/reconnect at any time (detach/attach), and the system must remain correct under:
 
 - client reconnects
 - server restarts and recovery from persisted state

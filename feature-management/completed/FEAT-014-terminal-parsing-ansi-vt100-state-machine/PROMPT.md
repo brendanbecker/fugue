@@ -1,7 +1,7 @@
 # FEAT-014: Terminal Parsing - ANSI/VT100 State Machine
 
 **Priority**: P1
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
@@ -23,8 +23,8 @@ ANSI/VT100 terminal state parsing using vt100 crate, screen buffer management, a
 
 ## Affected Files
 
-- `ccmux-server/src/pty/parser.rs` (currently a stub)
-- `ccmux-server/src/pty/buffer.rs`
+- `fugue-server/src/pty/parser.rs` (currently a stub)
+- `fugue-server/src/pty/buffer.rs`
 
 ## Implementation Tasks
 

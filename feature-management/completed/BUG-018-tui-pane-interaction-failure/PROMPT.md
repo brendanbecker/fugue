@@ -6,7 +6,7 @@
 
 ## Problem Summary
 
-In the ccmux TUI, the user cannot see the text input bar and cannot interact with a pane that visually shows Claude Code output.
+In the fugue TUI, the user cannot see the text input bar and cannot interact with a pane that visually shows Claude Code output.
 
 ## Symptoms Observed
 
@@ -64,9 +64,9 @@ When querying panes via MCP:
 
 ## Files to Investigate
 
-- `ccmux-client/src/ui/app.rs` - Focus handling, layout
-- `ccmux-client/src/ui/pane_view.rs` - Pane rendering
-- `ccmux-server/src/handlers/` - Input routing
+- `fugue-client/src/ui/app.rs` - Focus handling, layout
+- `fugue-client/src/ui/pane_view.rs` - Pane rendering
+- `fugue-server/src/handlers/` - Input routing
 
 ## Resolution
 

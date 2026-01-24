@@ -9,7 +9,7 @@ Why does the MCP bridge return unexpected/mismatched responses, and what archite
 ### Current State
 
 The MCP bridge uses a message-passing architecture between:
-- Claude Code (MCP client) → MCP bridge → ccmux daemon
+- Claude Code (MCP client) → MCP bridge → fugue daemon
 
 BUG-064 and BUG-065 were filed and "fixed" to address response mixing:
 - BUG-064: Added `drain_pending_messages()` after timeout
@@ -26,11 +26,11 @@ MCP error -32603: Unexpected response: SessionList { sessions: [...] }
 MCP error -32603: Unexpected response: PaneContent { pane_id: ..., content: ... }
 ```
 
-When calling `ccmux_kill_session`, the bridge receives `PaneResized`, `SessionList`, or `PaneContent` messages instead of the expected `SessionKilled` response.
+When calling `fugue_kill_session`, the bridge receives `PaneResized`, `SessionList`, or `PaneContent` messages instead of the expected `SessionKilled` response.
 
 **Symptom 2: Session name mismatch**
 ```
-Called: ccmux_kill_session(session="midwestmtg-orchestrator")
+Called: fugue_kill_session(session="midwestmtg-orchestrator")
 Result: { session_name: "midwestmtg-claude-worker", success: true }
 ```
 
@@ -79,12 +79,12 @@ Running multiple MCP calls in parallel (even with the request_lock) causes respo
 ## Observed Evidence
 
 **Session 18 Log:**
-1. Called `ccmux_list_sessions` - worked
-2. Called `ccmux_list_panes` - got `PaneResized` error
-3. Retried `ccmux_list_panes` - worked
-4. Called `ccmux_read_pane` - got `AllPanesList` error
-5. Retried `ccmux_read_pane` - worked
-6. Called 3x `ccmux_kill_session` in parallel - all got unexpected responses
+1. Called `fugue_list_sessions` - worked
+2. Called `fugue_list_panes` - got `PaneResized` error
+3. Retried `fugue_list_panes` - worked
+4. Called `fugue_read_pane` - got `AllPanesList` error
+5. Retried `fugue_read_pane` - worked
+6. Called 3x `fugue_kill_session` in parallel - all got unexpected responses
 7. Retried 3x sequentially - first got `PaneContent`, second got `PaneResized`, third got `SessionList`
 8. Retried one at a time - worked but killed wrong session first two times
 

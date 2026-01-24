@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-025
 
 **Work Item**: [FEAT-025: Pane Output Rendering](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P0
 **Created**: 2026-01-09
 
@@ -15,14 +15,14 @@ Wire ServerMessage::Output data to pane rendering in the client UI. This connect
 
 There are two "pane" types that need to be reconciled:
 
-1. **`PaneInfo`** (from `ccmux-protocol`) - Lightweight struct with metadata:
+1. **`PaneInfo`** (from `fugue-protocol`) - Lightweight struct with metadata:
    - `id: Uuid`
    - `window_id: Uuid`
    - `state: PaneState`
    - `title: Option<String>`
    - `cwd: Option<String>`
 
-2. **`Pane`** (from `ccmux-client/src/ui/pane.rs`) - Full UI pane with terminal:
+2. **`Pane`** (from `fugue-client/src/ui/pane.rs`) - Full UI pane with terminal:
    - `id: Uuid`
    - `parser: Parser` (VT100 terminal emulation)
    - `title, cwd, focus_state, pane_state`
@@ -78,9 +78,9 @@ PseudoTerminal::render() -> Screen to Buffer
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-client/src/ui/app.rs | Modify - add PaneManager, wire output | Medium |
-| ccmux-client/src/ui/pane.rs | None - already complete | Low |
-| ccmux-client/src/ui/layout.rs | None - already complete | Low |
+| fugue-client/src/ui/app.rs | Modify - add PaneManager, wire output | Medium |
+| fugue-client/src/ui/pane.rs | None - already complete | Low |
+| fugue-client/src/ui/layout.rs | None - already complete | Low |
 
 ## Dependencies
 

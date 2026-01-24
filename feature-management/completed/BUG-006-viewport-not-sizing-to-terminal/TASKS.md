@@ -14,7 +14,7 @@
 
 ### Phase 1: Fix UI Pane Sizing
 
-- [ ] Locate `ServerMessage::Attached` handler in `ccmux-client/src/ui/app.rs`
+- [ ] Locate `ServerMessage::Attached` handler in `fugue-client/src/ui/app.rs`
 - [ ] Add terminal size calculation before pane creation loop
   ```rust
   let (term_cols, term_rows) = self.terminal_size;

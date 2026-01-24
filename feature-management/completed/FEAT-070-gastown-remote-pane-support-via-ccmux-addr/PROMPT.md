@@ -1,4 +1,4 @@
-# FEAT-070: gastown remote pane support via CCMUX_ADDR
+# FEAT-070: gastown remote pane support via FUGUE_ADDR
 
 **Priority**: P2
 **Component**: external (gastown fork)
@@ -8,11 +8,11 @@
 
 ## Overview
 
-Extend the gastown multi-agent system to support remote pane execution via ccmux TCP connections. This enables hybrid orchestration where the Mayor runs locally (laptop) while polecats/agents execute remotely (gaming PC), leveraging ccmux remote peering for compute offload and token distribution.
+Extend the gastown multi-agent system to support remote pane execution via fugue TCP connections. This enables hybrid orchestration where the Mayor runs locally (laptop) while polecats/agents execute remotely (gaming PC), leveraging fugue remote peering for compute offload and token distribution.
 
 ## Problem Statement
 
-Currently, gastown agents (Mayor, polecats, convoys) all run on the same machine as ccmux. With ccmux remote peering support (FEAT-066, FEAT-067, FEAT-068), gastown needs integration to spawn remote panes. This enables:
+Currently, gastown agents (Mayor, polecats, convoys) all run on the same machine as fugue. With fugue remote peering support (FEAT-066, FEAT-067, FEAT-068), gastown needs integration to spawn remote panes. This enables:
 
 - **Mayor orchestrator on low-latency local machine (laptop)**: Quick response times for coordination
 - **Heavy compute agents on remote machine (gaming PC)**: Leverage more powerful hardware
@@ -20,10 +20,10 @@ Currently, gastown agents (Mayor, polecats, convoys) all run on the same machine
 
 ## Requested Feature
 
-Add support for the `GASTOWN_CCMUX_ADDR` environment variable to control where gastown agents spawn their panes:
+Add support for the `GASTOWN_FUGUE_ADDR` environment variable to control where gastown agents spawn their panes:
 
-- **GASTOWN_CCMUX_ADDR environment variable** for remote addressing
-- Update spawn/attach logic to use remote ccmux when configured
+- **GASTOWN_FUGUE_ADDR environment variable** for remote addressing
+- Update spawn/attach logic to use remote fugue when configured
 - Support `tcp://host:port` and `unix://path` URL schemes
 - Maintain local execution as default (backward compatible)
 - Document remote workflow setup
@@ -39,15 +39,15 @@ Add support for the `GASTOWN_CCMUX_ADDR` environment variable to control where g
 ## Implementation Tasks
 
 ### Section 1: Environment Variable Support
-- [ ] Add GASTOWN_CCMUX_ADDR configuration
+- [ ] Add GASTOWN_FUGUE_ADDR configuration
 - [ ] Parse and validate connection URLs
 - [ ] Support tcp:// and unix:// schemes
 - [ ] Default to local Unix socket if unset
 - [ ] Add URL validation and error handling
 
 ### Section 2: Spawn Logic Updates
-- [ ] Update agent spawn commands to use CCMUX_ADDR
-- [ ] Pass --addr flag to ccmux-client when remote
+- [ ] Update agent spawn commands to use FUGUE_ADDR
+- [ ] Pass --addr flag to fugue-client when remote
 - [ ] Update preset/formula configuration
 - [ ] Maintain backward compatibility with existing workflows
 - [ ] Test local execution (unchanged behavior)
@@ -72,10 +72,10 @@ Add support for the `GASTOWN_CCMUX_ADDR` environment variable to control where g
 - [ ] Test Mayor local + polecat remote workflow
 - [ ] Validate state sync across hosts
 - [ ] Test disconnect recovery scenarios
-- [ ] Verify ccmux-client TCP connection handling
+- [ ] Verify fugue-client TCP connection handling
 
 ### Section 6: Documentation
-- [ ] Document GASTOWN_CCMUX_ADDR usage
+- [ ] Document GASTOWN_FUGUE_ADDR usage
 - [ ] Provide setup guide for remote workflow
 - [ ] Document SSH tunnel setup (reference FEAT-068)
 - [ ] Add troubleshooting guide
@@ -84,7 +84,7 @@ Add support for the `GASTOWN_CCMUX_ADDR` environment variable to control where g
 
 ## Acceptance Criteria
 
-- [ ] GASTOWN_CCMUX_ADDR controls remote pane spawning
+- [ ] GASTOWN_FUGUE_ADDR controls remote pane spawning
 - [ ] Mayor can run locally while polecats run remotely
 - [ ] Remote panes spawn correctly via TCP connection
 - [ ] State sync works across local/remote hosts
@@ -95,7 +95,7 @@ Add support for the `GASTOWN_CCMUX_ADDR` environment variable to control where g
 
 ## Dependencies
 
-This feature depends on ccmux remote peering support:
+This feature depends on fugue remote peering support:
 - **FEAT-066**: TCP listener support in daemon (Phase 1)
 - **FEAT-067**: Client TCP connection support (Phase 2)
 - **FEAT-068**: SSH tunnel integration and documentation (Phase 3)
@@ -104,14 +104,14 @@ This feature depends on ccmux remote peering support:
 
 ```bash
 # On remote gaming PC:
-ccmux-server --listen-tcp 127.0.0.1:9999
+fugue-server --listen-tcp 127.0.0.1:9999
 
 # On local laptop:
 # Create SSH tunnel to remote daemon
 ssh -L 9999:localhost:9999 gaming-pc &
 
-# Configure gastown to use remote ccmux
-export GASTOWN_CCMUX_ADDR=tcp://localhost:9999
+# Configure gastown to use remote fugue
+export GASTOWN_FUGUE_ADDR=tcp://localhost:9999
 
 # Start Mayor locally (spawns polecats remotely)
 gt mayor attach
@@ -134,8 +134,8 @@ gt mayor attach
 
 ## Notes
 
-- Design is based on gastown-ccmux-remote-support.md specification
-- Uses GASTOWN_CCMUX_ADDR env var to transparently route ccmux-client calls to remote daemon
-- SSH tunnel provides secure remote access without implementing TLS in ccmux itself
+- Design is based on gastown-fugue-remote-support.md specification
+- Uses GASTOWN_FUGUE_ADDR env var to transparently route fugue-client calls to remote daemon
+- SSH tunnel provides secure remote access without implementing TLS in fugue itself
 - Remote execution is opt-in via environment variable
 - Default behavior (local execution) remains unchanged

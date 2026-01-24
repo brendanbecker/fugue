@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-012",
   "title": "Session Management - Session/Window/Pane Hierarchy",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P1",
   "status": "completed",
   "type": "new_feature",

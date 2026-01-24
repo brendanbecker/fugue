@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-014
 
 **Work Item**: [FEAT-014: Terminal Parsing - ANSI/VT100 State Machine](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P1
 **Created**: 2026-01-08
 **Status**: Not Started
@@ -65,9 +65,9 @@ for cell_change in diff {
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/pty/parser.rs | New - Terminal parser implementation | Medium |
-| ccmux-server/src/pty/buffer.rs | New - Scrollback buffer | Low |
-| ccmux-server/src/pty/mod.rs | Modify - Add exports | Low |
+| fugue-server/src/pty/parser.rs | New - Terminal parser implementation | Medium |
+| fugue-server/src/pty/buffer.rs | New - Scrollback buffer | Low |
+| fugue-server/src/pty/mod.rs | Modify - Add exports | Low |
 
 ## Dependencies
 

@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-083",
   "title": "Protocol Generalization: Generic Widget System",
-  "component": "ccmux-protocol",
+  "component": "fugue-protocol",
   "priority": "P1",
   "status": "new",
   "type": "enhancement",

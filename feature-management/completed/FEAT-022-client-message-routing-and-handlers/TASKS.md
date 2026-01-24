@@ -9,10 +9,10 @@
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
 - [ ] Verify FEAT-021 (Server Socket Listen Loop) is complete or in progress
-- [ ] Review `ccmux-protocol/src/messages.rs` - understand all ClientMessage/ServerMessage types
-- [ ] Review `ccmux-server/src/session/manager.rs` - understand session operations API
-- [ ] Review `ccmux-server/src/pty/manager.rs` - understand PTY operations API
-- [ ] Review `ccmux-protocol/src/types.rs` - understand ReplyMessage, ViewportState types
+- [ ] Review `fugue-protocol/src/messages.rs` - understand all ClientMessage/ServerMessage types
+- [ ] Review `fugue-server/src/session/manager.rs` - understand session operations API
+- [ ] Review `fugue-server/src/pty/manager.rs` - understand PTY operations API
+- [ ] Review `fugue-protocol/src/types.rs` - understand ReplyMessage, ViewportState types
 
 ## Design Tasks
 
@@ -23,14 +23,14 @@
 
 ## Implementation Tasks
 
-### Module Structure (ccmux-server/src/handlers/)
+### Module Structure (fugue-server/src/handlers/)
 
-- [ ] Create `ccmux-server/src/handlers/mod.rs`
-- [ ] Create `ccmux-server/src/handlers/message_router.rs`
-- [ ] Create `ccmux-server/src/handlers/session_handlers.rs`
-- [ ] Create `ccmux-server/src/handlers/input_handlers.rs`
-- [ ] Create `ccmux-server/src/handlers/orchestration_handlers.rs`
-- [ ] Add `pub mod handlers;` to `ccmux-server/src/lib.rs`
+- [ ] Create `fugue-server/src/handlers/mod.rs`
+- [ ] Create `fugue-server/src/handlers/message_router.rs`
+- [ ] Create `fugue-server/src/handlers/session_handlers.rs`
+- [ ] Create `fugue-server/src/handlers/input_handlers.rs`
+- [ ] Create `fugue-server/src/handlers/orchestration_handlers.rs`
+- [ ] Add `pub mod handlers;` to `fugue-server/src/lib.rs`
 - [ ] Define `HandlerContext` struct
 - [ ] Define `HandleError` enum with From<HandleError> for ServerMessage
 - [ ] Define `MessageRouter` trait or struct

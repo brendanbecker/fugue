@@ -1,7 +1,7 @@
 # FEAT-040: MCP Pane Reliability Improvements
 
 **Priority**: P2
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: feature
 **Status**: completed
 
@@ -20,8 +20,8 @@ Defensive improvements to MCP pane creation to ensure reliable behavior and prop
 **Solution**: Sort by `created_at_millis()` timestamp to ensure consistent ordering.
 
 **Files Changed**:
-- `ccmux-server/src/session/manager.rs:77-85`
-- `ccmux-server/src/session/session.rs:218-224` (added `created_at_millis()`)
+- `fugue-server/src/session/manager.rs:77-85`
+- `fugue-server/src/session/session.rs:218-224` (added `created_at_millis()`)
 
 ### 2. Output Poller for MCP-Created Panes
 
@@ -32,7 +32,7 @@ MCP-created panes now start a PTY output poller, matching the behavior of regula
 **Solution**: Added `PtyOutputPoller::spawn_with_sideband()` call after PTY spawn.
 
 **Files Changed**:
-- `ccmux-server/src/handlers/mcp_bridge.rs:342-365`
+- `fugue-server/src/handlers/mcp_bridge.rs:342-365`
 
 ### 3. Integration Tests for MCP-to-TUI Broadcast
 

@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-049",
-  "title": "Add tmux-compatible CLI wrapper (ccmux-compat)",
-  "component": "ccmux-compat",
+  "title": "Add tmux-compatible CLI wrapper (fugue-compat)",
+  "component": "fugue-compat",
   "priority": "P2",
   "status": "new",
   "type": "new_feature",
@@ -11,8 +11,8 @@
   "tags": ["terminal", "session-management", "enhancement"],
   "estimated_effort": "medium",
   "dependencies": [],
-  "description": "Create a CLI binary that accepts tmux command syntax and translates to ccmux MCP calls, enabling drop-in replacement for existing tools. Gas Town shells out to tmux via exec.Command(\"tmux\", args...) in internal/tmux/tmux.go:35. A compatibility layer allows one-line swap for incremental migration with no changes needed in Gas Town codebase for Phase 1.",
+  "description": "Create a CLI binary that accepts tmux command syntax and translates to fugue MCP calls, enabling drop-in replacement for existing tools. Gas Town shells out to tmux via exec.Command(\"tmux\", args...) in internal/tmux/tmux.go:35. A compatibility layer allows one-line swap for incremental migration with no changes needed in Gas Town codebase for Phase 1.",
   "business_value": "high",
   "technical_complexity": "medium",
-  "user_impact": "Enables incremental adoption of ccmux by existing tools that currently shell out to tmux, without requiring code changes in those tools"
+  "user_impact": "Enables incremental adoption of fugue by existing tools that currently shell out to tmux, without requiring code changes in those tools"
 }

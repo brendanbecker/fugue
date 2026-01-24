@@ -1,7 +1,7 @@
 # Tasks: FEAT-077 - Human-control mode UX indicator and MCP error details
 
 ## Section 1: Protocol Updates
-- [x] Define `ErrorDetails` enum in `ccmux-protocol`.
+- [x] Define `ErrorDetails` enum in `fugue-protocol`.
 - [x] Update `ServerMessage::Error` to include `details: Option<ErrorDetails>`.
 - [x] Update `ErrorCode` if needed (or rely on `ErrorDetails`).
 
@@ -10,7 +10,7 @@
 - [x] Update handlers to populate `ErrorDetails` when returning `UserPriorityActive` error.
 
 ## Section 3: Client Implementation
-- [x] Update `ccmux-client` to parse `ErrorDetails`.
+- [x] Update `fugue-client` to parse `ErrorDetails`.
 - [x] Implement `HumanControlIndicator` widget in TUI.
 - [x] Render indicator when `ErrorDetails::HumanControl` is received or client-side prediction logic triggers.
 

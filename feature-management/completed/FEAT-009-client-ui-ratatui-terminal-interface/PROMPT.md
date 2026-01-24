@@ -1,14 +1,14 @@
 # FEAT-009: Client UI - Ratatui Terminal Interface
 
 **Priority**: P1
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: new_feature
 **Estimated Effort**: large
 **Business Value**: high
 
 ## Overview
 
-Ratatui-based terminal UI with pane rendering using tui-term, status bar, borders, and Claude state indicators. This is the primary user interface for ccmux, providing visual management of multiple Claude Code sessions.
+Ratatui-based terminal UI with pane rendering using tui-term, status bar, borders, and Claude state indicators. This is the primary user interface for fugue, providing visual management of multiple Claude Code sessions.
 
 ## Requirements
 
@@ -65,19 +65,19 @@ Suggested visual indicators:
 
 ## Current State
 
-- `ccmux-client/src/ui.rs` exists as a stub
+- `fugue-client/src/ui.rs` exists as a stub
 - Client can connect to server via Unix socket
 - No actual UI rendering implemented yet
 
 ## Affected Files
 
-- `ccmux-client/src/ui.rs` - Main UI module (currently stub)
-- `ccmux-client/src/ui/layout.rs` - Layout management
-- `ccmux-client/src/ui/pane.rs` - Pane widget
-- `ccmux-client/src/ui/status.rs` - Status bar widget
-- `ccmux-client/src/ui/borders.rs` - Border rendering
-- `ccmux-client/src/ui/indicators.rs` - Claude state indicators
-- `ccmux-client/Cargo.toml` - Add ratatui, tui-term dependencies
+- `fugue-client/src/ui.rs` - Main UI module (currently stub)
+- `fugue-client/src/ui/layout.rs` - Layout management
+- `fugue-client/src/ui/pane.rs` - Pane widget
+- `fugue-client/src/ui/status.rs` - Status bar widget
+- `fugue-client/src/ui/borders.rs` - Border rendering
+- `fugue-client/src/ui/indicators.rs` - Claude state indicators
+- `fugue-client/Cargo.toml` - Add ratatui, tui-term dependencies
 
 ## Implementation Tasks
 

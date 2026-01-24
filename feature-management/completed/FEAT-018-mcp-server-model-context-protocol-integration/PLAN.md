@@ -1,19 +1,19 @@
 # Implementation Plan: FEAT-018
 
 **Work Item**: [FEAT-018: MCP Server - Model Context Protocol Integration](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P2
 **Created**: 2026-01-08
 
 ## Overview
 
-Model Context Protocol server exposing tools for Claude to interact with ccmux (list panes, send input, create panes).
+Model Context Protocol server exposing tools for Claude to interact with fugue (list panes, send input, create panes).
 
 ## Architecture Decisions
 
 ### MCP Server Architecture
 
-- **Approach**: Implement MCP server as a separate module within ccmux-server
+- **Approach**: Implement MCP server as a separate module within fugue-server
 - **Transport**: JSON-RPC 2.0 over stdio (standard MCP transport)
 - **Crate**: Use rmcp crate for MCP protocol handling
 - **Integration**: Server will interact with SessionManager via message passing or shared state
@@ -36,12 +36,12 @@ Each tool will follow MCP specification with:
 
 ## Tool Specifications
 
-### ccmux_list_sessions
+### fugue_list_sessions
 
 ```json
 {
-  "name": "ccmux_list_sessions",
-  "description": "List all ccmux sessions with their windows and panes",
+  "name": "fugue_list_sessions",
+  "description": "List all fugue sessions with their windows and panes",
   "inputSchema": {
     "type": "object",
     "properties": {},
@@ -52,11 +52,11 @@ Each tool will follow MCP specification with:
 
 Returns: Array of sessions with nested windows and panes
 
-### ccmux_create_pane
+### fugue_create_pane
 
 ```json
 {
-  "name": "ccmux_create_pane",
+  "name": "fugue_create_pane",
   "description": "Create a new pane in a window",
   "inputSchema": {
     "type": "object",
@@ -71,11 +71,11 @@ Returns: Array of sessions with nested windows and panes
 }
 ```
 
-### ccmux_send_input
+### fugue_send_input
 
 ```json
 {
-  "name": "ccmux_send_input",
+  "name": "fugue_send_input",
   "description": "Send input to a pane",
   "inputSchema": {
     "type": "object",
@@ -88,11 +88,11 @@ Returns: Array of sessions with nested windows and panes
 }
 ```
 
-### ccmux_get_output
+### fugue_get_output
 
 ```json
 {
-  "name": "ccmux_get_output",
+  "name": "fugue_get_output",
   "description": "Get recent output from a pane",
   "inputSchema": {
     "type": "object",
@@ -105,11 +105,11 @@ Returns: Array of sessions with nested windows and panes
 }
 ```
 
-### ccmux_close_pane
+### fugue_close_pane
 
 ```json
 {
-  "name": "ccmux_close_pane",
+  "name": "fugue_close_pane",
   "description": "Close a pane",
   "inputSchema": {
     "type": "object",
@@ -125,10 +125,10 @@ Returns: Array of sessions with nested windows and panes
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/mcp/mod.rs | New module | Low |
-| ccmux-server/src/mcp/server.rs | New file | Medium |
-| ccmux-server/src/mcp/tools.rs | New file | Medium |
-| ccmux-server/src/lib.rs | Module registration | Low |
+| fugue-server/src/mcp/mod.rs | New module | Low |
+| fugue-server/src/mcp/server.rs | New file | Medium |
+| fugue-server/src/mcp/tools.rs | New file | Medium |
+| fugue-server/src/lib.rs | Module registration | Low |
 | Cargo.toml | Add rmcp dependency | Low |
 
 ## Dependencies
@@ -149,7 +149,7 @@ Returns: Array of sessions with nested windows and panes
 
 If implementation causes issues:
 1. Revert commits associated with this work item
-2. Remove mcp module from ccmux-server
+2. Remove mcp module from fugue-server
 3. Remove rmcp dependency
 4. Verify system returns to previous state
 5. Document what went wrong in comments.md

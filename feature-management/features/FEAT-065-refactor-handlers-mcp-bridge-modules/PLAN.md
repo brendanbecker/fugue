@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-065
 
 **Work Item**: [FEAT-065: Refactor handlers/mcp_bridge.rs into smaller modules](PROMPT.md)
-**Component**: ccmux-server (handlers module)
+**Component**: fugue-server (handlers module)
 **Priority**: P2
 **Created**: 2026-01-13
 
 ## Overview
 
-The MCP bridge handler implementation (`ccmux-server/src/handlers/mcp_bridge.rs`) has grown to 2591 lines (~27k tokens) and exceeds the practical context window limit for AI-assisted development. This is the handler layer that dispatches MCP tool calls to session/pane operations. It needs to be refactored into smaller, more maintainable modules.
+The MCP bridge handler implementation (`fugue-server/src/handlers/mcp_bridge.rs`) has grown to 2591 lines (~27k tokens) and exceeds the practical context window limit for AI-assisted development. This is the handler layer that dispatches MCP tool calls to session/pane operations. It needs to be refactored into smaller, more maintainable modules.
 
 ## Architecture Decisions
 

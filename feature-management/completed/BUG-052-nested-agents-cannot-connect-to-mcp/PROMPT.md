@@ -1,4 +1,4 @@
-# BUG-052: Agents inside ccmux panes cannot connect to ccmux MCP server
+# BUG-052: Agents inside fugue panes cannot connect to fugue MCP server
 
 **Priority**: P1
 **Component**: mcp-bridge
@@ -7,39 +7,39 @@
 
 ## Problem Statement
 
-When an AI agent (e.g., Gemini CLI) is launched inside a ccmux pane, it cannot connect to the ccmux MCP server. This breaks the core orchestration use case where agents inside ccmux should be able to control ccmux (create panes, split windows, orchestrate other agents, etc.).
+When an AI agent (e.g., Gemini CLI) is launched inside a fugue pane, it cannot connect to the fugue MCP server. This breaks the core orchestration use case where agents inside fugue should be able to control fugue (create panes, split windows, orchestrate other agents, etc.).
 
 ## Evidence
 
 **Error Message**:
 ```
-MCP ERROR (ccmux)
-Error during discovery for MCP server 'ccmux': Client is not connected, must connect before interacting with the server. Current state is disconnected
+MCP ERROR (fugue)
+Error during discovery for MCP server 'fugue': Client is not connected, must connect before interacting with the server. Current state is disconnected
 ```
 
-**Context**: Error observed when Gemini CLI (with ccmux MCP configured) is launched inside a ccmux pane.
+**Context**: Error observed when Gemini CLI (with fugue MCP configured) is launched inside a fugue pane.
 
 ## Steps to Reproduce
 
-1. Start ccmux with MCP bridge running
-2. Have an outer agent (Claude Code) connected to ccmux MCP successfully
-3. Use ccmux MCP to create a session and pane
-4. Launch Gemini CLI (or another agent with ccmux MCP configured) inside the pane
-5. Observe Gemini fails to connect to ccmux MCP server
+1. Start fugue with MCP bridge running
+2. Have an outer agent (Claude Code) connected to fugue MCP successfully
+3. Use fugue MCP to create a session and pane
+4. Launch Gemini CLI (or another agent with fugue MCP configured) inside the pane
+5. Observe Gemini fails to connect to fugue MCP server
 
 ## Expected Behavior
 
-Agents running inside ccmux panes should be able to connect to the ccmux MCP server and use ccmux tools to orchestrate (create panes, send input, read output, etc.). This is the core multi-agent orchestration use case.
+Agents running inside fugue panes should be able to connect to the fugue MCP server and use fugue tools to orchestrate (create panes, send input, read output, etc.). This is the core multi-agent orchestration use case.
 
 ## Actual Behavior
 
-The nested agent fails to connect with "Client is not connected" error. The agent inside the ccmux pane cannot discover or interact with the ccmux MCP server.
+The nested agent fails to connect with "Client is not connected" error. The agent inside the fugue pane cannot discover or interact with the fugue MCP server.
 
 ## Root Cause
 
 To be investigated. Suspected causes:
 
-1. **Socket path inaccessibility**: MCP bridge socket path may not be accessible from the PTY environment inside ccmux
+1. **Socket path inaccessibility**: MCP bridge socket path may not be accessible from the PTY environment inside fugue
 2. **Single-client limitation**: Current MCP bridge architecture may only support a single stdio-based client connection
 3. **Configuration path issues**: Agent inside pane may not be able to find the MCP configuration (different working directory, missing env vars)
 4. **Bridge architecture**: The bridge may not be designed to support multiple concurrent clients
@@ -47,8 +47,8 @@ To be investigated. Suspected causes:
 ## Implementation Tasks
 
 ### Section 1: Investigation
-- [ ] Analyze how the outer agent (Claude Code) connects to ccmux MCP successfully
-- [ ] Trace the connection path for agents spawned inside ccmux panes
+- [ ] Analyze how the outer agent (Claude Code) connects to fugue MCP successfully
+- [ ] Trace the connection path for agents spawned inside fugue panes
 - [ ] Identify what environment variables and paths are available inside the PTY
 - [ ] Determine if the MCP bridge socket/connection is accessible from nested processes
 - [ ] Check if the bridge is stdio-based (single client) or socket-based (multi-client)
@@ -73,15 +73,15 @@ To be investigated. Suspected causes:
 - [ ] Verify existing single-client use cases still work
 
 ### Section 5: Verification
-- [ ] Confirm nested agents can connect to ccmux MCP
-- [ ] Verify nested agents can use all ccmux MCP tools
+- [ ] Confirm nested agents can connect to fugue MCP
+- [ ] Verify nested agents can use all fugue MCP tools
 - [ ] Confirm multi-agent orchestration workflows function correctly
 - [ ] Update documentation if configuration changes required
 
 ## Acceptance Criteria
 
-- [ ] Agents spawned inside ccmux panes can connect to ccmux MCP server
-- [ ] Nested agents can discover and use all ccmux MCP tools
+- [ ] Agents spawned inside fugue panes can connect to fugue MCP server
+- [ ] Nested agents can discover and use all fugue MCP tools
 - [ ] Multiple concurrent agent connections are supported
 - [ ] Existing single-agent use cases continue to work
 - [ ] Multi-agent orchestration workflows function as expected
@@ -89,10 +89,10 @@ To be investigated. Suspected causes:
 
 ## Notes
 
-This bug blocks the primary orchestration use case for ccmux. The expected workflow is:
-1. User has an "outer" agent (Claude Code) controlling ccmux
+This bug blocks the primary orchestration use case for fugue. The expected workflow is:
+1. User has an "outer" agent (Claude Code) controlling fugue
 2. Outer agent creates panes and launches "inner" agents
-3. Inner agents can also use ccmux MCP to create their own panes, orchestrate further
+3. Inner agents can also use fugue MCP to create their own panes, orchestrate further
 4. This enables hierarchical multi-agent workflows
 
 The fact that the outer agent (Claude Code) can connect successfully while nested agents cannot suggests either:

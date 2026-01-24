@@ -1,4 +1,4 @@
-# ccmux Architecture
+# fugue Architecture
 
 > **Moved**: The full architecture documentation is now in [docs/architecture/](./architecture/).
 

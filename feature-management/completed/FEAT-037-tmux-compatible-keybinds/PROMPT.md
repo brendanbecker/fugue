@@ -1,7 +1,7 @@
 # FEAT-037: tmux-Compatible Prefix Keybinds
 
 **Priority**: P1
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: enhancement
 **Estimated Effort**: small (1-2 hours)
 **Business Value**: high
@@ -9,11 +9,11 @@
 
 ## Overview
 
-Align ccmux prefix keybindings with tmux defaults for muscle-memory compatibility. Users familiar with tmux should be able to use ccmux without relearning keybinds.
+Align fugue prefix keybindings with tmux defaults for muscle-memory compatibility. Users familiar with tmux should be able to use fugue without relearning keybinds.
 
 ## Problem Statement
 
-The original ccmux keybinds diverged from tmux conventions:
+The original fugue keybinds diverged from tmux conventions:
 - `c` created a pane (tmux: creates window)
 - `n/p` navigated panes (tmux: navigates windows)
 - No keybinds for window selection by number (0-9)
@@ -63,7 +63,7 @@ Realign all prefix keybinds to match tmux defaults:
 ## Implementation
 
 ### Files Modified
-- `ccmux-client/src/input/mod.rs` - Updated `handle_prefix_key()` match block
+- `fugue-client/src/input/mod.rs` - Updated `handle_prefix_key()` match block
 
 ### Key Changes
 1. Changed `c` from CreatePane to CreateWindow

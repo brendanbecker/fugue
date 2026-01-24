@@ -7,7 +7,7 @@
 
 ## Overview
 
-When using ccmux_send_input with submit: true, the text appears in the target pane's input area but doesn't always get submitted. Investigation and fix needed to ensure reliable input submission.
+When using fugue_send_input with submit: true, the text appears in the target pane's input area but doesn't always get submitted. Investigation and fix needed to ensure reliable input submission.
 
 ## Architecture Decisions
 
@@ -23,8 +23,8 @@ When using ccmux_send_input with submit: true, the text appears in the target pa
 
 ## Key Files to Investigate
 
-1. `ccmux-server/src/handlers/mcp.rs` - MCP handler for send_input
-2. `ccmux-mcp-bridge/src/handlers.rs` - Bridge-side send_input handling
+1. `fugue-server/src/handlers/mcp.rs` - MCP handler for send_input
+2. `fugue-mcp-bridge/src/handlers.rs` - Bridge-side send_input handling
 3. PTY write logic in session/pane management
 
 ## Dependencies

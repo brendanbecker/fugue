@@ -10,12 +10,12 @@
 - [x] Review PLAN.md and update if needed
 - [x] Identify Session struct location and verify name field exists
 - [x] Understand SessionManager API and session lookup patterns
-- [x] Review existing MCP tool patterns (ccmux_rename_window, ccmux_rename_pane from FEAT-036)
+- [x] Review existing MCP tool patterns (fugue_rename_window, fugue_rename_pane from FEAT-036)
 
 ## Phase 1: Session Manager API
 
 ### 1.1 Verify Session Structure
-- [x] Locate Session struct in ccmux-server/src/session/
+- [x] Locate Session struct in fugue-server/src/session/
 - [x] Verify `name` field exists on Session
 - [x] Session already has name field and set_name() method
 - [x] Ensure name is initialized during session creation
@@ -41,9 +41,9 @@
 ## Phase 2: MCP Tool Definition
 
 ### 2.1 Add Tool to tools.rs
-- [x] Located tool definitions in ccmux-server/src/mcp/tools.rs
-- [x] Added `ccmux_rename_session` tool definition
-- [x] Set name: "ccmux_rename_session"
+- [x] Located tool definitions in fugue-server/src/mcp/tools.rs
+- [x] Added `fugue_rename_session` tool definition
+- [x] Set name: "fugue_rename_session"
 - [x] Set description: "Rename a session for easier identification"
 
 ### 2.2 Define Input Schema
@@ -56,7 +56,7 @@
 ## Phase 3: MCP Handler
 
 ### 3.1 Create Handler Function
-- [x] Added `tool_rename_session()` function in ccmux-server/src/mcp/bridge.rs
+- [x] Added `tool_rename_session()` function in fugue-server/src/mcp/bridge.rs
 - [x] Accept session_filter and new_name parameters
 - [x] Return ToolResult
 
@@ -86,7 +86,7 @@
 
 ### 4.1 Add Tool Routing
 - [x] Added dispatch case in dispatch_tool() in bridge.rs
-- [x] Added case for "ccmux_rename_session"
+- [x] Added case for "fugue_rename_session"
 - [x] Parse arguments (session, name)
 - [x] Call tool_rename_session handler
 
@@ -156,7 +156,7 @@
 - [x] Added docstring to handle_rename_session handler
 
 ### 7.3 Update CHANGELOG
-- [x] Updated README.md with ccmux_rename_session in MCP tools list
+- [x] Updated README.md with fugue_rename_session in MCP tools list
 
 ## Completion Checklist
 

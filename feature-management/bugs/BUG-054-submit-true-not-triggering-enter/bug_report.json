@@ -12,12 +12,12 @@
   "affected_versions": [],
   "environment": "development",
   "reproducibility": "always",
-  "description": "When using ccmux_send_input with submit:true, the text appears in Gemini CLI's input field but the Enter key is not triggered. A separate call with key:'Enter' is required to actually submit. Both submit:true and key:'Enter' send the same byte (0x0D/carriage return), but only the separate key call works.",
+  "description": "When using fugue_send_input with submit:true, the text appears in Gemini CLI's input field but the Enter key is not triggered. A separate call with key:'Enter' is required to actually submit. Both submit:true and key:'Enter' send the same byte (0x0D/carriage return), but only the separate key call works.",
   "steps_to_reproduce": [
     "Create a pane with Gemini CLI running",
-    "Call ccmux_send_input with input:'hello' and submit:true",
+    "Call fugue_send_input with input:'hello' and submit:true",
     "Observe text appears in Gemini's input field but is NOT submitted",
-    "Call ccmux_send_input with key:'Enter'",
+    "Call fugue_send_input with key:'Enter'",
     "Observe the input is now submitted"
   ],
   "expected_behavior": "When submit:true is set, the input should be submitted (Enter triggered) in the same call. The text and Enter should be processed together.",
@@ -26,7 +26,7 @@
     "submit_true_byte": "0x0D (\\r)",
     "key_enter_byte": "0x0D (\\r)",
     "observation": "Both send same byte but only key:'Enter' works",
-    "tested_with": "Gemini CLI inside ccmux pane"
+    "tested_with": "Gemini CLI inside fugue pane"
   },
   "root_cause": "Unknown. Both code paths send 0x0D but behavior differs. Possible causes: (1) Gemini CLI's input handling requires Enter as separate write, (2) Terminal line discipline processing differs for appended vs standalone CR, (3) Buffering/timing issue despite atomic write",
   "impact": "Workaround exists (send separate key:'Enter') but creates friction. Violates principle of least surprise - submit:true should work."

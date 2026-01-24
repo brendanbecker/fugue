@@ -1,7 +1,7 @@
 # FEAT-084: Protocol Generalization: Abstract Agent State
 
 **Priority**: P2
-**Component**: ccmux-protocol
+**Component**: fugue-protocol
 **Type**: enhancement
 **Estimated Effort**: medium
 **Business Value**: medium

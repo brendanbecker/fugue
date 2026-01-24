@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-030
 
 **Work Item**: [FEAT-030: Sideband Pane Splitting - Execute spawn Commands via Sideband Protocol](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P1
 **Created**: 2026-01-09
 
 ## Overview
 
-Complete the execute_spawn function in the sideband executor to actually split panes when Claude outputs `<ccmux:spawn />` commands. Currently the parser and command types exist but execution is a TODO stub.
+Complete the execute_spawn function in the sideband executor to actually split panes when Claude outputs `<fugue:spawn />` commands. Currently the parser and command types exist but execution is a TODO stub.
 
 ## Architecture Decisions
 
@@ -76,9 +76,9 @@ Recommendation: **Option A** - keeps SessionManager focused on session hierarchy
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-server/src/session/manager.rs` | Add split_pane() method | Low |
-| `ccmux-server/src/sideband/executor.rs` | Complete execute_spawn() | Medium |
-| `ccmux-server/src/pty/manager.rs` | May need spawn API adjustments | Low |
+| `fugue-server/src/session/manager.rs` | Add split_pane() method | Low |
+| `fugue-server/src/sideband/executor.rs` | Complete execute_spawn() | Medium |
+| `fugue-server/src/pty/manager.rs` | May need spawn API adjustments | Low |
 
 ## Dependencies
 
@@ -145,7 +145,7 @@ Recommendation: **Option A** - keeps SessionManager focused on session hierarchy
    - spawn with cwd
 
 3. **Manual Testing**:
-   - Run ccmux, have Claude output spawn command
+   - Run fugue, have Claude output spawn command
    - Verify new pane appears and is functional
 
 ## Rollback Strategy

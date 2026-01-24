@@ -54,7 +54,7 @@ Watchdog discovers workers by:
 
 ```json
 // Discovery query
-ccmux_get_worker_status()  // Returns all workers with status
+fugue_get_worker_status()  // Returns all workers with status
 ```
 
 ### 2. Status Assessment
@@ -75,7 +75,7 @@ When alert condition detected, send to orchestrator via:
 
 ```json
 {
-  "tool": "ccmux_send_orchestration",
+  "tool": "fugue_send_orchestration",
   "input": {
     "target": {"tag": "orchestrator"},
     "msg_type": "worker.stuck",  // or worker.error, worker.complete, worker.needs_input
@@ -115,7 +115,7 @@ If fingerprint unchanged for `stuck_threshold_intervals` consecutive polls:
 ### Error Detection
 
 Check worker status for error indicators:
-- `status: "error"` in ccmux_report_status
+- `status: "error"` in fugue_report_status
 - Error patterns in last N lines of output
 
 ```json
@@ -132,7 +132,7 @@ Check worker status for error indicators:
 
 ### Complete Detection
 
-Worker reports completion via `ccmux_report_status(status: "complete")`:
+Worker reports completion via `fugue_report_status(status: "complete")`:
 
 ```json
 {
@@ -149,7 +149,7 @@ Worker reports completion via `ccmux_report_status(status: "complete")`:
 ### Needs Input Detection
 
 Check pane state for input prompts:
-- `ccmux_get_status` returns `is_awaiting_input: true`
+- `fugue_get_status` returns `is_awaiting_input: true`
 - `is_awaiting_confirmation: true`
 
 ```json
@@ -169,7 +169,7 @@ Check pane state for input prompts:
 ### Agent Preset
 
 ```toml
-# ~/.ccmux/config.toml
+# ~/.fugue/config.toml
 
 [presets.watchdog]
 harness = "claude"
@@ -206,10 +206,10 @@ output_preview_lines = 5
 ### Environment Overrides
 
 ```bash
-CCMUX_WATCHDOG_POLL_INTERVAL=30
-CCMUX_WATCHDOG_STUCK_THRESHOLD=3
-CCMUX_WATCHDOG_WORKER_TAGS=worker,secondary-worker
-CCMUX_WATCHDOG_ORCHESTRATOR_TAG=orchestrator
+FUGUE_WATCHDOG_POLL_INTERVAL=30
+FUGUE_WATCHDOG_STUCK_THRESHOLD=3
+FUGUE_WATCHDOG_WORKER_TAGS=worker,secondary-worker
+FUGUE_WATCHDOG_ORCHESTRATOR_TAG=orchestrator
 ```
 
 ## Watchdog Agent System Prompt
@@ -222,10 +222,10 @@ You receive periodic "check" messages from a background timer.
 
 ## On each "check":
 
-1. **Discover workers**: `ccmux_get_worker_status()` for all sessions
+1. **Discover workers**: `fugue_get_worker_status()` for all sessions
 2. **Filter to workers**: Only sessions with tag "worker" (configurable)
 3. **For each worker, check**:
-   - `ccmux_get_status(pane_id)` for detailed state
+   - `fugue_get_status(pane_id)` for detailed state
    - Compare to previous state (track in memory)
 
 4. **Classify each worker**:
@@ -236,7 +236,7 @@ You receive periodic "check" messages from a background timer.
    - `needs_input`: Awaiting input/confirmation → ALERT
 
 5. **If ANY worker needs attention**:
-   - `ccmux_send_orchestration` to tag:orchestrator with worker.* message
+   - `fugue_send_orchestration` to tag:orchestrator with worker.* message
    - Include actionable context
 
 6. **If ALL workers healthy**:
@@ -273,12 +273,12 @@ FEAT-110 defines the watchdog agent's **internal behavior**, while FEAT-104 defi
 
 ### Using Native Watchdog Timer (FEAT-104)
 
-The existing `ccmux_watchdog_start` MCP tool can trigger the watchdog:
+The existing `fugue_watchdog_start` MCP tool can trigger the watchdog:
 
 ```json
 // Start watchdog timer (from orchestrator or skill)
 {
-  "tool": "ccmux_watchdog_start",
+  "tool": "fugue_watchdog_start",
   "input": {
     "pane_id": "<watchdog_pane_uuid>",
     "interval_secs": 30,
@@ -316,26 +316,26 @@ If watchdog session restarts:
 - [ ] System prompt documented for watchdog agent behavior
 - [ ] Stuck detection works with configurable threshold
 - [ ] Error detection catches status-reported and output-based errors
-- [ ] Complete detection triggers on ccmux_report_status(status: "complete")
+- [ ] Complete detection triggers on fugue_report_status(status: "complete")
 - [ ] Needs input detection checks is_awaiting_input/is_awaiting_confirmation
 - [ ] Alerts sent ONLY when action needed (no "all good" messages)
 - [ ] Alert messages contain actionable context
 - [ ] Configuration documented with defaults
-- [ ] Integration with ccmux_watchdog_start timer documented
+- [ ] Integration with fugue_watchdog_start timer documented
 - [ ] Example orchestrator handling of watchdog alerts provided
 
 ## Example Orchestrator Alert Handling
 
-When orchestrator receives alert via `ccmux_poll_messages`:
+When orchestrator receives alert via `fugue_poll_messages`:
 
 ```json
 // worker.stuck
 {
   "action": "check_on_worker",
   "options": [
-    "ccmux_read_pane to see current output",
-    "ccmux_send_input to nudge worker",
-    "ccmux_close_pane to kill and respawn"
+    "fugue_read_pane to see current output",
+    "fugue_send_input to nudge worker",
+    "fugue_close_pane to kill and respawn"
   ]
 }
 
@@ -343,9 +343,9 @@ When orchestrator receives alert via `ccmux_poll_messages`:
 {
   "action": "provide_input",
   "options": [
-    "ccmux_send_input with 'y' to confirm",
-    "ccmux_send_input with 'n' to decline",
-    "ccmux_read_pane to see full prompt context"
+    "fugue_send_input with 'y' to confirm",
+    "fugue_send_input with 'n' to decline",
+    "fugue_read_pane to see full prompt context"
   ]
 }
 
@@ -353,9 +353,9 @@ When orchestrator receives alert via `ccmux_poll_messages`:
 {
   "action": "collect_results",
   "options": [
-    "ccmux_read_pane to get final output",
+    "fugue_read_pane to get final output",
     "Merge worker branch",
-    "ccmux_kill_session to cleanup"
+    "fugue_kill_session to cleanup"
   ]
 }
 
@@ -363,9 +363,9 @@ When orchestrator receives alert via `ccmux_poll_messages`:
 {
   "action": "investigate",
   "options": [
-    "ccmux_read_pane for full error context",
+    "fugue_read_pane for full error context",
     "Fix issue and retry",
-    "ccmux_close_pane and respawn with different approach"
+    "fugue_close_pane and respawn with different approach"
   ]
 }
 ```
@@ -373,7 +373,7 @@ When orchestrator receives alert via `ccmux_poll_messages`:
 ## Related
 
 - FEAT-104: Watchdog Orchestration Skill (commands to manage watchdog)
-- FEAT-097: ccmux_get_worker_status / ccmux_poll_messages
+- FEAT-097: fugue_get_worker_status / fugue_poll_messages
 - FEAT-105: Universal Agent Presets (watchdog preset)
 - FEAT-102: Agent Status Pane (visual monitoring complement)
 - AGENTS.md: Status reporting conventions

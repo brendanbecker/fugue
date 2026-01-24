@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-044",
   "title": "Claude Session Persistence and Auto-Resume",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P1",
   "status": "new",
   "type": "new_feature",
@@ -11,7 +11,7 @@
   "tags": ["claude-code", "session-management", "crash-recovery", "pty", "orchestration"],
   "estimated_effort": "large",
   "dependencies": ["FEAT-016"],
-  "description": "When ccmux server restarts, Claude instances running in panes lose their conversation context. This feature enables ccmux to track Claude session IDs and automatically resume them on server restart, preserving AI conversation continuity.",
+  "description": "When fugue server restarts, Claude instances running in panes lose their conversation context. This feature enables fugue to track Claude session IDs and automatically resume them on server restart, preserving AI conversation continuity.",
   "business_value": "high",
   "technical_complexity": "high",
   "user_impact": "Enables seamless Claude conversation recovery after server updates, crashes, or restarts. Critical for long-running AI workflows and orchestrator patterns."

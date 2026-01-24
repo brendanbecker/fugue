@@ -9,7 +9,7 @@
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
 - [ ] Verify FEAT-066 and FEAT-067 are complete
-- [ ] Review ccmux-peering-design.md for context
+- [ ] Review fugue-peering-design.md for context
 
 ## Section 1: Core Documentation Tasks
 
@@ -63,7 +63,7 @@
 
 ## Section 6: Optional Helper Scripts Tasks
 
-- [ ] Create scripts/ccmux-remote wrapper script (optional)
+- [ ] Create scripts/fugue-remote wrapper script (optional)
 - [ ] Add SSH tunnel management helpers (optional)
 - [ ] Provide connection testing utilities (optional)
 - [ ] Document helper script usage (if created)

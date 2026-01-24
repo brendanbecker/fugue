@@ -1,6 +1,6 @@
 # Feature Tracking
 
-**Project**: ccmux
+**Project**: fugue
 **Last Updated**: 2026-01-18
 
 ## Summary Statistics
@@ -20,50 +20,50 @@ Core terminal multiplexer fully functional with MCP integration, multi-agent orc
 | ID | Title | Component | Priority | Status |
 |----|-------|-----------|----------|--------|
 | FEAT-104 | Watchdog Orchestration Skill | skill/orchestration | P1 | new |
-| FEAT-103 | Visualization Architecture Review | ccmux-client/rendering | P1 | new |
-| FEAT-094 | ccmux_run_parallel - Parallel Command Execution | ccmux-server/mcp | P1 | done |
-| FEAT-095 | ccmux_run_pipeline - Sequential Command Pipeline | ccmux-server/mcp | P1 | done |
-| FEAT-096 | ccmux_expect - Pattern-Based Wait | ccmux-server/mcp | P1 | done |
-| FEAT-097 | ccmux_get_worker_status / ccmux_poll_messages | ccmux-server/mcp | P1 | done |
+| FEAT-103 | Visualization Architecture Review | fugue-client/rendering | P1 | new |
+| FEAT-094 | fugue_run_parallel - Parallel Command Execution | fugue-server/mcp | P1 | done |
+| FEAT-095 | fugue_run_pipeline - Sequential Command Pipeline | fugue-server/mcp | P1 | done |
+| FEAT-096 | fugue_expect - Pattern-Based Wait | fugue-server/mcp | P1 | done |
+| FEAT-097 | fugue_get_worker_status / fugue_poll_messages | fugue-server/mcp | P1 | done |
 
 ### Medium Priority (P2)
 
 | ID | Title | Component | Priority | Status |
 |----|-------|-----------|----------|--------|
-| FEAT-102 | Agent Status Pane | ccmux-client | P2 | new |
-| FEAT-101 | Codex CLI agent detection | ccmux-server/agents | P2 | new |
-| FEAT-100 | OrchestrationContext abstraction | ccmux-server/mcp | P2 | new |
-| FEAT-099 | Dynamic orchestration session naming | ccmux-server/mcp | P2 | blocked (FEAT-100) |
-| FEAT-064 | Refactor MCP bridge.rs into modular components | ccmux-server | P2 | ready |
-| FEAT-065 | Refactor handlers in MCP bridge modules | ccmux-server | P2 | ready |
+| FEAT-102 | Agent Status Pane | fugue-client | P2 | new |
+| FEAT-101 | Codex CLI agent detection | fugue-server/agents | P2 | new |
+| FEAT-100 | OrchestrationContext abstraction | fugue-server/mcp | P2 | new |
+| FEAT-099 | Dynamic orchestration session naming | fugue-server/mcp | P2 | blocked (FEAT-100) |
+| FEAT-064 | Refactor MCP bridge.rs into modular components | fugue-server | P2 | ready |
+| FEAT-065 | Refactor handlers in MCP bridge modules | fugue-server | P2 | ready |
 
 ### Lower Priority (P3)
 
 | ID | Title | Component | Priority | Status |
 |----|-------|-----------|----------|--------|
-| FEAT-069 | TLS/auth for direct TCP connections | ccmux-server | P3 | backlog |
-| FEAT-072 | Per-pane MCP mode control | ccmux-server | P3 | backlog |
-| FEAT-087 | Refactor client app.rs | ccmux-client | P3 | ready |
-| FEAT-088 | Refactor handlers/mcp_bridge.rs | ccmux-server | P3 | done |
-| FEAT-089 | Refactor protocol types.rs | ccmux-protocol | P3 | done |
-| FEAT-090 | Refactor server main.rs | ccmux-server | P3 | ready |
-| FEAT-091 | Refactor mcp_handlers.rs | ccmux-server | P3 | ready |
-| FEAT-092 | Refactor protocol messages.rs | ccmux-protocol | P3 | ready |
+| FEAT-069 | TLS/auth for direct TCP connections | fugue-server | P3 | backlog |
+| FEAT-072 | Per-pane MCP mode control | fugue-server | P3 | backlog |
+| FEAT-087 | Refactor client app.rs | fugue-client | P3 | ready |
+| FEAT-088 | Refactor handlers/mcp_bridge.rs | fugue-server | P3 | done |
+| FEAT-089 | Refactor protocol types.rs | fugue-protocol | P3 | done |
+| FEAT-090 | Refactor server main.rs | fugue-server | P3 | ready |
+| FEAT-091 | Refactor mcp_handlers.rs | fugue-server | P3 | ready |
+| FEAT-092 | Refactor protocol messages.rs | fugue-protocol | P3 | ready |
 
 ## Recommended Work Order
 
 ### Phase 1: Complete Orchestration (Next)
-1. **FEAT-097** (ccmux_get_worker_status) - Orchestrator message polling (Completed)
+1. **FEAT-097** (fugue_get_worker_status) - Orchestrator message polling (Completed)
 
 ### Phase 2: Refactoring (Optional)
 2. FEAT-064, FEAT-065 - MCP bridge cleanup
 3. Other P3 refactoring as time permits
 
 ### Completed Orchestration Tools
-- **FEAT-096** (ccmux_expect) - Foundation primitive ✓
-- **FEAT-094** (ccmux_run_parallel) - Parallel execution ✓
-- **FEAT-095** (ccmux_run_pipeline) - Sequential pipelines ✓
-- **FEAT-097** (ccmux_get_worker_status) - Message polling ✓
+- **FEAT-096** (fugue_expect) - Foundation primitive ✓
+- **FEAT-094** (fugue_run_parallel) - Parallel execution ✓
+- **FEAT-095** (fugue_run_pipeline) - Sequential pipelines ✓
+- **FEAT-097** (fugue_get_worker_status) - Message polling ✓
 
 These tools reduce orchestrator context consumption by 70-90%.
 
@@ -123,13 +123,13 @@ These have no interdependencies:
 ## Architecture
 
 Multi-crate workspace:
-- `ccmux-client/` - TUI client (ratatui + crossterm)
-- `ccmux-server/` - Daemon with PTY management + MCP bridge
-- `ccmux-protocol/` - Message types and codec (bincode)
-- `ccmux-session/` - Session/window/pane hierarchy
-- `ccmux-utils/` - Shared utilities
-- `ccmux-persistence/` - WAL-based crash recovery
-- `ccmux-sandbox/` - Landlock sandboxing helper
+- `fugue-client/` - TUI client (ratatui + crossterm)
+- `fugue-server/` - Daemon with PTY management + MCP bridge
+- `fugue-protocol/` - Message types and codec (bincode)
+- `fugue-session/` - Session/window/pane hierarchy
+- `fugue-utils/` - Shared utilities
+- `fugue-persistence/` - WAL-based crash recovery
+- `fugue-sandbox/` - Landlock sandboxing helper
 
 ## Test Coverage
 

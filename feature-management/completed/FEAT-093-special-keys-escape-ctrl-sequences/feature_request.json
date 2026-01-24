@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-093",
   "title": "Add support for sending special keys (Escape, Ctrl sequences, function keys)",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P2",
   "status": "new",
   "type": "new_feature",
@@ -11,7 +11,7 @@
   "tags": ["terminal", "pty", "enhancement"],
   "estimated_effort": "medium",
   "dependencies": [],
-  "description": "Currently ccmux_send_input only sends literal text. There is no way to send special keys like Escape, Ctrl+C, Ctrl+U, function keys, or arrow keys. Escape sequences like \\x1b are sent as literal text rather than interpreted as the actual key. This blocks certain interactive terminal workflows where special key input is required.",
+  "description": "Currently fugue_send_input only sends literal text. There is no way to send special keys like Escape, Ctrl+C, Ctrl+U, function keys, or arrow keys. Escape sequences like \\x1b are sent as literal text rather than interpreted as the actual key. This blocks certain interactive terminal workflows where special key input is required.",
   "business_value": "high",
   "technical_complexity": "medium",
   "user_impact": "Enables MCP clients to fully control interactive terminal applications that require special key input, such as exiting shell modes, canceling operations, or navigating with arrow keys."

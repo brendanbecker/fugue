@@ -1,7 +1,7 @@
 # FEAT-010: Client Input - Keyboard and Mouse Event Handling
 
 **Priority**: P1
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
@@ -56,8 +56,8 @@ Keyboard and mouse event handling via crossterm, prefix key support (tmux-style)
 
 ## Affected Files
 
-- `ccmux-client/src/input.rs` - Core input handling and event loop
-- `ccmux-client/src/keybindings.rs` - Key binding configuration and dispatch
+- `fugue-client/src/input.rs` - Core input handling and event loop
+- `fugue-client/src/keybindings.rs` - Key binding configuration and dispatch
 
 ## Implementation Tasks
 

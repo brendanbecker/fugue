@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-072",
   "title": "Per-pane MCP mode control (full/minimal/none)",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P2",
   "status": "new",
   "type": "enhancement",

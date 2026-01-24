@@ -55,11 +55,11 @@ Implement viewport pinning that allows users to scroll up and review previous ou
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-protocol/src/lib.rs` | Protocol extension | Low |
-| `ccmux-client/src/ui.rs` | Major implementation | Medium |
-| `ccmux-client/src/state.rs` | New viewport state | Low |
-| `ccmux-server/src/session/pane.rs` | Minor updates | Low |
-| `ccmux-common/src/config.rs` | Config options | Low |
+| `fugue-protocol/src/lib.rs` | Protocol extension | Low |
+| `fugue-client/src/ui.rs` | Major implementation | Medium |
+| `fugue-client/src/state.rs` | New viewport state | Low |
+| `fugue-server/src/session/pane.rs` | Minor updates | Low |
+| `fugue-common/src/config.rs` | Config options | Low |
 
 ## Implementation Approach
 

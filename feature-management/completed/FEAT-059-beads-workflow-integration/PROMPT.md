@@ -1,7 +1,7 @@
 # FEAT-059: Beads Workflow Integration - Pane-Issue Correlation and Audit Trail
 
 **Priority**: P3
-**Component**: ccmux-server, ccmux-protocol
+**Component**: fugue-server, fugue-protocol
 **Type**: new_feature
 **Estimated Effort**: large
 **Business Value**: high
@@ -10,7 +10,7 @@
 
 ## Overview
 
-Add deep workflow integration between ccmux panes and beads issues, enabling automatic correlation, audit trails, and recovery hints for multi-agent development workflows.
+Add deep workflow integration between fugue panes and beads issues, enabling automatic correlation, audit trails, and recovery hints for multi-agent development workflows.
 
 ## Problem Statement
 
@@ -42,7 +42,7 @@ This creates operational blind spots in multi-agent workflows:
         |                                              | (includes issue_id)
         v                                              v
 +-------+-----------------------------------------------+-------+
-|                        ccmux-server                           |
+|                        fugue-server                           |
 |                                                               |
 |  +------------------+     +------------------+                 |
 |  | PaneMetadata     |     | BeadsWorkflow    |                 |
@@ -94,11 +94,11 @@ pub struct IssueHistoryEntry {
 
 ### 2. MCP Tools for Issue Assignment
 
-New MCP tool `ccmux_beads_assign`:
+New MCP tool `fugue_beads_assign`:
 
 ```json
 {
-  "name": "ccmux_beads_assign",
+  "name": "fugue_beads_assign",
   "description": "Assign a beads issue to the current pane for tracking",
   "inputSchema": {
     "type": "object",
@@ -117,11 +117,11 @@ New MCP tool `ccmux_beads_assign`:
 }
 ```
 
-New MCP tool `ccmux_beads_release`:
+New MCP tool `fugue_beads_release`:
 
 ```json
 {
-  "name": "ccmux_beads_release",
+  "name": "fugue_beads_release",
   "description": "Release/unassign the current issue from a pane",
   "inputSchema": {
     "type": "object",
@@ -209,11 +209,11 @@ impl PaneCrashHandler {
 
 ### 5. Recovery and Query Tools
 
-MCP tool `ccmux_beads_find_pane`:
+MCP tool `fugue_beads_find_pane`:
 
 ```json
 {
-  "name": "ccmux_beads_find_pane",
+  "name": "fugue_beads_find_pane",
   "description": "Find which pane is currently working on an issue",
   "inputSchema": {
     "type": "object",
@@ -239,11 +239,11 @@ Response:
 }
 ```
 
-MCP tool `ccmux_beads_pane_history`:
+MCP tool `fugue_beads_pane_history`:
 
 ```json
 {
-  "name": "ccmux_beads_pane_history",
+  "name": "fugue_beads_pane_history",
   "description": "Get the issue history for a pane",
   "inputSchema": {
     "type": "object",
@@ -343,17 +343,17 @@ auto_detect_issue = true
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/session/pane.rs` | Add `PaneWorkflowState` to pane metadata |
-| `ccmux-server/src/beads/workflow.rs` | New module for workflow tracking logic |
-| `ccmux-server/src/beads/mod.rs` | Add workflow submodule |
-| `ccmux-server/src/mcp/tools.rs` | Add workflow MCP tools (4 new tools) |
-| `ccmux-server/src/mcp/handlers.rs` | Implement workflow tool handlers |
-| `ccmux-server/src/handlers/pane.rs` | Add crash detection and issue creation hooks |
-| `ccmux-server/src/handlers/pty.rs` | Add command interception for bd commands |
-| `ccmux-protocol/src/messages.rs` | Include issue_id in StatusUpdate |
-| `ccmux-protocol/src/orchestration.rs` | Add issue tracking to orchestration messages |
-| `ccmux-server/src/config.rs` | Add `[beads.workflow]` configuration |
-| `ccmux-client/src/ui/pane.rs` | Display issue assignment in status |
+| `fugue-server/src/session/pane.rs` | Add `PaneWorkflowState` to pane metadata |
+| `fugue-server/src/beads/workflow.rs` | New module for workflow tracking logic |
+| `fugue-server/src/beads/mod.rs` | Add workflow submodule |
+| `fugue-server/src/mcp/tools.rs` | Add workflow MCP tools (4 new tools) |
+| `fugue-server/src/mcp/handlers.rs` | Implement workflow tool handlers |
+| `fugue-server/src/handlers/pane.rs` | Add crash detection and issue creation hooks |
+| `fugue-server/src/handlers/pty.rs` | Add command interception for bd commands |
+| `fugue-protocol/src/messages.rs` | Include issue_id in StatusUpdate |
+| `fugue-protocol/src/orchestration.rs` | Add issue tracking to orchestration messages |
+| `fugue-server/src/config.rs` | Add `[beads.workflow]` configuration |
+| `fugue-client/src/ui/pane.rs` | Display issue assignment in status |
 
 ## Implementation Tasks
 
@@ -365,8 +365,8 @@ auto_detect_issue = true
 - [ ] Implement serialization for persistence
 
 ### Section 2: MCP Assignment Tools
-- [ ] Implement `ccmux_beads_assign` handler
-- [ ] Implement `ccmux_beads_release` handler
+- [ ] Implement `fugue_beads_assign` handler
+- [ ] Implement `fugue_beads_release` handler
 - [ ] Add validation for issue ID format
 - [ ] Update pane history on assignment/release
 - [ ] Broadcast assignment changes to clients
@@ -386,8 +386,8 @@ auto_detect_issue = true
 - [ ] Implement issue creation flow (optional)
 
 ### Section 5: Query Tools
-- [ ] Implement `ccmux_beads_find_pane` handler
-- [ ] Implement `ccmux_beads_pane_history` handler
+- [ ] Implement `fugue_beads_find_pane` handler
+- [ ] Implement `fugue_beads_pane_history` handler
 - [ ] Add index for fast issue -> pane lookup
 - [ ] Include history in pane serialization
 
@@ -418,12 +418,12 @@ auto_detect_issue = true
 
 ## Acceptance Criteria
 
-- [ ] Panes can be assigned to issues via `ccmux_beads_assign` MCP tool
+- [ ] Panes can be assigned to issues via `fugue_beads_assign` MCP tool
 - [ ] Pane status shows assigned issue (when configured)
 - [ ] `bd close` auto-injects pane session ID when `auto_inject_session` is enabled
 - [ ] Pane crash offers to create issue with scrollback context
-- [ ] `ccmux_beads_find_pane` returns the pane working on a given issue
-- [ ] `ccmux_beads_pane_history` returns issue history for a pane
+- [ ] `fugue_beads_find_pane` returns the pane working on a given issue
+- [ ] `fugue_beads_pane_history` returns issue history for a pane
 - [ ] Orchestration `StatusUpdate` messages include issue assignment
 - [ ] All tracking persists across server restarts (via pane persistence)
 - [ ] All features are configurable via `[beads.workflow]` section
@@ -444,11 +444,11 @@ FEAT-050 provides the exact infrastructure needed for pane-issue correlation. Th
 
 ```rust
 // Assign issue to pane via metadata
-ccmux_set_metadata(session, "beads.current_issue", "bd-456")
-ccmux_set_metadata(session, "beads.assigned_at", "2026-01-11T10:30:00Z")
+fugue_set_metadata(session, "beads.current_issue", "bd-456")
+fugue_set_metadata(session, "beads.assigned_at", "2026-01-11T10:30:00Z")
 
 // Query assignment
-let issue = ccmux_get_metadata(session, "beads.current_issue")
+let issue = fugue_get_metadata(session, "beads.current_issue")
 ```
 
 **Implementation Simplification**: Much of the proposed `PaneWorkflowState` struct can be implemented using the existing metadata system rather than new dedicated fields:
@@ -461,7 +461,7 @@ let issue = ccmux_get_metadata(session, "beads.current_issue")
 
 This means:
 - **Reduced implementation scope** - Use existing metadata infrastructure
-- **MCP tools already exist** - `ccmux_set_metadata`, `ccmux_get_metadata`
+- **MCP tools already exist** - `fugue_set_metadata`, `fugue_get_metadata`
 - **Persistence handled** - Session metadata persists with session state
 
 ### FEAT-028 Tag-based Routing (Completed)
@@ -483,8 +483,8 @@ send_orchestration(OrchestrationTarget::Tagged("orchestrator".to_string()), msg)
 Given FEAT-050's completion, consider these scope reductions:
 
 1. **Section 1 (Core Data Structures)**: Simplify - use metadata instead of new structs
-2. **Section 2 (MCP Assignment Tools)**: May just be thin wrappers around `ccmux_set_metadata`
-3. **Section 5 (Query Tools)**: Can use `ccmux_get_metadata` with iteration
+2. **Section 2 (MCP Assignment Tools)**: May just be thin wrappers around `fugue_set_metadata`
+3. **Section 5 (Query Tools)**: Can use `fugue_get_metadata` with iteration
 4. **Section 6 (Orchestration Integration)**: Already supported via FEAT-028
 
 ## Benefits

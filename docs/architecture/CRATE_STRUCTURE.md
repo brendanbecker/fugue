@@ -1,20 +1,20 @@
-# ccmux Crate Structure
+# fugue Crate Structure
 
 > Rust workspace organization and dependency management
 
 ## Workspace Layout
 
 ```
-ccmux/
+fugue/
 ├── Cargo.toml              # Workspace root
-├── ccmux-client/           # TUI client binary
+├── fugue-client/           # TUI client binary
 │   ├── Cargo.toml
 │   └── src/
 │       ├── main.rs
 │       ├── ui/             # Ratatui components
 │       ├── input/          # Keyboard/mouse handling
 │       └── connection/     # Server communication
-├── ccmux-server/           # Daemon binary
+├── fugue-server/           # Daemon binary
 │   ├── Cargo.toml
 │   └── src/
 │       ├── main.rs
@@ -24,14 +24,14 @@ ccmux/
 │       ├── claude/         # Claude detection
 │       ├── persistence/    # State checkpointing
 │       └── config/         # Configuration management
-├── ccmux-protocol/         # Shared IPC definitions
+├── fugue-protocol/         # Shared IPC definitions
 │   ├── Cargo.toml
 │   └── src/
 │       ├── lib.rs
 │       ├── messages.rs     # Client/server messages
 │       ├── types.rs        # Shared data types
 │       └── codec.rs        # Serialization
-└── ccmux-utils/            # Shared utilities
+└── fugue-utils/            # Shared utilities
     ├── Cargo.toml
     └── src/
         ├── lib.rs
@@ -42,11 +42,11 @@ ccmux/
 
 ## Crate Descriptions
 
-### ccmux-client
+### fugue-client
 
 The terminal UI client. Renders pane contents and handles user input.
 
-**Binary**: `ccmux` (or `ccmux attach`)
+**Binary**: `fugue` (or `fugue attach`)
 
 **Key modules**:
 - `ui/`: Ratatui widget implementations
@@ -56,19 +56,19 @@ The terminal UI client. Renders pane contents and handles user input.
 **Dependencies**:
 ```toml
 [dependencies]
-ccmux-protocol = { path = "../ccmux-protocol" }
-ccmux-utils = { path = "../ccmux-utils" }
+fugue-protocol = { path = "../fugue-protocol" }
+fugue-utils = { path = "../fugue-utils" }
 ratatui = "0.29"
 crossterm = "0.28"
 tokio = { version = "1", features = ["full"] }
 tui-term = "0.2"  # vt100 → ratatui widget
 ```
 
-### ccmux-server
+### fugue-server
 
 The background daemon that manages PTYs, sessions, and persistence.
 
-**Binary**: `ccmux-server` (or `ccmux server`)
+**Binary**: `fugue-server` (or `fugue server`)
 
 **Key modules**:
 - `session/`: Session/window/pane hierarchy
@@ -81,8 +81,8 @@ The background daemon that manages PTYs, sessions, and persistence.
 **Dependencies**:
 ```toml
 [dependencies]
-ccmux-protocol = { path = "../ccmux-protocol" }
-ccmux-utils = { path = "../ccmux-utils" }
+fugue-protocol = { path = "../fugue-protocol" }
+fugue-utils = { path = "../fugue-utils" }
 portable-pty = "0.9"
 vt100 = "0.15"
 tokio = { version = "1", features = ["full"] }
@@ -95,7 +95,7 @@ serde = { version = "1", features = ["derive"] }
 uuid = { version = "1", features = ["v4"] }
 ```
 
-### ccmux-protocol
+### fugue-protocol
 
 Shared type definitions for client-server communication.
 
@@ -126,7 +126,7 @@ tokio-util = { version = "0.7", features = ["codec"] }
 bytes = "1"
 ```
 
-### ccmux-utils
+### fugue-utils
 
 Common utilities shared across crates.
 
@@ -150,7 +150,7 @@ directories = "5"
 
 ```
                     ┌─────────────────┐
-                    │  ccmux-client   │
+                    │  fugue-client   │
                     │    (binary)     │
                     └────────┬────────┘
                              │
@@ -158,25 +158,25 @@ directories = "5"
               │              │              │
               ▼              │              ▼
     ┌─────────────────┐      │     ┌─────────────────┐
-    │ ccmux-protocol  │◄─────┘     │  ccmux-utils    │
+    │ fugue-protocol  │◄─────┘     │  fugue-utils    │
     │   (library)     │            │   (library)     │
     └────────┬────────┘            └────────┬────────┘
              │                              │
              │    ┌─────────────────┐       │
-             └───►│  ccmux-server   │◄──────┘
+             └───►│  fugue-server   │◄──────┘
                   │    (binary)     │
                   └─────────────────┘
 ```
 
 **Dependency rules**:
-1. `ccmux-protocol` and `ccmux-utils` are leaf crates (no internal deps)
-2. `ccmux-client` depends on protocol and utils
-3. `ccmux-server` depends on protocol and utils
+1. `fugue-protocol` and `fugue-utils` are leaf crates (no internal deps)
+2. `fugue-client` depends on protocol and utils
+3. `fugue-server` depends on protocol and utils
 4. Client and server never depend on each other
 
 ## Public API Boundaries
 
-### ccmux-protocol (public)
+### fugue-protocol (public)
 
 Everything in this crate is public - it defines the contract:
 
@@ -187,7 +187,7 @@ pub use types::{SessionInfo, WindowInfo, PaneInfo, ClaudeState, PaneState};
 pub use codec::MessageCodec;
 ```
 
-### ccmux-utils (public)
+### fugue-utils (public)
 
 Common utilities exposed to all crates:
 
@@ -197,7 +197,7 @@ pub use paths::{socket_path, config_dir, state_dir};
 pub fn init_logging() -> Result<()>;
 ```
 
-### ccmux-server (internal)
+### fugue-server (internal)
 
 Server internals are not exposed. Only the binary entry point:
 
@@ -205,12 +205,12 @@ Server internals are not exposed. Only the binary entry point:
 // main.rs
 #[tokio::main]
 async fn main() -> Result<()> {
-    ccmux_utils::init_logging()?;
+    fugue_utils::init_logging()?;
     server::run().await
 }
 ```
 
-### ccmux-client (internal)
+### fugue-client (internal)
 
 Client internals are not exposed. Only the binary entry point:
 
@@ -218,7 +218,7 @@ Client internals are not exposed. Only the binary entry point:
 // main.rs
 #[tokio::main]
 async fn main() -> Result<()> {
-    ccmux_utils::init_logging()?;
+    fugue_utils::init_logging()?;
     client::run().await
 }
 ```
@@ -229,17 +229,17 @@ async fn main() -> Result<()> {
 [workspace]
 resolver = "2"
 members = [
-    "ccmux-client",
-    "ccmux-server",
-    "ccmux-protocol",
-    "ccmux-utils",
+    "fugue-client",
+    "fugue-server",
+    "fugue-protocol",
+    "fugue-utils",
 ]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/user/ccmux"
+repository = "https://github.com/user/fugue"
 
 [workspace.dependencies]
 # Shared version pins
@@ -295,7 +295,7 @@ tracing = "0.1"
 ### Features
 
 ```toml
-# ccmux-server/Cargo.toml
+# fugue-server/Cargo.toml
 [features]
 default = []
 mcp = ["rmcp"]  # Optional MCP server support
@@ -318,16 +318,16 @@ debug = true
 ## Testing Strategy
 
 ```
-ccmux/
-├── ccmux-client/
+fugue/
+├── fugue-client/
 │   └── tests/
 │       └── ui_tests.rs       # Widget rendering tests
-├── ccmux-server/
+├── fugue-server/
 │   └── tests/
 │       ├── session_tests.rs  # Session management
 │       ├── pty_tests.rs      # PTY integration
 │       └── claude_tests.rs   # Claude detection
-├── ccmux-protocol/
+├── fugue-protocol/
 │   └── tests/
 │       └── codec_tests.rs    # Serialization roundtrip
 └── tests/                    # Workspace-level integration tests

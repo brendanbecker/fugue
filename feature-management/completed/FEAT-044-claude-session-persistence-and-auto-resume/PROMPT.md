@@ -1,7 +1,7 @@
 # FEAT-044: Claude Session Persistence and Auto-Resume
 
 **Priority**: P1
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: large
 **Business Value**: high
@@ -10,11 +10,11 @@
 
 ## Overview
 
-When ccmux server restarts, Claude instances running in panes lose their conversation context. This feature enables ccmux to track Claude session IDs and automatically resume them on server restart, preserving AI conversation continuity.
+When fugue server restarts, Claude instances running in panes lose their conversation context. This feature enables fugue to track Claude session IDs and automatically resume them on server restart, preserving AI conversation continuity.
 
 ## Problem Statement
 
-Currently when ccmux server is killed (for updates, crashes, etc.):
+Currently when fugue server is killed (for updates, crashes, etc.):
 - Session/window/pane structure is preserved (WAL persistence via FEAT-016)
 - PTY processes die (shells, Claude instances)
 - On reattach, new shells spawn but Claude has no memory of previous conversation
@@ -23,7 +23,7 @@ Currently when ccmux server is killed (for updates, crashes, etc.):
 ### Current Behavior
 
 ```
-[ccmux server running]
+[fugue server running]
   -> Pane 1: Claude in conversation about feature X
   -> Pane 2: Claude working on bug Y
 
@@ -38,7 +38,7 @@ Currently when ccmux server is killed (for updates, crashes, etc.):
 ### Desired Behavior
 
 ```
-[ccmux server running]
+[fugue server running]
   -> Pane 1: Claude in conversation about feature X (session-id: abc123)
   -> Pane 2: Claude working on bug Y (session-id: def456)
 
@@ -86,7 +86,7 @@ Currently when ccmux server is killed (for updates, crashes, etc.):
 ### Part 3: Persistent Session Flag (Optional Enhancement)
 
 1. **Mark Sessions as Persistent**
-   - New MCP tool: `ccmux_mark_persistent` or similar
+   - New MCP tool: `fugue_mark_persistent` or similar
    - Persistent sessions get priority treatment
    - Could be used for "Orchestrator" pattern
 
@@ -110,7 +110,7 @@ Relevant Claude CLI flags for this feature:
 ### Option A: Proactive Session ID Assignment
 
 **Flow**:
-1. ccmux detects pane command contains "claude"
+1. fugue detects pane command contains "claude"
 2. Generates UUID before launching
 3. Launches `claude --session-id <uuid>` (injects the flag)
 4. Stores UUID in pane metadata immediately
@@ -167,12 +167,12 @@ Relevant Claude CLI flags for this feature:
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/session/pane.rs` | Add `claude_session_id: Option<String>` field |
-| `ccmux-server/src/persistence/` | Serialize/deserialize claude_session_id |
-| `ccmux-server/src/pty/` | Command modification for session-id injection |
-| `ccmux-server/src/pty/` | Restore with `--resume` on restart |
-| `ccmux-server/src/mcp/` | Tools for marking sessions as persistent (optional) |
-| `ccmux-protocol/src/messages.rs` | Add session metadata to pane info messages |
+| `fugue-server/src/session/pane.rs` | Add `claude_session_id: Option<String>` field |
+| `fugue-server/src/persistence/` | Serialize/deserialize claude_session_id |
+| `fugue-server/src/pty/` | Command modification for session-id injection |
+| `fugue-server/src/pty/` | Restore with `--resume` on restart |
+| `fugue-server/src/mcp/` | Tools for marking sessions as persistent (optional) |
+| `fugue-protocol/src/messages.rs` | Add session metadata to pane info messages |
 
 ## Use Cases
 
@@ -267,10 +267,10 @@ Claude: "Continuing from where I was..."
 - [ ] Consider config option for fallback behavior
 
 ### Section 6: MCP Tools (Optional)
-- [ ] Add `ccmux_mark_persistent` tool to mark panes for priority restore
-- [ ] Add `ccmux_get_claude_session` tool to query session ID
-- [ ] Add `ccmux_set_claude_session` tool to manually set session ID
-- [ ] Update `ccmux_list_panes` to include claude_session_id
+- [ ] Add `fugue_mark_persistent` tool to mark panes for priority restore
+- [ ] Add `fugue_get_claude_session` tool to query session ID
+- [ ] Add `fugue_set_claude_session` tool to manually set session ID
+- [ ] Update `fugue_list_panes` to include claude_session_id
 
 ### Section 7: Configuration
 - [ ] Add config option: `claude.auto_assign_session_id: bool`

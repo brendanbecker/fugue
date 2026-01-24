@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-047",
-  "title": "Add ccmux_set_environment MCP tool",
-  "component": "ccmux-server (MCP)",
+  "title": "Add fugue_set_environment MCP tool",
+  "component": "fugue-server (MCP)",
   "priority": "P1",
   "status": "new",
   "type": "new_feature",
@@ -11,7 +11,7 @@
   "tags": ["session-management", "enhancement"],
   "estimated_effort": "medium",
   "dependencies": [],
-  "description": "Allow setting environment variables on a session that will be inherited by panes/processes. Gas Town sets environment variables on tmux sessions using `tmux set-environment -t <session> KEY VALUE`. Critical variables include GT_RIG, GT_POLECAT, BEADS_DIR, BEADS_NO_DAEMON, and BEADS_AGENT_NAME. ccmux currently has no mechanism to store or propagate session-level environment variables.",
+  "description": "Allow setting environment variables on a session that will be inherited by panes/processes. Gas Town sets environment variables on tmux sessions using `tmux set-environment -t <session> KEY VALUE`. Critical variables include GT_RIG, GT_POLECAT, BEADS_DIR, BEADS_NO_DAEMON, and BEADS_AGENT_NAME. fugue currently has no mechanism to store or propagate session-level environment variables.",
   "business_value": "high",
   "technical_complexity": "medium",
   "user_impact": "Enables Gas Town integration by allowing session-level environment variable propagation to spawned panes and processes"

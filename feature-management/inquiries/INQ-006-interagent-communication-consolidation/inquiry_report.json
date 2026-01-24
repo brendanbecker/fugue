@@ -7,8 +7,8 @@
   "phase": "research",
   "created_date": "2026-01-22",
   "updated_date": "2026-01-22",
-  "question": "How should ccmux consolidate its multiple inter-agent communication mechanisms into a reliable, coherent system?",
-  "context": "ccmux has accumulated multiple overlapping mechanisms for agent-to-agent communication (send_orchestration, report_status, request_help, poll_messages, broadcast, tag routing, watchdog timer). None are end-to-end reliable - BUG-069 shows messages claiming delivery but never being received. The mental model is unclear and documentation describes patterns that don't work.",
+  "question": "How should fugue consolidate its multiple inter-agent communication mechanisms into a reliable, coherent system?",
+  "context": "fugue has accumulated multiple overlapping mechanisms for agent-to-agent communication (send_orchestration, report_status, request_help, poll_messages, broadcast, tag routing, watchdog timer). None are end-to-end reliable - BUG-069 shows messages claiming delivery but never being received. The mental model is unclear and documentation describes patterns that don't work.",
   "constraints": [
     "Must work reliably - no false success responses",
     "Must be testable - integration tests proving end-to-end flow",

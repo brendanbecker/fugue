@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-030",
   "title": "Sideband Pane Splitting - Execute spawn Commands via Sideband Protocol",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P1",
   "status": "new",
   "type": "new_feature",
@@ -11,7 +11,7 @@
   "tags": ["server", "sideband", "session-management", "claude-integration"],
   "estimated_effort": "medium",
   "dependencies": ["FEAT-019", "FEAT-012", "FEAT-013"],
-  "description": "Complete the execute_spawn function in the sideband executor to actually split panes when Claude outputs <ccmux:spawn /> commands. Currently the parser and command types exist but execution is a TODO stub.",
+  "description": "Complete the execute_spawn function in the sideband executor to actually split panes when Claude outputs <fugue:spawn /> commands. Currently the parser and command types exist but execution is a TODO stub.",
   "business_value": "high",
   "technical_complexity": "medium",
   "user_impact": "Enables Claude to dynamically create new terminal panes by outputting sideband commands, allowing parallel task execution and improved workflow automation"

@@ -1,7 +1,7 @@
 # Document Parsing Summary
 
 > Generated: 2026-01-07
-> Stage 3 of ccmux development pipeline
+> Stage 3 of fugue development pipeline
 
 ## Documents Processed
 
@@ -87,7 +87,7 @@ All three sources agree on:
 - **MCP integration**: Gemini emphasizes MCP server approach; others focus on sideband protocol
 
 ### Unique Contributions
-- **Claude**: XML-like namespaced protocol (`<ccmux:spawn>`), SKILL.md definition, okaywal WAL
+- **Claude**: XML-like namespaced protocol (`<fugue:spawn>`), SKILL.md definition, okaywal WAL
 - **Gemini**: Visual telemetry states (Channelling, Synthesizing, Discombobulating), `arc_swap` pattern
 - **ChatGPT**: Detailed CLI flag reference, concurrent session isolation via HOME directories
 

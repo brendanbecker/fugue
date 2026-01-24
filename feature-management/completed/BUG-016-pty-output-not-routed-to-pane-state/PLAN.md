@@ -1,7 +1,7 @@
 # Implementation Plan: BUG-016
 
 **Work Item**: [BUG-016: PTY output not routed to pane state](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P1
 **Created**: 2026-01-10
 
@@ -48,10 +48,10 @@ Pass a reference to the specific pane at spawn time.
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/pty/output.rs | Primary - add SessionManager access, call pane.process() | Medium |
-| ccmux-server/src/pty/mod.rs | Add SessionManager to spawn functions | Low |
-| ccmux-server/src/session/manager.rs | May need additional lookup methods | Low |
-| ccmux-server/src/server/main.rs | Pass SessionManager to output pollers | Low |
+| fugue-server/src/pty/output.rs | Primary - add SessionManager access, call pane.process() | Medium |
+| fugue-server/src/pty/mod.rs | Add SessionManager to spawn functions | Low |
+| fugue-server/src/session/manager.rs | May need additional lookup methods | Low |
+| fugue-server/src/server/main.rs | Pass SessionManager to output pollers | Low |
 
 ## Implementation Details
 

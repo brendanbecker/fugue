@@ -4,13 +4,13 @@
 
 ## Overview
 
-ccmux must survive terminal crashes, SSH disconnects, and system reboots. The persistence layer combines periodic checkpoints with a write-ahead log (WAL) to provide durable state with minimal data loss.
+fugue must survive terminal crashes, SSH disconnects, and system reboots. The persistence layer combines periodic checkpoints with a write-ahead log (WAL) to provide durable state with minimal data loss.
 
 ## Storage Layout
 
 ```
-~/.ccmux/
-├── ccmux.sock              # Unix socket (not persisted)
+~/.fugue/
+├── fugue.sock              # Unix socket (not persisted)
 ├── sessions/
 │   ├── state.bin           # Latest checkpoint
 │   ├── state.bin.tmp       # Atomic write temp file
@@ -23,7 +23,7 @@ ccmux must survive terminal crashes, SSH disconnects, and system reboots. The pe
 │   └── pane-<uuid>/
 │       └── .claude.json
 └── config/
-    └── ccmux.toml          # User configuration
+    └── fugue.toml          # User configuration
 ```
 
 ## Hybrid Persistence Strategy
@@ -497,7 +497,7 @@ impl Server {
 ### Configurable Limits
 
 ```toml
-# ~/.ccmux/config/ccmux.toml
+# ~/.fugue/config/fugue.toml
 
 [persistence]
 checkpoint_interval_secs = 30

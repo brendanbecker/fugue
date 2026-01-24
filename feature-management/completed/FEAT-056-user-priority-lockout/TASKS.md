@@ -8,8 +8,8 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Review existing input handling in ccmux-client/src/input/mod.rs
-- [ ] Review MCP handlers in ccmux-server/src/mcp/handlers.rs
+- [ ] Review existing input handling in fugue-client/src/input/mod.rs
+- [ ] Review MCP handlers in fugue-server/src/mcp/handlers.rs
 - [ ] Understand PrefixPending state machine in client
 
 ## Design Tasks
@@ -22,14 +22,14 @@
 
 ## Implementation Tasks
 
-### Protocol Changes (ccmux-protocol)
+### Protocol Changes (fugue-protocol)
 - [ ] Add `UserCommandModeEntered { timeout_ms: u32 }` to ClientMessage enum
 - [ ] Add `UserCommandModeExited` to ClientMessage enum
 - [ ] Update serde derives for new variants
 - [ ] Add unit tests for message serialization
 - [ ] Add unit tests for message deserialization
 
-### Server State (ccmux-server/src/session/)
+### Server State (fugue-server/src/session/)
 - [ ] Create `user_priority.rs` module
 - [ ] Implement `UserPriorityState` struct
 - [ ] Implement `is_any_active()` method
@@ -41,7 +41,7 @@
 - [ ] Add RwLock wrapper for thread-safe access
 - [ ] Add state to server or session manager
 
-### Client Message Handler (ccmux-server)
+### Client Message Handler (fugue-server)
 - [ ] Handle `UserCommandModeEntered` message
 - [ ] Validate timeout_ms is reasonable (e.g., 100-5000)
 - [ ] Call `set_lock()` with client ID and duration
@@ -50,19 +50,19 @@
 - [ ] Add logging for lock state changes
 - [ ] Handle client disconnect (release any held lock)
 
-### MCP Handler Updates (ccmux-server/src/mcp/handlers.rs)
+### MCP Handler Updates (fugue-server/src/mcp/handlers.rs)
 - [ ] Add `check_user_priority()` helper method
 - [ ] Implement reject behavior
 - [ ] Implement wait behavior with timeout
 - [ ] Implement warn behavior (log + continue)
-- [ ] Add lock check to `ccmux_focus_pane` handler
-- [ ] Add lock check to `ccmux_select_window` handler
-- [ ] Add lock check to `ccmux_select_session` handler
+- [ ] Add lock check to `fugue_focus_pane` handler
+- [ ] Add lock check to `fugue_select_window` handler
+- [ ] Add lock check to `fugue_select_session` handler
 - [ ] Create `McpError::UserPriorityActive` variant
 - [ ] Create `McpError::UserPriorityTimeout` variant
 - [ ] Format error response with retry_after_ms
 
-### Configuration (ccmux-server/src/config.rs)
+### Configuration (fugue-server/src/config.rs)
 - [ ] Add `UserPriorityConfig` struct
 - [ ] Add `enabled: bool` field (default: true)
 - [ ] Add `behavior: UserPriorityBehavior` enum field
@@ -72,7 +72,7 @@
 - [ ] Add serde deserialization
 - [ ] Add default values
 
-### Client Input Integration (ccmux-client/src/input/mod.rs)
+### Client Input Integration (fugue-client/src/input/mod.rs)
 - [ ] Locate prefix key handling code
 - [ ] Add message sending capability to input handler
 - [ ] Send `UserCommandModeEntered` when entering PrefixPending
@@ -82,7 +82,7 @@
 - [ ] Send `UserCommandModeExited` on Escape/cancel in prefix mode
 - [ ] Handle send errors gracefully (log, don't crash)
 
-### Client App Integration (ccmux-client/src/ui/app.rs)
+### Client App Integration (fugue-client/src/ui/app.rs)
 - [ ] Ensure input handler has access to connection/channel
 - [ ] Wire up message sending path
 - [ ] Test message flow from input to server

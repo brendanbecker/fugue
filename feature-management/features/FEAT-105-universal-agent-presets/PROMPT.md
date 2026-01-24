@@ -12,7 +12,7 @@ Extend the preset system (FEAT-071) to support any agent harness, not just Claud
 1. **Which harness** to use (claude, gemini, codex, shell, custom)
 2. **Harness-specific configuration** (model, flags, system prompt, etc.)
 
-This aligns with ccmux's agent-agnostic "dumb pipe" philosophy (ADR-001).
+This aligns with fugue's agent-agnostic "dumb pipe" philosophy (ADR-001).
 
 ## Current State
 
@@ -137,7 +137,7 @@ pub struct CustomHarnessConfig {
 
 ## MCP Tool Changes
 
-`ccmux_create_pane` already has `preset` parameter. Enhance it to:
+`fugue_create_pane` already has `preset` parameter. Enhance it to:
 
 1. Look up preset by name
 2. Determine harness type
@@ -146,7 +146,7 @@ pub struct CustomHarnessConfig {
 
 ```json
 {
-  "tool": "ccmux_create_pane",
+  "tool": "fugue_create_pane",
   "input": {
     "preset": "watchdog",
     "cwd": "/home/user/project"
@@ -195,14 +195,14 @@ Default presets if not specified:
 
 - [ ] `AgentPreset` schema supports multiple harness types
 - [ ] Backwards compatible with FEAT-071 Claude-only presets
-- [ ] `ccmux_create_pane(preset: "name")` spawns correct harness with config
+- [ ] `fugue_create_pane(preset: "name")` spawns correct harness with config
 - [ ] Claude, Gemini, Codex, shell harnesses implemented
 - [ ] Custom harness allows arbitrary commands
 - [ ] `/orchestrate` skill uses presets for workers and watchdog
 - [ ] Documentation updated with preset examples
 - [ ] Tests for each harness type
 - [ ] `DelegationConfig` schema with strategy and pool
-- [ ] `ccmux_select_worker` MCP tool returns preset according to delegation strategy
+- [ ] `fugue_select_worker` MCP tool returns preset according to delegation strategy
 - [ ] Random and round-robin strategies implemented
 
 ## Delegation Strategy
@@ -238,11 +238,11 @@ pub struct DelegationConfig {
 
 ### MCP Tool Addition
 
-Add `ccmux_select_worker` tool for orchestrators:
+Add `fugue_select_worker` tool for orchestrators:
 
 ```json
 {
-  "tool": "ccmux_select_worker",
+  "tool": "fugue_select_worker",
   "input": {}
 }
 // Returns: { "preset": "gemini-worker", "harness": "gemini" }
@@ -253,7 +253,7 @@ This reads the delegation config and returns the next preset according to strate
 ## Example Config
 
 ```toml
-# ~/.ccmux/config.toml
+# ~/.fugue/config.toml
 
 [delegation]
 strategy = "random"

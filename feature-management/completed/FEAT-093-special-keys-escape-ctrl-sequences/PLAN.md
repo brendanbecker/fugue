@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-093
 
 **Work Item**: [FEAT-093: Add support for sending special keys](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P2
 **Created**: 2026-01-16
 
@@ -11,7 +11,7 @@ Add capability to send special keys (Escape, Ctrl sequences, function keys, arro
 
 ## Architecture Decisions
 
-### Recommendation: Option 1 - New `ccmux_press_key` Tool
+### Recommendation: Option 1 - New `fugue_press_key` Tool
 
 **Rationale**:
 1. **Separation of concerns**: Text input and key presses are semantically different operations
@@ -32,17 +32,17 @@ Use crossterm-compatible key names for consistency with existing TUI code:
 
 | Component | Changes |
 |-----------|---------|
-| `ccmux-protocol/src/types.rs` | Add `PressKey` message variant |
-| `ccmux-server/src/handlers/mcp.rs` | Add `ccmux_press_key` tool handler |
-| `ccmux-server/src/keys.rs` (new) | Key name parsing and escape sequence generation |
+| `fugue-protocol/src/types.rs` | Add `PressKey` message variant |
+| `fugue-server/src/handlers/mcp.rs` | Add `fugue_press_key` tool handler |
+| `fugue-server/src/keys.rs` (new) | Key name parsing and escape sequence generation |
 
 ## Affected Components
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-protocol | Add message type | Low |
-| ccmux-server/handlers/mcp.rs | Add tool handler | Low |
-| ccmux-server (new keys.rs) | New module | Low |
+| fugue-protocol | Add message type | Low |
+| fugue-server/handlers/mcp.rs | Add tool handler | Low |
+| fugue-server (new keys.rs) | New module | Low |
 
 ## Dependencies
 

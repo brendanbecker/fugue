@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-067",
   "title": "Client TCP connection support",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "priority": "P2",
   "status": "new",
   "type": "new_feature",
@@ -11,8 +11,8 @@
   "tags": ["networking", "enhancement", "remote", "client"],
   "estimated_effort": "small",
   "dependencies": ["FEAT-066"],
-  "description": "Add TCP connection capability to the ccmux client (ccmux-client), enabling it to connect to remote daemons over TCP in addition to the default Unix socket. This is Phase 2 of remote peering support, completing the remote workflow by allowing clients to connect to TCP-enabled daemons.",
+  "description": "Add TCP connection capability to the fugue client (fugue-client), enabling it to connect to remote daemons over TCP in addition to the default Unix socket. This is Phase 2 of remote peering support, completing the remote workflow by allowing clients to connect to TCP-enabled daemons.",
   "business_value": "high",
   "technical_complexity": "low",
-  "user_impact": "Enables remote workflows and cross-machine ccmux control. When combined with FEAT-066, allows users to connect ccmux client to remote daemons via SSH tunnels, enabling seamless remote session management."
+  "user_impact": "Enables remote workflows and cross-machine fugue control. When combined with FEAT-066, allows users to connect fugue client to remote daemons via SSH tunnels, enabling seamless remote session management."
 }

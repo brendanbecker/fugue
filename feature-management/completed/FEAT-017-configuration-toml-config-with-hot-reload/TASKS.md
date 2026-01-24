@@ -41,10 +41,10 @@
 
 ### XDG Compliance
 - [x] Implement config_path() function
-- [x] Check CCMUX_CONFIG env var
+- [x] Check FUGUE_CONFIG env var
 - [x] Check XDG_CONFIG_HOME
-- [x] Check ~/.config/ccmux/
-- [x] Check /etc/ccmux/
+- [x] Check ~/.config/fugue/
+- [x] Check /etc/fugue/
 - [x] Return first existing path or default
 
 ### Hot Reload

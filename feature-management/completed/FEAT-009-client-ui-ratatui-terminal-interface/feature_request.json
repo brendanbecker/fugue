@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-009",
   "title": "Client UI - Ratatui Terminal Interface",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "priority": "P1",
   "status": "new",
   "type": "new_feature",
@@ -14,5 +14,5 @@
   "description": "Ratatui-based terminal UI with pane rendering using tui-term, status bar, borders, and Claude state indicators.",
   "business_value": "high",
   "technical_complexity": "high",
-  "user_impact": "Provides the primary user interface for interacting with ccmux, enabling visual management of multiple Claude sessions with real-time state feedback"
+  "user_impact": "Provides the primary user interface for interacting with fugue, enabling visual management of multiple Claude sessions with real-time state feedback"
 }

@@ -9,7 +9,7 @@
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
 - [ ] Verify FEAT-066 is completed or has testable TCP daemon
-- [ ] Identify affected code paths in ccmux-client
+- [ ] Identify affected code paths in fugue-client
 
 ## Design Tasks
 
@@ -22,8 +22,8 @@
 ## CLI and Configuration Tasks
 
 - [ ] Add `--addr` flag to clap Args struct in main.rs
-- [ ] Add `CCMUX_ADDR` environment variable support
-- [ ] Set default to `unix://~/.ccmux/ccmux.sock`
+- [ ] Add `FUGUE_ADDR` environment variable support
+- [ ] Set default to `unix://~/.fugue/fugue.sock`
 - [ ] Test CLI flag parsing with various inputs
 - [ ] Verify environment variable takes precedence correctly
 
@@ -65,9 +65,9 @@
 ## Testing Tasks
 
 - [ ] Test `tcp://localhost:9999` connection
-- [ ] Test `unix://~/.ccmux/ccmux.sock` connection (backward compat)
+- [ ] Test `unix://~/.fugue/fugue.sock` connection (backward compat)
 - [ ] Test with explicit Unix path (no scheme)
-- [ ] Test `CCMUX_ADDR` environment variable
+- [ ] Test `FUGUE_ADDR` environment variable
 - [ ] Test CLI flag override of environment variable
 - [ ] Test connection to FEAT-066 TCP daemon
 - [ ] Test error cases (daemon not running, wrong port)
@@ -76,7 +76,7 @@
 ## Documentation Tasks
 
 - [ ] Update `--help` text for `--addr` flag
-- [ ] Document `CCMUX_ADDR` environment variable
+- [ ] Document `FUGUE_ADDR` environment variable
 - [ ] Add usage examples (TCP and Unix)
 - [ ] Add SSH tunnel workflow example
 - [ ] Update comments in code where needed

@@ -1,7 +1,7 @@
 # FEAT-039: MCP Pane Creation Broadcast - Sync TUI Clients on MCP Splits
 
 **Priority**: P1
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: enhancement
 **Estimated Effort**: small
 **Business Value**: high
@@ -9,11 +9,11 @@
 
 ## Overview
 
-When panes are created via MCP tools (e.g., `ccmux_create_pane`), TUI clients attached to the same session don't see the split because the server doesn't broadcast the `PaneCreated` message to them. This breaks the multi-client experience where MCP and TUI clients should stay in sync.
+When panes are created via MCP tools (e.g., `fugue_create_pane`), TUI clients attached to the same session don't see the split because the server doesn't broadcast the `PaneCreated` message to them. This breaks the multi-client experience where MCP and TUI clients should stay in sync.
 
 ## Problem Statement
 
-The `handle_create_pane_with_options` function in `ccmux-server/src/handlers/mcp_bridge.rs` returns `HandlerResult::Response(ServerMessage::PaneCreatedWithDetails {...})` instead of `HandlerResult::ResponseWithBroadcast`. This means:
+The `handle_create_pane_with_options` function in `fugue-server/src/handlers/mcp_bridge.rs` returns `HandlerResult::Response(ServerMessage::PaneCreatedWithDetails {...})` instead of `HandlerResult::ResponseWithBroadcast`. This means:
 
 1. **MCP client receives**: The `PaneCreatedWithDetails` response with full details
 2. **TUI clients receive**: Nothing - they are unaware a new pane was created
@@ -21,7 +21,7 @@ The `handle_create_pane_with_options` function in `ccmux-server/src/handlers/mcp
 
 ## Root Cause
 
-In `ccmux-server/src/handlers/mcp_bridge.rs` around line 356:
+In `fugue-server/src/handlers/mcp_bridge.rs` around line 356:
 
 ```rust
 HandlerResult::Response(ServerMessage::PaneCreatedWithDetails {
@@ -33,7 +33,7 @@ HandlerResult::Response(ServerMessage::PaneCreatedWithDetails {
 })
 ```
 
-This returns only a `Response`, not a `ResponseWithBroadcast`. Compare with the regular pane handler in `ccmux-server/src/handlers/pane.rs` around line 119:
+This returns only a `Response`, not a `ResponseWithBroadcast`. Compare with the regular pane handler in `fugue-server/src/handlers/pane.rs` around line 119:
 
 ```rust
 HandlerResult::ResponseWithBroadcast {
@@ -104,11 +104,11 @@ The pane index is needed for `PaneInfo`. The `create_pane` method on `Window` re
 
 | File | Change |
 |------|--------|
-| `ccmux-server/src/handlers/mcp_bridge.rs` | Change `handle_create_pane_with_options` return type to include broadcast |
+| `fugue-server/src/handlers/mcp_bridge.rs` | Change `handle_create_pane_with_options` return type to include broadcast |
 
 ## Reference Implementation
 
-See `ccmux-server/src/handlers/pane.rs:handle_create_pane()` for the correct pattern:
+See `fugue-server/src/handlers/pane.rs:handle_create_pane()` for the correct pattern:
 
 ```rust
 // Broadcast to all clients attached to this session
@@ -138,15 +138,15 @@ HandlerResult::ResponseWithBroadcast {
 - [ ] Verify no regression in existing MCP functionality
 
 ### Section 3: Verification
-- [ ] Start ccmux server
+- [ ] Start fugue server
 - [ ] Attach TUI client to a session
-- [ ] Use MCP tool to create a pane (e.g., `ccmux_create_pane`)
+- [ ] Use MCP tool to create a pane (e.g., `fugue_create_pane`)
 - [ ] Verify TUI client immediately shows the new pane split
 - [ ] Verify pane navigation works for the new pane
 
 ## Acceptance Criteria
 
-- [ ] MCP `ccmux_create_pane` still returns `PaneCreatedWithDetails` to the MCP client
+- [ ] MCP `fugue_create_pane` still returns `PaneCreatedWithDetails` to the MCP client
 - [ ] TUI clients attached to the session receive `PaneCreated` broadcast
 - [ ] TUI split pane rendering (FEAT-038) updates to show MCP-created panes
 - [ ] No changes required in client code (existing `PaneCreated` handler works)

@@ -1,38 +1,38 @@
 # FEAT-067: Client TCP connection support
 
 **Priority**: P2
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: new_feature
 **Estimated Effort**: small
 **Business Value**: high
 
 ## Overview
 
-Add TCP connection capability to the ccmux client (ccmux-client), enabling it to connect to remote daemons over TCP in addition to the default Unix socket. This is Phase 2 of remote peering support.
+Add TCP connection capability to the fugue client (fugue-client), enabling it to connect to remote daemons over TCP in addition to the default Unix socket. This is Phase 2 of remote peering support.
 
 ## Problem Statement
 
-The ccmux client currently only connects via Unix domain socket. With FEAT-066 adding TCP listener support to the daemon, the client needs corresponding TCP connection capability to complete the remote workflow.
+The fugue client currently only connects via Unix domain socket. With FEAT-066 adding TCP listener support to the daemon, the client needs corresponding TCP connection capability to complete the remote workflow.
 
 Without this feature, users cannot:
 - Connect to remote daemons over TCP
-- Use SSH tunnels for remote ccmux control
+- Use SSH tunnels for remote fugue control
 - Leverage FEAT-066's TCP listener functionality
 
 ## Requested Feature
 
-- Add `--addr` flag to ccmux-client for specifying connection address
+- Add `--addr` flag to fugue-client for specifying connection address
 - Support `tcp://host:port` and `unix://path` URL formats
 - Maintain backward compatibility (default to Unix socket)
-- Support `CCMUX_ADDR` environment variable for configuration
+- Support `FUGUE_ADDR` environment variable for configuration
 
 ## Implementation Tasks
 
 ### Section 1: CLI and Configuration
 - [ ] Add `--addr` flag to client CLI (clap)
-- [ ] Support `CCMUX_ADDR` environment variable
+- [ ] Support `FUGUE_ADDR` environment variable
 - [ ] Parse connection URLs (tcp://host:port, unix://path)
-- [ ] Default to `unix://~/.ccmux/ccmux.sock` if not specified
+- [ ] Default to `unix://~/.fugue/fugue.sock` if not specified
 
 ### Section 2: Connection Logic
 - [ ] Implement TCP connection using `tokio::net::TcpStream`
@@ -49,19 +49,19 @@ Without this feature, users cannot:
 ### Section 4: Testing
 - [ ] Test `tcp://localhost:9999` connections
 - [ ] Test `unix://` connections (backward compat)
-- [ ] Test `CCMUX_ADDR` environment variable
+- [ ] Test `FUGUE_ADDR` environment variable
 - [ ] Test connection errors and error messages
 - [ ] Test with FEAT-066 TCP daemon
 
 ### Section 5: Documentation
 - [ ] Document `--addr` flag usage
-- [ ] Document `CCMUX_ADDR` environment variable
+- [ ] Document `FUGUE_ADDR` environment variable
 - [ ] Add examples for SSH tunnel workflow
 - [ ] Update help text
 
 ## Acceptance Criteria
 
-- [ ] Client accepts `--addr` flag or `CCMUX_ADDR` env var
+- [ ] Client accepts `--addr` flag or `FUGUE_ADDR` env var
 - [ ] Client can connect via `tcp://host:port`
 - [ ] Client can still connect via Unix socket (default)
 - [ ] Bincode messages work over TCP
@@ -85,25 +85,25 @@ Without this feature, users cannot:
 
 ## Related Files
 
-- `ccmux-client/src/main.rs` - CLI flag parsing
-- `ccmux-client/src/client.rs` - Connection logic
+- `fugue-client/src/main.rs` - CLI flag parsing
+- `fugue-client/src/client.rs` - Connection logic
 
 ## Notes
 
-This is Phase 2 from `ccmux-tcp-implementation-plan.md`. Combined with FEAT-066, this enables SSH tunnel workflows where daemon runs on remote host and client connects via `ssh -L` port forwarding.
+This is Phase 2 from `fugue-tcp-implementation-plan.md`. Combined with FEAT-066, this enables SSH tunnel workflows where daemon runs on remote host and client connects via `ssh -L` port forwarding.
 
 **Example Workflow:**
 ```bash
 # On remote machine (polecats):
-ccmux-server --listen-tcp 127.0.0.1:9999
+fugue-server --listen-tcp 127.0.0.1:9999
 
 # On local machine (Mayor):
 ssh -L 9999:127.0.0.1:9999 polecats -N &
-ccmux-client --addr tcp://localhost:9999 list-sessions
+fugue-client --addr tcp://localhost:9999 list-sessions
 
 # Or using environment variable:
-export CCMUX_ADDR=tcp://localhost:9999
-ccmux-client list-sessions
+export FUGUE_ADDR=tcp://localhost:9999
+fugue-client list-sessions
 ```
 
 ## Implementation Guidance

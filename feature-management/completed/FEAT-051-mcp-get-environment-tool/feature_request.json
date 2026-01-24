@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-051",
-  "title": "Add ccmux_get_environment MCP tool",
-  "component": "ccmux-server (MCP)",
+  "title": "Add fugue_get_environment MCP tool",
+  "component": "fugue-server (MCP)",
   "priority": "P2",
   "status": "new",
   "type": "new_feature",
@@ -11,7 +11,7 @@
   "tags": ["mcp", "session-management", "enhancement"],
   "estimated_effort": "small",
   "dependencies": [],
-  "description": "Allow reading environment variables from a session via MCP. Gas Town reads environment variables using `tmux show-environment -t <session> KEY`. This tool provides parity with ccmux_set_environment and is useful for debugging and session introspection.",
+  "description": "Allow reading environment variables from a session via MCP. Gas Town reads environment variables using `tmux show-environment -t <session> KEY`. This tool provides parity with fugue_set_environment and is useful for debugging and session introspection.",
   "business_value": "medium",
   "technical_complexity": "low",
   "user_impact": "Enables MCP clients to inspect session environment variables for debugging, verification, and workflow automation"

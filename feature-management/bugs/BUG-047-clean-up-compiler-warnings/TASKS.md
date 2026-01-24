@@ -1,6 +1,6 @@
 # Task Breakdown: BUG-047
 
-**Work Item**: [BUG-047: Clean up compiler warnings across ccmux crates](PROMPT.md)
+**Work Item**: [BUG-047: Clean up compiler warnings across fugue crates](PROMPT.md)
 **Status**: Completed
 **Last Updated**: 2026-01-18
 
@@ -22,11 +22,11 @@
 
 - [x] Find all uses: `rg "PaneState::Claude" --type rust`
 - [x] Replace with `PaneState::Agent` at each location:
-  - [x] ccmux-protocol/src/types.rs:527
-  - [x] ccmux-client/src/ui/app.rs:1882
-  - [x] ccmux-server/src/handlers/mcp_bridge.rs:57
-  - [x] ccmux-server/src/persistence/restoration.rs:308
-  - [x] ccmux-server/src/persistence/restoration.rs:354
+  - [x] fugue-protocol/src/types.rs:527
+  - [x] fugue-client/src/ui/app.rs:1882
+  - [x] fugue-server/src/handlers/mcp_bridge.rs:57
+  - [x] fugue-server/src/persistence/restoration.rs:308
+  - [x] fugue-server/src/persistence/restoration.rs:354
 - [x] Run `cargo check` to verify deprecation warnings gone
 - [x] Run `cargo test` to ensure no breakage
 - [x] Commit: "fix: replace deprecated PaneState::Claude with PaneState::Agent"
@@ -87,7 +87,7 @@ For each dead code item, decide: REMOVE, KEEP (with allow), or WIRE UP
 - [x] Fix agents/claude/mod.rs:67: `text` -> `_text` or remove
 - [x] Fix handlers/pane.rs:469: `pane` -> `_pane` or remove
 - [x] Fix mcp/handlers.rs:1112: `split_direction` -> `_split_direction` or remove
-- [x] Fix ccmux-client/src/ui/app.rs:2213: `ui_pane` -> `_ui_pane` or remove
+- [x] Fix fugue-client/src/ui/app.rs:2213: `ui_pane` -> `_ui_pane` or remove
 - [x] Run `cargo check` to verify unused variable warnings resolved
 - [x] Commit: "fix: prefix unused variables with underscore"
 

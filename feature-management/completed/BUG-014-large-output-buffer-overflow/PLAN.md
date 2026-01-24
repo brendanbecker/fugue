@@ -72,10 +72,10 @@ This is a key observation. Possible explanations:
 
 | File | Purpose | Risk Level |
 |------|---------|------------|
-| `ccmux-server/src/pty/output.rs` | PTY output polling | High |
-| `ccmux-server/src/handlers/` | Broadcast handling | High |
-| `ccmux-client/src/ui/app.rs` | Main TUI loop | High |
-| `ccmux-client/src/terminal/` | Terminal emulator (if exists) | High |
+| `fugue-server/src/pty/output.rs` | PTY output polling | High |
+| `fugue-server/src/handlers/` | Broadcast handling | High |
+| `fugue-client/src/ui/app.rs` | Main TUI loop | High |
+| `fugue-client/src/terminal/` | Terminal emulator (if exists) | High |
 | Screen buffer implementation | Scrollback storage | Critical |
 | Attach handler | State sync on attach | High |
 

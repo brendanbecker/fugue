@@ -6,7 +6,7 @@
 
 ## Context
 
-ccmux needs to parse ANSI escape sequences from PTY output to maintain terminal state (cursor position, colors, scrollback, etc.). This state is used for:
+fugue needs to parse ANSI escape sequences from PTY output to maintain terminal state (cursor position, colors, scrollback, etc.). This state is used for:
 
 1. Rendering pane contents via ratatui
 2. Screen snapshots for crash recovery

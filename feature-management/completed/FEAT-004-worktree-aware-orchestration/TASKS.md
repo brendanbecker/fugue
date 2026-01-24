@@ -21,7 +21,7 @@
 
 ## Git Module Tasks
 
-- [ ] Create `ccmux-server/src/git/mod.rs` module structure
+- [ ] Create `fugue-server/src/git/mod.rs` module structure
 - [ ] Implement git repository detection
 - [ ] Add git2 crate dependency to Cargo.toml
 - [ ] Create `GitRepo` struct for repository operations
@@ -35,7 +35,7 @@
 
 ## WAVES.md Parser Tasks
 
-- [ ] Create `ccmux-server/src/waves/mod.rs` module
+- [ ] Create `fugue-server/src/waves/mod.rs` module
 - [ ] Define `Wave` struct (id, tasks, dependencies)
 - [ ] Define `Task` struct (id, description, metadata)
 - [ ] Implement markdown parser for WAVES.md

@@ -8,8 +8,8 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Review `ccmux-server/src/handlers/mcp_bridge.rs` - `handle_create_pane_with_options`
-- [ ] Review `ccmux-server/src/handlers/pane.rs` - `handle_create_pane` (reference implementation)
+- [ ] Review `fugue-server/src/handlers/mcp_bridge.rs` - `handle_create_pane_with_options`
+- [ ] Review `fugue-server/src/handlers/pane.rs` - `handle_create_pane` (reference implementation)
 - [ ] Understand `HandlerResult::ResponseWithBroadcast` structure
 - [ ] Understand `PaneInfo` struct fields
 
@@ -78,8 +78,8 @@
 
 ### Manual Testing
 
-- [ ] Start ccmux server: `cargo run --bin ccmux-server`
-- [ ] Attach TUI client: `cargo run --bin ccmux-client attach`
+- [ ] Start fugue server: `cargo run --bin fugue-server`
+- [ ] Attach TUI client: `cargo run --bin fugue-client attach`
 - [ ] Use MCP tool to create pane (via Claude or direct MCP call)
 - [ ] Verify TUI client shows the new pane split immediately
 - [ ] Verify pane switching (Ctrl+B o) includes the new pane
@@ -94,13 +94,13 @@
 ## Verification Tasks
 
 - [ ] All acceptance criteria from PROMPT.md met:
-  - [ ] MCP `ccmux_create_pane` returns `PaneCreatedWithDetails` to MCP client
+  - [ ] MCP `fugue_create_pane` returns `PaneCreatedWithDetails` to MCP client
   - [ ] TUI clients receive `PaneCreated` broadcast
   - [ ] TUI split pane rendering updates automatically
   - [ ] No changes required in client code
   - [ ] All existing tests pass
   - [ ] New test covers MCP-to-TUI broadcast scenario
-- [ ] `cargo test` passes in ccmux-server
+- [ ] `cargo test` passes in fugue-server
 - [ ] `cargo clippy` has no new warnings
 - [ ] Update feature_request.json status
 

@@ -1,18 +1,18 @@
 # BUG-010: MCP Pane Creation Broadcast Not Received by TUI
 
 **Priority**: P1
-**Component**: ccmux-server / ccmux-client
+**Component**: fugue-server / fugue-client
 **Type**: bug
 **Status**: resolved
 
 ## Summary
 
-When panes are created via MCP tools (e.g., `ccmux_create_pane`), the TUI client does not receive the `PaneCreated` broadcast message, so the split pane is not rendered. The pane exists on the server but the TUI is unaware of it.
+When panes are created via MCP tools (e.g., `fugue_create_pane`), the TUI client does not receive the `PaneCreated` broadcast message, so the split pane is not rendered. The pane exists on the server but the TUI is unaware of it.
 
 ## Symptoms
 
-1. MCP tool `ccmux_create_pane` returns success with pane details
-2. Server shows 2 panes exist (verified via `ccmux_list_panes`)
+1. MCP tool `fugue_create_pane` returns success with pane details
+2. Server shows 2 panes exist (verified via `fugue_list_panes`)
 3. TUI continues showing only 1 pane (no split rendered)
 4. `Ctrl+B o` (next pane) does not switch to the new pane
 5. New pane has default 80x24 dimensions instead of resized dimensions
@@ -53,20 +53,20 @@ The broadcast channel might be full, closed, or have some other issue.
 ## Code References
 
 ### Server Side (broadcast sender)
-- `ccmux-server/src/handlers/mcp_bridge.rs:358` - Returns `ResponseWithBroadcast`
-- `ccmux-server/src/main.rs:597` - Calls `broadcast_to_session_except`
-- `ccmux-server/src/registry.rs:353` - `broadcast_to_session_except` implementation
+- `fugue-server/src/handlers/mcp_bridge.rs:358` - Returns `ResponseWithBroadcast`
+- `fugue-server/src/main.rs:597` - Calls `broadcast_to_session_except`
+- `fugue-server/src/registry.rs:353` - `broadcast_to_session_except` implementation
 
 ### Client Side (broadcast receiver)
-- `ccmux-client/src/ui/app.rs:859` - Handles `ServerMessage::PaneCreated`
-- `ccmux-client/src/ui/app.rs:278` - `poll_server_messages` during tick events
-- `ccmux-client/src/connection/client.rs:136` - `try_recv` for messages
+- `fugue-client/src/ui/app.rs:859` - Handles `ServerMessage::PaneCreated`
+- `fugue-client/src/ui/app.rs:278` - `poll_server_messages` during tick events
+- `fugue-client/src/connection/client.rs:136` - `try_recv` for messages
 
 ## Reproduction Steps
 
-1. Start ccmux: `ccmux`
+1. Start fugue: `fugue`
 2. Create/attach to a session
-3. From Claude Code (or MCP client), call `ccmux_create_pane`
+3. From Claude Code (or MCP client), call `fugue_create_pane`
 4. Observe: Pane created on server, TUI shows no split
 5. Try `Ctrl+B o` - does not switch panes
 
@@ -98,7 +98,7 @@ Comprehensive investigation confirmed that **the broadcast mechanism is working 
 
 2. **Recent commits addressed related issues**:
    - **FEAT-040**: Made list_sessions() deterministic, added output poller for MCP panes
-   - **FEAT-041**: Added session/window targeting to ccmux_create_pane
+   - **FEAT-041**: Added session/window targeting to fugue_create_pane
    - **FEAT-042**: Added comprehensive debug logging throughout broadcast path
    - **8f7c127**: Fixed direction field in PaneCreated broadcast
    - **d598133**: Fixed split direction mapping for terminal conventions

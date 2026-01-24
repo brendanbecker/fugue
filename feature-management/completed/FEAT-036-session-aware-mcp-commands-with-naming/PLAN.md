@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-036
 
 **Work Item**: [FEAT-036: Session-aware MCP Commands with Window/Pane Naming](PROMPT.md)
-**Component**: ccmux-server (MCP)
+**Component**: fugue-server (MCP)
 **Priority**: P1
 **Created**: 2026-01-09
 
@@ -45,7 +45,7 @@ fn get_active_session(&self) -> Option<SessionId> {
 - Works with existing message routing system
 - Clean increment on attach, decrement on detach/disconnect
 
-**Implementation Location**: `ccmux-server/src/session/mod.rs`
+**Implementation Location**: `fugue-server/src/session/mod.rs`
 
 **Data Structure**:
 ```rust
@@ -115,7 +115,7 @@ pub struct Window {
 
 ### Decision 5: New Tool Registration
 
-**Choice**: Add `ccmux_rename_pane` and `ccmux_rename_window` as separate tools.
+**Choice**: Add `fugue_rename_pane` and `fugue_rename_window` as separate tools.
 
 **Rationale**:
 - Clear single-purpose tools
@@ -124,7 +124,7 @@ pub struct Window {
 - Can be extended later (e.g., rename session)
 
 **Alternatives Considered**:
-- Generic `ccmux_rename` with type parameter - more complex schema
+- Generic `fugue_rename` with type parameter - more complex schema
 - Update tools that accept name on creation only - misses rename use case
 - Combine with other metadata updates - over-engineering
 
@@ -132,11 +132,11 @@ pub struct Window {
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/session/mod.rs | Add attached_clients tracking | Medium |
-| ccmux-server/src/session/pane.rs | Add name field if not present | Low |
-| ccmux-server/src/mcp/tools.rs | Add rename tools, name param | Medium |
-| ccmux-server/src/mcp/handlers.rs | Active session logic, rename handlers | High |
-| ccmux-server/src/mcp/server.rs | Route new tools | Low |
+| fugue-server/src/session/mod.rs | Add attached_clients tracking | Medium |
+| fugue-server/src/session/pane.rs | Add name field if not present | Low |
+| fugue-server/src/mcp/tools.rs | Add rename tools, name param | Medium |
+| fugue-server/src/mcp/handlers.rs | Active session logic, rename handlers | High |
+| fugue-server/src/mcp/server.rs | Route new tools | Low |
 
 ## Implementation Order
 
@@ -154,18 +154,18 @@ pub struct Window {
 4. **Deliverable**: Accurate client count per session
 
 ### Phase 3: Active Session Integration
-1. Update `ccmux_list_windows` to use active session
-2. Update `ccmux_create_window` to use active session
-3. Update `ccmux_create_pane` to use active session
-4. Update `ccmux_list_panes` to use active session when no filter
+1. Update `fugue_list_windows` to use active session
+2. Update `fugue_create_window` to use active session
+3. Update `fugue_create_pane` to use active session
+4. Update `fugue_list_panes` to use active session when no filter
 5. Update tool descriptions
 6. **Deliverable**: All session-scoped tools use active session
 
 ### Phase 4: Naming Features
-1. Add `name` parameter to `ccmux_create_pane` schema
+1. Add `name` parameter to `fugue_create_pane` schema
 2. Implement pane name assignment on creation
-3. Implement `ccmux_rename_pane` tool
-4. Implement `ccmux_rename_window` tool
+3. Implement `fugue_rename_pane` tool
+4. Implement `fugue_rename_window` tool
 5. Update list responses to include names
 6. **Deliverable**: Full naming support
 
@@ -208,7 +208,7 @@ If implementation causes issues:
 - Rename pane/window, verify change persists
 
 ### Manual Testing
-- Multiple sessions in real ccmux setup
+- Multiple sessions in real fugue setup
 - Attach client, create pane via MCP
 - Verify pane appears in correct session
 - Test naming workflow end-to-end

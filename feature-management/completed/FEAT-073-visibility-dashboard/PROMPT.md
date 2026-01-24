@@ -17,7 +17,7 @@ Operators need at-a-glance visibility into multi-agent progress, blocked/stuck w
 
 ## Design
 Based on `docs/architecture/VISIBILITY_DASHBOARD.md`.
-- Mailbox widget uses a sideband message format like `<ccmux:mail priority="info|warn|error" summary="...">`.
+- Mailbox widget uses a sideband message format like `<fugue:mail priority="info|warn|error" summary="...">`.
 - **Activity Feed listens to server broadcasts/events and renders a scrolling log of "Intents" (e.g., "Agent X focused Pane Y", "User Z created Window W").**
 - Graph pane renders nodes (panes/tasks) colored by status and edges for relationships.
 - Start with mailbox + stuck detection, then add a static graph and evolve to dynamic updates.

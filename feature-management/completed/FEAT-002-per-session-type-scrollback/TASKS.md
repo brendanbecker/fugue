@@ -28,7 +28,7 @@
 
 ## Phase 2: Scrollback Buffer Implementation
 
-- [ ] Create `ccmux-server/src/pty/buffer.rs`
+- [ ] Create `fugue-server/src/pty/buffer.rs`
 - [ ] Define `ScrollbackBuffer` struct
   - [ ] `lines: VecDeque<String>`
   - [ ] `max_lines: usize`
@@ -41,7 +41,7 @@
 - [ ] Implement `ScrollbackBuffer::len() -> usize`
 - [ ] Implement `ScrollbackBuffer::total_bytes() -> usize`
 - [ ] Implement `ScrollbackBuffer::clear()`
-- [ ] Add module to `ccmux-server/src/pty/mod.rs`
+- [ ] Add module to `fugue-server/src/pty/mod.rs`
 - [ ] Add unit tests for all buffer operations
 - [ ] Add test for wrap-around behavior
 - [ ] Add test for memory tracking accuracy
@@ -74,7 +74,7 @@
 ## Phase 5: Spawn Directive Enhancement
 
 - [ ] Locate spawn directive parser
-- [ ] Add `scrollback` attribute parsing to `<ccmux:spawn>`
+- [ ] Add `scrollback` attribute parsing to `<fugue:spawn>`
 - [ ] Validate scrollback value (positive integer)
 - [ ] Pass scrollback override through pane creation
 - [ ] Add unit test for spawn directive parsing

@@ -1,7 +1,7 @@
 {
   "document": {
-    "title": "Architectural Blueprint for ccmux: A Semantic Terminal Multiplexer for Claude Code",
-    "source_path": "/home/becker/projects/tools/ccmux/docs/research/gemini_research.md",
+    "title": "Architectural Blueprint for fugue: A Semantic Terminal Multiplexer for Claude Code",
+    "source_path": "/home/becker/projects/tools/fugue/docs/research/gemini_research.md",
     "parse_date": "2026-01-07"
   },
   "crates": {
@@ -162,13 +162,13 @@
     "section": "6.1",
     "tools_exposed": ["create_pane(command: str)", "read_pane_output(pane_id: int)", "list_panes()"],
     "workflow": [
-      "ccmux starts internal MCP server (stdio or websocket)",
+      "fugue starts internal MCP server (stdio or websocket)",
       "Pass MCP config when spawning Claude",
       "Claude calls tools for deterministic layout changes"
     ],
     "fallback": {
       "name": "Sideband Protocol",
-      "format": "<ccmux-action type=\"spawn\" layout=\"vertical\">command</ccmux-action>",
+      "format": "<fugue-action type=\"spawn\" layout=\"vertical\">command</fugue-action>",
       "section": "6.2"
     }
   },
@@ -192,7 +192,7 @@
       "section": "6.2",
       "lines": "328-331",
       "language": "xml",
-      "description": "ccmux-action sideband protocol format"
+      "description": "fugue-action sideband protocol format"
     },
     {
       "id": "alacritty_adapter",
@@ -221,7 +221,7 @@
       "id": "multiplexer_comparison",
       "section": "4.5",
       "lines": "250-257",
-      "columns": ["Feature", "tmux", "Zellij", "ccmux (Target)"],
+      "columns": ["Feature", "tmux", "Zellij", "fugue (Target)"],
       "rows": 6
     }
   ],

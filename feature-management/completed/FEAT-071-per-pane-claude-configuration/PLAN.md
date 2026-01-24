@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-071
 
 **Work Item**: [FEAT-071: Per-pane Claude configuration on spawn](PROMPT.md)
-**Component**: ccmux-server, ccmux-protocol
+**Component**: fugue-server, fugue-protocol
 **Priority**: P2
 **Created**: 2026-01-13
 
@@ -16,7 +16,7 @@ Allow panes to specify custom Claude Code configuration on spawn, including mode
 **Approach**: Four-layer configuration precedence
 1. **Default Config**: Built-in Claude defaults
 2. **Session Config**: Inherited from session's CLAUDE_CONFIG_DIR
-3. **Preset Config**: Named preset from ccmux config.toml
+3. **Preset Config**: Named preset from fugue config.toml
 4. **Pane Config**: Explicit overrides for this pane
 
 **Rationale**: Provides flexibility while maintaining sensible defaults. Users can start simple (no config) and progressively add specificity.
@@ -50,7 +50,7 @@ Allow panes to specify custom Claude Code configuration on spawn, including mode
 
 ### 4. Preset System
 
-**Approach**: Store presets in ccmux's `config.toml` under `[presets.{name}]` sections
+**Approach**: Store presets in fugue's `config.toml` under `[presets.{name}]` sections
 
 ```toml
 [presets.haiku-worker]
@@ -64,7 +64,7 @@ description = "Fast worker for simple tasks"
 - Easy to version control
 - Users can add custom presets
 
-**Trade-offs**: Presets are global to ccmux installation, not per-session. Could add per-session presets later if needed.
+**Trade-offs**: Presets are global to fugue installation, not per-session. Could add per-session presets later if needed.
 
 ### 5. Validation Strategy
 
@@ -81,11 +81,11 @@ description = "Fast worker for simple tasks"
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-protocol/src/messages.rs | Add fields to CreatePane | Low (backward compatible) |
-| ccmux-server/src/mcp/tools.rs | Add parameters to MCP tool | Low (optional params) |
-| ccmux-server/src/session/pane.rs | Config merging and writing | Medium (core logic) |
-| ccmux-server/src/config.rs | Preset loading | Low (new functionality) |
-| ccmux-server/config.toml | Add preset definitions | Low (config only) |
+| fugue-protocol/src/messages.rs | Add fields to CreatePane | Low (backward compatible) |
+| fugue-server/src/mcp/tools.rs | Add parameters to MCP tool | Low (optional params) |
+| fugue-server/src/session/pane.rs | Config merging and writing | Medium (core logic) |
+| fugue-server/src/config.rs | Preset loading | Low (new functionality) |
+| fugue-server/config.toml | Add preset definitions | Low (config only) |
 
 ## Dependencies
 
@@ -121,7 +121,7 @@ description = "Fast worker for simple tasks"
 3. Add logging for config decisions
 
 ### Phase 5: MCP Tool Updates
-1. Add new parameters to ccmux_create_pane
+1. Add new parameters to fugue_create_pane
 2. Update tool schema and help text
 3. Handle parameter validation
 
@@ -203,7 +203,7 @@ struct PresetConfig {
 ### MCP Tool Schema Extension
 ```json
 {
-  "name": "ccmux_create_pane",
+  "name": "fugue_create_pane",
   "parameters": {
     "claude_model": {
       "type": "string",

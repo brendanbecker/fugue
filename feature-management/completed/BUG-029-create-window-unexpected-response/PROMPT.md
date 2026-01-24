@@ -1,14 +1,14 @@
-# BUG-029: ccmux_create_window Returns Unexpected SessionFocused Response
+# BUG-029: fugue_create_window Returns Unexpected SessionFocused Response
 
 ## Summary
-Calling `ccmux_create_window` returns an error about an unexpected `SessionFocused` response instead of creating the window.
+Calling `fugue_create_window` returns an error about an unexpected `SessionFocused` response instead of creating the window.
 
 ## Steps to Reproduce
 
-1. Start ccmux and connect Claude Code
-2. Create a session: `ccmux_create_session` with name "dev-qa" - **succeeds**
-3. Select the session: `ccmux_select_session` - **succeeds**
-4. Call `ccmux_create_window` with session "dev-qa" and name "logs"
+1. Start fugue and connect Claude Code
+2. Create a session: `fugue_create_session` with name "dev-qa" - **succeeds**
+3. Select the session: `fugue_select_session` - **succeeds**
+4. Call `fugue_create_window` with session "dev-qa" and name "logs"
 5. Observe: MCP returns error about unexpected response
 
 ## Expected Behavior
@@ -20,7 +20,7 @@ Calling `ccmux_create_window` returns an error about an unexpected `SessionFocus
 - No window created
 
 ## Environment
-- ccmux version: current main branch
+- fugue version: current main branch
 - Platform: Linux (WSL2)
 - Triggered during: QA demo run
 
@@ -36,7 +36,7 @@ Calling `ccmux_create_window` returns an error about an unexpected `SessionFocus
 
 ## Resolution
 
-**Root Cause**: The `is_broadcast_message()` filter in `ccmux-server/src/mcp/bridge.rs` was missing three focus-related broadcast message types added for BUG-026:
+**Root Cause**: The `is_broadcast_message()` filter in `fugue-server/src/mcp/bridge.rs` was missing three focus-related broadcast message types added for BUG-026:
 - `SessionFocused`
 - `WindowFocused`
 - `PaneFocused`
@@ -48,7 +48,7 @@ When the next MCP tool (`create_window`) called `recv_response_from_daemon()`, i
 **Fix**: Added `SessionFocused`, `WindowFocused`, and `PaneFocused` to the `is_broadcast_message()` filter so they are skipped when waiting for tool responses.
 
 **Files Changed**:
-- `ccmux-server/src/mcp/bridge.rs`: Added three message types to `is_broadcast_message()` filter and added regression tests
+- `fugue-server/src/mcp/bridge.rs`: Added three message types to `is_broadcast_message()` filter and added regression tests
 
 **Related**:
 - BUG-027: Similar issue where broadcast messages leaked into response channel (fixed: filter broadcast messages in recv_response_from_daemon)

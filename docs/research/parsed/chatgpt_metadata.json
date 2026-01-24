@@ -1,7 +1,7 @@
 {
   "document": {
-    "title": "ccmux Deep Research",
-    "source_path": "/home/becker/projects/tools/ccmux/docs/research/chatgpt_research.pdf",
+    "title": "fugue Deep Research",
+    "source_path": "/home/becker/projects/tools/fugue/docs/research/chatgpt_research.pdf",
     "total_pages": 49,
     "parse_date": "2026-01-07"
   },
@@ -126,7 +126,7 @@
     "crash_recovery": {
       "description": "Periodic checkpointing + Claude session resume",
       "components": [
-        "State file: ~/.ccmux/last_session.json",
+        "State file: ~/.fugue/last_session.json",
         "Atomic writes (temp + rename)",
         "Per-pane: type, command, cwd, session_id, screen snapshot",
         "Claude resume: --resume <session_id>"

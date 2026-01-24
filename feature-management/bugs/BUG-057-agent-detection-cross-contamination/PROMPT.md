@@ -33,9 +33,9 @@ To:
 
 ## Reproduction Steps
 
-1. Start ccmux with Claude Code in a pane (session-0)
+1. Start fugue with Claude Code in a pane (session-0)
 2. Start Gemini CLI in the `__orchestration__` session pane
-3. Call `ccmux_list_panes()` or `ccmux_get_status()` for the Claude pane
+3. Call `fugue_list_panes()` or `fugue_get_status()` for the Claude pane
 4. Observe that the Claude pane now shows as Gemini
 
 ## Expected Behavior
@@ -56,7 +56,7 @@ If both Claude and Gemini patterns are detected, there may be a priority issue w
 ## Investigation Steps
 
 ### Section 1: Review Agent Detection Architecture
-- [ ] Check `ccmux-server/src/agents/` for detection state storage
+- [ ] Check `fugue-server/src/agents/` for detection state storage
 - [ ] Verify each pane has isolated detection state
 - [ ] Review how detection results are associated with pane IDs
 
@@ -78,9 +78,9 @@ If both Claude and Gemini patterns are detected, there may be a priority issue w
 
 ## Related Files
 
-- `ccmux-server/src/agents/mod.rs` - Agent detection module
-- `ccmux-server/src/agents/claude.rs` - Claude detection
-- `ccmux-server/src/agents/gemini.rs` - Gemini detection (FEAT-098)
+- `fugue-server/src/agents/mod.rs` - Agent detection module
+- `fugue-server/src/agents/claude.rs` - Claude detection
+- `fugue-server/src/agents/gemini.rs` - Gemini detection (FEAT-098)
 
 ## Notes
 

@@ -9,7 +9,7 @@
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
 - [ ] Understand `ResponseWithBroadcast` pattern in `handle_create_pane_with_options`
-- [ ] Check existing broadcast message types in `ccmux-protocol/src/messages.rs`
+- [ ] Check existing broadcast message types in `fugue-protocol/src/messages.rs`
 
 ## Investigation Tasks
 

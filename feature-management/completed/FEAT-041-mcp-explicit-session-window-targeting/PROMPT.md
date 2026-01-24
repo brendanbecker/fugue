@@ -1,7 +1,7 @@
-# FEAT-041: MCP Explicit Session and Window Targeting for ccmux_create_pane
+# FEAT-041: MCP Explicit Session and Window Targeting for fugue_create_pane
 
 **Priority**: P1
-**Component**: ccmux-server (MCP)
+**Component**: fugue-server (MCP)
 **Type**: enhancement
 **Estimated Effort**: small
 **Business Value**: high
@@ -9,15 +9,15 @@
 
 ## Overview
 
-The `ccmux_create_pane` MCP tool lacks explicit session and window targeting parameters. While the handler (`handle_create_pane_with_options`) already supports `session_filter` and `window_filter` parameters, the MCP bridge hardcodes these to `None`, always using the "first session" heuristic. This prevents Claude from orchestrating panes across multiple sessions.
+The `fugue_create_pane` MCP tool lacks explicit session and window targeting parameters. While the handler (`handle_create_pane_with_options`) already supports `session_filter` and `window_filter` parameters, the MCP bridge hardcodes these to `None`, always using the "first session" heuristic. This prevents Claude from orchestrating panes across multiple sessions.
 
 ## Problem Statement
 
-When MCP creates panes via `ccmux_create_pane`, it cannot explicitly target a specific session or window. The current implementation in the MCP bridge always passes `None` for session and window filters, causing the handler to fall back to the "first session" heuristic.
+When MCP creates panes via `fugue_create_pane`, it cannot explicitly target a specific session or window. The current implementation in the MCP bridge always passes `None` for session and window filters, causing the handler to fall back to the "first session" heuristic.
 
 ### Current Behavior
 
-- `ccmux_create_pane` has no `session` or `window` parameters in its schema
+- `fugue_create_pane` has no `session` or `window` parameters in its schema
 - The bridge function `tool_create_pane()` hardcodes `session_filter: None` and `window_filter: None`
 - Handler uses first available session when no filter is provided
 - MCP response does not include `session_id`, so Claude cannot verify which session was used
@@ -31,7 +31,7 @@ When MCP creates panes via `ccmux_create_pane`, it cannot explicitly target a sp
 
 ## Requirements
 
-### New Parameters for ccmux_create_pane
+### New Parameters for fugue_create_pane
 
 Add optional `session` and `window` parameters to the tool schema:
 
@@ -65,15 +65,15 @@ The response should include `session_id` so Claude knows which session was used:
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/mcp/tools.rs` | Add `session` and `window` properties to `ccmux_create_pane` schema |
-| `ccmux-server/src/mcp/bridge.rs` | Update `tool_create_pane()` to accept and pass session/window arguments |
-| `ccmux-server/src/mcp/server.rs` | Update `ToolParams::CreatePane` parsing to include new fields |
+| `fugue-server/src/mcp/tools.rs` | Add `session` and `window` properties to `fugue_create_pane` schema |
+| `fugue-server/src/mcp/bridge.rs` | Update `tool_create_pane()` to accept and pass session/window arguments |
+| `fugue-server/src/mcp/server.rs` | Update `ToolParams::CreatePane` parsing to include new fields |
 
 ## Implementation Tasks
 
 ### Section 1: Schema Update
-- [ ] Add `session` property to `ccmux_create_pane` input_schema
-- [ ] Add `window` property to `ccmux_create_pane` input_schema
+- [ ] Add `session` property to `fugue_create_pane` input_schema
+- [ ] Add `window` property to `fugue_create_pane` input_schema
 - [ ] Update tool description to mention session/window targeting
 
 ### Section 2: Bridge Update
@@ -102,8 +102,8 @@ The response should include `session_id` so Claude knows which session was used:
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_create_pane` accepts optional `session` parameter (UUID or name)
-- [ ] `ccmux_create_pane` accepts optional `window` parameter (UUID or name)
+- [ ] `fugue_create_pane` accepts optional `session` parameter (UUID or name)
+- [ ] `fugue_create_pane` accepts optional `window` parameter (UUID or name)
 - [ ] When session specified, pane is created in the target session
 - [ ] When window specified, pane is created in the target window
 - [ ] When not specified, existing behavior preserved (use first/active session)
@@ -117,7 +117,7 @@ The response should include `session_id` so Claude knows which session was used:
 
 ```json
 {
-  "tool": "ccmux_create_pane",
+  "tool": "fugue_create_pane",
   "arguments": {
     "session": "dev-session",
     "command": "npm run dev"
@@ -129,7 +129,7 @@ The response should include `session_id` so Claude knows which session was used:
 
 ```json
 {
-  "tool": "ccmux_create_pane",
+  "tool": "fugue_create_pane",
   "arguments": {
     "session": "550e8400-e29b-41d4-a716-446655440000",
     "window": "main-window",

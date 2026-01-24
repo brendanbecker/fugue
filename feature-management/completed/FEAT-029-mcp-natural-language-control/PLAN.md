@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-029
 
 **Work Item**: [FEAT-029: MCP Natural Language Terminal Control](PROMPT.md)
-**Component**: ccmux-server (MCP)
+**Component**: fugue-server (MCP)
 **Priority**: P1
 **Created**: 2026-01-09
 
@@ -13,7 +13,7 @@ Expand MCP tools to enable natural language terminal control by fixing the broke
 
 ### Decision 1: Follow Existing Handler Pattern
 
-**Choice**: All new handlers follow the same pattern as `ccmux_create_pane`.
+**Choice**: All new handlers follow the same pattern as `fugue_create_pane`.
 
 **Rationale**:
 - Consistency with existing codebase
@@ -56,7 +56,7 @@ Expand MCP tools to enable natural language terminal control by fixing the broke
 - Natural language often omits details ("create a session" vs "create a session named X")
 - Sensible defaults reduce friction
 - Claude can infer missing values when needed
-- Matches existing `ccmux_create_pane` pattern
+- Matches existing `fugue_create_pane` pattern
 
 **Defaults**:
 - session: First available session or auto-create
@@ -67,21 +67,21 @@ Expand MCP tools to enable natural language terminal control by fixing the broke
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/mcp/tools.rs | Add 4 tool definitions | Low |
-| ccmux-server/src/mcp/handlers.rs | Fix bug, add 4 handlers | Medium |
-| ccmux-server/src/mcp/server.rs | Add routing for new tools | Low |
-| ccmux-server/src/mcp/mod.rs | May need exports | Low |
+| fugue-server/src/mcp/tools.rs | Add 4 tool definitions | Low |
+| fugue-server/src/mcp/handlers.rs | Fix bug, add 4 handlers | Medium |
+| fugue-server/src/mcp/server.rs | Add routing for new tools | Low |
+| fugue-server/src/mcp/mod.rs | May need exports | Low |
 
 ## Implementation Order
 
 1. **Phase 1: List Tools** (Lowest risk, read-only)
-   - `ccmux_list_sessions`
-   - `ccmux_list_windows`
+   - `fugue_list_sessions`
+   - `fugue_list_windows`
    - These are read-only, lowest risk
 
 2. **Phase 2: Create Tools** (Depends on BUG-003 pattern)
-   - `ccmux_create_session`
-   - `ccmux_create_window`
+   - `fugue_create_session`
+   - `fugue_create_window`
    - Follow BUG-003 fix pattern
 
 3. **Phase 3: Fix Split Direction** (Scoped investigation)
@@ -181,16 +181,16 @@ pub fn create_window(
 Look for existing `handle_call_tool` or similar and add:
 
 ```rust
-"ccmux_list_sessions" => ctx.list_sessions(),
-"ccmux_list_windows" => {
+"fugue_list_sessions" => ctx.list_sessions(),
+"fugue_list_windows" => {
     let session = args.get("session").and_then(|v| v.as_str());
     ctx.list_windows(session)
 }
-"ccmux_create_session" => {
+"fugue_create_session" => {
     let name = args.get("name").and_then(|v| v.as_str());
     ctx.create_session(name)
 }
-"ccmux_create_window" => {
+"fugue_create_window" => {
     let session = args.get("session").and_then(|v| v.as_str());
     let name = args.get("name").and_then(|v| v.as_str());
     let command = args.get("command").and_then(|v| v.as_str());
@@ -201,7 +201,7 @@ Look for existing `handle_call_tool` or similar and add:
 ### Split Direction Investigation
 
 Check in order:
-1. Does `Window` have layout/split tracking? (`ccmux-server/src/session/window.rs`)
+1. Does `Window` have layout/split tracking? (`fugue-server/src/session/window.rs`)
 2. Does `Pane` have position/dimension relative to siblings?
 3. Is there a layout engine for calculating pane positions?
 

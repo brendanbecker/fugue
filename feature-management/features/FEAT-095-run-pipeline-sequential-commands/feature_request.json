@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-095",
-  "title": "ccmux_run_pipeline - Sequential Command Pipeline",
-  "component": "ccmux-server/mcp",
+  "title": "fugue_run_pipeline - Sequential Command Pipeline",
+  "component": "fugue-server/mcp",
   "priority": "P1",
   "status": "new",
   "type": "new_feature",

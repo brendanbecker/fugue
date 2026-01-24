@@ -1,7 +1,7 @@
 {
   "document": {
-    "title": "Building ccmux: A Claude Code-Aware Terminal Multiplexer in Rust",
-    "source_path": "/home/becker/projects/tools/ccmux/docs/research/claude_research.md",
+    "title": "Building fugue: A Claude Code-Aware Terminal Multiplexer in Rust",
+    "source_path": "/home/becker/projects/tools/fugue/docs/research/claude_research.md",
     "total_lines": 633,
     "estimated_total_tokens": 4500,
     "parsing_metadata": {
@@ -67,7 +67,7 @@
         {"id": "section-4.1", "title": "tmux's battle-tested foundations", "level": 2, "line_range": [253, 261], "token_estimate": 130},
         {"id": "section-4.2", "title": "Zellij's modern Rust architecture", "level": 2, "line_range": [263, 277], "token_estimate": 170},
         {"id": "section-4.3", "title": "Comparison matrix for architecture decisions", "level": 2, "line_range": [279, 288], "token_estimate": 100},
-        {"id": "section-4.4", "title": "Recommended ccmux structure", "level": 2, "line_range": [290, 300], "token_estimate": 120}
+        {"id": "section-4.4", "title": "Recommended fugue structure", "level": 2, "line_range": [290, 300], "token_estimate": 120}
       ]
     },
     {
@@ -90,7 +90,7 @@
       "token_estimate": 600,
       "children": [
         {"id": "section-6.1", "title": "Protocol design using namespaced XML", "level": 2, "line_range": [414, 433], "token_estimate": 180},
-        {"id": "section-6.2", "title": "SKILL.md definition for ccmux", "level": 2, "line_range": [435, 458], "token_estimate": 170},
+        {"id": "section-6.2", "title": "SKILL.md definition for fugue", "level": 2, "line_range": [435, 458], "token_estimate": 170},
         {"id": "section-6.3", "title": "Streaming parser with recovery", "level": 2, "line_range": [460, 491], "token_estimate": 200},
         {"id": "section-6.4", "title": "Nesting recommendation", "level": 2, "line_range": [493, 506], "token_estimate": 50}
       ]
@@ -104,7 +104,7 @@
       "children": [
         {"id": "section-7.1", "title": "Depth enforcement across processes", "level": 2, "line_range": [513, 538], "token_estimate": 200},
         {"id": "section-7.2", "title": "Session tree with supervision", "level": 2, "line_range": [540, 564], "token_estimate": 180},
-        {"id": "section-7.3", "title": "Erlang OTP supervision strategies for ccmux", "level": 2, "line_range": [566, 573], "token_estimate": 80},
+        {"id": "section-7.3", "title": "Erlang OTP supervision strategies for fugue", "level": 2, "line_range": [566, 573], "token_estimate": 80},
         {"id": "section-7.4", "title": "Resource limits via cgroups", "level": 2, "line_range": [575, 597], "token_estimate": 170},
         {"id": "section-7.5", "title": "Fan-out orchestration pattern", "level": 2, "line_range": [599, 613], "token_estimate": 100},
         {"id": "section-7.6", "title": "Recommended defaults", "level": 2, "line_range": [615, 624], "token_estimate": 80}

@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-042
 
 **Work Item**: [FEAT-042: Debug Logging for MCP Pane Broadcast Path](PROMPT.md)
-**Component**: ccmux-server / ccmux-client
+**Component**: fugue-server / fugue-client
 **Priority**: P0
 **Created**: 2026-01-10
 
@@ -16,7 +16,7 @@ Add comprehensive debug logging throughout the MCP pane creation and broadcast p
 **Choice**: Use `tracing` crate (already in use by the project).
 
 **Rationale**:
-- Already integrated into ccmux codebase
+- Already integrated into fugue codebase
 - Structured logging with span support
 - Configurable via RUST_LOG environment variable
 - Zero-cost when disabled
@@ -96,11 +96,11 @@ let _guard = span.enter();
 
 | Component | File | Type of Change | Risk Level |
 |-----------|------|----------------|------------|
-| MCP Handler | ccmux-server/src/handlers/mcp_bridge.rs | Add tracing | Very Low |
-| Server Main | ccmux-server/src/main.rs | Add tracing | Very Low |
-| Registry | ccmux-server/src/registry.rs | Add tracing | Very Low |
-| Client Connection | ccmux-client/src/connection/client.rs | Add tracing | Very Low |
-| Client App | ccmux-client/src/ui/app.rs | Add tracing | Very Low |
+| MCP Handler | fugue-server/src/handlers/mcp_bridge.rs | Add tracing | Very Low |
+| Server Main | fugue-server/src/main.rs | Add tracing | Very Low |
+| Registry | fugue-server/src/registry.rs | Add tracing | Very Low |
+| Client Connection | fugue-client/src/connection/client.rs | Add tracing | Very Low |
+| Client App | fugue-client/src/ui/app.rs | Add tracing | Very Low |
 
 ## Implementation Order
 
@@ -186,11 +186,11 @@ let _guard = span.enter();
 
 2. **Run with debug logging**
    ```bash
-   RUST_LOG=ccmux_server=debug,ccmux_client=debug cargo run
+   RUST_LOG=fugue_server=debug,fugue_client=debug cargo run
    ```
 
 3. **Create pane via MCP**
-   - Use Claude Code or MCP client to call `ccmux_create_pane`
+   - Use Claude Code or MCP client to call `fugue_create_pane`
 
 4. **Inspect logs**
    - Verify complete message chain is logged
@@ -199,42 +199,42 @@ let _guard = span.enter();
 ### Expected Log Output (Success Case)
 
 ```
-[DEBUG ccmux_server::handlers::mcp_bridge] handle_create_pane_with_options called session_filter=None window_filter=None
-[INFO  ccmux_server::handlers::mcp_bridge] Returning ResponseWithBroadcast for pane creation session_id=abc-123 pane_id=def-456
-[DEBUG ccmux_server] Received ResponseWithBroadcast from handler session_id=abc-123
-[DEBUG ccmux_server] About to broadcast to session session_id=abc-123
-[DEBUG ccmux_server::registry] Clients registered for session session_id=abc-123 total_clients=1 client_ids=["client-789"]
-[DEBUG ccmux_server::registry] Sending broadcast to clients target_clients=["client-789"]
-[DEBUG ccmux_server::registry] send_to_client result client_id=client-789 success=true
-[INFO  ccmux_server] Broadcast complete session_id=abc-123 clients_notified=1
-[DEBUG ccmux_server] Client handler received broadcast from channel client_id=client-789
-[DEBUG ccmux_server] Writing broadcast to socket client_id=client-789 bytes=256
-[DEBUG ccmux_client::connection::client] Received message from server socket bytes=256
-[DEBUG ccmux_client::connection::client] Deserialized server message message_type=PaneCreated
-[DEBUG ccmux_client::ui::app] poll_server_messages received message message_type=PaneCreated
-[INFO  ccmux_client::ui::app] Handling PaneCreated broadcast pane_id=def-456 session_id=abc-123
+[DEBUG fugue_server::handlers::mcp_bridge] handle_create_pane_with_options called session_filter=None window_filter=None
+[INFO  fugue_server::handlers::mcp_bridge] Returning ResponseWithBroadcast for pane creation session_id=abc-123 pane_id=def-456
+[DEBUG fugue_server] Received ResponseWithBroadcast from handler session_id=abc-123
+[DEBUG fugue_server] About to broadcast to session session_id=abc-123
+[DEBUG fugue_server::registry] Clients registered for session session_id=abc-123 total_clients=1 client_ids=["client-789"]
+[DEBUG fugue_server::registry] Sending broadcast to clients target_clients=["client-789"]
+[DEBUG fugue_server::registry] send_to_client result client_id=client-789 success=true
+[INFO  fugue_server] Broadcast complete session_id=abc-123 clients_notified=1
+[DEBUG fugue_server] Client handler received broadcast from channel client_id=client-789
+[DEBUG fugue_server] Writing broadcast to socket client_id=client-789 bytes=256
+[DEBUG fugue_client::connection::client] Received message from server socket bytes=256
+[DEBUG fugue_client::connection::client] Deserialized server message message_type=PaneCreated
+[DEBUG fugue_client::ui::app] poll_server_messages received message message_type=PaneCreated
+[INFO  fugue_client::ui::app] Handling PaneCreated broadcast pane_id=def-456 session_id=abc-123
 ```
 
 ### Expected Log Output (Failure Cases)
 
 **Case: No clients registered for session**
 ```
-[DEBUG ccmux_server::registry] Clients registered for session session_id=abc-123 total_clients=0 client_ids=[]
-[DEBUG ccmux_server::registry] Sending broadcast to clients target_clients=[]
-[INFO  ccmux_server] Broadcast complete session_id=abc-123 clients_notified=0
+[DEBUG fugue_server::registry] Clients registered for session session_id=abc-123 total_clients=0 client_ids=[]
+[DEBUG fugue_server::registry] Sending broadcast to clients target_clients=[]
+[INFO  fugue_server] Broadcast complete session_id=abc-123 clients_notified=0
 ```
 Diagnosis: Client not attached to correct session.
 
 **Case: Channel send fails**
 ```
-[DEBUG ccmux_server::registry] send_to_client result client_id=client-789 success=false channel_error="channel closed"
+[DEBUG fugue_server::registry] send_to_client result client_id=client-789 success=false channel_error="channel closed"
 ```
 Diagnosis: Client connection dropped or channel issue.
 
 **Case: Client doesn't process message**
 ```
-[DEBUG ccmux_client::connection::client] Received message from server socket bytes=256
-[DEBUG ccmux_client::connection::client] Deserialized server message message_type=PaneCreated
+[DEBUG fugue_client::connection::client] Received message from server socket bytes=256
+[DEBUG fugue_client::connection::client] Deserialized server message message_type=PaneCreated
 # No further logs from app
 ```
 Diagnosis: poll_server_messages not being called or not processing message.

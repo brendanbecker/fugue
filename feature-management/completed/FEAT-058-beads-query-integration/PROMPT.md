@@ -1,7 +1,7 @@
 # FEAT-058: Beads Query Integration - TUI Visibility into Work Queue
 
 **Priority**: P3
-**Component**: ccmux-server, ccmux-client
+**Component**: fugue-server, fugue-client
 **Type**: new_feature
 **Estimated Effort**: large
 **Business Value**: medium
@@ -10,7 +10,7 @@
 
 ## Overview
 
-Add beads query integration to ccmux's TUI, providing visibility into the beads work queue directly in the terminal multiplexer interface. This enables users and agents to see pending tasks at a glance without shelling out to beads CLI commands.
+Add beads query integration to fugue's TUI, providing visibility into the beads work queue directly in the terminal multiplexer interface. This enables users and agents to see pending tasks at a glance without shelling out to beads CLI commands.
 
 ## Problem Statement
 
@@ -18,7 +18,7 @@ When working in beads-tracked repositories, users and agents must shell out to `
 
 Current workflow:
 ```
-User: Working in ccmux pane
+User: Working in fugue pane
 User: Wonders what tasks are ready
 User: Opens new terminal or shells out: bd ready
 User: Reads output, switches back to work
@@ -27,7 +27,7 @@ User: Loses context, flow interrupted
 
 Desired workflow:
 ```
-User: Working in ccmux pane
+User: Working in fugue pane
 User: Glances at status bar: "bd: 3 ready"
 User: Presses Ctrl+B b to see full list
 User: Selects task, continues working
@@ -60,7 +60,7 @@ User: Selects task, continues working
 Establish connection to beads daemon for each pane's working directory:
 
 ```rust
-// ccmux-server/src/beads/client.rs
+// fugue-server/src/beads/client.rs
 
 pub struct BeadsClient {
     socket_path: PathBuf,
@@ -112,7 +112,7 @@ impl BeadsClient {
 Add beads status to the status bar display:
 
 ```rust
-// ccmux-client/src/ui/status.rs
+// fugue-client/src/ui/status.rs
 
 pub struct BeadsStatus {
     ready_count: usize,
@@ -149,7 +149,7 @@ impl StatusBar {
 New overlay panel showing beads ready list:
 
 ```rust
-// ccmux-client/src/ui/beads_panel.rs
+// fugue-client/src/ui/beads_panel.rs
 
 pub struct BeadsPanel {
     tasks: Vec<BeadsTask>,
@@ -204,10 +204,10 @@ pub enum BeadsPanelAction {
 Add MCP tools for agent access to beads data:
 
 ```rust
-// ccmux-server/src/mcp/handlers.rs
+// fugue-server/src/mcp/handlers.rs
 
 /// Get ready tasks for the current pane's repository
-async fn ccmux_beads_ready(&self, params: BeadsReadyParams) -> Result<BeadsReadyResponse> {
+async fn fugue_beads_ready(&self, params: BeadsReadyParams) -> Result<BeadsReadyResponse> {
     let pane = self.get_pane(params.pane_id)?;
     let working_dir = pane.working_directory();
 
@@ -221,7 +221,7 @@ async fn ccmux_beads_ready(&self, params: BeadsReadyParams) -> Result<BeadsReady
 }
 
 /// Get status of a specific issue
-async fn ccmux_beads_status(&self, params: BeadsStatusParams) -> Result<BeadsStatusResponse> {
+async fn fugue_beads_status(&self, params: BeadsStatusParams) -> Result<BeadsStatusResponse> {
     let pane = self.get_pane(params.pane_id)?;
     let working_dir = pane.working_directory();
 
@@ -232,12 +232,12 @@ async fn ccmux_beads_status(&self, params: BeadsStatusParams) -> Result<BeadsSta
 }
 ```
 
-**Note**: These MCP tools query the beads daemon. They do NOT duplicate beads functionality - they provide ccmux-context-aware access to beads data.
+**Note**: These MCP tools query the beads daemon. They do NOT duplicate beads functionality - they provide fugue-context-aware access to beads data.
 
 ### Part 5: Configuration
 
 ```toml
-# ~/.config/ccmux/config.toml
+# ~/.config/fugue/config.toml
 
 [beads.query]
 # Enable daemon connection (default: true)
@@ -257,7 +257,7 @@ auto_discover = true
 ```
 
 ```rust
-// ccmux-server/src/config.rs
+// fugue-server/src/config.rs
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BeadsQueryConfig {
@@ -288,21 +288,21 @@ fn default_auto_discover() -> bool { true }
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/beads/mod.rs` | New module for beads integration |
-| `ccmux-server/src/beads/client.rs` | RPC client for daemon socket |
-| `ccmux-server/src/beads/discovery.rs` | Socket discovery logic |
-| `ccmux-server/src/beads/types.rs` | BeadsTask and related types |
-| `ccmux-server/src/config.rs` | Add beads.query configuration |
-| `ccmux-server/src/mcp/handlers.rs` | Add ccmux_beads_* tools (optional) |
-| `ccmux-client/src/ui/status.rs` | Status bar ready count |
-| `ccmux-client/src/ui/beads_panel.rs` | New beads popup panel |
-| `ccmux-client/src/input/mod.rs` | Add Ctrl+B b keybind |
-| `ccmux-protocol/src/lib.rs` | Add BeadsStatus message types |
+| `fugue-server/src/beads/mod.rs` | New module for beads integration |
+| `fugue-server/src/beads/client.rs` | RPC client for daemon socket |
+| `fugue-server/src/beads/discovery.rs` | Socket discovery logic |
+| `fugue-server/src/beads/types.rs` | BeadsTask and related types |
+| `fugue-server/src/config.rs` | Add beads.query configuration |
+| `fugue-server/src/mcp/handlers.rs` | Add fugue_beads_* tools (optional) |
+| `fugue-client/src/ui/status.rs` | Status bar ready count |
+| `fugue-client/src/ui/beads_panel.rs` | New beads popup panel |
+| `fugue-client/src/input/mod.rs` | Add Ctrl+B b keybind |
+| `fugue-protocol/src/lib.rs` | Add BeadsStatus message types |
 
 ## Implementation Tasks
 
 ### Section 1: Beads Client Module
-- [ ] Create `ccmux-server/src/beads/mod.rs` module
+- [ ] Create `fugue-server/src/beads/mod.rs` module
 - [ ] Implement socket discovery (walk up directory tree)
 - [ ] Implement async Unix socket connection
 - [ ] Implement RPC protocol for daemon queries
@@ -332,8 +332,8 @@ fn default_auto_discover() -> bool { true }
 - [ ] Honor socket_timeout
 
 ### Section 5: MCP Tools (Optional)
-- [ ] Implement ccmux_beads_ready tool
-- [ ] Implement ccmux_beads_status tool
+- [ ] Implement fugue_beads_ready tool
+- [ ] Implement fugue_beads_status tool
 - [ ] Add tool schemas
 - [ ] Test with Claude
 

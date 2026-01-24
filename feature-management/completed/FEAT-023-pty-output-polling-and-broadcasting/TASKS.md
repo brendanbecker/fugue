@@ -22,7 +22,7 @@
 
 ## Implementation Tasks
 
-### Output Polling Module (ccmux-server/src/pty/output.rs)
+### Output Polling Module (fugue-server/src/pty/output.rs)
 
 - [ ] Create output.rs module file
 - [ ] Implement `OutputBuffer` struct
@@ -39,16 +39,16 @@
   - [ ] `send_output()` method
   - [ ] `send_eof()` method
   - [ ] `flush_final()` for cleanup
-- [ ] Add module to ccmux-server/src/pty/mod.rs exports
+- [ ] Add module to fugue-server/src/pty/mod.rs exports
 
-### Protocol Messages (ccmux-protocol/src/messages.rs)
+### Protocol Messages (fugue-protocol/src/messages.rs)
 
 - [ ] Add `ServerMessage::Output { pane_id, data }` variant
 - [ ] Add `ServerMessage::PtyEof { pane_id }` variant
 - [ ] Update serde derives if needed
 - [ ] Update message codec if needed
 
-### Server Integration (ccmux-server/src/server/)
+### Server Integration (fugue-server/src/server/)
 
 - [ ] Import output polling module
 - [ ] Create broadcast channel for server messages

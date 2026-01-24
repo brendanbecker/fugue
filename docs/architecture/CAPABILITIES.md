@@ -1,14 +1,14 @@
-# Capability Signaling in ccmux
+# Capability Signaling in fugue
 
-ccmux supports optional awareness of processes running inside panes.
+fugue supports optional awareness of processes running inside panes.
 This awareness is **capability-based**, not command-based.
 
 ## Motivation
 
 Hard-coding support for specific tools does not scale.
-Instead, ccmux discovers what a pane can do based on explicit signals.
+Instead, fugue discovers what a pane can do based on explicit signals.
 
-This allows ccmux to remain:
+This allows fugue to remain:
 
 * harness-agnostic
 * command-agnostic
@@ -63,19 +63,19 @@ Indicates the pane supports resumable execution across restarts.
 A process may emit a sideband capability announcement:
 
 ```
-<ccmux:capabilities>{
+<fugue:capabilities>{
   "state": "sideband-v1",
   "control": "mcp",
   "identity": true,
   "resume": true
-}</ccmux:capabilities>
+}</fugue:capabilities>
 ```
 
-ccmux records these capabilities as pane metadata.
+fugue records these capabilities as pane metadata.
 
 ## Preference Order
 
-ccmux prefers capability information in the following order:
+fugue prefers capability information in the following order:
 
 1. **Explicit signaling**
 
@@ -84,7 +84,7 @@ ccmux prefers capability information in the following order:
 
 2. **Adapter-based integration**
 
-   * Thin shims that translate external signals into ccmux capabilities
+   * Thin shims that translate external signals into fugue capabilities
 
 3. **Heuristic detection**
 

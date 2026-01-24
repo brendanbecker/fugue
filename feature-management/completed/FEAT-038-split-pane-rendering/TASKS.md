@@ -8,9 +8,9 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Review existing layout code in `ccmux-client/src/ui/layout.rs`
-- [ ] Review current `draw_attached()` in `ccmux-client/src/ui/app.rs`
-- [ ] Understand how `PaneManager` and `render_pane` work in `ccmux-client/src/ui/pane.rs`
+- [ ] Review existing layout code in `fugue-client/src/ui/layout.rs`
+- [ ] Review current `draw_attached()` in `fugue-client/src/ui/app.rs`
+- [ ] Understand how `PaneManager` and `render_pane` work in `fugue-client/src/ui/pane.rs`
 - [ ] Review how split commands are handled (`SplitVertical`, `SplitHorizontal`)
 - [ ] Review how `PaneCreated` messages are processed
 
@@ -112,7 +112,7 @@
 
 ### Manual Testing
 
-- [ ] Start ccmux with single pane - verify rendering
+- [ ] Start fugue with single pane - verify rendering
 - [ ] Press `Ctrl+B %` - verify vertical split appears
 - [ ] Press `Ctrl+B "` - verify horizontal split appears
 - [ ] Press `Ctrl+B o` - verify focus switches and borders update

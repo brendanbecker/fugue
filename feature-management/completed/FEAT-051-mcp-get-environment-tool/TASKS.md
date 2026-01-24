@@ -1,6 +1,6 @@
 # Task Breakdown: FEAT-051
 
-**Work Item**: [FEAT-051: Add ccmux_get_environment MCP tool](PROMPT.md)
+**Work Item**: [FEAT-051: Add fugue_get_environment MCP tool](PROMPT.md)
 **Status**: Not Started
 **Last Updated**: 2026-01-10
 
@@ -8,8 +8,8 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Review existing ccmux_set_environment implementation as reference
-- [ ] Identify affected files in ccmux-protocol and ccmux-server
+- [ ] Review existing fugue_set_environment implementation as reference
+- [ ] Identify affected files in fugue-protocol and fugue-server
 
 ## Design Tasks
 
@@ -20,14 +20,14 @@
 
 ## Implementation Tasks
 
-### Protocol (ccmux-protocol)
+### Protocol (fugue-protocol)
 
 - [ ] Add `GetEnvironment` variant to `ClientMessage`
 - [ ] Add `Environment` variant to `ServerMessage`
 - [ ] Ensure serde derives are correct
-- [ ] Run `cargo check` in ccmux-protocol
+- [ ] Run `cargo check` in fugue-protocol
 
-### Server Handler (ccmux-server)
+### Server Handler (fugue-server)
 
 - [ ] Add handler function for `GetEnvironment` message
 - [ ] Implement session lookup by ID or name
@@ -35,7 +35,7 @@
 - [ ] Implement all-keys retrieval
 - [ ] Wire handler into message dispatch
 
-### MCP Tool (ccmux-server)
+### MCP Tool (fugue-server)
 
 - [ ] Add tool definition to MCP tool list
 - [ ] Define input schema (session required, key optional)

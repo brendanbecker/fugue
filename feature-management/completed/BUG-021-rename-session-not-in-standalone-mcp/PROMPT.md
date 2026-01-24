@@ -1,4 +1,4 @@
-# BUG-021: ccmux_rename_session Not Handled in Standalone MCP Server
+# BUG-021: fugue_rename_session Not Handled in Standalone MCP Server
 
 ## Priority: P2
 ## Status: New
@@ -6,24 +6,24 @@
 
 ## Problem Summary
 
-The `ccmux_rename_session` tool is defined in `tools.rs` and handled correctly in MCP bridge mode (`bridge.rs`), but is completely missing from the standalone MCP server mode (`server.rs`). Calling this tool in standalone mode returns an "unknown tool" error.
+The `fugue_rename_session` tool is defined in `tools.rs` and handled correctly in MCP bridge mode (`bridge.rs`), but is completely missing from the standalone MCP server mode (`server.rs`). Calling this tool in standalone mode returns an "unknown tool" error.
 
 ## Symptoms Observed
 
-1. **Tool defined**: `ccmux_rename_session` exists in the tools list (`tools.rs:225`)
+1. **Tool defined**: `fugue_rename_session` exists in the tools list (`tools.rs:225`)
 2. **Bridge mode works**: Tool is correctly handled in `bridge.rs:372`
 3. **Standalone mode fails**: Tool returns "unknown tool" error
 4. **Inconsistent behavior**: Same MCP tool works in one mode but not the other
 
 ## Steps to Reproduce
 
-1. Start ccmux-server in standalone MCP server mode (not bridge mode)
-2. Send a `tools/call` request for `ccmux_rename_session` with valid `session` and `name` parameters
+1. Start fugue-server in standalone MCP server mode (not bridge mode)
+2. Send a `tools/call` request for `fugue_rename_session` with valid `session` and `name` parameters
 3. Observe that the server returns an "unknown tool" error
 
 ## Expected Behavior
 
-- The `ccmux_rename_session` tool should work identically in both MCP modes
+- The `fugue_rename_session` tool should work identically in both MCP modes
 - Session should be renamed successfully
 - Response should confirm the rename operation
 
@@ -37,7 +37,7 @@ The `ccmux_rename_session` tool is defined in `tools.rs` and handled correctly i
 
 Incomplete implementation during FEAT-043 (MCP Session Rename Tool). Only the bridge mode implementation was added. The standalone MCP server mode in `server.rs` is missing:
 
-1. `ccmux_rename_session` in `is_known_tool()` function
+1. `fugue_rename_session` in `is_known_tool()` function
 2. `RenameSession` variant in `ToolParams` enum
 3. Parsing case in `dispatch_tool()` match statement
 4. Execution case in the result match statement
@@ -47,11 +47,11 @@ Incomplete implementation during FEAT-043 (MCP Session Rename Tool). Only the br
 
 | File | Line(s) | Issue |
 |------|---------|-------|
-| `ccmux-server/src/mcp/server.rs` | 274-290 | `is_known_tool()` missing entry |
-| `ccmux-server/src/mcp/server.rs` | 294-315 | `ToolParams` enum missing variant |
-| `ccmux-server/src/mcp/server.rs` | 181-232 | `dispatch_tool()` missing parsing case |
-| `ccmux-server/src/mcp/server.rs` | 238+ | Execution match missing case |
-| `ccmux-server/src/mcp/handlers.rs` | - | Missing `rename_session()` method |
+| `fugue-server/src/mcp/server.rs` | 274-290 | `is_known_tool()` missing entry |
+| `fugue-server/src/mcp/server.rs` | 294-315 | `ToolParams` enum missing variant |
+| `fugue-server/src/mcp/server.rs` | 181-232 | `dispatch_tool()` missing parsing case |
+| `fugue-server/src/mcp/server.rs` | 238+ | Execution match missing case |
+| `fugue-server/src/mcp/handlers.rs` | - | Missing `rename_session()` method |
 
 ## Fix Required
 
@@ -61,11 +61,11 @@ Incomplete implementation during FEAT-043 (MCP Session Rename Tool). Only the br
 fn is_known_tool(name: &str) -> bool {
     matches!(
         name,
-        "ccmux_list_panes"
-            | "ccmux_read_pane"
+        "fugue_list_panes"
+            | "fugue_read_pane"
             // ... existing tools ...
-            | "ccmux_create_window"
-            | "ccmux_rename_session"  // ADD THIS
+            | "fugue_create_window"
+            | "fugue_rename_session"  // ADD THIS
     )
 }
 ```
@@ -83,7 +83,7 @@ enum ToolParams {
 ### 3. Add parsing case in `dispatch_tool()` (server.rs ~line 231)
 
 ```rust
-"ccmux_rename_session" => ToolParams::RenameSession {
+"fugue_rename_session" => ToolParams::RenameSession {
     session: arguments["session"]
         .as_str()
         .ok_or_else(|| McpError::InvalidParams("Missing 'session' parameter".into()))?
@@ -128,7 +128,7 @@ pub fn rename_session(&mut self, session: &str, name: &str) -> ToolResult {
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_rename_session` added to `is_known_tool()` in server.rs
+- [ ] `fugue_rename_session` added to `is_known_tool()` in server.rs
 - [ ] `RenameSession` variant added to `ToolParams` enum
 - [ ] Parsing case added to `dispatch_tool()` match
 - [ ] Execution case added to result match

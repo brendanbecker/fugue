@@ -1,18 +1,18 @@
 # Gemini Research Document - Section Map
 
-> Source: `/home/becker/projects/tools/ccmux/docs/research/gemini_research.md`
+> Source: `/home/becker/projects/tools/fugue/docs/research/gemini_research.md`
 > Total: ~8,500 tokens | 528 lines | 10 major sections
 
 ## Navigation Tree
 
 ```
-ccmux Architectural Blueprint (~8,500 tokens)
+fugue Architectural Blueprint (~8,500 tokens)
 │
 ├── 1. Terminal Emulation in Rust (1,450 tokens) [L3-119]
 │   ├── 1.1 PTY Spawning and Management (700 tokens) [L7-63]
 │   │   ├── 1.1.1 State of the Art: portable-pty (180 tokens)
 │   │   ├── 1.1.2 Bidirectional I/O and Resizing (180 tokens)
-│   │   └── 1.1.3 Implementation Strategy for ccmux (340 tokens) [CODE]
+│   │   └── 1.1.3 Implementation Strategy for fugue (340 tokens) [CODE]
 │   │
 │   ├── 1.2 Terminal State Parsing (420 tokens) [L64-90]
 │   │   ├── 1.2.1 alacritty_terminal vs. vt100 (280 tokens) [TABLE]
@@ -50,7 +50,7 @@ ccmux Architectural Blueprint (~8,500 tokens)
 │
 ├── 6. Claude Code Skills for Structured Output (520 tokens) [L300-339]
 │   ├── 6.1 Teaching Structured Output via MCP (260 tokens)
-│   │   └── 6.1.1 ccmux as an MCP Server (200 tokens)
+│   │   └── 6.1.1 fugue as an MCP Server (200 tokens)
 │   ├── 6.2 Fallback Protocol: The Sideband (160 tokens) [CODE]
 │   └── 6.3 Reliability (80 tokens)
 │
@@ -86,7 +86,7 @@ ccmux Architectural Blueprint (~8,500 tokens)
 | Persistence | 3.2 | WAL vs Snapshotting hybrid |
 | PTY Recovery | 3.3 | SCM_RIGHTS, shpool pattern |
 | Config Reload | 5.2 | `ArcSwap` lock-free swapping |
-| MCP Integration | 6.1 | ccmux as MCP server |
+| MCP Integration | 6.1 | fugue as MCP server |
 | Supervision | 7.1 | Actor model with depth limits |
 
 ## Markers

@@ -14,9 +14,9 @@
   "reproducibility": "always",
   "description": "MCP select_session and select_window commands return success but don't change the TUI view. The MCP bridge and TUI are separate clients with independent focus states (FEAT-078), so MCP commands only update the MCP bridge's internal focus, not the human's visible TUI.",
   "steps_to_reproduce": [
-    "Start ccmux with TUI attached to a session",
-    "Create additional sessions via MCP: ccmux_create_session(name: 'test')",
-    "Call ccmux_select_session(session_id: '<new-session-id>')",
+    "Start fugue with TUI attached to a session",
+    "Create additional sessions via MCP: fugue_create_session(name: 'test')",
+    "Call fugue_select_session(session_id: '<new-session-id>')",
     "Observe: MCP returns success, but TUI still shows original session",
     "Manually switch sessions in TUI to verify sessions exist"
   ],
@@ -24,12 +24,12 @@
   "actual_behavior": "MCP command returns success. TUI view unchanged. Human must manually switch sessions/windows despite MCP 'success' response.",
   "evidence": {
     "affected_tools": [
-      "ccmux_select_session",
-      "ccmux_select_window"
+      "fugue_select_session",
+      "fugue_select_window"
     ],
     "affected_files": [
-      "ccmux-server/src/handlers/session.rs",
-      "ccmux-server/src/registry.rs"
+      "fugue-server/src/handlers/session.rs",
+      "fugue-server/src/registry.rs"
     ],
     "related_features": [
       "FEAT-078 (per-client focus state)",

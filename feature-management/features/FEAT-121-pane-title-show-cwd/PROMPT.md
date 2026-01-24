@@ -1,7 +1,7 @@
 # FEAT-121: Show cwd in pane title instead of "pane"
 
 **Priority**: P2
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: enhancement
 **Estimated Effort**: tiny
 **Business Value**: medium
@@ -26,7 +26,7 @@ Currently, when a pane has no explicit title set, the border shows "pane" as a p
 ## Desired Behavior
 
 ```
-┌─~/projects/ccmux──────────────────────┐
+┌─~/projects/fugue──────────────────────┐
 │ $ ls                                  │
 │ file1.txt  file2.txt                  │
 └───────────────────────────────────────┘
@@ -35,14 +35,14 @@ Currently, when a pane has no explicit title set, the border shows "pane" as a p
 Or with home directory abbreviation:
 
 ```
-┌─/home/user/projects/ccmux────────────┐
+┌─/home/user/projects/fugue────────────┐
 ```
 
 ## Implementation
 
 ### Location
 
-**File**: `ccmux-client/src/ui/pane.rs`
+**File**: `fugue-client/src/ui/pane.rs`
 
 **Function**: `display_title()` (line 384)
 
@@ -97,7 +97,7 @@ pub fn display_title(&self) -> String {
 
 ### Section 1: Basic Implementation
 
-- [ ] Edit `ccmux-client/src/ui/pane.rs`
+- [ ] Edit `fugue-client/src/ui/pane.rs`
 - [ ] Update `display_title()` to use cwd as fallback
 - [ ] Test that explicit title still takes precedence
 
@@ -117,7 +117,7 @@ pub fn display_title(&self) -> String {
 
 | File | Changes |
 |------|---------|
-| `ccmux-client/src/ui/pane.rs` | Update `display_title()` fallback logic |
+| `fugue-client/src/ui/pane.rs` | Update `display_title()` fallback logic |
 
 ## Acceptance Criteria
 

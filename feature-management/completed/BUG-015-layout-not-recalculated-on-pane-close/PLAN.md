@@ -1,13 +1,13 @@
 # Implementation Plan: BUG-015
 
 **Work Item**: [BUG-015: Layout Doesn't Recalculate When Panes Are Closed](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P2
 **Created**: 2026-01-10
 
 ## Overview
 
-When panes are closed in ccmux, the remaining panes do not expand to fill the available space. The layout tree is not recalculated or simplified when nodes are removed, leaving dead space in the window.
+When panes are closed in fugue, the remaining panes do not expand to fill the available space. The layout tree is not recalculated or simplified when nodes are removed, leaving dead space in the window.
 
 ## Architecture Decisions
 
@@ -70,10 +70,10 @@ Root (Vertical Split) - 50%/50%
 
 | File | Purpose | Risk Level |
 |------|---------|------------|
-| `ccmux-client/src/ui/app.rs` | Main TUI application, message handling | High |
-| `ccmux-client/src/ui/layout.rs` | Layout tree (if exists) | Critical |
-| `ccmux-client/src/ui/panes.rs` | Pane management (if exists) | High |
-| `ccmux-client/src/ui/mod.rs` | UI module organization | Medium |
+| `fugue-client/src/ui/app.rs` | Main TUI application, message handling | High |
+| `fugue-client/src/ui/layout.rs` | Layout tree (if exists) | Critical |
+| `fugue-client/src/ui/panes.rs` | Pane management (if exists) | High |
+| `fugue-client/src/ui/mod.rs` | UI module organization | Medium |
 | Protocol messages for PaneClosed | How closure is communicated | Medium |
 
 ## Risk Assessment

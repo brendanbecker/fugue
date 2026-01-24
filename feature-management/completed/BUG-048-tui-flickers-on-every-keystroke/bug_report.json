@@ -14,7 +14,7 @@
   "reproducibility": "always",
   "description": "Once Claude Code is detected in a pane, the TUI flickers excessively. Partially fixed in commit 40402d1 - analyze() now only returns state on actual changes. However, the spinner animation during 'Thinking...' state still causes rapid state transitions that trigger redraws.",
   "steps_to_reproduce": [
-    "Start ccmux and attach to a session",
+    "Start fugue and attach to a session",
     "Launch Claude Code in a pane (claude-code or cc)",
     "Wait for Claude Code to be detected",
     "Submit a prompt and observe during thinking/processing",
@@ -24,7 +24,7 @@
   "actual_behavior": "TUI flickers during thinking/processing state due to spinner animation triggering state changes",
   "evidence": {
     "type": "file",
-    "location": "ccmux-server/src/agents/claude/mod.rs",
+    "location": "fugue-server/src/agents/claude/mod.rs",
     "description": "Lines 127-143: analyze() fixed to return state only on changes, but spinner animation in terminal output still triggers rapid activity state transitions"
   },
   "root_cause": "The spinner animation (pulsing snowflake/flower that expands and contracts down to a dot) in Claude's terminal output causes the inner detector to report activity state changes on each frame, which then triggers PaneStateChanged broadcasts. Need to debounce or suppress spinner-induced state changes.",

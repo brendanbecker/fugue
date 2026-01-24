@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "project_name": "ccmux",
+  "project_name": "fugue",
   "project_type": "standard",
   "duplicate_similarity_threshold": 0.75,
   "available_tags": [

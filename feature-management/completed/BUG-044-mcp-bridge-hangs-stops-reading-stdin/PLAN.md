@@ -75,9 +75,9 @@ If implementation causes issues:
 ### Key Files to Modify
 
 ```
-ccmux-server/src/bin/mcp-bridge/main.rs  # Main stdin loop
-ccmux-server/src/bin/mcp-bridge/connection.rs  # ConnectionManager
-ccmux-server/src/bin/mcp-bridge/handlers.rs  # Request handlers
+fugue-server/src/bin/mcp-bridge/main.rs  # Main stdin loop
+fugue-server/src/bin/mcp-bridge/connection.rs  # ConnectionManager
+fugue-server/src/bin/mcp-bridge/handlers.rs  # Request handlers
 ```
 
 ### Async Stdin Pattern

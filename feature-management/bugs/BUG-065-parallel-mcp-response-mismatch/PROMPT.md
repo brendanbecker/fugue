@@ -13,12 +13,12 @@ This is distinct from BUG-064 (post-timeout stale responses), which was fixed by
 
 ## Reproduction Steps
 
-1. Connect to ccmux daemon via MCP
+1. Connect to fugue daemon via MCP
 2. Send 4 parallel tool calls in one message:
-   - `ccmux_list_sessions`
-   - `ccmux_list_panes`
-   - `ccmux_read_pane`
-   - `ccmux_get_status`
+   - `fugue_list_sessions`
+   - `fugue_list_panes`
+   - `fugue_read_pane`
+   - `fugue_get_status`
 3. Observe: All 4 calls fail with "Unexpected response" errors
 
 ```
@@ -49,7 +49,7 @@ The MCP JSON-RPC protocol uses request IDs for correlation, but the internal dae
 
 ## Architecture Impact
 
-This fundamentally affects how Claude Code uses ccmux. Claude Code frequently makes parallel tool calls when gathering information (e.g., calling `list_sessions`, `list_panes`, and `read_pane` simultaneously).
+This fundamentally affects how Claude Code uses fugue. Claude Code frequently makes parallel tool calls when gathering information (e.g., calling `list_sessions`, `list_panes`, and `read_pane` simultaneously).
 
 Current workaround: Make all MCP calls sequentially. This works but is slower and doesn't match natural Claude Code behavior.
 

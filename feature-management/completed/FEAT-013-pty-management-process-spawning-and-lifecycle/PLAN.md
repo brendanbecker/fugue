@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-013
 
 **Work Item**: [FEAT-013: PTY Management - Process Spawning and Lifecycle](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P1
 **Created**: 2026-01-08
 **Status**: Completed
@@ -43,17 +43,17 @@ Spawning -> Running -> Terminating -> Exited
 
 Standard variables set for spawned PTY:
 - `TERM=xterm-256color`
-- `CCMUX_PANE_ID={pane_id}`
-- `CCMUX_SESSION_ID={session_id}`
-- `CCMUX_VERSION={version}`
+- `FUGUE_PANE_ID={pane_id}`
+- `FUGUE_SESSION_ID={session_id}`
+- `FUGUE_VERSION={version}`
 
 ## Affected Components
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/pty/handle.rs | New - PTY handle implementation | Medium |
-| ccmux-server/src/pty/config.rs | New - PTY configuration | Low |
-| ccmux-server/src/pty/mod.rs | New - Module exports | Low |
+| fugue-server/src/pty/handle.rs | New - PTY handle implementation | Medium |
+| fugue-server/src/pty/config.rs | New - PTY configuration | Low |
+| fugue-server/src/pty/mod.rs | New - Module exports | Low |
 
 ## Dependencies
 
@@ -95,7 +95,7 @@ Standard variables set for spawned PTY:
 
 If implementation causes issues:
 1. Revert commits associated with this work item
-2. Remove pty module from ccmux-server
+2. Remove pty module from fugue-server
 3. Document what went wrong in comments.md
 
 ## Testing Strategy

@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-059",
   "title": "Beads Workflow Integration - Pane-Issue Correlation and Audit Trail",
-  "component": "ccmux-server, ccmux-protocol",
+  "component": "fugue-server, fugue-protocol",
   "priority": "P3",
   "status": "new",
   "type": "new_feature",
@@ -11,7 +11,7 @@
   "tags": ["orchestration", "session-management", "crash-recovery", "mcp", "beads"],
   "estimated_effort": "medium",
   "dependencies": ["FEAT-057", "FEAT-058", "FEAT-050 (completed)", "FEAT-028 (completed)"],
-  "description": "Add deep workflow integration between ccmux panes and beads issues. SCOPE REDUCED: FEAT-050 metadata storage provides foundation for pane-issue correlation (beads.current_issue, beads.assigned_at, beads.issue_history). FEAT-028 tag-based routing enables orchestration notifications. Focus now on convenience wrappers and crash handling rather than new infrastructure.",
+  "description": "Add deep workflow integration between fugue panes and beads issues. SCOPE REDUCED: FEAT-050 metadata storage provides foundation for pane-issue correlation (beads.current_issue, beads.assigned_at, beads.issue_history). FEAT-028 tag-based routing enables orchestration notifications. Focus now on convenience wrappers and crash handling rather than new infrastructure.",
   "business_value": "high",
   "technical_complexity": "medium",
   "user_impact": "Provides complete audit trail of pane-issue work, easy debugging (what was pane X working on when it crashed), recovery support (restart work on issue Y), and accurate attribution (which pane/session completed each task)."

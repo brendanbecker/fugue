@@ -1,12 +1,12 @@
-# BUG-033: ccmux_create_layout Validation Rejects All Layout Formats
+# BUG-033: fugue_create_layout Validation Rejects All Layout Formats
 
 ## Summary
-`ccmux_create_layout` rejects all layout specifications with the error "Invalid layout specification: must contain 'pane' or 'splits'" even when the layout clearly contains `pane` or `splits` keys.
+`fugue_create_layout` rejects all layout specifications with the error "Invalid layout specification: must contain 'pane' or 'splits'" even when the layout clearly contains `pane` or `splits` keys.
 
 ## Steps to Reproduce
 
-1. Create a session: `ccmux_create_session` with name "dev-qa" - **succeeds**
-2. Call `ccmux_create_layout` with any of these layouts:
+1. Create a session: `fugue_create_session` with name "dev-qa" - **succeeds**
+2. Call `fugue_create_layout` with any of these layouts:
 
 **Simple pane:**
 ```json
@@ -35,7 +35,7 @@ Result: Same error
 - Error message says to include 'pane' or 'splits' but they ARE present
 
 ## Environment
-- ccmux version: current main branch (commit c8b0904)
+- fugue version: current main branch (commit c8b0904)
 - Platform: Linux (WSL2)
 - Triggered during: QA demo run
 
@@ -47,7 +47,7 @@ Result: Same error
 ## Impact
 - **Severity**: P1 - Declarative layouts completely non-functional
 - **Affected Component**: daemon, create_layout validation
-- **Workaround**: Use `ccmux_split_pane` repeatedly instead
+- **Workaround**: Use `fugue_split_pane` repeatedly instead
 
 ## Investigation Findings
 
@@ -60,11 +60,11 @@ Result: Same error
 5. Handler at `mcp_bridge.rs:1137-1216` validates layout
 
 **Key Files**:
-- `ccmux-server/src/mcp/bridge.rs` lines 760-764 (tool dispatch)
-- `ccmux-server/src/mcp/bridge.rs` lines 1503-1512 (tool_create_layout)
-- `ccmux-server/src/handlers/mod.rs` lines 246-254 (message dispatch)
-- `ccmux-server/src/handlers/mcp_bridge.rs` lines 1137-1216 (validation)
-- `ccmux-protocol/src/types.rs` lines 14-75 (JsonValue wrapper)
+- `fugue-server/src/mcp/bridge.rs` lines 760-764 (tool dispatch)
+- `fugue-server/src/mcp/bridge.rs` lines 1503-1512 (tool_create_layout)
+- `fugue-server/src/handlers/mod.rs` lines 246-254 (message dispatch)
+- `fugue-server/src/handlers/mcp_bridge.rs` lines 1137-1216 (validation)
+- `fugue-protocol/src/types.rs` lines 14-75 (JsonValue wrapper)
 
 **Working Tests** (bypass bincode):
 - `test_handle_create_layout_simple_pane` at mcp_bridge.rs:2401-2428 passes

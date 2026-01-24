@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-057
 
 **Work Item**: [FEAT-057: Beads Passive Awareness - Auto-Detection and Environment Setup](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P2
 **Created**: 2026-01-11
 
 ## Overview
 
-Add passive beads awareness to ccmux that automatically detects when panes are operating in beads-tracked repositories and configures environment variables appropriately.
+Add passive beads awareness to fugue that automatically detects when panes are operating in beads-tracked repositories and configures environment variables appropriately.
 
 ## Architecture Decisions
 
@@ -25,18 +25,18 @@ Add passive beads awareness to ccmux that automatically detects when panes are o
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/config/schema.rs | Add BeadsConfig struct | Low |
-| ccmux-server/src/pty/manager.rs | Add beads detection logic | Medium |
-| ccmux-server/src/session/pane.rs | Add beads_root field | Low |
-| ccmux-client/src/ui/status.rs | Add beads indicator | Low |
-| ccmux-server/src/pty/spawn.rs | Merge beads env vars | Medium |
+| fugue-server/src/config/schema.rs | Add BeadsConfig struct | Low |
+| fugue-server/src/pty/manager.rs | Add beads detection logic | Medium |
+| fugue-server/src/session/pane.rs | Add beads_root field | Low |
+| fugue-client/src/ui/status.rs | Add beads indicator | Low |
+| fugue-server/src/pty/spawn.rs | Merge beads env vars | Medium |
 
 ## Implementation Details
 
 ### 1. Configuration Schema
 
 ```rust
-// In ccmux-server/src/config/schema.rs
+// In fugue-server/src/config/schema.rs
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct BeadsConfig {
@@ -64,7 +64,7 @@ impl Default for BeadsConfig {
 ### 2. Beads Detection Function
 
 ```rust
-// In ccmux-server/src/pty/manager.rs
+// In fugue-server/src/pty/manager.rs
 use std::path::{Path, PathBuf};
 
 /// Detect .beads/ directory by walking up the directory tree
@@ -92,7 +92,7 @@ pub fn detect_beads_root(cwd: &Path) -> Option<PathBuf> {
 ### 3. Pane Metadata Extension
 
 ```rust
-// In ccmux-server/src/session/pane.rs
+// In fugue-server/src/session/pane.rs
 pub struct Pane {
     // existing fields...
 
@@ -120,7 +120,7 @@ if let Some(beads_root) = &pane.beads_root {
 ### 5. Status Line Indicator
 
 ```rust
-// In ccmux-client/src/ui/status.rs
+// In fugue-client/src/ui/status.rs
 fn render_pane_status(pane: &Pane) -> String {
     let mut status = String::new();
 
@@ -135,7 +135,7 @@ fn render_pane_status(pane: &Pane) -> String {
 
 ## Dependencies
 
-- FEAT-047 (ccmux_set_environment) - Provides session environment infrastructure
+- FEAT-047 (fugue_set_environment) - Provides session environment infrastructure
 - FEAT-053 (auto-inject context env vars) - Similar pattern for env var injection
 
 ## Risk Assessment

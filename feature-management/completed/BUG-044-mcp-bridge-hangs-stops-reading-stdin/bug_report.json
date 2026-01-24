@@ -14,8 +14,8 @@
   "reproducibility": "sometimes",
   "description": "The mcp-bridge process can enter a state where it stops reading from stdin entirely, causing all MCP tool calls to hang indefinitely. The 25-second daemon response timeout does not trigger. Killing the hung process and letting Claude Code spawn a fresh one resolves the issue.",
   "steps_to_reproduce": [
-    "Configure ccmux MCP server in Claude Code settings",
-    "Start ccmux daemon (ccmux-server start)",
+    "Configure fugue MCP server in Claude Code settings",
+    "Start fugue daemon (fugue-server start)",
     "Use Claude Code to invoke MCP tools repeatedly",
     "Eventually mcp-bridge enters hung state",
     "Observe MCP tool calls hang for 4.5+ minutes with no timeout",

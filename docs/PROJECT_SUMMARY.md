@@ -1,4 +1,4 @@
-# ccmux Project Summary
+# fugue Project Summary
 
 > Synthesized findings from deep research and architectural design
 
@@ -18,11 +18,11 @@ tmux doesn't know what's running inside it. When Claude Code runs in a tmux pane
 
 ## Solution
 
-ccmux is a terminal multiplexer with first-class Claude Code awareness:
+fugue is a terminal multiplexer with first-class Claude Code awareness:
 - **State detection**: Parse PTY output for Claude activity patterns
 - **Session management**: Capture and store Claude session IDs
 - **Crash recovery**: Auto-resume Claude sessions after crashes
-- **Orchestration**: MCP and sideband protocols for Claude-to-ccmux communication
+- **Orchestration**: MCP and sideband protocols for Claude-to-fugue communication
 
 ## Technology Stack
 
@@ -42,7 +42,7 @@ ccmux is a terminal multiplexer with first-class Claude Code awareness:
 
 ```
 ┌──────────────┐         Unix Socket         ┌──────────────┐
-│  ccmux-client │◄───────────────────────────►│ ccmux-server  │
+│  fugue-client │◄───────────────────────────►│ fugue-server  │
 │  (Ratatui UI) │                             │   (Daemon)    │
 └──────────────┘                             └──────┬───────┘
                                                     │

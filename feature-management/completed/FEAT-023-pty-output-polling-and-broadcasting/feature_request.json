@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-023",
   "title": "PTY Output Polling and Broadcasting",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P0",
   "status": "new",
   "type": "new_feature",

@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-022
 
 **Work Item**: [FEAT-022: Client Message Routing and Handlers](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P0
 **Created**: 2026-01-09
 
@@ -14,7 +14,7 @@ Route incoming ClientMessage types to appropriate handlers and respond with Serv
 ### Handler Module Structure
 
 ```
-ccmux-server/src/
+fugue-server/src/
   handlers/
     mod.rs                    # Module exports, MessageRouter trait
     message_router.rs         # Main routing logic, dispatch table
@@ -110,18 +110,18 @@ impl From<HandleError> for ServerMessage {
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/handlers/ | New module | Low |
-| ccmux-server/src/lib.rs | Add handlers module | Low |
-| ccmux-server/src/server.rs | Wire in message router | Medium |
-| ccmux-server/src/session/manager.rs | Use existing API | Low |
-| ccmux-server/src/pty/manager.rs | Use existing API | Low |
+| fugue-server/src/handlers/ | New module | Low |
+| fugue-server/src/lib.rs | Add handlers module | Low |
+| fugue-server/src/server.rs | Wire in message router | Medium |
+| fugue-server/src/session/manager.rs | Use existing API | Low |
+| fugue-server/src/pty/manager.rs | Use existing API | Low |
 
 ## Dependencies
 
 - **FEAT-021**: Server Socket Listen Loop - Must be complete to wire in handlers
-- Uses: `ccmux-protocol::messages::{ClientMessage, ServerMessage, ErrorCode}`
-- Uses: `ccmux-server::session::SessionManager`
-- Uses: `ccmux-server::pty::PtyManager`
+- Uses: `fugue-protocol::messages::{ClientMessage, ServerMessage, ErrorCode}`
+- Uses: `fugue-server::session::SessionManager`
+- Uses: `fugue-server::pty::PtyManager`
 
 ## Handler Implementation Details
 

@@ -35,8 +35,8 @@ Thread 6700-6709: 202 (futex)
 
 ## Steps to Reproduce
 
-1. Configure ccmux MCP server in Claude Code settings
-2. Start ccmux daemon (`ccmux-server start`)
+1. Configure fugue MCP server in Claude Code settings
+2. Start fugue daemon (`fugue-server start`)
 3. Use Claude Code to invoke MCP tools repeatedly
 4. Eventually mcp-bridge enters hung state
 5. Observe MCP tool calls hang for 4.5+ minutes with no timeout

@@ -14,7 +14,7 @@ This feature is **optional**:
 - **Agent Safety**: Allow agents to request isolated sandboxes for untrusted tasks (e.g., analyzing malicious input).
 
 ## Requirements
-- Add optional `landlock` dependency to `ccmux-server`.
+- Add optional `landlock` dependency to `fugue-server`.
 - Extend per-pane configuration to support Landlock rules (fs paths, network ports).
 - Implement runtime application of ruleset before spawning child process.
 - Fallback gracefully if kernel support is missing.
@@ -41,7 +41,7 @@ Extend the `config` object from FEAT-080:
 ## Tasks
 ### Section 1: Dependencies & Configuration
 - [ ] Add `landlock` crate as optional dependency.
-- [ ] Define `LandlockConfig` struct in `ccmux-server`.
+- [ ] Define `LandlockConfig` struct in `fugue-server`.
 
 ### Section 2: Implementation
 - [ ] Implement `apply_landlock(config)` function in spawn logic.

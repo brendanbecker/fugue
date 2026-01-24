@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-062
 
 **Work Item**: [FEAT-062: Mirror Pane (Picture-in-Picture View)](PROMPT.md)
-**Component**: ccmux-server, ccmux-client
+**Component**: fugue-server, fugue-client
 **Priority**: P3
 **Created**: 2026-01-11
 
@@ -66,13 +66,13 @@ pub enum PaneType {
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/session/pane.rs | Add PaneType, mirror logic | Medium |
-| ccmux-server/src/session/mod.rs | Mirror registry | Low |
-| ccmux-server/src/mcp/tools.rs | New MCP tool | Low |
-| ccmux-protocol/src/message.rs | New message types | Low |
-| ccmux-client/src/ui/pane.rs | Mirror rendering | Low |
-| ccmux-client/src/input/handler.rs | Mirror input handling | Low |
-| ccmux/src/cli/commands.rs | CLI command | Low |
+| fugue-server/src/session/pane.rs | Add PaneType, mirror logic | Medium |
+| fugue-server/src/session/mod.rs | Mirror registry | Low |
+| fugue-server/src/mcp/tools.rs | New MCP tool | Low |
+| fugue-protocol/src/message.rs | New message types | Low |
+| fugue-client/src/ui/pane.rs | Mirror rendering | Low |
+| fugue-client/src/input/handler.rs | Mirror input handling | Low |
+| fugue/src/cli/commands.rs | CLI command | Low |
 
 ## Dependencies
 
@@ -129,7 +129,7 @@ None - uses existing infrastructure.
 
 ### Phase 3: MCP Tool (1 hour)
 
-1. **Add ccmux_mirror_pane tool**
+1. **Add fugue_mirror_pane tool**
    - Parse source_pane_id parameter
    - Optional target_pane_id parameter
    - Call server's mirror creation logic
@@ -240,7 +240,7 @@ impl MirrorRegistry {
 ### MCP Tool
 
 ```rust
-async fn ccmux_mirror_pane(
+async fn fugue_mirror_pane(
     server: &Server,
     source_pane_id: String,
     target_pane_id: Option<String>,

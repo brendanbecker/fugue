@@ -6,7 +6,7 @@
 
 ## Context
 
-ccmux needs a way for Claude Code to communicate with the multiplexer for:
+fugue needs a way for Claude Code to communicate with the multiplexer for:
 
 1. Spawning new panes (sub-agents, test runners)
 2. Reading output from sibling panes
@@ -17,11 +17,11 @@ Two approaches were identified in research:
 
 ### Option A: MCP Server
 
-Model Context Protocol (MCP) is Anthropic's standard for tool integration. ccmux would expose tools that Claude can call:
+Model Context Protocol (MCP) is Anthropic's standard for tool integration. fugue would expose tools that Claude can call:
 
 ```json
 {
-  "tool": "ccmux_create_pane",
+  "tool": "fugue_create_pane",
   "input": {
     "direction": "horizontal",
     "command": "npm test"
@@ -45,7 +45,7 @@ Model Context Protocol (MCP) is Anthropic's standard for tool integration. ccmux
 Parse structured commands from Claude's terminal output:
 
 ```xml
-<ccmux:spawn direction="vertical" command="cargo build" />
+<fugue:spawn direction="vertical" command="cargo build" />
 ```
 
 **Pros:**
@@ -87,23 +87,23 @@ When both are available:
 ### MCP Implementation
 
 ```rust
-// Expose ccmux as MCP server
+// Expose fugue as MCP server
 impl McpServer for CcmuxMcp {
     fn list_tools(&self) -> Vec<Tool> {
         vec![
-            Tool::new("ccmux_list_panes", "List all panes with metadata"),
-            Tool::new("ccmux_create_pane", "Create a new pane"),
-            Tool::new("ccmux_read_pane", "Read pane output buffer"),
-            Tool::new("ccmux_send_input", "Send input to pane"),
-            Tool::new("ccmux_get_status", "Get pane state"),
-            Tool::new("ccmux_focus_pane", "Switch focus to pane"),
+            Tool::new("fugue_list_panes", "List all panes with metadata"),
+            Tool::new("fugue_create_pane", "Create a new pane"),
+            Tool::new("fugue_read_pane", "Read pane output buffer"),
+            Tool::new("fugue_send_input", "Send input to pane"),
+            Tool::new("fugue_get_status", "Get pane state"),
+            Tool::new("fugue_focus_pane", "Switch focus to pane"),
         ]
     }
 
     async fn call_tool(&self, name: &str, input: Value) -> Result<Value> {
         match name {
-            "ccmux_create_pane" => self.create_pane(input).await,
-            "ccmux_read_pane" => self.read_pane(input).await,
+            "fugue_create_pane" => self.create_pane(input).await,
+            "fugue_read_pane" => self.read_pane(input).await,
             // ...
         }
     }
@@ -113,16 +113,16 @@ impl McpServer for CcmuxMcp {
 ### Sideband Implementation
 
 ```rust
-// Parse and strip ccmux commands from output
+// Parse and strip fugue commands from output
 impl SidebandParser {
     pub fn process(&mut self, output: &str) -> (String, Vec<Command>) {
         let mut display = String::new();
         let mut commands = Vec::new();
 
-        // Regex: <ccmux:cmd attr="val">content</ccmux:cmd>
-        //    or: <ccmux:cmd attr="val" />
+        // Regex: <fugue:cmd attr="val">content</fugue:cmd>
+        //    or: <fugue:cmd attr="val" />
         let re = regex::Regex::new(
-            r"<ccmux:(\w+)([^>]*)(?:>(.*?)</ccmux:\1>|/>)"
+            r"<fugue:(\w+)([^>]*)(?:>(.*?)</fugue:\1>|/>)"
         ).unwrap();
 
         let mut last = 0;
@@ -151,12 +151,12 @@ Both protocols support the same commands:
 
 | Command | MCP Tool | Sideband Tag | Description |
 |---------|----------|--------------|-------------|
-| List panes | `ccmux_list_panes` | `<ccmux:list />` | Get pane info |
-| Create pane | `ccmux_create_pane` | `<ccmux:spawn>` | New pane |
-| Read output | `ccmux_read_pane` | `<ccmux:read>` | Get buffer |
-| Send input | `ccmux_send_input` | `<ccmux:input>` | Type in pane |
-| Focus | `ccmux_focus_pane` | `<ccmux:focus>` | Switch pane |
-| Control | `ccmux_control` | `<ccmux:control>` | Resize, close |
+| List panes | `fugue_list_panes` | `<fugue:list />` | Get pane info |
+| Create pane | `fugue_create_pane` | `<fugue:spawn>` | New pane |
+| Read output | `fugue_read_pane` | `<fugue:read>` | Get buffer |
+| Send input | `fugue_send_input` | `<fugue:input>` | Type in pane |
+| Focus | `fugue_focus_pane` | `<fugue:focus>` | Switch pane |
+| Control | `fugue_control` | `<fugue:control>` | Resize, close |
 
 ## Consequences
 
@@ -177,12 +177,12 @@ Both protocols support the same commands:
 ### Configuration
 
 ```toml
-# ~/.ccmux/config/ccmux.toml
+# ~/.fugue/config/fugue.toml
 
 [claude.communication]
 # Enable MCP server
 mcp_enabled = true
-mcp_socket = "~/.ccmux/mcp.sock"
+mcp_socket = "~/.fugue/mcp.sock"
 
 # Enable sideband parsing
 sideband_enabled = true

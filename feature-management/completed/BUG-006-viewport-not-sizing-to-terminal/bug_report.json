@@ -1,7 +1,7 @@
 {
   "bug_id": "BUG-006",
   "title": "Viewport not sizing to terminal dimensions",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "severity": "medium",
   "priority": "P2",
   "status": "analyzed",
@@ -12,11 +12,11 @@
   "affected_versions": ["current"],
   "environment": "All terminals",
   "reproducibility": "always",
-  "description": "When ccmux-client starts in a full-screen terminal, the viewport renders at approximately quarter-screen size (80x24) instead of the actual terminal dimensions. Works correctly if terminal is already at the expected size.",
+  "description": "When fugue-client starts in a full-screen terminal, the viewport renders at approximately quarter-screen size (80x24) instead of the actual terminal dimensions. Works correctly if terminal is already at the expected size.",
   "steps_to_reproduce": [
-    "Start ccmux-server",
+    "Start fugue-server",
     "Create a session from any terminal",
-    "Start ccmux-client in a full-screen terminal (e.g., 200x50)",
+    "Start fugue-client in a full-screen terminal (e.g., 200x50)",
     "Observe viewport renders at 80x24, not full terminal size"
   ],
   "expected_behavior": "Viewport should fill the terminal and PTY should be sized to match terminal dimensions",
@@ -27,17 +27,17 @@
   "evidence": [
     {
       "type": "code",
-      "location": "ccmux-server/src/session/pane.rs:86-88",
+      "location": "fugue-server/src/session/pane.rs:86-88",
       "description": "Server defaults panes to 80x24"
     },
     {
       "type": "code",
-      "location": "ccmux-client/src/ui/app.rs:634-636",
+      "location": "fugue-client/src/ui/app.rs:634-636",
       "description": "Client uses server dimensions instead of terminal_size"
     },
     {
       "type": "code",
-      "location": "ccmux-client/src/ui/app.rs:137-141",
+      "location": "fugue-client/src/ui/app.rs:137-141",
       "description": "Client correctly detects terminal size at startup"
     }
   ]

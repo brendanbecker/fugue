@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-045
 
 **Work Item**: [FEAT-045: MCP Declarative Layout Tools](PROMPT.md)
-**Component**: ccmux-server (MCP)
+**Component**: fugue-server (MCP)
 **Priority**: P1
 **Created**: 2026-01-10
 
@@ -13,7 +13,7 @@ Add declarative layout control to MCP tools, allowing LLMs to create complex ter
 
 ### Approach: Leverage Existing LayoutNode Infrastructure
 
-The `ccmux-client/src/ui/layout.rs` already has a complete layout tree implementation:
+The `fugue-client/src/ui/layout.rs` already has a complete layout tree implementation:
 
 - `LayoutNode` enum with `Pane` and `Split` variants
 - `split_with_ratios()` for custom sizing
@@ -61,11 +61,11 @@ Use a recursive JSON schema that mirrors the `LayoutNode` structure.
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-server/src/mcp/tools.rs` | Add tool definitions | Low |
-| `ccmux-server/src/mcp/handlers.rs` | Implement handlers | Medium |
-| `ccmux-server/src/mcp/bridge.rs` | Route new tools | Low |
-| `ccmux-server/src/session/manager.rs` | Layout application | Medium |
-| `ccmux-protocol/src/messages.rs` | Layout sync messages | Low |
+| `fugue-server/src/mcp/tools.rs` | Add tool definitions | Low |
+| `fugue-server/src/mcp/handlers.rs` | Implement handlers | Medium |
+| `fugue-server/src/mcp/bridge.rs` | Route new tools | Low |
+| `fugue-server/src/session/manager.rs` | Layout application | Medium |
+| `fugue-protocol/src/messages.rs` | Layout sync messages | Low |
 
 ## Key Implementation Details
 
@@ -207,7 +207,7 @@ pub struct PaneInfoResponse {
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Layout code in wrong crate | Medium | Medium | Extract layout types to ccmux-protocol or shared crate |
+| Layout code in wrong crate | Medium | Medium | Extract layout types to fugue-protocol or shared crate |
 | Ratio normalization edge cases | Low | Low | Add tests for edge cases, round to 0.01 precision |
 | Partial failure during spawn | Medium | High | Track spawned panes, clean up on error |
 | Client layout sync issues | Medium | Medium | Leverage FEAT-039 broadcast infrastructure |
@@ -216,7 +216,7 @@ pub struct PaneInfoResponse {
 
 If implementation causes issues:
 1. Revert commits associated with this work item
-2. Verify existing `ccmux_create_pane` still works
+2. Verify existing `fugue_create_pane` still works
 3. Document what went wrong in comments.md
 
 ## Testing Strategy
@@ -237,10 +237,10 @@ If implementation causes issues:
 
 ## Implementation Notes
 
-- Start with `ccmux_create_layout` as the core feature
-- `ccmux_split_pane` and `ccmux_resize_pane` can follow
-- Consider adding `ccmux_get_layout` to query current structure
-- Layout types may need to move to `ccmux-protocol` crate for sharing
+- Start with `fugue_create_layout` as the core feature
+- `fugue_split_pane` and `fugue_resize_pane` can follow
+- Consider adding `fugue_get_layout` to query current structure
+- Layout types may need to move to `fugue-protocol` crate for sharing
 
 ---
 *This plan should be updated as implementation progresses.*

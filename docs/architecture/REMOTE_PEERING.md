@@ -1,14 +1,14 @@
-# ccmux-peering-design.md
+# fugue-peering-design.md
 
-# ccmux Peering Design
+# fugue Peering Design
 
-High-level architecture and flows for adding remote peering support to ccmux, enabling a daemon to run on a remote host (e.g., gaming PC) while clients attach from local machines (e.g., laptop). Goal: hybrid orchestration where Mayor runs locally but polecats/agents execute remotely.
+High-level architecture and flows for adding remote peering support to fugue, enabling a daemon to run on a remote host (e.g., gaming PC) while clients attach from local machines (e.g., laptop). Goal: hybrid orchestration where Mayor runs locally but polecats/agents execute remotely.
 
 ## Current Constraints
-- Daemon ↔ client: Unix domain socket only (`~/.ccmux/ccmux.sock`, bincode-serialized messages).
+- Daemon ↔ client: Unix domain socket only (`~/.fugue/fugue.sock`, bincode-serialized messages).
 - No TCP listener, no auth, no network transparency.
 - Persistence (WAL, per-pane CLAUDE_CONFIG_DIR) is local filesystem-bound.
-- MCP bridge and sideband protocol (`<ccmux:spawn>`) assume local daemon.
+- MCP bridge and sideband protocol (`<fugue:spawn>`) assume local daemon.
 
 ## Design Goals
 - Minimal disruption to local workflow (Unix socket remains default).
@@ -24,7 +24,7 @@ High-level architecture and flows for adding remote peering support to ccmux, en
 
 2. **Primary remote flow**: SSH local port forward (no daemon changes needed beyond TCP).
    - Daemon on remote: `--listen tcp://127.0.0.1:9999`
-   - Client on local: `ssh -L 9999:localhost:9999 remote-host` then `ccmux-client --addr tcp://localhost:9999`
+   - Client on local: `ssh -L 9999:localhost:9999 remote-host` then `fugue-client --addr tcp://localhost:9999`
 
 3. **Protocol**: Reuse existing bincode messages over TCP stream (framed if needed for delimiting).
 
@@ -38,22 +38,22 @@ High-level architecture and flows for adding remote peering support to ccmux, en
 
 ### Local (Unchanged)
 ```
-laptop → ccmux-client → unix://~/.ccmux/ccmux.sock → ccmux-server (PTYs, WAL)
+laptop → fugue-client → unix://~/.fugue/fugue.sock → fugue-server (PTYs, WAL)
 ```
 
 ### Remote via SSH Tunnel (MVP)
 ```
 laptop ── ssh -L 9999:localhost:9999 ── remote-host
-       └─ ccmux-client ── tcp://localhost:9999 ─┘
+       └─ fugue-client ── tcp://localhost:9999 ─┘
                              ↓
-                       ccmux-server (tcp://127.0.0.1:9999)
+                       fugue-server (tcp://127.0.0.1:9999)
                              ↓
                        PTYs / WAL / MCP on remote
 ```
 
 ### Future Direct TCP + TLS
 ```
-laptop ── ccmux-client ── tls://remote-host:9999 ── ccmux-server
+laptop ── fugue-client ── tls://remote-host:9999 ── fugue-server
 ```
 
 ## Tradeoffs

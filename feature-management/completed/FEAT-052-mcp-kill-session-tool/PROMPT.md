@@ -1,7 +1,7 @@
-# FEAT-052: Add ccmux_kill_session MCP tool
+# FEAT-052: Add fugue_kill_session MCP tool
 
 **Priority**: P1
-**Component**: ccmux-server (MCP)
+**Component**: fugue-server (MCP)
 **Type**: enhancement
 **Estimated Effort**: small
 **Business Value**: high
@@ -13,12 +13,12 @@ Expose the existing `DestroySession` protocol message as an MCP tool so agents c
 
 ## Problem Statement
 
-The ccmux daemon already has full session lifecycle support including `ClientMessage::DestroySession { session_id: Uuid }` (defined in `ccmux-protocol/src/messages.rs:149-150`), but this capability is not exposed through the MCP interface.
+The fugue daemon already has full session lifecycle support including `ClientMessage::DestroySession { session_id: Uuid }` (defined in `fugue-protocol/src/messages.rs:149-150`), but this capability is not exposed through the MCP interface.
 
 ### Current State
 
-- Sessions can be created via `ccmux_create_session` MCP tool
-- Sessions can be listed via `ccmux_list_panes` MCP tool
+- Sessions can be created via `fugue_create_session` MCP tool
+- Sessions can be listed via `fugue_list_panes` MCP tool
 - Sessions **cannot** be killed/destroyed via MCP
 - Orchestration workflows requiring session termination must use alternative methods
 
@@ -33,13 +33,13 @@ Step 3 is blocked by the lack of an MCP kill session tool.
 
 ## Requirements
 
-### New MCP Tool: `ccmux_kill_session`
+### New MCP Tool: `fugue_kill_session`
 
 **Tool Definition**:
 ```rust
 Tool {
-    name: "ccmux_kill_session".into(),
-    description: "Kill/destroy a ccmux session and all its windows and panes".into(),
+    name: "fugue_kill_session".into(),
+    description: "Kill/destroy a fugue session and all its windows and panes".into(),
     input_schema: serde_json::json!({
         "type": "object",
         "properties": {
@@ -86,25 +86,25 @@ The handler should:
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/mcp/tools.rs` | Add `ccmux_kill_session` tool definition |
-| `ccmux-server/src/mcp/handlers.rs` | Add handler that resolves session and sends DestroySession |
+| `fugue-server/src/mcp/tools.rs` | Add `fugue_kill_session` tool definition |
+| `fugue-server/src/mcp/handlers.rs` | Add handler that resolves session and sends DestroySession |
 
 ### Existing Code to Reference
 
 **Session Resolution** (already implemented for other tools):
-- `ccmux_create_pane` resolves sessions by UUID or name
+- `fugue_create_pane` resolves sessions by UUID or name
 - Pattern: check if string is valid UUID, else search by name
 
 **DestroySession Message** (already defined):
 ```rust
-// ccmux-protocol/src/messages.rs:149-150
+// fugue-protocol/src/messages.rs:149-150
 ClientMessage::DestroySession { session_id: Uuid }
 ```
 
 ## Implementation Tasks
 
 ### Section 1: Tool Definition
-- [ ] Add `ccmux_kill_session` tool to `get_tool_definitions()` in tools.rs
+- [ ] Add `fugue_kill_session` tool to `get_tool_definitions()` in tools.rs
 - [ ] Use schema with required `session` string parameter
 
 ### Section 2: Handler Implementation
@@ -127,7 +127,7 @@ ClientMessage::DestroySession { session_id: Uuid }
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_kill_session` tool is registered and visible to MCP clients
+- [ ] `fugue_kill_session` tool is registered and visible to MCP clients
 - [ ] Can kill session by UUID
 - [ ] Can kill session by name
 - [ ] Appropriate error returned for non-existent session
@@ -139,7 +139,7 @@ ClientMessage::DestroySession { session_id: Uuid }
 **Kill by name**:
 ```json
 {
-  "tool": "ccmux_kill_session",
+  "tool": "fugue_kill_session",
   "arguments": {
     "session": "worker-1"
   }
@@ -149,7 +149,7 @@ ClientMessage::DestroySession { session_id: Uuid }
 **Kill by UUID**:
 ```json
 {
-  "tool": "ccmux_kill_session",
+  "tool": "fugue_kill_session",
   "arguments": {
     "session": "550e8400-e29b-41d4-a716-446655440000"
   }
@@ -165,4 +165,4 @@ None - the underlying `DestroySession` capability already exists in the protocol
 - This is a thin MCP wrapper around existing functionality
 - The daemon already handles all cleanup (PTY termination, state removal, etc.)
 - Consider whether to add a `force` parameter for edge cases (not required initially)
-- Future enhancement: could add `ccmux_kill_pane` and `ccmux_kill_window` tools
+- Future enhancement: could add `fugue_kill_pane` and `fugue_kill_window` tools

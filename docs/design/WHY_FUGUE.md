@@ -1,4 +1,4 @@
-# Why ccmux Exists
+# Why fugue Exists
 
 Traditional terminal multiplexers treat output as opaque bytes.
 
@@ -8,7 +8,7 @@ This breaks down when:
 - failure and recovery are normal
 - AI agents participate in workflows
 
-ccmux exists to make terminal work:
+fugue exists to make terminal work:
 
 - **Durable**  
   Sessions survive crashes and reconnects.
@@ -25,11 +25,11 @@ ccmux exists to make terminal work:
 - **Safe**  
   Automation never silently overrides human intent.
 
-ccmux does not replace tmux.
+fugue does not replace tmux.
 It occupies a different layer:
 
 > tmux multiplexes terminals  
-> ccmux multiplexes **work**
+> fugue multiplexes **work**
 
 The terminal is the delivery mechanism.
 Coordination is the product.

@@ -1,6 +1,6 @@
-# ccmux Invariants
+# fugue Invariants
 
-This document lists correctness properties that ccmux is designed to uphold. These invariants guide implementation, testing, and future refactors.
+This document lists correctness properties that fugue is designed to uphold. These invariants guide implementation, testing, and future refactors.
 
 ## State and Convergence
 

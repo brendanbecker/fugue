@@ -9,20 +9,20 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Understand ccmux client attachment flow
+- [ ] Understand fugue client attachment flow
 - [ ] Understand PTY output poller architecture
 
 ## Investigation Tasks
 
 ### Reproduce the Bug
 
-- [ ] Start ccmux and create a session with a running process
+- [ ] Start fugue and create a session with a running process
 - [ ] Detach from the session
 - [ ] Open session manager UI
 - [ ] Select the existing session to reattach
 - [ ] Confirm client connects but PTY is not visible
 - [ ] Confirm input doesn't reach the pane
-- [ ] Compare behavior with direct attach (ccmux attach -s SESSION)
+- [ ] Compare behavior with direct attach (fugue attach -s SESSION)
 
 ### Code Path Analysis
 

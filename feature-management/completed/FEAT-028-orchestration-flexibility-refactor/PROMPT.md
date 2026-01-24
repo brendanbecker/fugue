@@ -1,7 +1,7 @@
 # FEAT-028: Orchestration Flexibility Refactor
 
 **Priority**: P1
-**Component**: ccmux-protocol
+**Component**: fugue-protocol
 **Type**: improvement
 **Estimated Effort**: medium
 **Business Value**: high
@@ -9,13 +9,13 @@
 
 ## Overview
 
-Replace methodology-specific orchestration concepts with generic primitives so ccmux can support any workflow (Context Engineering, Gas Town, custom) rather than hardcoding a specific coordination pattern. Make ccmux a "dumb pipe" that handles session lifecycle and message routing with arbitrary metadata, letting users define workflow semantics.
+Replace methodology-specific orchestration concepts with generic primitives so fugue can support any workflow (Context Engineering, Gas Town, custom) rather than hardcoding a specific coordination pattern. Make fugue a "dumb pipe" that handles session lifecycle and message routing with arbitrary metadata, letting users define workflow semantics.
 
 ## Problem Statement
 
 The current orchestration system (implemented in FEAT-004/FEAT-007) has methodology-specific concepts baked into the protocol:
 
-### Protocol Issues (ccmux-protocol/src/messages.rs)
+### Protocol Issues (fugue-protocol/src/messages.rs)
 
 1. **`WorkerStatus` enum** - Assumes task-based workflow with predefined states:
    ```rust
@@ -51,7 +51,7 @@ The current orchestration system (implemented in FEAT-004/FEAT-007) has methodol
    }
    ```
 
-### Type Issues (ccmux-protocol/src/types.rs)
+### Type Issues (fugue-protocol/src/types.rs)
 
 4. **`is_orchestrator: bool`** in SessionInfo - Binary role assumption:
    ```rust
@@ -61,7 +61,7 @@ The current orchestration system (implemented in FEAT-004/FEAT-007) has methodol
    }
    ```
 
-### Router Issues (ccmux-server/src/orchestration/router.rs)
+### Router Issues (fugue-server/src/orchestration/router.rs)
 
 5. **`orchestrators: HashMap<String, Uuid>`** - One orchestrator per repo assumption:
    ```rust
@@ -167,7 +167,7 @@ impl MessageRouter {
 
 ## Files to Modify
 
-### ccmux-protocol/src/messages.rs (~200 lines affected)
+### fugue-protocol/src/messages.rs (~200 lines affected)
 
 **DELETE**:
 - `WorkerStatus` enum (lines 46-54)
@@ -183,13 +183,13 @@ impl MessageRouter {
 - `OrchestrationTarget::Tagged(String)` variant
 - New tests for generic messages
 
-### ccmux-protocol/src/types.rs (~50 lines affected)
+### fugue-protocol/src/types.rs (~50 lines affected)
 
 **MODIFY**:
 - `SessionInfo`: Replace `is_orchestrator: bool` with `tags: HashSet<String>`
 - Update all tests that use `is_orchestrator`
 
-### ccmux-server/src/orchestration/router.rs (~100 lines affected)
+### fugue-server/src/orchestration/router.rs (~100 lines affected)
 
 **MODIFY**:
 - Replace `orchestrators: HashMap<String, Uuid>` with `session_tags: HashMap<Uuid, HashSet<String>>`

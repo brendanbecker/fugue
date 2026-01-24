@@ -7,7 +7,7 @@
 
 ## Problem Statement
 
-When using ccmux_send_input with submit: true, the text appears in the target pane's input area but doesn't always get submitted. A workaround is to send a separate empty input with submit: true to trigger the Enter key.
+When using fugue_send_input with submit: true, the text appears in the target pane's input area but doesn't always get submitted. A workaround is to send a separate empty input with submit: true to trigger the Enter key.
 
 ## Evidence
 
@@ -15,10 +15,10 @@ User-reported issue during MCP automation with Gemini CLI.
 
 ## Steps to Reproduce
 
-1. Call ccmux_send_input with a message and submit: true
+1. Call fugue_send_input with a message and submit: true
 2. Observe text appears in target pane's input box
 3. Note that Enter key is not reliably triggered
-4. Workaround: call ccmux_send_input again with empty input and submit: true
+4. Workaround: call fugue_send_input again with empty input and submit: true
 
 ## Expected Behavior
 
@@ -32,14 +32,14 @@ Text appears in the target pane's input box but isn't submitted. Requires a seco
 
 **Confirmed**: Non-atomic PTY writes in the direct MCP path.
 
-The bug was in `ccmux-server/src/mcp/handlers.rs:527-535`. The `send_input` function performed two separate `write_all` calls:
+The bug was in `fugue-server/src/mcp/handlers.rs:527-535`. The `send_input` function performed two separate `write_all` calls:
 
 1. `handle.write_all(input.as_bytes())` - writes the text
 2. `handle.write_all(b"\r")` - writes the Enter key (only if `submit: true`)
 
 This created a race condition where the PTY could process the writes separately. The terminal would display the text but not receive the Enter key in the same operation, causing unreliable submission.
 
-**Note**: The bridge path in `ccmux-server/src/mcp/bridge/handlers.rs` was already correct - it combined input and `\r` into a single buffer before sending.
+**Note**: The bridge path in `fugue-server/src/mcp/bridge/handlers.rs` was already correct - it combined input and `\r` into a single buffer before sending.
 
 ### Fix Applied
 

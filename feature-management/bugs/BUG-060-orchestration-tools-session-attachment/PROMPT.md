@@ -13,17 +13,17 @@ InvalidOperation: Must be attached to a session to send orchestration messages
 ```
 
 Affected tools:
-- `ccmux_send_orchestration`
-- `ccmux_broadcast`
-- `ccmux_report_status`
-- `ccmux_request_help`
+- `fugue_send_orchestration`
+- `fugue_broadcast`
+- `fugue_report_status`
+- `fugue_request_help`
 
 ## Reproduction Steps
 
-1. Connect to ccmux via MCP (e.g., from Claude Code)
+1. Connect to fugue via MCP (e.g., from Claude Code)
 2. Call any orchestration tool:
    ```
-   ccmux_report_status(status: "working", message: "Test")
+   fugue_report_status(status: "working", message: "Test")
    ```
 3. Observe: "Must be attached to a session" error
 
@@ -47,7 +47,7 @@ How should MCP clients participate in orchestration?
 MCP bridge could auto-attach to the session that spawned it (if detectable).
 
 **Option B: Explicit Attachment**
-Add a `ccmux_attach_session` tool that MCP clients must call first.
+Add a `fugue_attach_session` tool that MCP clients must call first.
 
 **Option C: Session Parameter**
 Add optional `from_session` parameter to orchestration tools.
@@ -64,31 +64,31 @@ Allow MCP clients to send messages with a special "mcp-client" identity rather t
 
 ### Section 2: Evaluate Options
 - [x] Determine which option best fits the architecture
-  - Selected Option B: Explicit Attachment via `ccmux_attach_session`
+  - Selected Option B: Explicit Attachment via `fugue_attach_session`
 - [x] Consider security implications (can MCP client impersonate sessions?)
 - [x] Check if session info is available from connection context
 
 ### Section 3: Implement Fix
 - [x] Implement chosen solution
-  - Added `ccmux_attach_session` tool
+  - Added `fugue_attach_session` tool
   - Modified `ConnectionManager` to filter broadcasts to prevent channel flooding
 - [x] Update MCP tool documentation
 - [x] Add tests for orchestration from MCP
 
 ## Acceptance Criteria
 
-- [x] `ccmux_report_status` works from MCP client
-- [x] `ccmux_send_orchestration` works from MCP client
-- [x] `ccmux_broadcast` works from MCP client
-- [x] `ccmux_request_help` works from MCP client
+- [x] `fugue_report_status` works from MCP client
+- [x] `fugue_send_orchestration` works from MCP client
+- [x] `fugue_broadcast` works from MCP client
+- [x] `fugue_request_help` works from MCP client
 - [x] Messages properly identify the sender
 - [x] Documentation updated to explain usage
 
 ## Related Files
 
-- `ccmux-server/src/mcp/bridge/handlers.rs` - MCP handlers
-- `ccmux-server/src/mcp/bridge/connection.rs` - MCP bridge connection
-- `ccmux-server/src/orchestration/router.rs` - Message routing (listed as dead code in BUG-047)
+- `fugue-server/src/mcp/bridge/handlers.rs` - MCP handlers
+- `fugue-server/src/mcp/bridge/connection.rs` - MCP bridge connection
+- `fugue-server/src/orchestration/router.rs` - Message routing (listed as dead code in BUG-047)
 
 ## Notes
 

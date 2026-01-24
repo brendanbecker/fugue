@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-039
 
 **Work Item**: [FEAT-039: MCP Pane Creation Broadcast - Sync TUI Clients on MCP Splits](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P1
 **Created**: 2026-01-09
 
@@ -34,7 +34,7 @@ The fix is straightforward - change the return type from `HandlerResult::Respons
 ### Data Flow
 
 ```
-MCP Tool Call: ccmux_create_pane
+MCP Tool Call: fugue_create_pane
        |
        v
 mcp_bridge.rs: handle_create_pane_with_options()
@@ -54,7 +54,7 @@ Returns HandlerResult::ResponseWithBroadcast
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-server/src/handlers/mcp_bridge.rs` | Minor - change return type | Low |
+| `fugue-server/src/handlers/mcp_bridge.rs` | Minor - change return type | Low |
 
 ## Dependencies
 
@@ -155,7 +155,7 @@ async fn test_create_pane_with_options_broadcasts_to_tui() {
 
 ### Manual Test
 
-1. `ccmux attach` (TUI)
+1. `fugue attach` (TUI)
 2. In separate terminal, use MCP tool to split pane
 3. Verify TUI immediately shows split
 

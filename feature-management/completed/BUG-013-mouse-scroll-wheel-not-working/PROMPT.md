@@ -1,7 +1,7 @@
 # BUG-013: Mouse Scroll Wheel Not Working for Scrollback
 
 **Priority**: P2 (Medium)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Status**: new
 **Created**: 2026-01-10
 
@@ -43,8 +43,8 @@ FEAT-034 was marked as completed, claiming to add mouse scroll support. However,
 Recent changes (FEAT-035 window navigation, other features) may have altered mouse event handling in a way that breaks scroll wheel capture.
 
 **Files to check:**
-- `ccmux-client/src/input/mod.rs` - Input event handling
-- `ccmux-client/src/input/mouse.rs` (if exists) - Mouse event handling
+- `fugue-client/src/input/mod.rs` - Input event handling
+- `fugue-client/src/input/mouse.rs` (if exists) - Mouse event handling
 - Check for any changes that might intercept or drop scroll events
 
 ### 2. FEAT-034 Implementation May Have a Bug or Regression
@@ -61,7 +61,7 @@ The original FEAT-034 implementation may have a bug, or a subsequent change may 
 crossterm's mouse capture may be configured in a way that captures scroll events but doesn't process them, or may be disabled entirely.
 
 **Files to check:**
-- `ccmux-client/src/main.rs` - Look for `EnableMouseCapture` usage
+- `fugue-client/src/main.rs` - Look for `EnableMouseCapture` usage
 - Check if mouse capture is enabled at startup
 - Check if mouse capture is disabled in certain modes
 
@@ -103,7 +103,7 @@ There may be a configuration requirement or mouse mode toggle that isn't enabled
 
 5. **Test mouse capture in isolation**
    - Create a minimal test to verify crossterm receives scroll events
-   - Verify the issue is in ccmux, not crossterm or the terminal
+   - Verify the issue is in fugue, not crossterm or the terminal
 
 ## Acceptance Criteria
 

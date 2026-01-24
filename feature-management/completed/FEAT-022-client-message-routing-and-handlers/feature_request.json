@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-022",
   "title": "Client Message Routing and Handlers",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P0",
   "status": "new",
   "type": "new_feature",

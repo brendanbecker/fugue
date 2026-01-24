@@ -10,8 +10,8 @@
 - [ ] Review PLAN.md and update if needed
 - [ ] Review existing main.rs structure (lines 316-326)
 - [ ] Review test patterns in client.rs (lines 215-230)
-- [ ] Understand ccmux_utils::socket_path() behavior
-- [ ] Review ccmux-protocol MessageCodec
+- [ ] Understand fugue_utils::socket_path() behavior
+- [ ] Review fugue-protocol MessageCodec
 
 ## Design Tasks
 
@@ -22,7 +22,7 @@
 
 ## Implementation Tasks
 
-### Socket Setup (ccmux-server/src/main.rs)
+### Socket Setup (fugue-server/src/main.rs)
 
 - [ ] Add socket path validation function
 - [ ] Implement stale socket detection and cleanup
@@ -31,7 +31,7 @@
 - [ ] Set socket file permissions (if needed)
 - [ ] Add socket cleanup on Drop/shutdown
 
-### Accept Loop (ccmux-server/src/main.rs or server.rs)
+### Accept Loop (fugue-server/src/main.rs or server.rs)
 
 - [ ] Create async accept loop function
 - [ ] Add tokio::select! for accept + shutdown
@@ -40,7 +40,7 @@
 - [ ] Handle accept errors gracefully (log and continue)
 - [ ] Track number of active clients
 
-### Client Handler (ccmux-server/src/client.rs)
+### Client Handler (fugue-server/src/client.rs)
 
 - [ ] Create ClientHandler struct
 - [ ] Split stream into reader/writer
@@ -50,7 +50,7 @@
 - [ ] Handle stream errors and EOF
 - [ ] Implement cleanup on disconnect
 
-### Server Integration (ccmux-server/src/server.rs)
+### Server Integration (fugue-server/src/server.rs)
 
 - [ ] Add client registry to Server struct
 - [ ] Implement register_client() method

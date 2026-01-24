@@ -2,11 +2,11 @@
 
 ## Core Question
 
-**How should ccmux handle terminal escape sequences to properly render TUI applications like Claude Code without visual artifacts?**
+**How should fugue handle terminal escape sequences to properly render TUI applications like Claude Code without visual artifacts?**
 
 ## Context
 
-ccmux's screen rendering produces visual artifacts when displaying Claude Code's TUI output. Multiple stacked "thinking" messages, ghost content, and overlapping UI elements create an unpleasant and confusing viewing experience.
+fugue's screen rendering produces visual artifacts when displaying Claude Code's TUI output. Multiple stacked "thinking" messages, ghost content, and overlapping UI elements create an unpleasant and confusing viewing experience.
 
 ### Observed Issues
 
@@ -25,7 +25,7 @@ Claude Code's TUI uses ANSI escape sequences for:
 - Scrolling regions
 - Overwriting previous content in-place
 
-ccmux's rendering may not be properly handling:
+fugue's rendering may not be properly handling:
 1. In-place content updates (cursor moves + overwrites)
 2. Line/screen clear sequences
 3. Scrolling regions
@@ -34,7 +34,7 @@ ccmux's rendering may not be properly handling:
 ## Why This Matters
 
 - User experience is degraded - confusing visual output
-- May affect adoption of ccmux for AI agent orchestration
+- May affect adoption of fugue for AI agent orchestration
 - Fundamental architecture issue, not a simple bug fix
 - Multiple related bugs have been addressed but core issue persists
 
@@ -55,9 +55,9 @@ ccmux's rendering may not be properly handling:
 
 ## Key Files to Investigate
 
-- `ccmux-server/src/pty/` - PTY handling
-- `ccmux-client/src/render.rs` - Client rendering
-- `ccmux-client/src/app.rs` - Client app logic
+- `fugue-server/src/pty/` - PTY handling
+- `fugue-client/src/render.rs` - Client rendering
+- `fugue-client/src/app.rs` - Client app logic
 - Terminal emulation/screen buffer code
 
 ## Related History
@@ -70,13 +70,13 @@ ccmux's rendering may not be properly handling:
 
 ## Visual Reference
 
-Screenshot showing artifacts: `/mnt/c/Users/Brend/Pictures/Screenshots/SSccmux.png`
+Screenshot showing artifacts: `/mnt/c/Users/Brend/Pictures/Screenshots/SSfugue.png`
 
 ## Research Agent Assignments
 
 | Agent | Focus Area |
 |-------|------------|
-| Agent 1 | Audit existing ccmux rendering code and catalog rendering-related bugs |
+| Agent 1 | Audit existing fugue rendering code and catalog rendering-related bugs |
 | Agent 2 | Analyze proper VT100/xterm escape sequence handling standards |
 | Agent 3 | Research terminal multiplexer approaches (tmux, screen, zellij) |
 

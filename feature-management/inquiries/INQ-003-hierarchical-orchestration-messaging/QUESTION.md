@@ -2,25 +2,25 @@
 
 ## Core Question
 
-How should ccmux handle multi-level orchestration hierarchies (overseer → orchestrators → workers) with proper message routing, and should we integrate with or learn from external solutions like mcp-agent-mail?
+How should fugue handle multi-level orchestration hierarchies (overseer → orchestrators → workers) with proper message routing, and should we integrate with or learn from external solutions like mcp-agent-mail?
 
 ## Background
 
 ### Current State
 
-ccmux has orchestration messaging primitives:
-- `ccmux_report_status` - Workers report status to sessions tagged "orchestrator"
-- `ccmux_send_orchestration` - Send messages to targets by tag, session, or broadcast
-- `ccmux_poll_messages` - Check inbox for incoming messages
-- Tag-based routing via `ccmux_set_tags`
+fugue has orchestration messaging primitives:
+- `fugue_report_status` - Workers report status to sessions tagged "orchestrator"
+- `fugue_send_orchestration` - Send messages to targets by tag, session, or broadcast
+- `fugue_poll_messages` - Check inbox for incoming messages
+- Tag-based routing via `fugue_set_tags`
 
 ### The Problem
 
-The current model is **flat**. When a worker calls `ccmux_report_status`, it goes to ALL sessions tagged "orchestrator". This works for single-orchestrator scenarios but breaks with hierarchies:
+The current model is **flat**. When a worker calls `fugue_report_status`, it goes to ALL sessions tagged "orchestrator". This works for single-orchestrator scenarios but breaks with hierarchies:
 
 ```
 overseer (manages multiple projects)
-├── ccmux-orchestrator (tagged: orchestrator)
+├── fugue-orchestrator (tagged: orchestrator)
 │   ├── feat-105-worker (tagged: worker)
 │   └── feat-106-worker (tagged: worker)
 ├── midwestmtg-orchestrator (tagged: orchestrator)
@@ -29,7 +29,7 @@ overseer (manages multiple projects)
 ```
 
 **Issues observed:**
-1. midwestmtg workers report to ccmux-orchestrator (wrong!)
+1. midwestmtg workers report to fugue-orchestrator (wrong!)
 2. Overseer gets flooded with low-level worker status spam
 3. No parent-child relationship tracked
 4. Can't distinguish overseer from project orchestrators
@@ -38,7 +38,7 @@ overseer (manages multiple projects)
 
 Jeffrey Emanuel's `mcp-agent-mail` is an MCP server for agent-to-agent messaging. We should research:
 - What patterns does it use?
-- Could ccmux integrate with it?
+- Could fugue integrate with it?
 - Should we adopt similar concepts?
 - Is there an emerging standard for MCP agent messaging?
 
@@ -82,7 +82,7 @@ GitHub: https://github.com/jwemanuel/mcp-agent-mail (verify URL)
 ## Research Agent Assignments
 
 ### Agent 1: Internal Architecture
-- Analyze current ccmux messaging implementation
+- Analyze current fugue messaging implementation
 - Propose parent-child tracking mechanisms
 - Design hierarchical routing changes
 - Consider performance implications

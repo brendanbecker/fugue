@@ -12,12 +12,12 @@
   "affected_versions": [],
   "environment": "MCP bridge / Claude Code integration",
   "reproducibility": "sometimes",
-  "description": "When using ccmux_send_input with submit: true, the text appears in the target pane's input area but doesn't always get submitted. A workaround is to send a separate empty input with submit: true to trigger the Enter key.",
+  "description": "When using fugue_send_input with submit: true, the text appears in the target pane's input area but doesn't always get submitted. A workaround is to send a separate empty input with submit: true to trigger the Enter key.",
   "steps_to_reproduce": [
-    "Call ccmux_send_input with a message and submit: true",
+    "Call fugue_send_input with a message and submit: true",
     "Observe text appears in target pane's input box",
     "Note that Enter key is not reliably triggered",
-    "Workaround: call ccmux_send_input again with empty input and submit: true"
+    "Workaround: call fugue_send_input again with empty input and submit: true"
   ],
   "expected_behavior": "When submit: true is set, the input should be reliably submitted (Enter pressed) after the text is sent.",
   "actual_behavior": "Text appears in the target pane's input box but isn't submitted. Requires a second call with empty input and submit: true to actually submit.",

@@ -6,7 +6,7 @@ Add automatic daemon reconnection and recovery capability to the MCP server laye
 
 ## Motivation
 
-During QA testing (BUG-028), a `ccmux_create_layout` call crashed the daemon, leaving all MCP tools unusable with "Daemon connection lost" errors. The MCP server had no mechanism to:
+During QA testing (BUG-028), a `fugue_create_layout` call crashed the daemon, leaving all MCP tools unusable with "Daemon connection lost" errors. The MCP server had no mechanism to:
 
 1. Detect the daemon had crashed
 2. Attempt reconnection
@@ -63,7 +63,7 @@ This creates a poor agent experience where a single bad API call can brick the e
    ```
 
 7. **MCP Tool for Status**
-   - Add `ccmux_connection_status` tool
+   - Add `fugue_connection_status` tool
    - Returns: connected/disconnected/reconnecting
    - Includes uptime, reconnect history
 
@@ -84,7 +84,7 @@ MCP Server Layer
 Unix Socket
        |
        v
-ccmux Daemon
+fugue Daemon
 ```
 
 ### Key Components
@@ -96,21 +96,21 @@ ccmux Daemon
 
 ### Affected Crates
 
-- `ccmux-server/src/mcp/` - Primary implementation
-- `ccmux-protocol/` - New heartbeat message type
-- `ccmux-client/` - May need to handle daemon restart notifications
+- `fugue-server/src/mcp/` - Primary implementation
+- `fugue-protocol/` - New heartbeat message type
+- `fugue-client/` - May need to handle daemon restart notifications
 
 ## Success Criteria
 
 - [ ] Daemon crash detected within 3 seconds
 - [ ] Auto-reconnect succeeds when daemon restarts
 - [ ] Structured error returned when reconnect fails
-- [ ] `ccmux_connection_status` tool works
+- [ ] `fugue_connection_status` tool works
 - [ ] QA demo can continue after daemon restart without manual intervention
 
 ## Related
 
-- **BUG-028**: Daemon crashes on `ccmux_create_layout` (triggered this feature request)
+- **BUG-028**: Daemon crashes on `fugue_create_layout` (triggered this feature request)
 - **FEAT-018**: MCP Server integration (base implementation)
 - **FEAT-016**: Persistence (can leverage for state recovery)
 

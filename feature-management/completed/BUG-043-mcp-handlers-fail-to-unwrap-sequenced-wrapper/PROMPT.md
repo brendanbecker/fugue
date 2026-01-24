@@ -1,7 +1,7 @@
 # BUG-043: MCP tool handlers fail to unwrap Sequenced message wrapper from daemon responses
 
 **Priority**: P1
-**Component**: mcp-bridge (ccmux-server/src/mcp/bridge/)
+**Component**: mcp-bridge (fugue-server/src/mcp/bridge/)
 **Severity**: high
 **Status**: new
 
@@ -15,9 +15,9 @@ This breaks multiple MCP tools that rely on `recv_response_from_daemon()`.
 
 | File | Function | Issue |
 |------|----------|-------|
-| `ccmux-server/src/mcp/bridge/connection.rs` | `recv_response_from_daemon()` | Returns Sequenced wrapper instead of inner message |
-| `ccmux-server/src/mcp/bridge/connection.rs` | `is_broadcast_message()` | Missing Sequenced variant in filter |
-| `ccmux-server/src/mcp/bridge/handlers.rs` | All tool handlers | Expect unwrapped message types |
+| `fugue-server/src/mcp/bridge/connection.rs` | `recv_response_from_daemon()` | Returns Sequenced wrapper instead of inner message |
+| `fugue-server/src/mcp/bridge/connection.rs` | `is_broadcast_message()` | Missing Sequenced variant in filter |
+| `fugue-server/src/mcp/bridge/handlers.rs` | All tool handlers | Expect unwrapped message types |
 
 ## Symptoms
 
@@ -36,10 +36,10 @@ This breaks multiple MCP tools that rely on `recv_response_from_daemon()`.
 
 ## Steps to Reproduce
 
-1. Start ccmux daemon with persistence enabled (FEAT-075)
+1. Start fugue daemon with persistence enabled (FEAT-075)
 2. Call any affected MCP tool:
    ```
-   ccmux_kill_session(session_id: "test-session")
+   fugue_kill_session(session_id: "test-session")
    ```
 3. Observe error:
    ```

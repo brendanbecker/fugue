@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-015
 
 **Work Item**: [FEAT-015: Claude Detection - State Detection from PTY Output](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P1
 **Created**: 2026-01-08
 **Status**: Not Started
@@ -54,9 +54,9 @@ pub struct ClaudeDetector {
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/claude/detector.rs | New - State detection engine | High |
-| ccmux-server/src/claude/state.rs | New - State types and events | Low |
-| ccmux-server/src/claude/mod.rs | New - Module exports | Low |
+| fugue-server/src/claude/detector.rs | New - State detection engine | High |
+| fugue-server/src/claude/state.rs | New - State types and events | Low |
+| fugue-server/src/claude/mod.rs | New - Module exports | Low |
 
 ## Dependencies
 
@@ -107,7 +107,7 @@ pub struct ClaudeDetector {
 
 If implementation causes issues:
 1. Revert commits associated with this work item
-2. Remove claude module from ccmux-server
+2. Remove claude module from fugue-server
 3. Document what went wrong in comments.md
 
 ## Testing Strategy

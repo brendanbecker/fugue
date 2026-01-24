@@ -8,19 +8,19 @@
 
 - [x] Read and understand PROMPT.md
 - [x] Review PLAN.md and update if needed
-- [x] Review existing ccmux crate structure
+- [x] Review existing fugue crate structure
 
 ## Phase 1: Crate Setup and Error Types
 
 ### Cargo.toml Setup
-- [x] Create/update ccmux-utils/Cargo.toml
+- [x] Create/update fugue-utils/Cargo.toml
 - [x] Add thiserror dependency
 - [x] Add tracing dependencies
 - [x] Add tracing-subscriber with env-filter and json features
 - [x] Add dirs-next dependency
 
 ### Error Module (error.rs)
-- [x] Create ccmux-utils/src/error.rs
+- [x] Create fugue-utils/src/error.rs
 - [x] Define CcmuxError enum with variants:
   - [x] Io(std::io::Error)
   - [x] Config(String)
@@ -32,14 +32,14 @@
 - [x] Add documentation for error types
 
 ### Verify Phase 1
-- [x] ccmux-utils crate compiles
+- [x] fugue-utils crate compiles
 - [x] Error types are usable
 - [x] cargo doc generates documentation
 
 ## Phase 2: Logging Infrastructure
 
 ### LogConfig Types (logging.rs)
-- [x] Create ccmux-utils/src/logging.rs
+- [x] Create fugue-utils/src/logging.rs
 - [x] Define LogOutput enum (Stderr, File, Both)
 - [x] Define LogConfig struct with filter and output fields
 - [x] Implement Default for LogConfig
@@ -49,19 +49,19 @@
 - [x] Parse filter string using EnvFilter
 - [x] Configure stderr output
 - [x] Configure file output (when applicable)
-- [x] Handle CCMUX_LOG environment variable override
+- [x] Handle FUGUE_LOG environment variable override
 - [x] Add JSON output option
 
 ### Verify Phase 2
 - [x] Logging initializes without error
 - [x] Filter strings are respected
-- [x] CCMUX_LOG overrides config
+- [x] FUGUE_LOG overrides config
 - [x] Output goes to correct destination
 
 ## Phase 3: Path Utilities
 
 ### XDG Path Functions (paths.rs)
-- [x] Create ccmux-utils/src/paths.rs
+- [x] Create fugue-utils/src/paths.rs
 - [x] Implement config_dir() -> PathBuf
 - [x] Implement state_dir() -> PathBuf
 - [x] Implement runtime_dir() -> PathBuf
@@ -81,7 +81,7 @@
 ## Phase 4: Module Integration
 
 ### lib.rs Setup
-- [x] Create/update ccmux-utils/src/lib.rs
+- [x] Create/update fugue-utils/src/lib.rs
 - [x] Declare error, logging, paths modules
 - [x] Re-export public types at crate root
 - [x] Add crate-level documentation
@@ -107,7 +107,7 @@
 
 ### Integration Tests
 - [x] Test logging initialization end-to-end
-- [x] Test CCMUX_LOG override
+- [x] Test FUGUE_LOG override
 - [x] Test directory creation
 - [x] Test path values on current platform
 

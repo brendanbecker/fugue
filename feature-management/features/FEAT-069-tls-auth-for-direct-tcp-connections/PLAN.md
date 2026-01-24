@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-069
 
 **Work Item**: [FEAT-069: TLS/auth for direct TCP connections](PROMPT.md)
-**Component**: ccmux-server, ccmux-client
+**Component**: fugue-server, fugue-client
 **Priority**: P3
 **Created**: 2026-01-13
 
@@ -78,11 +78,11 @@ Add native TLS encryption and authentication for direct TCP connections as an al
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server | TLS acceptor, auth validation | High (security) |
-| ccmux-client | TLS connector, auth token | High (security) |
-| ccmux-protocol | Auth handshake messages | Medium |
+| fugue-server | TLS acceptor, auth validation | High (security) |
+| fugue-client | TLS connector, auth token | High (security) |
+| fugue-protocol | Auth handshake messages | Medium |
 | Cargo.toml | rustls dependency | Low |
-| ccmux.toml | TLS/auth configuration | Low |
+| fugue.toml | TLS/auth configuration | Low |
 
 ## Dependencies
 
@@ -92,8 +92,8 @@ Add native TLS encryption and authentication for direct TCP connections as an al
 - **FEAT-068**: SSH tunnel integration (provides baseline for comparison)
 
 ### Related (Context)
-- ccmux-tcp-implementation-plan.md (Phase 4 design)
-- ccmux-peering-design.md (security considerations)
+- fugue-tcp-implementation-plan.md (Phase 4 design)
+- fugue-peering-design.md (security considerations)
 
 ## Implementation Phases
 
@@ -265,8 +265,8 @@ Token should be hashed (SHA-256) before transmission. Consider adding challenge-
 ```toml
 [server.tls]
 enabled = true
-cert = "~/.config/ccmux/cert.pem"
-key = "~/.config/ccmux/key.pem"
+cert = "~/.config/fugue/cert.pem"
+key = "~/.config/fugue/key.pem"
 auth_tokens = ["path/to/tokens.txt"]
 bind = "0.0.0.0:8585"  # Only allowed if TLS enabled
 
@@ -280,13 +280,13 @@ auth_token = "..."
 
 ```bash
 # TLS connection with authentication
-ccmux-client --addr tls://remote.host:8585
+fugue-client --addr tls://remote.host:8585
 
 # Non-TLS TCP (local only)
-ccmux-client --addr tcp://localhost:8585
+fugue-client --addr tcp://localhost:8585
 
 # Unix socket (default)
-ccmux-client --addr unix:///tmp/ccmux.sock
+fugue-client --addr unix:///tmp/fugue.sock
 ```
 
 ## Testing Strategy

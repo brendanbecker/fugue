@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-084",
   "title": "Protocol Generalization: Abstract Agent State",
-  "component": "ccmux-protocol",
+  "component": "fugue-protocol",
   "priority": "P2",
   "status": "new",
   "type": "enhancement",

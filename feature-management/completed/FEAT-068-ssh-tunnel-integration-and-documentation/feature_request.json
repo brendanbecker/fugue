@@ -11,8 +11,8 @@
   "tags": ["documentation", "networking", "remote", "ssh", "security"],
   "estimated_effort": "small",
   "dependencies": ["FEAT-066", "FEAT-067"],
-  "description": "Document and validate the complete SSH tunnel-based remote workflow for ccmux. This is the integration/validation phase following FEAT-066 (daemon TCP) and FEAT-067 (client TCP), enabling secure remote peering without requiring TLS implementation. The SSH tunnel approach provides encryption and authentication via SSH keys, making it the recommended MVP for remote access.",
+  "description": "Document and validate the complete SSH tunnel-based remote workflow for fugue. This is the integration/validation phase following FEAT-066 (daemon TCP) and FEAT-067 (client TCP), enabling secure remote peering without requiring TLS implementation. The SSH tunnel approach provides encryption and authentication via SSH keys, making it the recommended MVP for remote access.",
   "business_value": "high",
   "technical_complexity": "low",
-  "user_impact": "Enables users to set up secure remote ccmux access using SSH tunnels. Provides clear documentation, example configurations, and validated workflows that leverage existing SSH infrastructure for encryption and authentication. This is the recommended MVP approach from ccmux-peering-design.md."
+  "user_impact": "Enables users to set up secure remote fugue access using SSH tunnels. Provides clear documentation, example configurations, and validated workflows that leverage existing SSH infrastructure for encryption and authentication. This is the recommended MVP approach from fugue-peering-design.md."
 }

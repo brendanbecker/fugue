@@ -1,4 +1,4 @@
-# BUG-040: ccmux_create_window returns success but doesn't actually create windows
+# BUG-040: fugue_create_window returns success but doesn't actually create windows
 
 **Priority**: P1
 **Component**: mcp
@@ -7,7 +7,7 @@
 
 ## Problem Statement
 
-The `ccmux_create_window` MCP tool returns a successful response with `window_id` and `pane_id`, but the window is not actually created. Subsequent calls to `list_windows` or `list_sessions` show the `window_count` unchanged. This may be a regression introduced by the BUG-034 fix which modified create_window session handling.
+The `fugue_create_window` MCP tool returns a successful response with `window_id` and `pane_id`, but the window is not actually created. Subsequent calls to `list_windows` or `list_sessions` show the `window_count` unchanged. This may be a regression introduced by the BUG-034 fix which modified create_window session handling.
 
 ## Evidence
 
@@ -31,7 +31,7 @@ The `ccmux_create_window` MCP tool returns a successful response with `window_id
 
 ### Related Fix
 - BUG-034 fix commit `3e14861` modified `create_window` session handling
-- Files changed: `ccmux-server/src/mcp/handlers.rs`, `ccmux-server/src/session/manager.rs`
+- Files changed: `fugue-server/src/mcp/handlers.rs`, `fugue-server/src/session/manager.rs`
 
 ## Steps to Reproduce
 
@@ -56,8 +56,8 @@ Suspected regression from BUG-034 fix - windows may be created transiently but n
 ## Implementation Tasks
 
 ### Section 1: Investigation
-- [ ] Review BUG-034 fix changes in `ccmux-server/src/mcp/handlers.rs`
-- [ ] Review BUG-034 fix changes in `ccmux-server/src/session/manager.rs`
+- [ ] Review BUG-034 fix changes in `fugue-server/src/mcp/handlers.rs`
+- [ ] Review BUG-034 fix changes in `fugue-server/src/session/manager.rs`
 - [ ] Trace the create_window code path to identify where window creation fails
 - [ ] Verify window is being added to session's window list
 - [ ] Check if window creation is occurring but not being persisted
@@ -94,5 +94,5 @@ Suspected regression from BUG-034 fix - windows may be created transiently but n
 This is likely a regression from the BUG-034 fix (commit 3e14861). The fix modified how `create_window` handles the session parameter. The window may be created in isolation but not properly linked to the session's window collection.
 
 Key files to investigate:
-- `ccmux-server/src/mcp/handlers.rs` - MCP handler for create_window
-- `ccmux-server/src/session/manager.rs` - Session manager window operations
+- `fugue-server/src/mcp/handlers.rs` - MCP handler for create_window
+- `fugue-server/src/session/manager.rs` - Session manager window operations

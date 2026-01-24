@@ -1,27 +1,27 @@
 # FEAT-053: Auto-inject CCMUX context environment variables on pane spawn
 
 **Priority**: P1
-**Component**: ccmux-server (PTY spawning)
+**Component**: fugue-server (PTY spawning)
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
 
 ## Overview
 
-When spawning any pane, automatically inject environment variables that identify the ccmux context:
-- `CCMUX_PANE_ID` - UUID of the pane
-- `CCMUX_SESSION_ID` - UUID of the session
-- `CCMUX_WINDOW_ID` - UUID of the window
-- `CCMUX_SESSION_NAME` - Human-readable session name
+When spawning any pane, automatically inject environment variables that identify the fugue context:
+- `FUGUE_PANE_ID` - UUID of the pane
+- `FUGUE_SESSION_ID` - UUID of the session
+- `FUGUE_WINDOW_ID` - UUID of the window
+- `FUGUE_SESSION_NAME` - Human-readable session name
 
-This enables Claude Code instances (and any other processes) to be self-aware of their ccmux context without requiring explicit configuration.
+This enables Claude Code instances (and any other processes) to be self-aware of their fugue context without requiring explicit configuration.
 
 ## Use Cases
 
 1. **Claude Code self-identification**: Claude Code can identify which pane it's running in and use MCP tools on itself
-2. **Script detection**: Scripts can detect if they're running in ccmux and which session
+2. **Script detection**: Scripts can detect if they're running in fugue and which session
 3. **Cross-pane coordination**: Enables coordination between Claude instances (e.g., "I'm in pane X, let me check pane Y")
-4. **Debugging and logging**: Application logs can include ccmux context for easier troubleshooting
+4. **Debugging and logging**: Application logs can include fugue context for easier troubleshooting
 
 ## Benefits
 
@@ -39,11 +39,11 @@ This enables Claude Code instances (and any other processes) to be self-aware of
 - [ ] Document implementation approach in PLAN.md
 
 ### Section 2: Implementation
-- [ ] Create helper method `PtyConfig::with_ccmux_context(session_id, session_name, window_id, pane_id)` or similar
-- [ ] Modify `ccmux-server/src/handlers/mcp_bridge.rs` - approximately 10 locations create PtyConfig
-- [ ] Modify `ccmux-server/src/mcp/handlers.rs` if PTY spawning occurs there
-- [ ] Modify `ccmux-server/src/session.rs` if PTY spawning occurs there
-- [ ] Modify `ccmux-server/src/sideband/async_executor.rs` for sideband pane spawning
+- [ ] Create helper method `PtyConfig::with_fugue_context(session_id, session_name, window_id, pane_id)` or similar
+- [ ] Modify `fugue-server/src/handlers/mcp_bridge.rs` - approximately 10 locations create PtyConfig
+- [ ] Modify `fugue-server/src/mcp/handlers.rs` if PTY spawning occurs there
+- [ ] Modify `fugue-server/src/session.rs` if PTY spawning occurs there
+- [ ] Modify `fugue-server/src/sideband/async_executor.rs` for sideband pane spawning
 - [ ] Use existing `PtyConfig::with_env()` method to add the environment variables
 - [ ] Ensure all spawn paths include the context variables
 
@@ -67,12 +67,12 @@ This enables Claude Code instances (and any other processes) to be self-aware of
 
 ## Acceptance Criteria
 
-- [ ] All panes spawned by ccmux have `CCMUX_PANE_ID` set to the pane's UUID
-- [ ] All panes spawned by ccmux have `CCMUX_SESSION_ID` set to the session's UUID
-- [ ] All panes spawned by ccmux have `CCMUX_WINDOW_ID` set to the window's UUID
-- [ ] All panes spawned by ccmux have `CCMUX_SESSION_NAME` set to the session's name
+- [ ] All panes spawned by fugue have `FUGUE_PANE_ID` set to the pane's UUID
+- [ ] All panes spawned by fugue have `FUGUE_SESSION_ID` set to the session's UUID
+- [ ] All panes spawned by fugue have `FUGUE_WINDOW_ID` set to the window's UUID
+- [ ] All panes spawned by fugue have `FUGUE_SESSION_NAME` set to the session's name
 - [ ] Environment variables are present regardless of spawn method (MCP, sideband, direct)
-- [ ] Running `echo $CCMUX_PANE_ID` in any pane shows the correct UUID
+- [ ] Running `echo $FUGUE_PANE_ID` in any pane shows the correct UUID
 - [ ] All tests passing
 - [ ] Documentation updated
 - [ ] No regressions in existing functionality
@@ -83,7 +83,7 @@ None
 
 ## Related Work
 
-- **FEAT-047** (ccmux_set_environment MCP tool) - Complementary feature for manual environment variable setting
+- **FEAT-047** (fugue_set_environment MCP tool) - Complementary feature for manual environment variable setting
 - This feature is about automatic injection at spawn time
 - FEAT-047 is about manual setting of session-level environment variables
 

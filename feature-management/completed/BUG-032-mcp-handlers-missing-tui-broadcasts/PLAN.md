@@ -1,7 +1,7 @@
 # Implementation Plan: BUG-032
 
 **Work Item**: [BUG-032: MCP Handlers Missing TUI Broadcasts](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P0
 **Created**: 2026-01-11
 
@@ -42,10 +42,10 @@ Each handler will be modified to use `HandlerResult::ResponseWithBroadcast` inst
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-server/src/handlers/mcp_bridge.rs` | Primary - add broadcasts | Medium |
-| `ccmux-protocol/src/messages.rs` | May add `WindowCreated` | Low |
-| `ccmux-client/src/ui/app.rs` | May add `WindowCreated` handler | Low |
-| `ccmux-server/src/main.rs` | No change (handles broadcasts) | None |
+| `fugue-server/src/handlers/mcp_bridge.rs` | Primary - add broadcasts | Medium |
+| `fugue-protocol/src/messages.rs` | May add `WindowCreated` | Low |
+| `fugue-client/src/ui/app.rs` | May add `WindowCreated` handler | Low |
+| `fugue-server/src/main.rs` | No change (handles broadcasts) | None |
 
 ## Detailed Implementation
 

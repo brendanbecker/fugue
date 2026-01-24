@@ -8,8 +8,8 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md architecture decisions
-- [ ] Review ccmux-server/src/server/mod.rs (existing Unix socket implementation)
-- [ ] Review ccmux-tcp-implementation-plan.md (overall strategy)
+- [ ] Review fugue-server/src/server/mod.rs (existing Unix socket implementation)
+- [ ] Review fugue-tcp-implementation-plan.md (overall strategy)
 
 ## Section 1: Configuration Support
 

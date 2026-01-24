@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-066",
   "title": "TCP listener support in daemon",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P2",
   "status": "new",
   "type": "new_feature",
@@ -11,8 +11,8 @@
   "tags": ["networking", "security", "enhancement", "remote"],
   "estimated_effort": "medium",
   "dependencies": [],
-  "description": "Add optional TCP listener support to the ccmux daemon, enabling network-based client connections. This is Phase 1 of remote peering support, allowing the daemon to accept connections over TCP in addition to the default Unix socket. Currently, ccmux daemon only accepts connections via Unix domain socket (~/.ccmux/ccmux.sock), which limits client connections to the local machine. To support remote workflows (e.g., Mayor on laptop controlling polecats on gaming PC), the daemon needs optional TCP listener capability.",
+  "description": "Add optional TCP listener support to the fugue daemon, enabling network-based client connections. This is Phase 1 of remote peering support, allowing the daemon to accept connections over TCP in addition to the default Unix socket. Currently, fugue daemon only accepts connections via Unix domain socket (~/.fugue/fugue.sock), which limits client connections to the local machine. To support remote workflows (e.g., Mayor on laptop controlling polecats on gaming PC), the daemon needs optional TCP listener capability.",
   "business_value": "high",
   "technical_complexity": "medium",
-  "user_impact": "Enables remote workflows and cross-machine ccmux control via TCP connections. Critical building block for SSH tunnel-based remote peering, allowing users to manage ccmux sessions across different machines securely."
+  "user_impact": "Enables remote workflows and cross-machine fugue control via TCP connections. Critical building block for SSH tunnel-based remote peering, allowing users to manage fugue sessions across different machines securely."
 }

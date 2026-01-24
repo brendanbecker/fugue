@@ -1,20 +1,20 @@
 # Implementation Plan: FEAT-008
 
 **Work Item**: [FEAT-008: Utilities - Error Types, Logging, and Path Helpers](PROMPT.md)
-**Component**: ccmux-utils
+**Component**: fugue-utils
 **Priority**: P1
 **Status**: completed
 **Created**: 2026-01-08
 
 ## Overview
 
-Implement foundational utilities that all ccmux crates depend on. This includes a unified error type, structured logging with tracing, and XDG-compliant path utilities.
+Implement foundational utilities that all fugue crates depend on. This includes a unified error type, structured logging with tracing, and XDG-compliant path utilities.
 
 ## Architecture Decisions
 
 ### 1. Centralized Error Type
 
-**Decision**: Define a single `CcmuxError` enum in ccmux-utils that all crates use.
+**Decision**: Define a single `CcmuxError` enum in fugue-utils that all crates use.
 
 **Rationale**:
 - Consistent error handling across the project
@@ -23,7 +23,7 @@ Implement foundational utilities that all ccmux crates depend on. This includes 
 - Simplifies API boundaries between crates
 
 **Trade-offs**:
-- All crates depend on ccmux-utils
+- All crates depend on fugue-utils
 - Error enum may grow large over time
 - Some variant-specific logic may be less ergonomic
 
@@ -55,14 +55,14 @@ Implement foundational utilities that all ccmux crates depend on. This includes 
 **Paths**:
 | Purpose | Linux | macOS | Windows |
 |---------|-------|-------|---------|
-| Config | `~/.config/ccmux` | `~/Library/Application Support/ccmux` | `%APPDATA%\ccmux` |
-| State | `~/.local/state/ccmux` | `~/Library/Application Support/ccmux` | `%LOCALAPPDATA%\ccmux` |
-| Runtime | `$XDG_RUNTIME_DIR/ccmux` | `/tmp/ccmux-$UID` | `%TEMP%\ccmux` |
-| Logs | `~/.local/state/ccmux/logs` | `~/Library/Logs/ccmux` | `%LOCALAPPDATA%\ccmux\logs` |
+| Config | `~/.config/fugue` | `~/Library/Application Support/fugue` | `%APPDATA%\fugue` |
+| State | `~/.local/state/fugue` | `~/Library/Application Support/fugue` | `%LOCALAPPDATA%\fugue` |
+| Runtime | `$XDG_RUNTIME_DIR/fugue` | `/tmp/fugue-$UID` | `%TEMP%\fugue` |
+| Logs | `~/.local/state/fugue/logs` | `~/Library/Logs/fugue` | `%LOCALAPPDATA%\fugue\logs` |
 
 ### 4. Environment Variable Override
 
-**Decision**: CCMUX_LOG environment variable takes precedence over all other log configuration.
+**Decision**: FUGUE_LOG environment variable takes precedence over all other log configuration.
 
 **Rationale**:
 - Consistent with RUST_LOG convention
@@ -73,11 +73,11 @@ Implement foundational utilities that all ccmux crates depend on. This includes 
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-utils/src/error.rs` | New file | Low |
-| `ccmux-utils/src/logging.rs` | New file | Low |
-| `ccmux-utils/src/paths.rs` | New file | Low |
-| `ccmux-utils/src/lib.rs` | Module setup | Low |
-| `ccmux-utils/Cargo.toml` | Dependencies | Low |
+| `fugue-utils/src/error.rs` | New file | Low |
+| `fugue-utils/src/logging.rs` | New file | Low |
+| `fugue-utils/src/paths.rs` | New file | Low |
+| `fugue-utils/src/lib.rs` | Module setup | Low |
+| `fugue-utils/Cargo.toml` | Dependencies | Low |
 
 ## Dependencies
 
@@ -90,7 +90,7 @@ This feature has no dependencies on other features. Other features depend on thi
 
 ### Phase 1: Crate Setup and Error Types
 
-1. Create/update `ccmux-utils/Cargo.toml`:
+1. Create/update `fugue-utils/Cargo.toml`:
    ```toml
    [dependencies]
    thiserror = "1.0"
@@ -109,7 +109,7 @@ This feature has no dependencies on other features. Other features depend on thi
 1. Implement `logging.rs`:
    - Define LogConfig and LogOutput
    - Implement init_logging()
-   - Support CCMUX_LOG override
+   - Support FUGUE_LOG override
    - Optional JSON formatting
 
 2. Test logging:
@@ -163,7 +163,7 @@ If implementation causes issues:
 
 ### Integration Tests
 - Logging initialization with various configs
-- CCMUX_LOG override behavior
+- FUGUE_LOG override behavior
 - Directory creation on first access
 
 ### Manual Testing
@@ -175,7 +175,7 @@ If implementation causes issues:
 
 Implementation completed. All modules implemented with:
 - CcmuxError enum with thiserror for io, config, session, protocol, and pty errors
-- Logging infrastructure using tracing with CCMUX_LOG environment override
+- Logging infrastructure using tracing with FUGUE_LOG environment override
 - XDG-compliant path utilities for config, state, runtime, and log directories
 
 ---

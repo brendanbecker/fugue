@@ -1,7 +1,7 @@
 # FEAT-032: Integrated MCP Server
 
 **Priority**: P1 (important for Claude integration UX)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: enhancement
 **Estimated Effort**: large
 **Business Value**: high
@@ -9,7 +9,7 @@
 
 ## Overview
 
-Integrate the MCP server so it connects to the main ccmux-server daemon instead of running as a standalone process with its own session state. This enables Claude to control the same sessions the user is actively interacting with through the TUI client.
+Integrate the MCP server so it connects to the main fugue-server daemon instead of running as a standalone process with its own session state. This enables Claude to control the same sessions the user is actively interacting with through the TUI client.
 
 ## Problem Statement
 
@@ -17,13 +17,13 @@ Integrate the MCP server so it connects to the main ccmux-server daemon instead 
 
 ```
 ┌─────────────────────┐      ┌─────────────────────┐
-│  ccmux (TUI client) │      │  Claude Code        │
+│  fugue (TUI client) │      │  Claude Code        │
 └──────────┬──────────┘      └──────────┬──────────┘
            │                            │
            │ Unix Socket                │ stdio
            ▼                            ▼
 ┌─────────────────────┐      ┌─────────────────────┐
-│  ccmux-server       │      │  ccmux-server       │
+│  fugue-server       │      │  fugue-server       │
 │  (daemon mode)      │      │  (mcp-server mode)  │
 │                     │      │                     │
 │  Sessions A, B, C   │      │  Sessions X, Y, Z   │
@@ -42,7 +42,7 @@ Integrate the MCP server so it connects to the main ccmux-server daemon instead 
 
 ```
 ┌─────────────────────┐      ┌─────────────────────┐
-│  ccmux (TUI client) │      │  Claude Code        │
+│  fugue (TUI client) │      │  Claude Code        │
 └──────────┬──────────┘      └──────────┬──────────┘
            │                            │
            │ Unix Socket                │ stdio
@@ -55,7 +55,7 @@ Integrate the MCP server so it connects to the main ccmux-server daemon instead 
            │         Unix Socket     │
            ▼                         ▼
       ┌────────────────────────────────────┐
-      │  ccmux-server (single daemon)      │
+      │  fugue-server (single daemon)      │
       │                                    │
       │  Sessions A, B, C (shared state)   │
       └────────────────────────────────────┘
@@ -73,24 +73,24 @@ Integrate the MCP server so it connects to the main ccmux-server daemon instead 
 
 #### 1. Main Server Always Runs as Daemon
 
-The primary ccmux-server should always be the authoritative daemon. No changes needed here - this is the current behavior when running `ccmux-server` or when auto-started by the client.
+The primary fugue-server should always be the authoritative daemon. No changes needed here - this is the current behavior when running `fugue-server` or when auto-started by the client.
 
 #### 2. MCP Server Connects to Daemon
 
 Instead of running standalone, MCP mode should:
-- Connect to the existing ccmux-server daemon via Unix socket
-- Act as a protocol translator (MCP JSON-RPC over stdio <-> ccmux IPC over socket)
+- Connect to the existing fugue-server daemon via Unix socket
+- Act as a protocol translator (MCP JSON-RPC over stdio <-> fugue IPC over socket)
 - Forward all tool calls to the daemon
 - Return daemon responses to Claude
 
 #### 3. Transparent Tool Operations
 
 All existing MCP tools should work identically:
-- `ccmux_list_sessions` - Lists sessions from daemon
-- `ccmux_list_panes` - Lists panes from daemon
-- `ccmux_create_pane` - Creates pane in daemon (user sees it in TUI)
-- `ccmux_send_input` - Sends input to daemon's PTY
-- `ccmux_read_pane` - Reads from daemon's scrollback
+- `fugue_list_sessions` - Lists sessions from daemon
+- `fugue_list_panes` - Lists panes from daemon
+- `fugue_create_pane` - Creates pane in daemon (user sees it in TUI)
+- `fugue_send_input` - Sends input to daemon's PTY
+- `fugue_read_pane` - Reads from daemon's scrollback
 - etc.
 
 #### 4. Auto-Start Daemon if Needed
@@ -121,7 +121,7 @@ Daemon should distinguish between:
 
 Create a thin MCP bridge that:
 1. Speaks MCP JSON-RPC on stdio (to Claude)
-2. Speaks ccmux IPC protocol on Unix socket (to daemon)
+2. Speaks fugue IPC protocol on Unix socket (to daemon)
 3. Translates between the two
 
 **Pros**:
@@ -135,12 +135,12 @@ Create a thin MCP bridge that:
 
 **Implementation**:
 ```
-ccmux-server mcp-server  (old: standalone)
-ccmux-server mcp-bridge  (new: connects to daemon)
+fugue-server mcp-server  (old: standalone)
+fugue-server mcp-bridge  (new: connects to daemon)
 ```
 
 The `mcp-bridge` subcommand would:
-1. Connect to `~/.local/share/ccmux/ccmux.sock`
+1. Connect to `~/.local/share/fugue/fugue.sock`
 2. Set up stdio MCP server
 3. For each tool call, translate to IPC message, send to daemon, get response, translate back
 
@@ -167,7 +167,7 @@ Start with MCP Bridge approach. Can optimize to Option B later if needed.
 ## Implementation Tasks
 
 ### Section 1: MCP Bridge Command
-- [ ] Add `mcp-bridge` subcommand to ccmux-server CLI
+- [ ] Add `mcp-bridge` subcommand to fugue-server CLI
 - [ ] Implement daemon socket connection with retry logic
 - [ ] Handle daemon not running (auto-start or error message)
 
@@ -177,17 +177,17 @@ Start with MCP Bridge approach. Can optimize to Option B later if needed.
 - [ ] Handle async operations (some IPC may be fire-and-forget)
 
 ### Section 3: Tool Forwarding
-- [ ] Forward `ccmux_list_sessions` to daemon
-- [ ] Forward `ccmux_list_windows` to daemon
-- [ ] Forward `ccmux_list_panes` to daemon
-- [ ] Forward `ccmux_create_session` to daemon
-- [ ] Forward `ccmux_create_window` to daemon
-- [ ] Forward `ccmux_create_pane` to daemon
-- [ ] Forward `ccmux_close_pane` to daemon
-- [ ] Forward `ccmux_send_input` to daemon
-- [ ] Forward `ccmux_read_pane` to daemon
-- [ ] Forward `ccmux_get_status` to daemon
-- [ ] Forward `ccmux_focus_pane` to daemon
+- [ ] Forward `fugue_list_sessions` to daemon
+- [ ] Forward `fugue_list_windows` to daemon
+- [ ] Forward `fugue_list_panes` to daemon
+- [ ] Forward `fugue_create_session` to daemon
+- [ ] Forward `fugue_create_window` to daemon
+- [ ] Forward `fugue_create_pane` to daemon
+- [ ] Forward `fugue_close_pane` to daemon
+- [ ] Forward `fugue_send_input` to daemon
+- [ ] Forward `fugue_read_pane` to daemon
+- [ ] Forward `fugue_get_status` to daemon
+- [ ] Forward `fugue_focus_pane` to daemon
 
 ### Section 4: IPC Protocol Extensions
 - [ ] Add IPC message types for any missing operations
@@ -212,7 +212,7 @@ Start with MCP Bridge approach. Can optimize to Option B later if needed.
 
 ## Acceptance Criteria
 
-- [ ] Running `ccmux-server mcp-bridge` connects to existing daemon
+- [ ] Running `fugue-server mcp-bridge` connects to existing daemon
 - [ ] All MCP tools work through the bridge
 - [ ] User can create session in TUI, Claude can see it via MCP
 - [ ] Claude can create pane via MCP, user sees it in TUI
@@ -224,10 +224,10 @@ Start with MCP Bridge approach. Can optimize to Option B later if needed.
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/main.rs` | Add `mcp-bridge` subcommand |
-| `ccmux-server/src/mcp/bridge.rs` | New - MCP bridge implementation |
-| `ccmux-server/src/mcp/mod.rs` | Export bridge module |
-| `ccmux-protocol/src/lib.rs` | May need new IPC message types |
+| `fugue-server/src/main.rs` | Add `mcp-bridge` subcommand |
+| `fugue-server/src/mcp/bridge.rs` | New - MCP bridge implementation |
+| `fugue-server/src/mcp/mod.rs` | Export bridge module |
+| `fugue-protocol/src/lib.rs` | May need new IPC message types |
 | `docs/MCP.md` | Update configuration documentation |
 
 ## Migration Path
@@ -249,8 +249,8 @@ Start with MCP Bridge approach. Can optimize to Option B later if needed.
 ```json
 {
   "mcpServers": {
-    "ccmux": {
-      "command": "ccmux-server",
+    "fugue": {
+      "command": "fugue-server",
       "args": ["mcp-bridge"]
     }
   }
@@ -259,14 +259,14 @@ Start with MCP Bridge approach. Can optimize to Option B later if needed.
 
 ### User Workflow
 
-1. User starts TUI: `ccmux` (auto-starts daemon)
+1. User starts TUI: `fugue` (auto-starts daemon)
 2. User creates session, opens panes, runs commands
 3. User opens Claude Code in another terminal
-4. Claude Code starts MCP: `ccmux-server mcp-bridge` (connects to same daemon)
+4. Claude Code starts MCP: `fugue-server mcp-bridge` (connects to same daemon)
 5. User asks Claude: "What's running in my main session?"
-6. Claude calls `ccmux_list_panes` - sees user's actual panes
+6. Claude calls `fugue_list_panes` - sees user's actual panes
 7. User asks Claude: "Split this pane and run htop"
-8. Claude calls `ccmux_create_pane` + `ccmux_send_input`
+8. Claude calls `fugue_create_pane` + `fugue_send_input`
 9. User sees new pane appear in their TUI with htop running
 
 ## Notes

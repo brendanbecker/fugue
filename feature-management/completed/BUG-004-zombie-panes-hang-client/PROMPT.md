@@ -1,7 +1,7 @@
 # BUG-004: Client Hangs When Reattaching to Session with Dead Pane
 
 **Priority**: P1 (High)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Status**: resolved
 **Created**: 2026-01-09
 **Resolved**: 2026-01-09
@@ -13,8 +13,8 @@ Client hangs (becomes unresponsive to input) when attaching to a session whose p
 
 ## Reproduction Steps
 
-1. Start server: `./target/release/ccmux-server`
-2. Start client and create/enter a session: `./target/release/ccmux`
+1. Start server: `./target/release/fugue-server`
+2. Start client and create/enter a session: `./target/release/fugue`
 3. Exit the shell in the pane (type `exit` or Ctrl+D)
 4. Detach from client (Ctrl+B, d) or the client returns to session select
 5. Attempt to reattach to the same session
@@ -49,7 +49,7 @@ Client hangs (becomes unresponsive to input) when attaching to a session whose p
 
 ## Root Cause Analysis
 
-The PTY output poller (`ccmux-server/src/pty/output.rs`) broadcast a `PaneClosed` message to clients when the PTY died, but did NOT clean up the pane/session from server state. This created zombie sessions that:
+The PTY output poller (`fugue-server/src/pty/output.rs`) broadcast a `PaneClosed` message to clients when the PTY died, but did NOT clean up the pane/session from server state. This created zombie sessions that:
 
 1. Appeared in the session list
 2. Could be "attached" to
@@ -60,8 +60,8 @@ The PTY output poller (`ccmux-server/src/pty/output.rs`) broadcast a `PaneClosed
 
 | File | Line | Issue |
 |------|------|-------|
-| `ccmux-server/src/pty/output.rs` | 240-245 | Only broadcast PaneClosed, didn't clean up state |
-| `ccmux-server/src/handlers/pane.rs` | 120-181 | ClosePane handler had proper cleanup, but only called on explicit request |
+| `fugue-server/src/pty/output.rs` | 240-245 | Only broadcast PaneClosed, didn't clean up state |
+| `fugue-server/src/handlers/pane.rs` | 120-181 | ClosePane handler had proper cleanup, but only called on explicit request |
 
 ## Resolution
 
@@ -69,14 +69,14 @@ Implemented automatic cleanup when PTY processes exit:
 
 ### Changes Made
 
-1. **`ccmux-server/src/pty/output.rs`**:
+1. **`fugue-server/src/pty/output.rs`**:
    - Added `PaneClosedNotification` struct
    - Added `pane_closed_tx` channel to `PtyOutputPoller`
    - New `spawn_with_cleanup()` method
    - Updated `PollerManager::with_cleanup_channel()`
    - Send notification when PTY exits
 
-2. **`ccmux-server/src/main.rs`**:
+2. **`fugue-server/src/main.rs`**:
    - Added `pane_closed_tx` to `SharedState`
    - Added `run_pane_cleanup_loop()` background task that:
      - Removes PTY from manager
@@ -84,7 +84,7 @@ Implemented automatic cleanup when PTY processes exit:
      - Removes window if empty
      - Removes session if no windows remain
 
-3. **`ccmux-server/src/handlers/mod.rs`**:
+3. **`fugue-server/src/handlers/mod.rs`**:
    - Added `pane_closed_tx` to `HandlerContext`
    - New sessions' panes now get cleanup channel
 
@@ -108,12 +108,12 @@ Implemented automatic cleanup when PTY processes exit:
 
 ## Files Changed
 
-- `ccmux-server/src/pty/output.rs`
-- `ccmux-server/src/pty/mod.rs`
-- `ccmux-server/src/main.rs`
-- `ccmux-server/src/handlers/mod.rs`
-- `ccmux-server/src/handlers/session.rs`
-- `ccmux-server/src/handlers/pane.rs`
-- `ccmux-server/src/handlers/connection.rs`
-- `ccmux-server/src/handlers/input.rs`
-- `ccmux-server/src/handlers/orchestration.rs`
+- `fugue-server/src/pty/output.rs`
+- `fugue-server/src/pty/mod.rs`
+- `fugue-server/src/main.rs`
+- `fugue-server/src/handlers/mod.rs`
+- `fugue-server/src/handlers/session.rs`
+- `fugue-server/src/handlers/pane.rs`
+- `fugue-server/src/handlers/connection.rs`
+- `fugue-server/src/handlers/input.rs`
+- `fugue-server/src/handlers/orchestration.rs`

@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-054
 
 **Work Item**: [FEAT-054: Pane-bounded text selection in copy mode](PROMPT.md)
-**Component**: ccmux-client (UI/Input)
+**Component**: fugue-client (UI/Input)
 **Priority**: P2
 **Created**: 2026-01-11
 
@@ -21,10 +21,10 @@ Implement text selection within copy mode that respects pane boundaries, with vi
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-client/src/ui/pane.rs | Add Selection state, modify rendering | Medium |
-| ccmux-client/src/input/mod.rs | Add selection key handlers | Medium |
-| ccmux-client/src/input/mouse.rs | Add drag selection handlers | Medium |
-| ccmux-client/src/ui/app.rs | Coordinate selection, clipboard output | Low |
+| fugue-client/src/ui/pane.rs | Add Selection state, modify rendering | Medium |
+| fugue-client/src/input/mod.rs | Add selection key handlers | Medium |
+| fugue-client/src/input/mouse.rs | Add drag selection handlers | Medium |
+| fugue-client/src/ui/app.rs | Coordinate selection, clipboard output | Low |
 
 ## Implementation Details
 

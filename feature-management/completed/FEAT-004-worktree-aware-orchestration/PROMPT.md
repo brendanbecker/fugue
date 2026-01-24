@@ -33,9 +33,9 @@ Workers spawn in isolated git worktrees for parallel development:
 
 ## Affected Files
 
-- New: `ccmux-server/src/git/` module
-- `ccmux-server/src/session/manager.rs`
-- `ccmux-protocol/src/lib.rs` (worktree messages)
+- New: `fugue-server/src/git/` module
+- `fugue-server/src/session/manager.rs`
+- `fugue-protocol/src/lib.rs` (worktree messages)
 - New: WAVES.md parser
 
 ## Benefits
@@ -49,7 +49,7 @@ Workers spawn in isolated git worktrees for parallel development:
 ## Implementation Tasks
 
 ### Section 1: Git Integration Foundation
-- [ ] Create `ccmux-server/src/git/` module structure
+- [ ] Create `fugue-server/src/git/` module structure
 - [ ] Implement git repository detection (find .git, check worktree support)
 - [ ] Add git2 crate dependency for Rust git operations
 - [ ] Create GitRepo abstraction for repository operations
@@ -70,7 +70,7 @@ Workers spawn in isolated git worktrees for parallel development:
 - [ ] Create Wave and Task domain models
 
 ### Section 4: Protocol Extensions
-- [ ] Add worktree-related messages to ccmux-protocol
+- [ ] Add worktree-related messages to fugue-protocol
 - [ ] Define WorktreeCreate, WorktreeDestroy messages
 - [ ] Add wave status messages (WaveStart, WaveComplete)
 - [ ] Implement merge queue messages (MergeRequest, MergeComplete)
@@ -133,7 +133,7 @@ Workers spawn in isolated git worktrees for parallel development:
 This is a foundational feature for enabling true parallel agent orchestration. The git worktree model allows multiple Claude Code instances to work on different features simultaneously without stepping on each other's changes.
 
 Key design decisions to make during implementation:
-- Worktree naming convention (e.g., `ccmux-wave1-task3`)
+- Worktree naming convention (e.g., `fugue-wave1-task3`)
 - Branch naming strategy (feature branches vs. temporary branches)
 - Merge conflict resolution strategy (block, notify, or attempt auto-resolve)
 - WAVES.md format specification (likely markdown with frontmatter)

@@ -1,7 +1,7 @@
 # FEAT-021: Server Socket Listen Loop
 
 **Priority**: P0 (Critical - blocks everything)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: large (4-6 hours)
 **Business Value**: high
@@ -13,7 +13,7 @@ Implement the main server event loop that listens for client connections on a Un
 
 ## Requirements
 
-1. Create Unix socket at the path returned by `ccmux_utils::socket_path()`
+1. Create Unix socket at the path returned by `fugue_utils::socket_path()`
 2. Set up `UnixListener::bind()` in server startup
 3. Implement accept loop with `tokio::spawn` for each client
 4. Create per-client message pump task
@@ -22,20 +22,20 @@ Implement the main server event loop that listens for client connections on a Un
 
 ## Location
 
-Primary implementation target: `/home/becker/projects/tools/ccmux/ccmux-server/src/main.rs` lines 316-326
+Primary implementation target: `/home/becker/projects/tools/fugue/fugue-server/src/main.rs` lines 316-326
 
 ## Technical Notes
 
 - Pattern already exists in tests (client.rs lines 215-230)
 - Uses tokio async runtime (already in place)
 - Must integrate with existing `Server` struct
-- Socket path comes from `ccmux_utils::socket_path()`
+- Socket path comes from `fugue_utils::socket_path()`
 
 ## Affected Files
 
-- `ccmux-server/src/main.rs` - Main listen loop implementation
-- `ccmux-server/src/server.rs` - Server struct integration (if exists)
-- `ccmux-server/src/client.rs` - Per-client handler task
+- `fugue-server/src/main.rs` - Main listen loop implementation
+- `fugue-server/src/server.rs` - Server struct integration (if exists)
+- `fugue-server/src/client.rs` - Per-client handler task
 
 ## Implementation Tasks
 

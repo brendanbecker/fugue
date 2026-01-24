@@ -10,11 +10,11 @@ Accepted
 
 ## Context
 
-ccmux began as a "Claude Code-aware terminal multiplexer" with ambitions to deeply integrate with AI agents. Over time, the codebase accumulated agent-specific features:
+fugue began as a "Claude Code-aware terminal multiplexer" with ambitions to deeply integrate with AI agents. Over time, the codebase accumulated agent-specific features:
 
 ### Current Agent-Specific Code
 
-**1. ClaudeState and ClaudeActivity (`ccmux-protocol/src/types.rs`)**
+**1. ClaudeState and ClaudeActivity (`fugue-protocol/src/types.rs`)**
 ```rust
 pub enum PaneState {
     Normal,
@@ -38,7 +38,7 @@ pub enum ClaudeActivity {
 }
 ```
 
-**2. BeadsTask and BeadsStatus (`ccmux-protocol/src/types.rs`)**
+**2. BeadsTask and BeadsStatus (`fugue-protocol/src/types.rs`)**
 ```rust
 pub struct BeadsTask {
     pub id: String,
@@ -59,11 +59,11 @@ pub struct BeadsStatus {
 }
 ```
 
-**3. Beads-Specific MCP Tools (`ccmux-server/src/mcp/bridge/handlers.rs`)**
-- `ccmux_beads_assign` - Assign beads issue to pane
-- `ccmux_beads_release` - Release issue from pane
-- `ccmux_beads_find_pane` - Find pane working on issue
-- `ccmux_beads_pane_history` - Get issue history for pane
+**3. Beads-Specific MCP Tools (`fugue-server/src/mcp/bridge/handlers.rs`)**
+- `fugue_beads_assign` - Assign beads issue to pane
+- `fugue_beads_release` - Release issue from pane
+- `fugue_beads_find_pane` - Find pane working on issue
+- `fugue_beads_pane_history` - Get issue history for pane
 
 ### Problems with Tight Coupling
 
@@ -71,7 +71,7 @@ pub struct BeadsStatus {
 
 2. **Maintenance Burden**: Every agent integration requires protocol changes, server-side detection code, and client rendering logic. This creates an N x M explosion as we add more agents and more features.
 
-3. **Limited Extensibility**: Other AI agents (Copilot, Cursor, custom agents) cannot benefit from ccmux's features without adding more hardcoded integrations.
+3. **Limited Extensibility**: Other AI agents (Copilot, Cursor, custom agents) cannot benefit from fugue's features without adding more hardcoded integrations.
 
 4. **Architectural Pollution**: The core multiplexer's binary protocol carries tool-specific data structures (BeadsTask), coupling unrelated concerns.
 
@@ -87,7 +87,7 @@ Experience has shown that:
 
 ## Decision
 
-ccmux will evolve toward being a **"dumb pipe"**—a minimal, reliable terminal multiplexer that agents communicate **through** rather than **with**.
+fugue will evolve toward being a **"dumb pipe"**—a minimal, reliable terminal multiplexer that agents communicate **through** rather than **with**.
 
 ### Core Principles
 
@@ -97,7 +97,7 @@ ccmux will evolve toward being a **"dumb pipe"**—a minimal, reliable terminal 
 
 3. **Offer simple message passing** - The orchestration protocol delivers messages between sessions based on tags, not smart routing based on agent state.
 
-4. **Expose capabilities via sideband protocol** - Agents opt into features (like health reporting) rather than ccmux detecting and inferring state.
+4. **Expose capabilities via sideband protocol** - Agents opt into features (like health reporting) rather than fugue detecting and inferring state.
 
 ### What Changes
 
@@ -127,7 +127,7 @@ ccmux will evolve toward being a **"dumb pipe"**—a minimal, reliable terminal 
 
 - **Easier maintenance**: No need to track agent API changes or update detection heuristics.
 
-- **Cleaner architecture**: Separation of concerns—ccmux handles multiplexing, agents handle coordination.
+- **Cleaner architecture**: Separation of concerns—fugue handles multiplexing, agents handle coordination.
 
 - **Simpler testing**: Generic code paths are easier to test than agent-specific integrations.
 
@@ -300,8 +300,8 @@ if worker.agent_state.status == AgentStatus::Idle {
 
 - FEAT-083: Protocol Generalization: Generic Widget System
 - FEAT-084: Protocol Generalization: Abstract Agent State
-- `ccmux-protocol/src/types.rs` - Current ClaudeState, BeadsTask definitions
-- `ccmux-server/src/mcp/bridge/handlers.rs` - Current beads-specific tools
+- `fugue-protocol/src/types.rs` - Current ClaudeState, BeadsTask definitions
+- `fugue-server/src/mcp/bridge/handlers.rs` - Current beads-specific tools
 
 ## Decision Makers
 

@@ -7,8 +7,8 @@
   "phase": "research",
   "created_date": "2025-01-19",
   "updated_date": "2025-01-19",
-  "question": "How should ccmux handle terminal escape sequences to properly render TUI applications like Claude Code without visual artifacts?",
-  "context": "ccmux's screen rendering produces visual artifacts when displaying Claude Code's TUI output - stacked thinking messages, ghost content, overlapping UI elements. This may require fundamental changes to screen buffer handling.",
+  "question": "How should fugue handle terminal escape sequences to properly render TUI applications like Claude Code without visual artifacts?",
+  "context": "fugue's screen rendering produces visual artifacts when displaying Claude Code's TUI output - stacked thinking messages, ghost content, overlapping UI elements. This may require fundamental changes to screen buffer handling.",
   "constraints": [
     "Must not regress existing TUI app support (vim, htop, etc.)",
     "Must maintain reasonable performance",

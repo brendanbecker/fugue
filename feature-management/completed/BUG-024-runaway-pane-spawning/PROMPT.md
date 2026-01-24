@@ -8,23 +8,23 @@
 
 ## Summary
 
-The sideband parser uses plain XML-like tags (`<ccmux:spawn ... />`) that can appear in normal terminal output (e.g., grep results searching source code). When this happens, the parser interprets the output as actual spawn commands, creating new panes. Since spawned panes also have sideband parsing enabled, this creates an infinite feedback loop that crashes ccmux.
+The sideband parser uses plain XML-like tags (`<fugue:spawn ... />`) that can appear in normal terminal output (e.g., grep results searching source code). When this happens, the parser interprets the output as actual spawn commands, creating new panes. Since spawned panes also have sideband parsing enabled, this creates an infinite feedback loop that crashes fugue.
 
 ## Root Cause
 
-1. Sideband parser regex `<ccmux:(\w+)([^>]*)/>` matches plain text patterns
+1. Sideband parser regex `<fugue:(\w+)([^>]*)/>` matches plain text patterns
 2. Grep/cat of source files containing sideband commands triggers false matches
 3. `PtyOutputPoller::spawn_with_sideband()` enables sideband parsing on newly spawned panes (line 477 of output.rs)
 4. New panes inherit the ability to spawn more panes, creating exponential growth
 
 ## Reproduction
 
-1. Start ccmux with a Claude Code session
+1. Start fugue with a Claude Code session
 2. Run a grep command that searches sideband source files:
    ```
-   grep -r "spawn" ccmux-server/src/sideband/
+   grep -r "spawn" fugue-server/src/sideband/
    ```
-3. Output contains literal `<ccmux:spawn ... />` strings
+3. Output contains literal `<fugue:spawn ... />` strings
 4. Parser executes them as commands, spawning panes uncontrollably
 5. System crashes from resource exhaustion
 
@@ -36,12 +36,12 @@ Change sideband commands to require an OSC (Operating System Command) escape seq
 
 **Current format:**
 ```
-<ccmux:spawn direction="vertical" />
+<fugue:spawn direction="vertical" />
 ```
 
 **New format:**
 ```
-\x1b]ccmux:spawn direction="vertical"\x07
+\x1b]fugue:spawn direction="vertical"\x07
 ```
 
 Using OSC format: `ESC ] ... BEL` or `ESC ] ... ESC \`
@@ -62,7 +62,7 @@ Make these configurable so power users can adjust limits for legitimate multi-pa
 
 ### Section 1: Escape Sequence Parser
 
-- [ ] Update `SidebandParser` regex to match OSC format: `\x1b]ccmux:(\w+)([^\x07\x1b]*?)(?:\x07|\x1b\\)`
+- [ ] Update `SidebandParser` regex to match OSC format: `\x1b]fugue:(\w+)([^\x07\x1b]*?)(?:\x07|\x1b\\)`
 - [ ] Support both BEL (`\x07`) and ST (`ESC \`) terminators
 - [ ] Update all documentation and tests
 - [ ] Ensure backward compatibility period (warn on old format, still parse it)
@@ -117,14 +117,14 @@ Make these configurable so power users can adjust limits for legitimate multi-pa
 
 Changed sideband command format from plain XML to OSC escape sequences:
 
-- **Old format** (vulnerable): `<ccmux:spawn direction="vertical" />`
-- **New format** (secure): `\x1b]ccmux:spawn direction="vertical"\x07`
+- **Old format** (vulnerable): `<fugue:spawn direction="vertical" />`
+- **New format** (secure): `\x1b]fugue:spawn direction="vertical"\x07`
 
 The OSC format (ESC ] ... BEL) won't appear in grep/cat output of source files since it requires actual escape characters.
 
 **Files changed:**
-- `ccmux-server/src/sideband/parser.rs`: Updated regexes and parsing logic
-- `ccmux-server/src/sideband/mod.rs`: Updated documentation and integration tests
+- `fugue-server/src/sideband/parser.rs`: Updated regexes and parsing logic
+- `fugue-server/src/sideband/mod.rs`: Updated documentation and integration tests
 
 **Part 2: Configurable Spawn Limits (Safety Net)**
 
@@ -135,7 +135,7 @@ Added `SpawnLimits` configuration with:
 Spawn attempts exceeding limits return `ExecuteError::ExecutionFailed` with descriptive message.
 
 **Files changed:**
-- `ccmux-server/src/sideband/async_executor.rs`: Added `SpawnLimits` struct and limit checking
+- `fugue-server/src/sideband/async_executor.rs`: Added `SpawnLimits` struct and limit checking
 
 ### Test Coverage
 

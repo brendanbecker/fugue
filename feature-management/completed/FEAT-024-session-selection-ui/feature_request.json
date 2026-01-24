@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-024",
   "title": "Session Selection UI",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "priority": "P1",
   "status": "new",
   "type": "enhancement",

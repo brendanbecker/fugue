@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-032",
   "title": "Integrated MCP Server",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P1",
   "status": "new",
   "type": "enhancement",
@@ -11,7 +11,7 @@
   "tags": ["mcp", "architecture", "claude-integration", "daemon"],
   "estimated_effort": "large",
   "dependencies": ["FEAT-018", "FEAT-029"],
-  "description": "Integrate MCP server so it connects to the main ccmux-server daemon instead of running standalone with its own session state. This allows Claude to control the same sessions the user is interacting with.",
+  "description": "Integrate MCP server so it connects to the main fugue-server daemon instead of running standalone with its own session state. This allows Claude to control the same sessions the user is interacting with.",
   "business_value": "high",
   "technical_complexity": "medium",
   "user_impact": "Enables Claude to interact with the user's actual terminal sessions, providing a unified experience where AI and human share the same multiplexer state"

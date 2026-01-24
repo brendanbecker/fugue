@@ -1,7 +1,7 @@
 # FEAT-025: Pane Output Rendering
 
 **Priority**: P0
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: new_feature
 **Estimated Effort**: medium (3-4 hours)
 **Business Value**: high
@@ -22,20 +22,20 @@ Wire ServerMessage::Output data to pane rendering in the client UI. This connect
 
 ## Affected Files
 
-- `ccmux-client/src/ui/app.rs` - stubs at lines 565, 606
-- `ccmux-client/src/ui/pane.rs` - existing `Pane::process_output()` method
+- `fugue-client/src/ui/app.rs` - stubs at lines 565, 606
+- `fugue-client/src/ui/pane.rs` - existing `Pane::process_output()` method
 
 ## Current State
 
 The infrastructure is already in place:
 
-- `ccmux-client/src/ui/pane.rs` has a `Pane` struct with:
+- `fugue-client/src/ui/pane.rs` has a `Pane` struct with:
   - `parser: Parser` - tui-term VT100 parser with scrollback
   - `process_output(&mut self, data: &[u8])` - processes bytes through parser
   - `screen()` - returns the underlying Screen for rendering
   - `render_pane()` function that uses `PseudoTerminal` widget
 
-- `ccmux-client/src/ui/app.rs` has:
+- `fugue-client/src/ui/app.rs` has:
   - `self.panes: HashMap<Uuid, PaneInfo>` from protocol
   - `ServerMessage::Output` handler with TODO stub at line 565
   - Need to bridge between `PaneInfo` (protocol) and `Pane` (ui/pane.rs)

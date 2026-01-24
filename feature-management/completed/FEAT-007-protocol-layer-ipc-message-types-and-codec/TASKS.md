@@ -25,7 +25,7 @@
 
 ## Implementation Tasks
 
-### Message Types (ccmux-protocol/src/lib.rs)
+### Message Types (fugue-protocol/src/lib.rs)
 - [x] Create ClientMessage enum with variants:
   - [x] CreateSession
   - [x] AttachSession
@@ -46,7 +46,7 @@
   - [x] SessionClosed
   - [x] Error
 
-### Shared Data Types (ccmux-protocol/src/lib.rs)
+### Shared Data Types (fugue-protocol/src/lib.rs)
 - [x] Implement SessionInfo struct
 - [x] Implement PaneInfo struct
 - [x] Implement WindowInfo struct
@@ -55,7 +55,7 @@
 - [x] Add serde derives to all types
 - [x] Add Debug, Clone derives as appropriate
 
-### Codec Implementation (ccmux-protocol/src/codec.rs)
+### Codec Implementation (fugue-protocol/src/codec.rs)
 - [x] Create MessageCodec struct
 - [x] Implement Encoder<ClientMessage> for MessageCodec
 - [x] Implement Decoder for MessageCodec (returns ServerMessage)

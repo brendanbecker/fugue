@@ -1,7 +1,7 @@
 {
   "bug_id": "BUG-016",
   "title": "PTY output not routed to pane state - breaks Claude detection and MCP read_pane",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "severity": "high",
   "priority": "P1",
   "status": "resolved",
@@ -14,11 +14,11 @@
   "reproducibility": "always",
   "description": "The PtyOutputPoller broadcasts PTY output to connected TUI clients via ServerMessage::Output, but never routes the output back to the pane's scrollback buffer or through pane.process() for Claude detection. This causes two critical failures: (1) MCP read_pane returns empty strings because the scrollback buffer is never populated, and (2) Claude detection never triggers because pane.process() is never called with PTY output, so is_claude is always false.",
   "steps_to_reproduce": [
-    "Start ccmux server and attach a TUI client",
+    "Start fugue server and attach a TUI client",
     "Run Claude Code in a pane (e.g., 'claude' command)",
-    "Use MCP tool ccmux_list_panes to check pane state",
+    "Use MCP tool fugue_list_panes to check pane state",
     "Observe: is_claude is false for all panes despite Claude running",
-    "Use MCP tool ccmux_read_pane to read pane output",
+    "Use MCP tool fugue_read_pane to read pane output",
     "Observe: returns empty string despite visible output in TUI"
   ],
   "expected_behavior": "PTY output should be routed to pane.process() to populate scrollback and trigger Claude detection. MCP read_pane should return actual terminal output. Claude instances should be detected (is_claude: true) when Claude Code patterns are found in output.",
@@ -26,20 +26,20 @@
   "evidence": [
     {
       "type": "file",
-      "location": "ccmux-server/src/pty/output.rs",
+      "location": "fugue-server/src/pty/output.rs",
       "description": "PtyOutputPoller::flush() only broadcasts to clients via registry.broadcast_to_session() - no call to route data to pane state"
     },
     {
       "type": "file",
-      "location": "ccmux-server/src/session/pane.rs",
+      "location": "fugue-server/src/session/pane.rs",
       "description": "pane.process() method exists and properly handles scrollback + Claude detection, but is never called by PtyOutputPoller"
     },
     {
       "type": "file",
-      "location": "ccmux-server/src/mcp/handlers.rs",
+      "location": "fugue-server/src/mcp/handlers.rs",
       "description": "read_pane() relies on pane.scrollback().get_lines() which is never populated"
     }
   ],
-  "root_cause": "In ccmux-server/src/pty/output.rs, the PtyOutputPoller::flush() method (lines 535-564) only broadcasts data to clients. There is no call to route data back to the pane state via pane.process() or pane.push_output(). The pane.process() method in pane.rs exists and properly handles both scrollback population and Claude detection, but it is never invoked from the PTY output flow.",
+  "root_cause": "In fugue-server/src/pty/output.rs, the PtyOutputPoller::flush() method (lines 535-564) only broadcasts data to clients. There is no call to route data back to the pane state via pane.process() or pane.push_output(). The pane.process() method in pane.rs exists and properly handles both scrollback population and Claude detection, but it is never invoked from the PTY output flow.",
   "impact": "Core MCP functionality is completely broken. read_pane always returns empty. Claude detection is non-functional, breaking orchestration features that depend on knowing Claude state. Any feature requiring scrollback history or Claude state awareness will fail."
 }

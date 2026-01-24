@@ -7,11 +7,11 @@
   "phase": "research",
   "created_date": "2025-01-19",
   "updated_date": "2025-01-19",
-  "question": "How can ccmux evolve from a terminal multiplexer into a distributed intelligent stream processing fabric, replacing Unix pipes with remote-capable, agent-aware, observable data flows?",
-  "context": "Unix pipes are the right abstraction but limited to local, synchronous, dumb byte streams. ccmux already has primitives (panes, send_input/read_pane, orchestration, run_parallel/pipeline) that could enable distributed intelligent streaming. The vision is 'replace | with mux' - seamless pipe-pane usage as native remote compute.",
+  "question": "How can fugue evolve from a terminal multiplexer into a distributed intelligent stream processing fabric, replacing Unix pipes with remote-capable, agent-aware, observable data flows?",
+  "context": "Unix pipes are the right abstraction but limited to local, synchronous, dumb byte streams. fugue already has primitives (panes, send_input/read_pane, orchestration, run_parallel/pipeline) that could enable distributed intelligent streaming. The vision is 'replace | with mux' - seamless pipe-pane usage as native remote compute.",
   "constraints": [
     "Must feel as natural as Unix pipes",
-    "Must work with existing ccmux primitives",
+    "Must work with existing fugue primitives",
     "Must support both agents and shell commands as targets",
     "Must not break existing functionality"
   ],

@@ -1,6 +1,6 @@
 {
   "id": "BUG-034",
-  "title": "ccmux_create_window Ignores Selected Session",
+  "title": "fugue_create_window Ignores Selected Session",
   "priority": "P2",
   "severity": "medium",
   "component": "daemon",

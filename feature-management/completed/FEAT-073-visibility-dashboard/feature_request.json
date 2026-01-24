@@ -1,7 +1,7 @@
 {
   "id": "FEAT-073",
   "title": "Visibility dashboard (stuck detection, mailbox, graph pane)",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "priority": "P2",
   "status": "new",
   "created_date": "2026-01-13",

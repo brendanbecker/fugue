@@ -1,14 +1,14 @@
 # FEAT-093: Add support for sending special keys (Escape, Ctrl sequences, function keys)
 
 **Priority**: P2
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
 
 ## Overview
 
-Currently ccmux_send_input only sends literal text. There is no way to send special keys like Escape, Ctrl+C, Ctrl+U, function keys, or arrow keys. Escape sequences like `\x1b` are sent as literal text rather than interpreted as the actual key.
+Currently fugue_send_input only sends literal text. There is no way to send special keys like Escape, Ctrl+C, Ctrl+U, function keys, or arrow keys. Escape sequences like `\x1b` are sent as literal text rather than interpreted as the actual key.
 
 ## Use Case
 
@@ -19,13 +19,13 @@ Currently ccmux_send_input only sends literal text. There is no way to send spec
 
 ## Proposed Solutions
 
-### Option 1: Add a `ccmux_press_key` tool (Recommended)
+### Option 1: Add a `fugue_press_key` tool (Recommended)
 
 Similar to Playwright's `browser_press_key`, add a dedicated tool for sending special keys:
 
 ```json
 {
-  "name": "ccmux_press_key",
+  "name": "fugue_press_key",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -47,11 +47,11 @@ Similar to Playwright's `browser_press_key`, add a dedicated tool for sending sp
 
 ### Option 2: Add `keys` parameter to send_input
 
-Extend the existing `ccmux_send_input` tool:
+Extend the existing `fugue_send_input` tool:
 
 ```json
 {
-  "name": "ccmux_send_input",
+  "name": "fugue_send_input",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -100,7 +100,7 @@ Extend the existing `ccmux_send_input` tool:
 
 ### Section 2: Protocol Changes
 - [ ] Add new message type or extend SendInput message
-- [ ] Update ccmux-protocol with key enum or key parsing
+- [ ] Update fugue-protocol with key enum or key parsing
 
 ### Section 3: Server Implementation
 - [ ] Implement key name to escape sequence translation

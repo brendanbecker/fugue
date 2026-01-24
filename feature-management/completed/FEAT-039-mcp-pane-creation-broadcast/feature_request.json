@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-039",
   "title": "MCP Pane Creation Broadcast - Sync TUI Clients on MCP Splits",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P1",
   "status": "new",
   "type": "enhancement",
@@ -11,7 +11,7 @@
   "tags": ["mcp", "session-management", "tui", "rendering"],
   "estimated_effort": "small",
   "dependencies": ["FEAT-038"],
-  "description": "When panes are created via MCP (e.g., ccmux_create_pane tool), TUI clients don't see the split because the server doesn't broadcast the PaneCreated message to them. The MCP bridge's handle_create_pane_with_options returns HandlerResult::Response instead of HandlerResult::ResponseWithBroadcast, causing only the MCP client to receive the response while TUI clients remain unaware of the new pane.",
+  "description": "When panes are created via MCP (e.g., fugue_create_pane tool), TUI clients don't see the split because the server doesn't broadcast the PaneCreated message to them. The MCP bridge's handle_create_pane_with_options returns HandlerResult::Response instead of HandlerResult::ResponseWithBroadcast, causing only the MCP client to receive the response while TUI clients remain unaware of the new pane.",
   "business_value": "high",
   "technical_complexity": "low",
   "user_impact": "Essential for MCP-TUI interoperability. Without this fix, users must manually refresh or reconnect TUI clients after MCP creates panes, breaking the seamless multi-client experience."

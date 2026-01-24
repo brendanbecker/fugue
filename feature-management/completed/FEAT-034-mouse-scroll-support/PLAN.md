@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-034
 
 **Work Item**: [FEAT-034: Mouse Scroll Support](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P2
 **Created**: 2026-01-09
 
 ## Overview
 
-Enable mouse scroll (scrollwheel/trackpad) to navigate the terminal scrollback buffer in ccmux panes.
+Enable mouse scroll (scrollwheel/trackpad) to navigate the terminal scrollback buffer in fugue panes.
 
 ## Architecture Decisions
 
@@ -28,7 +28,7 @@ Enable mouse scroll (scrollwheel/trackpad) to navigate the terminal scrollback b
 
 ### Approach: Use Pane::scroll_offset as Source of Truth
 
-**Decision**: Use `Pane::scroll_offset` in `ccmux-client/src/ui/pane.rs` rather than `InputHandler::scroll_offset`.
+**Decision**: Use `Pane::scroll_offset` in `fugue-client/src/ui/pane.rs` rather than `InputHandler::scroll_offset`.
 
 **Rationale**:
 - `Pane` owns the terminal rendering and scrollback
@@ -58,9 +58,9 @@ Enable mouse scroll (scrollwheel/trackpad) to navigate the terminal scrollback b
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-client/src/ui/app.rs` | Modify `handle_input_action()` | Low |
-| `ccmux-client/src/ui/pane.rs` | Verify/update render_pane scroll support | Medium |
-| `ccmux-client/src/input/mod.rs` | Possibly remove duplicate scroll_offset | Low |
+| `fugue-client/src/ui/app.rs` | Modify `handle_input_action()` | Low |
+| `fugue-client/src/ui/pane.rs` | Verify/update render_pane scroll support | Medium |
+| `fugue-client/src/input/mod.rs` | Possibly remove duplicate scroll_offset | Low |
 
 ## Implementation Sequence
 

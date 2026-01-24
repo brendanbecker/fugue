@@ -1,7 +1,7 @@
 # FEAT-118: Agent Summary MCP Tool
 
 **Priority**: P2
-**Component**: ccmux-server/mcp
+**Component**: fugue-server/mcp
 **Type**: new_feature
 **Estimated Effort**: small
 **Business Value**: high
@@ -9,16 +9,16 @@
 
 ## Overview
 
-Create a `ccmux_agent_summary` MCP tool that returns structured agent state data instead of raw pane output, dramatically reducing orchestrator context consumption.
+Create a `fugue_agent_summary` MCP tool that returns structured agent state data instead of raw pane output, dramatically reducing orchestrator context consumption.
 
 ## Problem Statement
 
-Currently, orchestrators must call `ccmux_read_pane` to check worker status, consuming 500-2000 tokens of raw terminal output per check. A structured summary could reduce this to ~50-100 tokens while providing more actionable information.
+Currently, orchestrators must call `fugue_read_pane` to check worker status, consuming 500-2000 tokens of raw terminal output per check. A structured summary could reduce this to ~50-100 tokens while providing more actionable information.
 
 **Current approach:**
 ```json
 // ~1500 tokens of ANSI-laden terminal output
-{"tool": "ccmux_read_pane", "pane_id": "..."}
+{"tool": "fugue_read_pane", "pane_id": "..."}
 ```
 
 **Proposed approach:**
@@ -40,7 +40,7 @@ Currently, orchestrators must call `ccmux_read_pane` to check worker status, con
 
 ```json
 {
-  "name": "ccmux_agent_summary",
+  "name": "fugue_agent_summary",
   "description": "Get structured summary of agent state in a pane",
   "inputSchema": {
     "type": "object",
@@ -106,8 +106,8 @@ Currently, orchestrators must call `ccmux_read_pane` to check worker status, con
 The following infrastructure already exists and can be leveraged:
 
 ### Agent Detection
-- `DetectorRegistry` in `ccmux-server/src/agents/mod.rs`
-- `ClaudeDetector` in `ccmux-server/src/claude/detector.rs`
+- `DetectorRegistry` in `fugue-server/src/agents/mod.rs`
+- `ClaudeDetector` in `fugue-server/src/claude/detector.rs`
 - Activity states: Idle, Processing, Generating, ToolUse, AwaitingConfirmation
 
 ### Token Extraction (exists but unused)
@@ -150,8 +150,8 @@ The following infrastructure already exists and can be leveraged:
 
 ### Section 5: Create MCP Tool
 
-- [ ] Add tool schema to `ccmux-server/src/mcp/tools.rs`
-- [ ] Add handler in `ccmux-server/src/mcp/bridge/handlers.rs`:
+- [ ] Add tool schema to `fugue-server/src/mcp/tools.rs`
+- [ ] Add handler in `fugue-server/src/mcp/bridge/handlers.rs`:
   - Extract pane_id
   - Get pane from daemon
   - Aggregate state data from pane, detector, scrollback
@@ -169,14 +169,14 @@ The following infrastructure already exists and can be leveraged:
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/claude/detector.rs` | Enable token extraction, add spinner text extraction |
-| `ccmux-protocol/src/types/agent.rs` | Add activity_description, recent_tools to AgentState |
-| `ccmux-server/src/mcp/tools.rs` | Add ccmux_agent_summary schema |
-| `ccmux-server/src/mcp/bridge/handlers.rs` | Add handler implementation |
+| `fugue-server/src/claude/detector.rs` | Enable token extraction, add spinner text extraction |
+| `fugue-protocol/src/types/agent.rs` | Add activity_description, recent_tools to AgentState |
+| `fugue-server/src/mcp/tools.rs` | Add fugue_agent_summary schema |
+| `fugue-server/src/mcp/bridge/handlers.rs` | Add handler implementation |
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_agent_summary` tool available in MCP
+- [ ] `fugue_agent_summary` tool available in MCP
 - [ ] Returns agent type and activity state
 - [ ] Includes spinner description text when available
 - [ ] Includes token count when available

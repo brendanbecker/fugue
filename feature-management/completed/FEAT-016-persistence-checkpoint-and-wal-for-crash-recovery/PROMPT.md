@@ -1,7 +1,7 @@
 # FEAT-016: Persistence - Checkpoint and WAL for Crash Recovery
 
 **Priority**: P2
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: large
 **Business Value**: medium
@@ -64,12 +64,12 @@ Checkpoint + WAL persistence using okaywal and bincode for crash recovery, sessi
 
 ## Affected Files
 
-- `ccmux-server/src/persistence/checkpoint.rs` - Checkpoint creation and loading
-- `ccmux-server/src/persistence/wal.rs` - Write-ahead log implementation
-- `ccmux-server/src/persistence/mod.rs` - Persistence module exports
-- `ccmux-server/src/persistence/recovery.rs` - Crash recovery logic
-- `ccmux-server/src/persistence/serialization.rs` - Bincode serialization helpers
-- `ccmux-server/src/config/schema.rs` - Persistence configuration schema
+- `fugue-server/src/persistence/checkpoint.rs` - Checkpoint creation and loading
+- `fugue-server/src/persistence/wal.rs` - Write-ahead log implementation
+- `fugue-server/src/persistence/mod.rs` - Persistence module exports
+- `fugue-server/src/persistence/recovery.rs` - Crash recovery logic
+- `fugue-server/src/persistence/serialization.rs` - Bincode serialization helpers
+- `fugue-server/src/config/schema.rs` - Persistence configuration schema
 
 ## Implementation Tasks
 

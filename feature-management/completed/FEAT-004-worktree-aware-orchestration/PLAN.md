@@ -23,8 +23,8 @@ Workers spawn in isolated git worktrees for parallel development. Orchestrator r
    - CLI: More familiar, handles edge cases git2 might miss
 
 2. **Worktree Naming Convention**: How to name worktrees and branches
-   - Option A: `ccmux-wave{N}-task{M}` (predictable, sortable)
-   - Option B: `ccmux-{task-slug}` (more readable)
+   - Option A: `fugue-wave{N}-task{M}` (predictable, sortable)
+   - Option B: `fugue-{task-slug}` (more readable)
    - Option C: UUID-based (collision-free)
 
 3. **WAVES.md Format**: Structure for wave/task specification
@@ -42,10 +42,10 @@ Workers spawn in isolated git worktrees for parallel development. Orchestrator r
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/git/ (new) | New module | Medium |
-| ccmux-server/src/session/manager.rs | Extension | Medium |
-| ccmux-protocol/src/lib.rs | Extension | Low |
-| ccmux-server/src/waves/ (new) | New module | Medium |
+| fugue-server/src/git/ (new) | New module | Medium |
+| fugue-server/src/session/manager.rs | Extension | Medium |
+| fugue-protocol/src/lib.rs | Extension | Low |
+| fugue-server/src/waves/ (new) | New module | Medium |
 
 ## Dependencies
 
@@ -73,8 +73,8 @@ If implementation causes issues:
 3. Document what went wrong in comments.md
 
 Worktree cleanup on rollback:
-- All ccmux-created worktrees should be removable via `git worktree remove`
-- Worktrees are named with `ccmux-` prefix for easy identification
+- All fugue-created worktrees should be removable via `git worktree remove`
+- Worktrees are named with `fugue-` prefix for easy identification
 
 ## Implementation Notes
 

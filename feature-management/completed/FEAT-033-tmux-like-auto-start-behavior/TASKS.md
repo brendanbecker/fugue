@@ -9,7 +9,7 @@
 - [x] Read and understand PROMPT.md
 - [x] Review PLAN.md and update if needed
 - [x] Verify FEAT-011 (Client Connection) is complete
-- [x] Identify current connection code location in ccmux-client
+- [x] Identify current connection code location in fugue-client
 
 ## Phase 1: Core Logic
 

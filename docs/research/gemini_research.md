@@ -1,12 +1,12 @@
-# **Architectural Blueprint for ccmux: A Semantic Terminal Multiplexer for Claude Code**
+# **Architectural Blueprint for fugue: A Semantic Terminal Multiplexer for Claude Code**
 
 ## **1\. Terminal Emulation in Rust**
 
-The foundational requirement for **ccmux** is the ability to emulate a terminal with high fidelity. Unlike traditional multiplexers that merely shovel bytes, ccmux must act as a fully realized terminal emulator in memory to interpret the semantic state of the hosted Claude Code process. This necessitates a deep integration of Pseudo-Terminal (PTY) management, ANSI state parsing, and rendering.
+The foundational requirement for **fugue** is the ability to emulate a terminal with high fidelity. Unlike traditional multiplexers that merely shovel bytes, fugue must act as a fully realized terminal emulator in memory to interpret the semantic state of the hosted Claude Code process. This necessitates a deep integration of Pseudo-Terminal (PTY) management, ANSI state parsing, and rendering.
 
 ### **1.1 PTY Spawning and Management**
 
-The Pseudo-Terminal (PTY) is the operating system primitive that allows a user-space program (ccmux) to act as a hardware terminal for another program (the shell or Claude Code). The current state of the art in the Rust ecosystem for PTY management is the portable-pty crate.
+The Pseudo-Terminal (PTY) is the operating system primitive that allows a user-space program (fugue) to act as a hardware terminal for another program (the shell or Claude Code). The current state of the art in the Rust ecosystem for PTY management is the portable-pty crate.
 
 #### **1.1.1 State of the Art: portable-pty**
 
@@ -24,9 +24,9 @@ The library handles the complex "dance" required to spawn a PTY:
 In a multiplexer, I/O must be non-blocking. portable-pty provides master.take\_writer() and master.try\_clone\_reader(), yielding synchronous readers/writers. Integrating this with an async runtime like Tokio requires wrapping these blocking handles. On Unix, this is efficiently achieved by converting the raw file descriptors into tokio::fs::File or tokio::io::unix::AsyncFd, allowing the reactor to poll for readability rather than blocking a thread.6
 
 Resizing (SIGWINCH):  
-A critical responsibility of the PTY master is propagating window size changes. When the ccmux UI resizes, the internal PTY must be notified so the child application can reflow its text. portable-pty exposes a resize method on the MasterPty trait. Calling this updates the kernel's winsize structure and sends a SIGWINCH signal to the foreground process group of the PTY.2 Failure to propagate this correctly results in "torn" UIs where the application renders for a different geometry than is displayed.
+A critical responsibility of the PTY master is propagating window size changes. When the fugue UI resizes, the internal PTY must be notified so the child application can reflow its text. portable-pty exposes a resize method on the MasterPty trait. Calling this updates the kernel's winsize structure and sends a SIGWINCH signal to the foreground process group of the PTY.2 Failure to propagate this correctly results in "torn" UIs where the application renders for a different geometry than is displayed.
 
-#### **1.1.3 Implementation Strategy for ccmux**
+#### **1.1.3 Implementation Strategy for fugue**
 
 The recommended approach is to encapsulate the PTY interaction in an actor (see Section 7). This actor holds the PtyPair and spawns two Tokio tasks: one to pump bytes from the PTY master to the alacritty\_terminal parser, and another to pump user input from the multiplexer client to the PTY master.
 
@@ -63,7 +63,7 @@ impl PtyActor {
 
 ### **1.2 Terminal State Parsing**
 
-The stream of bytes coming from the PTY contains ANSI escape codes that modify the terminal state (cursor position, colors, scrolling). To render this, ccmux needs a state machine that consumes these bytes and maintains a grid of cells.
+The stream of bytes coming from the PTY contains ANSI escape codes that modify the terminal state (cursor position, colors, scrolling). To render this, fugue needs a state machine that consumes these bytes and maintains a grid of cells.
 
 #### **1.2.1 alacritty\_terminal vs. vt100**
 
@@ -86,7 +86,7 @@ While vt100 is simpler to integrate, alacritty\_terminal offers superior handlin
 alacritty\_terminal represents the screen as a Grid\<Cell\>. The Grid handles the distinction between the writable region (viewport) and the history (scrollback).
 
 * **Cursor:** Tracked separately. Attributes include line, column, and style.  
-* **Alternate Screen:** The Term struct in alacritty\_terminal manages switching between the primary and alternate buffers via DECSET 1047/1049 sequences.9 ccmux must expose API hooks to query *which* buffer is active, as this affects scrolling behavior (scrollback is usually disabled in alternate screen mode).
+* **Alternate Screen:** The Term struct in alacritty\_terminal manages switching between the primary and alternate buffers via DECSET 1047/1049 sequences.9 fugue must expose API hooks to query *which* buffer is active, as this affects scrolling behavior (scrollback is usually disabled in alternate screen mode).
 
 ### **1.3 Rendering Through Ratatui**
 
@@ -105,23 +105,23 @@ There is no direct compatibility between Alacritty's Cell and Ratatui's Cell. An
 4. **Writing:** Place the styled characters into the Ratatui Buffer at the calculated coordinates.
 
 Performance Model:  
-To maintain 60fps with 10+ panes, ccmux must avoid full-screen copies if possible. Ratatui's internal diffing algorithm (writing only changed cells to the actual terminal) handles the final optimization. However, the copy from Alacritty to Ratatui's back-buffer is CPU-bound.
+To maintain 60fps with 10+ panes, fugue must avoid full-screen copies if possible. Ratatui's internal diffing algorithm (writing only changed cells to the actual terminal) handles the final optimization. However, the copy from Alacritty to Ratatui's back-buffer is CPU-bound.
 
 * *Optimization:* Implement "dirty rect" tracking. If a PTY hasn't received new bytes since the last frame, skip the copy step for that pane entirely.
 
 ### **1.4 Terminal Capabilities**
 
-For Claude Code to function correctly, ccmux must advertise specific capabilities via the TERM environment variable and terminfo.
+For Claude Code to function correctly, fugue must advertise specific capabilities via the TERM environment variable and terminfo.
 
 * **TERM:** Set to xterm-256color or alacritty to ensure applications output standard sequences.  
 * **True Color:** Set COLORTERM=truecolor.  
-* **Mouse Support:** If ccmux supports mouse interaction (clicking to focus panes), it must also forward mouse events to the active pane if that application requests them (e.g., clicking inside htop). This involves parsing SGR mouse sequences from the host terminal and re-encoding them to the PTY master.19
+* **Mouse Support:** If fugue supports mouse interaction (clicking to focus panes), it must also forward mouse events to the active pane if that application requests them (e.g., clicking inside htop). This involves parsing SGR mouse sequences from the host terminal and re-encoding them to the PTY master.19
 
 ## ---
 
 **2\. Claude Code Internals**
 
-The "Claude Awareness" of ccmux relies on inspecting the output stream and state of the Claude Code process.
+The "Claude Awareness" of fugue relies on inspecting the output stream and state of the Claude Code process.
 
 ### **2.1 State Detection via Visual Telemetry**
 
@@ -135,14 +135,14 @@ Research into Claude Code's CLI behavior reveals distinct visual patterns corres
 * **Waiting:** Static prompt awaiting user input.
 
 Detection Algorithm:  
-ccmux effectively acts as a stream processor. Before bytes are passed to the terminal emulator, they pass through a "State Detector":
+fugue effectively acts as a stream processor. Before bytes are passed to the terminal emulator, they pass through a "State Detector":
 
 1. **Buffer:** Maintain a small look-back buffer of the raw byte stream.  
 2. **Pattern Match:** Scan for \\r (carriage return) followed by specific keywords. The use of \\r is the tell-tale sign of a spinner or status update that is meant to be transient.21  
-3. **State Transition:** Upon matching "Synthesizing...", transition the internal PaneState to PaneState::Thinking(Synthesizing). This state can then be rendered in the ccmux status bar (e.g., changing the pane border color to yellow or pulsing).
+3. **State Transition:** Upon matching "Synthesizing...", transition the internal PaneState to PaneState::Thinking(Synthesizing). This state can then be rendered in the fugue status bar (e.g., changing the pane border color to yellow or pulsing).
 
 Pitfall: Spinner Corruption  
-A documented issue with Claude Code is that spinner animations can corrupt scrollback history if the terminal width causes line wrapping.21 ccmux can solve this by intercepting the spinner lines. Instead of writing them to the alacritty\_terminal grid (where they might pollute history), ccmux can strip them from the stream and render the spinner status natively in the multiplexer UI frame.
+A documented issue with Claude Code is that spinner animations can corrupt scrollback history if the terminal width causes line wrapping.21 fugue can solve this by intercepting the spinner lines. Instead of writing them to the alacritty\_terminal grid (where they might pollute history), fugue can strip them from the stream and render the spinner status natively in the multiplexer UI frame.
 
 ### **2.2 Output Structure**
 
@@ -152,10 +152,10 @@ While visual scraping is necessary for legacy/default modes, Claude Code support
 * \--output-format stream-json: Emits newline-delimited JSON events.23 This is the critical integration point.
 
 Recommended Integration:  
-When ccmux spawns a "Managed Claude Pane," it should invoke Claude with \--output-format stream-json.
+When fugue spawns a "Managed Claude Pane," it should invoke Claude with \--output-format stream-json.
 
-* **Data Channel:** The stdout stream contains JSON objects. ccmux parses these to extract the text content (for display) and metadata (token usage, cost, current tool use).  
-* **Rendering:** ccmux renders the text content into the terminal grid but uses the metadata to populate a rich sidebar or status line, showing real-time costs and cognitive state without screen clutter.
+* **Data Channel:** The stdout stream contains JSON objects. fugue parses these to extract the text content (for display) and metadata (token usage, cost, current tool use).  
+* **Rendering:** fugue renders the text content into the terminal grid but uses the metadata to populate a rich sidebar or status line, showing real-time costs and cognitive state without screen clutter.
 
 ### **2.3 Session Resume**
 
@@ -163,7 +163,7 @@ Claude Code's session management is key to crash recovery.
 
 * **Mechanism:** claude \--resume \<session\_id\>.25  
 * **Storage:** Session state is serialized in \~/.claude/ (likely LevelDB or JSON blobs).26  
-* **Strategy:** ccmux must persist the mapping between its own PaneID and Claude's SessionID. If ccmux crashes and restarts, it can inspect this persistent map and automatically respawn Claude processes with \--resume \<id\>, effectively restoring the cognitive context even if the visual scrollback is lost.
+* **Strategy:** fugue must persist the mapping between its own PaneID and Claude's SessionID. If fugue crashes and restarts, it can inspect this persistent map and automatically respawn Claude processes with \--resume \<id\>, effectively restoring the cognitive context even if the visual scrollback is lost.
 
 ### **2.4 Programmatic Interaction**
 
@@ -181,12 +181,12 @@ Reliability is the defining feature of a multiplexer. The user's session must su
 
 ### **3.1 Architecture: The Daemon-Client Separation**
 
-To achieve persistence, ccmux cannot be a monolithic process. It must adopt the client-server architecture used by tmux and zellij.
+To achieve persistence, fugue cannot be a monolithic process. It must adopt the client-server architecture used by tmux and zellij.
 
 * **The Server (Daemon):** This process runs in the background. It owns the PtyPair handles and the alacritty\_terminal::Grid state. It has *no* UI dependencies. It runs as a systemd user service or a detached daemon.  
 * **The Client (UI):** This is the interface the user sees. It connects to the Daemon via a Unix Domain Socket (UDS). It sends input events (keypresses) and receives render instructions (diffs of the grid).
 
-If the Client panics or is killed, the Daemon (and the child Claude processes) continues running. The user simply restarts ccmux (the client) to reconnect.
+If the Client panics or is killed, the Daemon (and the child Claude processes) continues running. The user simply restarts fugue (the client) to reconnect.
 
 ### **3.2 Persistence Strategies**
 
@@ -204,14 +204,14 @@ If the *Daemon* crashes, recovery is harder. We must persist state to disk.
 * **Snapshotting:** Periodically serialize the Grid state. zellij uses KDL for layout persistence.29  
 * **Recommendation:** Use a **Hybrid Approach**.  
   * *Topology & Metadata:* Write to a persistent SQLite DB or JSON file on every change (low frequency).  
-  * *Visual State:* Do *not* persist full grid state to disk due to performance costs. Instead, rely on ClaudeSessionID. If the Daemon crashes, ccmux restarts, reads the topology, and respawns Claude with \--resume. The *scrollback* is lost, but the *agentic context* is preserved.
+  * *Visual State:* Do *not* persist full grid state to disk due to performance costs. Instead, rely on ClaudeSessionID. If the Daemon crashes, fugue restarts, reads the topology, and respawns Claude with \--resume. The *scrollback* is lost, but the *agentic context* is preserved.
 
 ### **3.3 Adopting Orphaned PTYs**
 
 A sophisticated recovery strategy involves keeping the PTYs alive even if the Daemon dies.
 
 * **File Descriptor Passing:** On a graceful restart (e.g., update), the Daemon can pass open PTY file descriptors to the new instance via UDS using SCM\_RIGHTS.30  
-* **The "Holder" Process:** Similar to shpool 32, a tiny, stable process can hold the PTY master open. The Daemon connects to this holder. If the Daemon crashes, the holder keeps the PTY alive. The new Daemon instance reconnects to the holder. This decouples the volatile application logic (ccmux) from the OS resource (PTY).
+* **The "Holder" Process:** Similar to shpool 32, a tiny, stable process can hold the PTY master open. The Daemon connects to this holder. If the Daemon crashes, the holder keeps the PTY alive. The new Daemon instance reconnects to the holder. This decouples the volatile application logic (fugue) from the OS resource (PTY).
 
 **Recommendation:** For v1, focus on Daemon/Client separation. Implementing a shpool-style holder is complex and can be a v2 refinement.
 
@@ -219,7 +219,7 @@ A sophisticated recovery strategy involves keeping the PTYs alive even if the Da
 
 **4\. Prior Art in Terminal Multiplexers**
 
-Understanding existing tools illuminates the path for ccmux.
+Understanding existing tools illuminates the path for fugue.
 
 ### **4.1 tmux**
 
@@ -232,22 +232,22 @@ Understanding existing tools illuminates the path for ccmux.
 * **Architecture:** Rust-based. Features a plugin system based on WebAssembly (WASI).36  
 * **Strengths:** Modern UI, discoverability, KDL configuration.  
 * **Weakness:** The WASM bridge adds complexity and serialization overhead.  
-* **Lesson:** Zellij's KDL layout format is excellent. ccmux should adopt a compatible KDL structure for defining layouts.37
+* **Lesson:** Zellij's KDL layout format is excellent. fugue should adopt a compatible KDL structure for defining layouts.37
 
 ### **4.3 WezTerm Mux**
 
 * **Architecture:** wezterm-mux-server handles PTYs.  
-* **Strengths:** portable-pty (which ccmux uses) comes from this project. It proves that Rust is viable for high-performance terminal emulation.  
-* **Lesson:** WezTerm's font rendering and ligature support are best-in-class but heavy. ccmux should delegate rendering to the terminal emulator it runs *inside* (via Ratatui), avoiding the need to implement font rasterization itself.
+* **Strengths:** portable-pty (which fugue uses) comes from this project. It proves that Rust is viable for high-performance terminal emulation.  
+* **Lesson:** WezTerm's font rendering and ligature support are best-in-class but heavy. fugue should delegate rendering to the terminal emulator it runs *inside* (via Ratatui), avoiding the need to implement font rasterization itself.
 
 ### **4.4 shpool**
 
 * **Architecture:** Focuses *only* on persistence, not multiplexing. It effectively implements the "Holder" pattern described in 3.3.  
-* **Lesson:** shpool demonstrates that session persistence is a distinct problem from multiplexing. ccmux could potentially use shpool as a dependency to handle the "keep alive" aspect, rather than reinventing it.32
+* **Lesson:** shpool demonstrates that session persistence is a distinct problem from multiplexing. fugue could potentially use shpool as a dependency to handle the "keep alive" aspect, rather than reinventing it.32
 
 ### **Comparison Matrix**
 
-| Feature | tmux | Zellij | ccmux (Target) |
+| Feature | tmux | Zellij | fugue (Target) |
 | :---- | :---- | :---- | :---- |
 | **Language** | C | Rust | Rust |
 | **Parsing** | Custom | alacritty\_terminal (via plugins) | alacritty\_terminal |
@@ -259,7 +259,7 @@ Understanding existing tools illuminates the path for ccmux.
 
 **5\. Hot-Reload Configuration Patterns**
 
-Users expect to modify keybindings (ccmux.toml) or layouts without restarting the server.
+Users expect to modify keybindings (fugue.toml) or layouts without restarting the server.
 
 ### **5.1 File Watching**
 
@@ -281,7 +281,7 @@ use std::sync::Arc;
 static CONFIG: ArcSwap\<Config\> \= ArcSwap::from\_pointee(Config::default());
 
 // In file watcher thread:  
-let new\_config \= load\_config("ccmux.toml")?;  
+let new\_config \= load\_config("fugue.toml")?;  
 CONFIG.store(Arc::new(new\_config)); // Atomic swap
 
 // In render loop:  
@@ -292,22 +292,22 @@ let color \= cfg.theme.background;
 
 A config reload might change the layout (e.g., removing a pane definition).
 
-* **Migration:** ccmux requires a reconciliation logic. If the new layout has fewer panes, how are existing processes handled?  
+* **Migration:** fugue requires a reconciliation logic. If the new layout has fewer panes, how are existing processes handled?  
   * *Strategy:* "Adopt or Kill". Orphaned processes can be moved to a "detached" list (accessible via a pane picker) rather than being killed immediately. This preserves work if the user makes a configuration error.
 
 ## ---
 
 **6\. Claude Code Skills for Structured Output**
 
-To move beyond regex scraping of "Thinking...", ccmux should establish a formal communication protocol with Claude.
+To move beyond regex scraping of "Thinking...", fugue should establish a formal communication protocol with Claude.
 
 ### **6.1 Teaching Structured Output via MCP**
 
-The **Model Context Protocol (MCP)** is the robust solution for LLM-tool interaction. Instead of trying to prompt-engineer Claude to output XML tags (which is flaky), ccmux should present itself as an MCP Server.43
+The **Model Context Protocol (MCP)** is the robust solution for LLM-tool interaction. Instead of trying to prompt-engineer Claude to output XML tags (which is flaky), fugue should present itself as an MCP Server.43
 
-#### **6.1.1 ccmux as an MCP Server**
+#### **6.1.1 fugue as an MCP Server**
 
-Using mcp-rust-sdk (rmcp), ccmux can expose tools to Claude:
+Using mcp-rust-sdk (rmcp), fugue can expose tools to Claude:
 
 * create\_pane(command: str)  
 * read\_pane\_output(pane\_id: int)  
@@ -315,10 +315,10 @@ Using mcp-rust-sdk (rmcp), ccmux can expose tools to Claude:
 
 **Workflow:**
 
-1. ccmux starts an internal MCP server (stdio or websocket).  
+1. fugue starts an internal MCP server (stdio or websocket).  
 2. When spawning Claude, it passes the MCP configuration.  
 3. Claude "sees" these tools. If the user asks "Run the tests in a new split", Claude calls create\_pane("cargo test").  
-4. ccmux receives this structured RPC call and executes the layout change deterministically.
+4. fugue receives this structured RPC call and executes the layout change deterministically.
 
 ### **6.2 Fallback Protocol: The "Sideband"**
 
@@ -326,11 +326,11 @@ For environments where MCP setup is too complex, a text-based sideband protocol 
 
 * **Format:** XML-like tags that are unlikely to appear in code.  
   XML  
-  \<ccmux-action type\="spawn" layout\="vertical"\>  
+  \<fugue-action type\="spawn" layout\="vertical"\>  
     cargo test  
-  \</ccmux-action\>
+  \</fugue-action\>
 
-* **Parser:** The ccmux stream parser detects these tags, buffers the content, *hides* it from the terminal display (so the user doesn't see raw XML), and executes the action.
+* **Parser:** The fugue stream parser detects these tags, buffers the content, *hides* it from the terminal display (so the user doesn't see raw XML), and executes the action.
 
 ### **6.3 Reliability**
 
@@ -361,7 +361,7 @@ Rust's tokio runtime combined with an actor framework like ractor or simply Join
 
 ### **7.2 Resource Management**
 
-* **Token Quotas:** ccmux can track the token usage reported in the stream-json metadata. It can enforce a "Budget" per session, pausing a pane if it exceeds cost thresholds.  
+* **Token Quotas:** fugue can track the token usage reported in the stream-json metadata. It can enforce a "Budget" per session, pausing a pane if it exceeds cost thresholds.  
 * **Process Limits:** Use a semaphore (e.g., tokio::sync::Semaphore) to limit the total number of concurrent active Claude processes across the multiplexer.
 
 ## ---
@@ -455,7 +455,7 @@ pub fn start\_config\_watcher() {
         let (tx, rx) \= std::sync::mpsc::channel();  
         let mut debouncer \= new\_debouncer(Duration::from\_millis(500), None, tx).unwrap();  
           
-        debouncer.watcher().watch(Path::new("ccmux.toml"), RecursiveMode::NonRecursive).unwrap();
+        debouncer.watcher().watch(Path::new("fugue.toml"), RecursiveMode::NonRecursive).unwrap();
 
         for result in rx {  
             match result {  
@@ -474,7 +474,7 @@ pub fn start\_config\_watcher() {
 
 ## **Conclusion**
 
-The architecture of **ccmux** represents a shift from "dumb pipes" to "smart containers." By leveraging portable-pty for low-level interaction, alacritty\_terminal for state correctness, and the Actor model for supervision, ccmux can provide a stable environment for agentic coding. The integration of MCP and structured output parsing transforms the terminal from a passive display into a bidirectional control surface, enabling true collaboration between the developer and the AI agent. The proposed Daemon/Client split and shpool-inspired persistence ensure that this intelligence is robust enough for daily driver usage.
+The architecture of **fugue** represents a shift from "dumb pipes" to "smart containers." By leveraging portable-pty for low-level interaction, alacritty\_terminal for state correctness, and the Actor model for supervision, fugue can provide a stable environment for agentic coding. The integration of MCP and structured output parsing transforms the terminal from a passive display into a bidirectional control surface, enabling true collaboration between the developer and the AI agent. The proposed Daemon/Client split and shpool-inspired persistence ensure that this intelligence is robust enough for daily driver usage.
 
 #### **Works cited**
 

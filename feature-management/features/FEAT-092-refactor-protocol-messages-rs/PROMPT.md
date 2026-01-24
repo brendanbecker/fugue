@@ -1,7 +1,7 @@
-# FEAT-092: Refactor ccmux-protocol/src/messages.rs
+# FEAT-092: Refactor fugue-protocol/src/messages.rs
 
 **Priority**: P3
-**Component**: ccmux-protocol
+**Component**: fugue-protocol
 **Type**: refactor
 **Estimated Effort**: low-medium
 **Current Size**: 15.1k tokens (2010 lines)
@@ -24,7 +24,7 @@ The file likely contains:
 ## Proposed Module Structure
 
 ```
-ccmux-protocol/src/messages/
+fugue-protocol/src/messages/
 ├── mod.rs              # Re-exports, top-level enums (<3k)
 ├── client.rs           # ClientMessage variants
 ├── server.rs           # ServerMessage variants

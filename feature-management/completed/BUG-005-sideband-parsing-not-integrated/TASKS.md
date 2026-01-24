@@ -8,16 +8,16 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Review `ccmux-server/src/pty/output.rs` (PtyOutputPoller)
-- [ ] Review `ccmux-server/src/sideband/mod.rs` (SidebandParser, CommandExecutor)
-- [ ] Review `ccmux-server/src/main.rs` (SharedState, server startup)
+- [ ] Review `fugue-server/src/pty/output.rs` (PtyOutputPoller)
+- [ ] Review `fugue-server/src/sideband/mod.rs` (SidebandParser, CommandExecutor)
+- [ ] Review `fugue-server/src/main.rs` (SharedState, server startup)
 - [ ] Understand existing output poller flow (spawn, handle_output, flush)
 
 ## Phase 1: Add CommandExecutor to SharedState
 
 ### Create Executor at Startup
 
-- [ ] In `ccmux-server/src/main.rs`, add import: `use sideband::CommandExecutor;`
+- [ ] In `fugue-server/src/main.rs`, add import: `use sideband::CommandExecutor;`
 - [ ] Create `CommandExecutor` in `run_daemon()` after managers are created
 - [ ] Need to convert managers to `Arc<Mutex<_>>` for CommandExecutor (it uses parking_lot::Mutex)
   - Note: Server uses `Arc<RwLock<_>>` but CommandExecutor uses `Arc<parking_lot::Mutex<_>>`
@@ -27,14 +27,14 @@
 
 ### Verify Compilation
 
-- [ ] Run `cargo check -p ccmux-server`
+- [ ] Run `cargo check -p fugue-server`
 - [ ] Fix any type mismatches between RwLock and parking_lot::Mutex
 
 ## Phase 2: Extend PtyOutputPoller Struct
 
 ### Add New Fields
 
-- [ ] In `ccmux-server/src/pty/output.rs`, add import for sideband types
+- [ ] In `fugue-server/src/pty/output.rs`, add import for sideband types
 - [ ] Add field: `sideband_parser: SidebandParser`
 - [ ] Add field: `command_executor: Arc<CommandExecutor>`
 - [ ] Add field: `poller_manager: Option<Arc<parking_lot::Mutex<PollerManager>>>`
@@ -55,7 +55,7 @@
 
 ### Verify Compilation
 
-- [ ] Run `cargo check -p ccmux-server`
+- [ ] Run `cargo check -p fugue-server`
 - [ ] All existing tests should still compile
 
 ## Phase 3: Implement Sideband Parsing
@@ -86,8 +86,8 @@
 
 ### Verify Compilation
 
-- [ ] Run `cargo check -p ccmux-server`
-- [ ] Run `cargo test -p ccmux-server` (may fail, tests need updating)
+- [ ] Run `cargo check -p fugue-server`
+- [ ] Run `cargo test -p fugue-server` (may fail, tests need updating)
 
 ## Phase 4: Update PollerManager
 
@@ -106,7 +106,7 @@
 
 ### Verify Compilation
 
-- [ ] Run `cargo check -p ccmux-server`
+- [ ] Run `cargo check -p fugue-server`
 
 ## Phase 5: Wire Up in Server
 
@@ -140,7 +140,7 @@
 
 ### Verify Compilation
 
-- [ ] Run `cargo check -p ccmux-server`
+- [ ] Run `cargo check -p fugue-server`
 
 ## Phase 6: Testing
 
@@ -164,10 +164,10 @@
 ### Manual Testing
 
 - [ ] Start server, create session
-- [ ] Run: `echo '<ccmux:spawn direction="vertical" />'`
+- [ ] Run: `echo '<fugue:spawn direction="vertical" />'`
 - [ ] Verify: new pane appears
 - [ ] Verify: XML tag NOT in terminal display
-- [ ] Run: `echo '<ccmux:notify title="Test">Hello</ccmux:notify>'`
+- [ ] Run: `echo '<fugue:notify title="Test">Hello</fugue:notify>'`
 - [ ] Verify: server logs show notification
 
 ### Regression Testing
@@ -180,7 +180,7 @@
 
 ### Update Module Documentation
 
-- [ ] Update `ccmux-server/src/sideband/mod.rs` docs to reflect integration
+- [ ] Update `fugue-server/src/sideband/mod.rs` docs to reflect integration
 - [ ] Add note about how parser/executor are wired in
 
 ### Remove TODO Comments
@@ -203,9 +203,9 @@
 ## Verification Tasks
 
 - [ ] All acceptance criteria from PROMPT.md met
-- [ ] `<ccmux:spawn>` creates pane
-- [ ] `<ccmux:notify>` logs message
-- [ ] `<ccmux:input>` routes to pane
+- [ ] `<fugue:spawn>` creates pane
+- [ ] `<fugue:notify>` logs message
+- [ ] `<fugue:input>` routes to pane
 - [ ] Commands stripped from display
 - [ ] Non-command output unchanged
 - [ ] All existing tests pass

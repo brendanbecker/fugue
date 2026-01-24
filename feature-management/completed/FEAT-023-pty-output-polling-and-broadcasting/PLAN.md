@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-023
 
 **Work Item**: [FEAT-023: PTY Output Polling and Broadcasting](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P0 (Critical)
 **Created**: 2026-01-09
 
@@ -47,7 +47,7 @@ struct OutputBuffer {
 ### Message Format
 
 ```rust
-// In ccmux-protocol/src/messages.rs
+// In fugue-protocol/src/messages.rs
 pub enum ServerMessage {
     // ... existing variants ...
     Output {
@@ -97,10 +97,10 @@ Task terminates
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/pty/output.rs | New - Output polling module | Medium |
-| ccmux-server/src/pty/mod.rs | Modify - Export output module | Low |
-| ccmux-server/src/server/mod.rs | Modify - Integrate polling | Medium |
-| ccmux-protocol/src/messages.rs | Modify - Add Output message | Low |
+| fugue-server/src/pty/output.rs | New - Output polling module | Medium |
+| fugue-server/src/pty/mod.rs | Modify - Export output module | Low |
+| fugue-server/src/server/mod.rs | Modify - Integrate polling | Medium |
+| fugue-protocol/src/messages.rs | Modify - Add Output message | Low |
 
 ## Dependencies
 
@@ -121,7 +121,7 @@ Task terminates
 
 ### Phase 1: Core Polling Infrastructure
 
-Create `ccmux-server/src/pty/output.rs`:
+Create `fugue-server/src/pty/output.rs`:
 
 ```rust
 use tokio::sync::broadcast;

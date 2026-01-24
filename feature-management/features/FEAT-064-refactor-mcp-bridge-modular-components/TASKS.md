@@ -8,12 +8,12 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Audit `ccmux-server/src/mcp/bridge.rs` to understand current structure
-- [ ] Run existing tests to establish baseline: `cargo test -p ccmux-server`
+- [ ] Audit `fugue-server/src/mcp/bridge.rs` to understand current structure
+- [ ] Run existing tests to establish baseline: `cargo test -p fugue-server`
 
 ## Phase 1: Health Module Extraction
 
-- [ ] Create `ccmux-server/src/mcp/health.rs`
+- [ ] Create `fugue-server/src/mcp/health.rs`
 - [ ] Move `ConnectionState` enum to `health.rs`
 - [ ] Move heartbeat-related functions to `health.rs`
 - [ ] Move `health_monitor` task implementation to `health.rs`
@@ -23,7 +23,7 @@
 
 ## Phase 2: Connection Module Extraction
 
-- [ ] Create `ccmux-server/src/mcp/connection.rs`
+- [ ] Create `fugue-server/src/mcp/connection.rs`
 - [ ] Move `connect_to_daemon()` to `connection.rs`
 - [ ] Move reconnection logic to `connection.rs`
 - [ ] Move retry/backoff utilities to `connection.rs`
@@ -54,12 +54,12 @@
 
 ## Testing Tasks
 
-- [ ] Run `cargo test -p ccmux-server`
-- [ ] Run `cargo test -p ccmux-server -- mcp` (MCP-specific tests)
+- [ ] Run `cargo test -p fugue-server`
+- [ ] Run `cargo test -p fugue-server -- mcp` (MCP-specific tests)
 - [ ] Test MCP tools manually via Claude Code integration
 - [ ] Test reconnection by stopping/starting daemon
 - [ ] Test health monitoring behavior
-- [ ] Verify no warnings from `cargo clippy -p ccmux-server`
+- [ ] Verify no warnings from `cargo clippy -p fugue-server`
 
 ## Documentation Tasks
 

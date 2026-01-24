@@ -6,7 +6,7 @@
 
 ## Problem Summary
 
-When launching ccmux with a custom command (e.g., `ccmux claude --resume`), the CLI command was incorrectly applied to ALL new sessions created during that client's lifetime, not just the first session. This caused:
+When launching fugue with a custom command (e.g., `fugue claude --resume`), the CLI command was incorrectly applied to ALL new sessions created during that client's lifetime, not just the first session. This caused:
 
 1. Server startup hangs when restoring sessions (all Claude panes tried to resume with potentially stale session IDs)
 2. Unexpected behavior where pressing 'n' to create a new session would use the CLI command instead of the default_command from config
@@ -20,9 +20,9 @@ When launching ccmux with a custom command (e.g., `ccmux claude --resume`), the 
 ## Steps to Reproduce
 
 1. Configure `default_command = "claude"` in config
-2. Run `ccmux claude --resume xyz` with existing persisted sessions
+2. Run `fugue claude --resume xyz` with existing persisted sessions
 3. Server hangs during restoration
-4. Or: Launch ccmux, create multiple sessions - all use the CLI command
+4. Or: Launch fugue, create multiple sessions - all use the CLI command
 
 ## Expected Behavior
 
@@ -38,7 +38,7 @@ When launching ccmux with a custom command (e.g., `ccmux claude --resume`), the 
 
 ## Root Cause
 
-In `ccmux-client/src/ui/app.rs`, the `session_command` field was cloned (not consumed) when creating sessions:
+In `fugue-client/src/ui/app.rs`, the `session_command` field was cloned (not consumed) when creating sessions:
 
 ```rust
 // Line 668 - command bar session creation
@@ -68,10 +68,10 @@ Now the CLI command is used once and cleared, so subsequent sessions fall back t
 
 | File | Change |
 |------|--------|
-| `ccmux-client/src/ui/app.rs` | Changed `session_command.clone()` to `session_command.take()` in two places |
+| `fugue-client/src/ui/app.rs` | Changed `session_command.clone()` to `session_command.take()` in two places |
 
 ## Testing
 
-1. Run `ccmux` - first session uses default_command from config
-2. Run `ccmux bash` - first session uses bash, subsequent sessions use default_command
+1. Run `fugue` - first session uses default_command from config
+2. Run `fugue bash` - first session uses bash, subsequent sessions use default_command
 3. Press 'n' after first session - new session uses default_command, not CLI arg

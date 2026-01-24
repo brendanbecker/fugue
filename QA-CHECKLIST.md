@@ -4,12 +4,12 @@ Temporary doc for testing new features shipped in Sessions 3-6.
 
 **QA Run: 2026-01-17**
 
-## FEAT-094: ccmux_run_parallel
+## FEAT-094: fugue_run_parallel
 
 Run commands in parallel across separate panes.
 
 ```json
-ccmux_run_parallel({
+fugue_run_parallel({
   "commands": [
     {"command": "echo 'task 1' && sleep 1", "name": "task1"},
     {"command": "echo 'task 2' && sleep 2", "name": "task2"},
@@ -30,12 +30,12 @@ ccmux_run_parallel({
 
 ---
 
-## FEAT-095: ccmux_run_pipeline
+## FEAT-095: fugue_run_pipeline
 
 Run commands sequentially in a single pane.
 
 ```json
-ccmux_run_pipeline({
+fugue_run_pipeline({
   "commands": [
     {"command": "echo 'step 1'", "name": "step1"},
     {"command": "echo 'step 2'", "name": "step2"},
@@ -56,19 +56,19 @@ ccmux_run_pipeline({
 
 ---
 
-## FEAT-096: ccmux_expect
+## FEAT-096: fugue_expect
 
 Wait for regex pattern in pane output.
 
 ```json
 // First, create a pane and start a slow command
-ccmux_create_pane({...})
+fugue_create_pane({...})
 
 // Then send a command that will eventually output a pattern
-ccmux_send_input({"pane_id": "...", "input": "sleep 2 && echo 'READY'\n"})
+fugue_send_input({"pane_id": "...", "input": "sleep 2 && echo 'READY'\n"})
 
 // Wait for the pattern
-ccmux_expect({
+fugue_expect({
   "pane_id": "...",
   "pattern": "READY",
   "timeout_ms": 5000,
@@ -86,13 +86,13 @@ ccmux_expect({
 
 ---
 
-## FEAT-097: ccmux_get_worker_status / ccmux_poll_messages
+## FEAT-097: fugue_get_worker_status / fugue_poll_messages
 
 Status reporting and message polling for workers.
 
 **Worker reports status:**
 ```json
-ccmux_report_status({
+fugue_report_status({
   "status": "working",
   "message": "Processing task X"
 })
@@ -100,14 +100,14 @@ ccmux_report_status({
 
 **Orchestrator polls worker status:**
 ```json
-ccmux_get_worker_status({
+fugue_get_worker_status({
   "worker_id": "<session-uuid-or-name>"
 })
 ```
 
 **Orchestrator polls messages:**
 ```json
-ccmux_poll_messages({
+fugue_poll_messages({
   "worker_id": "<session-uuid-or-name>"
 })
 ```
@@ -127,10 +127,10 @@ Gemini CLI should be detected like Claude.
 
 ```json
 // Start Gemini in a pane
-ccmux_send_input({"pane_id": "...", "input": "gemini\n"})
+fugue_send_input({"pane_id": "...", "input": "gemini\n"})
 
 // Check status
-ccmux_list_panes()
+fugue_list_panes()
 // Should show: is_claude: true (or similar agent detection field)
 ```
 

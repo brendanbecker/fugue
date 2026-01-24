@@ -37,7 +37,7 @@ Refactor the pane system to support multiple content types beyond terminals. Thi
 
 ### 3. Canvas in Protocol Crate
 
-**Decision**: Define `Canvas` trait in `ccmux-protocol` crate.
+**Decision**: Define `Canvas` trait in `fugue-protocol` crate.
 
 **Rationale**:
 - Protocol crate is shared between client and server
@@ -46,22 +46,22 @@ Refactor the pane system to support multiple content types beyond terminals. Thi
 
 ### 4. Sideband Command Format
 
-**Decision**: XML-style tags consistent with existing `<ccmux:spawn>` pattern.
+**Decision**: XML-style tags consistent with existing `<fugue:spawn>` pattern.
 
 **Format**:
 ```xml
-<ccmux:canvas type="diff" path="src/main.rs"/>
-<ccmux:canvas type="test_results">{"passed": 5, "failed": 1}</ccmux:canvas>
+<fugue:canvas type="diff" path="src/main.rs"/>
+<fugue:canvas type="test_results">{"passed": 5, "failed": 1}</fugue:canvas>
 ```
 
 ## Affected Components
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-protocol/src/lib.rs` | Add PaneContent, Canvas trait | Medium |
-| `ccmux-server/src/session/pane.rs` | Major refactor | High |
-| `ccmux-server/src/canvas/` (new) | New module | Low |
-| `ccmux-server/src/session/mod.rs` | Export changes | Low |
+| `fugue-protocol/src/lib.rs` | Add PaneContent, Canvas trait | Medium |
+| `fugue-server/src/session/pane.rs` | Major refactor | High |
+| `fugue-server/src/canvas/` (new) | New module | Low |
+| `fugue-server/src/session/mod.rs` | Export changes | Low |
 
 ## Dependencies
 
@@ -69,7 +69,7 @@ None - this is a foundational feature that other features may depend on.
 
 ## Implementation Phases
 
-### Phase 1: Core Type Definitions (ccmux-protocol)
+### Phase 1: Core Type Definitions (fugue-protocol)
 
 1. Define `Canvas` trait:
    ```rust
@@ -97,7 +97,7 @@ None - this is a foundational feature that other features may depend on.
    }
    ```
 
-### Phase 2: Pane Refactor (ccmux-server)
+### Phase 2: Pane Refactor (fugue-server)
 
 1. Update `Pane` struct to use `PaneContent`
 2. Implement content-type dispatch in render path

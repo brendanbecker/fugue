@@ -58,12 +58,12 @@ Add a separate `needs_clear` flag to distinguish between:
 
 ## Testing
 
-- Build: `cargo build --package ccmux-client` - PASSED
-- Tests: `cargo test --package ccmux-client` - 358 tests passed
+- Build: `cargo build --package fugue-client` - PASSED
+- Tests: `cargo test --package fugue-client` - 358 tests passed
 
 Manual testing: Switch between sessions and verify clean rendering without artifacts.
 
 ## Files Modified
 
-- `ccmux-client/src/ui/state.rs`
-- `ccmux-client/src/ui/app.rs`
+- `fugue-client/src/ui/state.rs`
+- `fugue-client/src/ui/app.rs`

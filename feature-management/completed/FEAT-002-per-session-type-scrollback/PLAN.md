@@ -7,7 +7,7 @@
 
 ## Overview
 
-Support per-session-type buffer sizes instead of global-only scrollback. Enable configuration like `scrollback: { orchestrator: 50000, worker: 500, default: 1000 }`. Also support runtime override at spawn time via `<ccmux:spawn scrollback="10000">` directive.
+Support per-session-type buffer sizes instead of global-only scrollback. Enable configuration like `scrollback: { orchestrator: 50000, worker: 500, default: 1000 }`. Also support runtime override at spawn time via `<fugue:spawn scrollback="10000">` directive.
 
 ## Architecture Decisions
 
@@ -46,7 +46,7 @@ Support per-session-type buffer sizes instead of global-only scrollback. Enable 
 **Rationale**:
 - Simple and explicit
 - Override takes precedence over session-type lookup
-- Set at spawn time from `<ccmux:spawn scrollback="N">` attribute
+- Set at spawn time from `<fugue:spawn scrollback="N">` attribute
 
 ### AD-4: Hot-Reload Behavior
 
@@ -61,11 +61,11 @@ Support per-session-type buffer sizes instead of global-only scrollback. Enable 
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-server/src/config/schema.rs` | Modify existing | Low |
-| `ccmux-server/src/pty/buffer.rs` | New file | Low |
-| `ccmux-server/src/pty/mod.rs` | Modify existing | Low |
-| `ccmux-server/src/session/pane.rs` | Modify existing | Medium |
-| `ccmux-server/src/pty/handle.rs` | Modify existing | Medium |
+| `fugue-server/src/config/schema.rs` | Modify existing | Low |
+| `fugue-server/src/pty/buffer.rs` | New file | Low |
+| `fugue-server/src/pty/mod.rs` | Modify existing | Low |
+| `fugue-server/src/session/pane.rs` | Modify existing | Medium |
+| `fugue-server/src/pty/handle.rs` | Modify existing | Medium |
 
 ## Dependencies
 
@@ -82,7 +82,7 @@ None - this feature builds on existing config and PTY infrastructure.
 
 ### Phase 2: Scrollback Buffer Module (Low Risk)
 
-1. Create `ccmux-server/src/pty/buffer.rs`
+1. Create `fugue-server/src/pty/buffer.rs`
 2. Implement `ScrollbackBuffer` struct with `VecDeque<String>`
 3. Add push, get_lines, resize operations
 4. Add comprehensive unit tests

@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-021",
   "title": "Server Socket Listen Loop",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P0",
   "status": "new",
   "type": "new_feature",
@@ -14,5 +14,5 @@
   "description": "Implement the main server event loop that listens for client connections on a Unix socket. This is the critical foundation that enables all client-server communication.",
   "business_value": "high",
   "technical_complexity": "medium",
-  "user_impact": "Enables clients to connect to the ccmux server, which is required for all multiplexer functionality"
+  "user_impact": "Enables clients to connect to the fugue server, which is required for all multiplexer functionality"
 }

@@ -2,7 +2,7 @@
 
 ## Core Question
 
-**How can ccmux evolve from a terminal multiplexer into a distributed intelligent stream processing fabric, replacing Unix pipes with remote-capable, agent-aware, observable data flows?**
+**How can fugue evolve from a terminal multiplexer into a distributed intelligent stream processing fabric, replacing Unix pipes with remote-capable, agent-aware, observable data flows?**
 
 ## The Vision
 
@@ -14,7 +14,7 @@ Unix pipes are brilliant but limited:
 - Dumb bytes (no semantics)
 - Opaque (can't observe mid-stream)
 
-ccmux could make pipes:
+fugue could make pipes:
 - **Remote** - span machines, cloud, GPUs
 - **Asynchronous** - buffered, checkpointed, resumable
 - **Intelligent** - agents reasoning about data, not just programs
@@ -24,7 +24,7 @@ ccmux could make pipes:
 # Today: local pipes
 cat data.json | jq '.items[]' | python process.py
 
-# Vision: ccmux as the pipe fabric
+# Vision: fugue as the pipe fabric
 cat data.json | mux:gemini 'extract items' | mux:claude 'analyze' | mux:gpu-worker 'embed'
 ```
 
@@ -34,7 +34,7 @@ Each `mux:target` is a session/pane/agent that receives stdin, processes, emits 
 
 ### What We Have
 
-ccmux already has the primitives:
+fugue already has the primitives:
 - **Panes** - Compute units with PTYs
 - **send_input / read_pane** - stdin/stdout access
 - **Orchestration messages** - Control plane
@@ -70,7 +70,7 @@ How do panes expose stdin/stdout cleanly?
 
 How does the user express pipe chains?
 - Shell integration (`|` overloading)?
-- CLI command (`ccmux pipe source | target`)?
+- CLI command (`fugue pipe source | target`)?
 - DSL for complex flows?
 - How to specify target type (agent vs shell)?
 
@@ -78,7 +78,7 @@ How does the user express pipe chains?
 
 How do panes span machines?
 - SSH tunneling?
-- Native ccmux network protocol?
+- Native fugue network protocol?
 - Service discovery?
 - Authentication/authorization?
 
@@ -109,7 +109,7 @@ How do you debug and monitor flows?
 ## Constraints
 
 1. **Natural ergonomics** - Must feel as simple as Unix pipes
-2. **Backward compatible** - Existing ccmux usage unchanged
+2. **Backward compatible** - Existing fugue usage unchanged
 3. **Incremental adoption** - Can use pieces without buying whole system
 4. **Agent-first** - Agents are first-class, not afterthought
 5. **Observable by default** - Easy to understand what's happening
@@ -118,7 +118,7 @@ How do you debug and monitor flows?
 
 | Agent | Focus Area |
 |-------|------------|
-| Agent 1 | Audit existing ccmux stream primitives (send_input, read_pane, run_parallel, etc.) and identify gaps |
+| Agent 1 | Audit existing fugue stream primitives (send_input, read_pane, run_parallel, etc.) and identify gaps |
 | Agent 2 | Research prior art: Unix pipes, Kafka, Hadoop, dask, Ray, shell pipeline tools (pv, tee, etc.) |
 | Agent 3 | Explore CLI ergonomics and syntax design patterns for pipe-like interfaces |
 
@@ -133,7 +133,7 @@ This inquiry should produce:
 ## Potential Features (to be refined)
 
 - **FEAT: Stream mode for panes** - Raw stdin/stdout without PTY cruft
-- **FEAT: Pipe CLI command** - `ccmux pipe` for chaining
+- **FEAT: Pipe CLI command** - `fugue pipe` for chaining
 - **FEAT: Remote pane spawning** - Network-transparent panes
 - **FEAT: Agent stdin adapter** - Feed data to agents cleanly
 - **FEAT: Flow observability** - Tap, metrics, visualization

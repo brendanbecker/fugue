@@ -7,8 +7,8 @@ This retrospective analyzes the current backlog of 12 open bugs and 21 features 
 
 ### Critical Clusters
 The backlog shows a high concentration of issues in two areas:
-1.  **MCP Bridge Stability**: A cluster of bugs (BUG-033, 034, 035, 036, 039, 040) points to systemic fragility in `ccmux-server/src/mcp/bridge.rs`. Symptoms include state drift, wrong response types, and operation timeouts. The file is noted as being too large (33k+ tokens), making it a high-risk area for simple patches.
-2.  **PTY/Input Handling**: BUG-041 (Claude Code crash on paste) indicates a specific incompatibility in how `ccmux` handles large or rapid input (bracketed paste) compared to native terminals.
+1.  **MCP Bridge Stability**: A cluster of bugs (BUG-033, 034, 035, 036, 039, 040) points to systemic fragility in `fugue-server/src/mcp/bridge.rs`. Symptoms include state drift, wrong response types, and operation timeouts. The file is noted as being too large (33k+ tokens), making it a high-risk area for simple patches.
+2.  **PTY/Input Handling**: BUG-041 (Claude Code crash on paste) indicates a specific incompatibility in how `fugue` handles large or rapid input (bracketed paste) compared to native terminals.
 
 ### Emerging Themes
 - **Human Control**: A strong push for "Human-in-the-loop" safety (FEAT-079, 077, 078) to prevent agents from disrupting user workflows.
@@ -55,8 +55,8 @@ We can split the work into three distinct, largely independent parallel streams.
 
 ## 3. Recommendations
 
-1.  **Halt Feature Work on Stream A**: Do not add new features to `ccmux-server` (like Remote Peering) until FEAT-064 (Refactor) is complete to avoid merge conflicts and compounding complexity.
-2.  **Swarm BUG-041**: This is a standalone critical bug that degrades the primary use case (using Claude Code inside ccmux). It should be tackled immediately by Stream B.
+1.  **Halt Feature Work on Stream A**: Do not add new features to `fugue-server` (like Remote Peering) until FEAT-064 (Refactor) is complete to avoid merge conflicts and compounding complexity.
+2.  **Swarm BUG-041**: This is a standalone critical bug that degrades the primary use case (using Claude Code inside fugue). It should be tackled immediately by Stream B.
 3.  **Defer Stream C Networking**: The Remote Peering work (FEAT-066+) involves the server. It should probably wait until the MCP Bridge refactor is stable, or proceed *very* carefully to avoid touching the bridge.
 
 ## 4. Reprioritized Backlog (Top 5)

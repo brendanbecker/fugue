@@ -1,4 +1,4 @@
-# BUG-068: ccmux_focus_pane returns AbortError
+# BUG-068: fugue_focus_pane returns AbortError
 
 **Priority**: P2
 **Component**: mcp/pane
@@ -7,13 +7,13 @@
 
 ## Problem
 
-The `ccmux_focus_pane` MCP tool fails with an `AbortError` when attempting to focus on a valid pane.
+The `fugue_focus_pane` MCP tool fails with an `AbortError` when attempting to focus on a valid pane.
 
 ## Reproduction Steps
 
-1. Have an active ccmux session with multiple panes
-2. Get the UUID of a pane (e.g., via `ccmux_list_panes`)
-3. Call `ccmux_focus_pane(pane_id: "<valid-pane-uuid>")`
+1. Have an active fugue session with multiple panes
+2. Get the UUID of a pane (e.g., via `fugue_list_panes`)
+3. Call `fugue_focus_pane(pane_id: "<valid-pane-uuid>")`
 4. Observe the error
 
 ## Expected Behavior
@@ -30,7 +30,7 @@ MCP error -32001: AbortError: The operation was aborted.
 
 - The pane being focused was a mirror pane, but the pane existed and was valid
 - Attempted before performing a split operation on the pane
-- The pane UUID was correct and the pane was visible in `ccmux_list_panes`
+- The pane UUID was correct and the pane was visible in `fugue_list_panes`
 
 ## Root Cause Analysis
 
@@ -42,14 +42,14 @@ Possible causes:
 
 ## Relevant Code
 
-- `ccmux-server/src/mcp/bridge/handlers.rs` - MCP handler for focus_pane
-- `ccmux-server/src/handlers/pane.rs` - Pane handler implementation
-- `ccmux-server/src/mcp/tools.rs` - Tool schema definition
+- `fugue-server/src/mcp/bridge/handlers.rs` - MCP handler for focus_pane
+- `fugue-server/src/handlers/pane.rs` - Pane handler implementation
+- `fugue-server/src/mcp/tools.rs` - Tool schema definition
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_focus_pane` succeeds for regular panes
-- [ ] `ccmux_focus_pane` succeeds for mirror panes (or returns clear error if unsupported)
+- [ ] `fugue_focus_pane` succeeds for regular panes
+- [ ] `fugue_focus_pane` succeeds for mirror panes (or returns clear error if unsupported)
 - [ ] Error messages are descriptive rather than generic "AbortError"
 - [ ] Tool returns meaningful response on success
 
@@ -59,7 +59,7 @@ Medium severity - prevents programmatic pane management. Orchestrators cannot fo
 
 ## Workarounds
 
-1. Use `ccmux_select_window` to switch windows instead
+1. Use `fugue_select_window` to switch windows instead
 2. Perform operations directly on panes without explicit focus
 3. Use keyboard navigation in the TUI client
 

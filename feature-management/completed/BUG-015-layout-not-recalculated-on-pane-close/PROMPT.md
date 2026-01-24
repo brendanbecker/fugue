@@ -1,7 +1,7 @@
 # BUG-015: Layout Doesn't Recalculate When Panes Are Closed
 
 **Priority**: P2 (Medium)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Status**: new
 **Created**: 2026-01-10
 
@@ -14,11 +14,11 @@ When multiple panes exist (e.g., quadrant layout with 4 panes) and some panes ar
 - Remaining pane stays at partial size after other panes are closed
 - Empty/dead space visible in the window where closed panes were
 - Layout tree is not recalculated or simplified when nodes are removed
-- Workaround: restart ccmux to restore full-window pane
+- Workaround: restart fugue to restore full-window pane
 
 ## Steps to Reproduce
 
-1. Start ccmux with a single pane (fills full window)
+1. Start fugue with a single pane (fills full window)
 2. Create a vertical split (2 side-by-side panes)
 3. Create horizontal splits on each side (4 quadrant panes)
 4. Close 3 of the 4 panes
@@ -34,7 +34,7 @@ Remaining pane stays at partial size, leaving empty/dead space in the window. Th
 
 ## Relationship to Other Components
 
-The TUI layout system in ccmux-client handles pane arrangement. Key areas to investigate:
+The TUI layout system in fugue-client handles pane arrangement. Key areas to investigate:
 
 1. **Layout Tree Management**: How the layout tree is structured and updated
 2. **Pane Close Handler**: What happens when a pane is closed (PaneClosed message)
@@ -61,9 +61,9 @@ How does the client handle `PaneClosed` messages? Does it:
 - Simplify the tree (merge parent nodes when only one child remains)?
 
 **Files to check:**
-- `ccmux-client/src/ui/app.rs` - Main application handling
-- `ccmux-client/src/ui/layout.rs` - Layout tree implementation (if exists)
-- `ccmux-client/src/ui/panes.rs` - Pane management (if exists)
+- `fugue-client/src/ui/app.rs` - Main application handling
+- `fugue-client/src/ui/layout.rs` - Layout tree implementation (if exists)
+- `fugue-client/src/ui/panes.rs` - Pane management (if exists)
 
 ### 2. Layout Tree Structure
 
@@ -132,7 +132,7 @@ tmux handles this correctly:
 
 This is a P2 bug because:
 - It is a functional issue affecting usability
-- There is a workaround (restart ccmux)
+- There is a workaround (restart fugue)
 - It does not cause crashes or data loss
 - It primarily affects users who frequently open and close panes
 

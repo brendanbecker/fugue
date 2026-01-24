@@ -1,6 +1,6 @@
 {
   "bug_id": "BUG-053",
-  "title": "Codex CLI fails with cursor position error inside ccmux pane",
+  "title": "Codex CLI fails with cursor position error inside fugue pane",
   "component": "pty",
   "severity": "high",
   "priority": "P1",
@@ -12,19 +12,19 @@
   "affected_versions": [],
   "environment": "development",
   "reproducibility": "always",
-  "description": "When launching OpenAI's Codex CLI inside a ccmux pane, it immediately fails with 'Error: The cursor position could not be read within a normal duration' and exits with code 1. This prevents Codex CLI from being used as an agent inside ccmux.",
+  "description": "When launching OpenAI's Codex CLI inside a fugue pane, it immediately fails with 'Error: The cursor position could not be read within a normal duration' and exits with code 1. This prevents Codex CLI from being used as an agent inside fugue.",
   "steps_to_reproduce": [
-    "Start ccmux",
+    "Start fugue",
     "Create a new window with command 'codex'",
     "Observe immediate crash with cursor position error"
   ],
-  "expected_behavior": "Codex CLI should start normally inside ccmux panes, similar to how Claude Code and Gemini CLI work.",
+  "expected_behavior": "Codex CLI should start normally inside fugue panes, similar to how Claude Code and Gemini CLI work.",
   "actual_behavior": "Codex CLI crashes immediately with error: 'Error: The cursor position could not be read within a normal duration' (exit code 1)",
   "evidence": {
     "error_message": "Error: The cursor position could not be read within a normal duration",
     "exit_code": 1,
     "terminal_sequence": "[?2004h[>7u[?1004h[6n"
   },
-  "root_cause": "Codex CLI sends terminal escape sequence [6n (DSR - Device Status Report requesting cursor position) and expects a response. ccmux's PTY layer may not be responding to this escape sequence, or the response is not reaching Codex in time. The [6n sequence requests cursor position report which should return ESC[row;colR.",
-  "impact": "Codex CLI cannot be used as an agent inside ccmux. Limits multi-agent orchestration options for users who want to use OpenAI's Codex alongside other agents."
+  "root_cause": "Codex CLI sends terminal escape sequence [6n (DSR - Device Status Report requesting cursor position) and expects a response. fugue's PTY layer may not be responding to this escape sequence, or the response is not reaching Codex in time. The [6n sequence requests cursor position report which should return ESC[row;colR.",
+  "impact": "Codex CLI cannot be used as an agent inside fugue. Limits multi-agent orchestration options for users who want to use OpenAI's Codex alongside other agents."
 }

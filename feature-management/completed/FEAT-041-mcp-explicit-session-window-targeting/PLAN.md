@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-041
 
-**Work Item**: [FEAT-041: MCP Explicit Session and Window Targeting for ccmux_create_pane](PROMPT.md)
-**Component**: ccmux-server (MCP)
+**Work Item**: [FEAT-041: MCP Explicit Session and Window Targeting for fugue_create_pane](PROMPT.md)
+**Component**: fugue-server (MCP)
 **Priority**: P1
 **Created**: 2026-01-10
 
 ## Overview
 
-The `ccmux_create_pane` MCP tool lacks explicit session and window targeting parameters. While the handler already supports these parameters, the MCP bridge hardcodes them to `None`. This enhancement exposes the existing capability via the MCP tool schema.
+The `fugue_create_pane` MCP tool lacks explicit session and window targeting parameters. While the handler already supports these parameters, the MCP bridge hardcodes them to `None`. This enhancement exposes the existing capability via the MCP tool schema.
 
 ## Architecture Decisions
 
@@ -97,15 +97,15 @@ if session_not_found {
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/mcp/tools.rs | Add schema properties | Low |
-| ccmux-server/src/mcp/bridge.rs | Parse and pass arguments | Low |
-| ccmux-server/src/mcp/server.rs | Update ToolParams parsing | Low |
+| fugue-server/src/mcp/tools.rs | Add schema properties | Low |
+| fugue-server/src/mcp/bridge.rs | Parse and pass arguments | Low |
+| fugue-server/src/mcp/server.rs | Update ToolParams parsing | Low |
 
 ## Implementation Order
 
 ### Phase 1: Schema Update (tools.rs)
 
-1. Locate `ccmux_create_pane` tool definition
+1. Locate `fugue_create_pane` tool definition
 2. Add `session` property to input_schema
 3. Add `window` property to input_schema
 4. Update description to mention targeting capability
@@ -171,7 +171,7 @@ If implementation causes issues:
 
 ### Manual Testing
 
-- Call `ccmux_create_pane` from Claude with session targeting
+- Call `fugue_create_pane` from Claude with session targeting
 - Verify pane appears in correct session
 - Verify response includes correct session_id
 
@@ -181,7 +181,7 @@ If implementation causes issues:
 
 ```rust
 Tool {
-    name: "ccmux_create_pane".into(),
+    name: "fugue_create_pane".into(),
     description: "Create a new pane in a session. If session/window not specified, uses active session.".into(),
     input_schema: serde_json::json!({
         "type": "object",

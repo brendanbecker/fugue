@@ -1,7 +1,7 @@
 # FEAT-048: Expose orchestration protocol via MCP tools
 
 **Priority**: P2
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: high
@@ -9,7 +9,7 @@
 
 ## Overview
 
-Add MCP tools for the existing orchestration message types, enabling agents to communicate directly without going through shell commands. ccmux already has OrchestrationMessage types in `ccmux-protocol/src/messages.rs`:
+Add MCP tools for the existing orchestration message types, enabling agents to communicate directly without going through shell commands. fugue already has OrchestrationMessage types in `fugue-protocol/src/messages.rs`:
 
 - **Message Format**: Generic `OrchestrationMessage { msg_type: String, payload: serde_json::Value }` for flexible, workflow-defined messages
 - **Targets** (updated with FEAT-028 tag-based routing):
@@ -37,7 +37,7 @@ FEAT-028 replaced the binary orchestrator/worker model with flexible tag-based r
 
 ## Current Protocol Types (Post-FEAT-028)
 
-From `ccmux-protocol/src/messages.rs`:
+From `fugue-protocol/src/messages.rs`:
 
 ```rust
 /// Generic orchestration message with user-defined semantics
@@ -77,7 +77,7 @@ While the protocol is now generic, these are common conventions:
 
 ### Section 1: Core MCP Tool
 
-- [ ] Add `ccmux_send_orchestration` MCP tool in `ccmux-server/src/mcp/tools.rs`
+- [ ] Add `fugue_send_orchestration` MCP tool in `fugue-server/src/mcp/tools.rs`
 - [ ] Define schema for target parameter (FEAT-028 tag-based routing):
   - `{tag: "orchestrator"}` - Send to sessions tagged "orchestrator"
   - `{tag: "worker"}` - Send to sessions tagged "worker"
@@ -89,27 +89,27 @@ While the protocol is now generic, these are common conventions:
 
 ### Section 1b: Tag Management Tools
 
-- [ ] Add `ccmux_set_tags` MCP tool to add/remove tags on a session
-- [ ] Add `ccmux_get_tags` MCP tool to retrieve session tags
+- [ ] Add `fugue_set_tags` MCP tool to add/remove tags on a session
+- [ ] Add `fugue_get_tags` MCP tool to retrieve session tags
 - [ ] Allow orchestrator to self-identify by adding "orchestrator" tag
 
 ### Section 2: Convenience Tools
 
-- [ ] Add `ccmux_report_status(status, message)` - shorthand for status.update message
+- [ ] Add `fugue_report_status(status, message)` - shorthand for status.update message
   - Auto-fills session_id from current session context
   - status: one of "idle", "working", "waiting_for_input", "blocked", "complete", "error"
   - message: optional string
   - Automatically targets `Tagged("orchestrator")`
-- [ ] Add `ccmux_request_help(context)` - shorthand for help.request message
+- [ ] Add `fugue_request_help(context)` - shorthand for help.request message
   - Auto-fills session_id from current session context
   - Automatically targets `Tagged("orchestrator")`
-- [ ] Add `ccmux_broadcast(message)` - shorthand for broadcast message
+- [ ] Add `fugue_broadcast(message)` - shorthand for broadcast message
   - Auto-fills from_session_id from current session context
   - Automatically uses `Broadcast` target
 
 ### Section 3: Subscription/Notification
 
-- [ ] Add `ccmux_subscribe_orchestration` MCP tool (or use notifications)
+- [ ] Add `fugue_subscribe_orchestration` MCP tool (or use notifications)
 - [ ] Investigate MCP notification mechanism for async message delivery
 - [ ] Consider polling alternative if notifications are complex
 
@@ -129,7 +129,7 @@ While the protocol is now generic, these are common conventions:
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_send_orchestration` tool is available and functional
+- [ ] `fugue_send_orchestration` tool is available and functional
 - [ ] All OrchestrationMessage variants can be sent via MCP
 - [ ] All OrchestrationTarget variants are supported
 - [ ] Convenience tools simplify common operations
@@ -139,11 +139,11 @@ While the protocol is now generic, these are common conventions:
 
 ## Tool Schema Design (Updated for FEAT-028)
 
-### ccmux_send_orchestration
+### fugue_send_orchestration
 
 ```json
 {
-  "name": "ccmux_send_orchestration",
+  "name": "fugue_send_orchestration",
   "description": "Send orchestration message to other sessions using tag-based routing",
   "inputSchema": {
     "type": "object",
@@ -170,11 +170,11 @@ While the protocol is now generic, these are common conventions:
 }
 ```
 
-### ccmux_set_tags (New - Tag Management)
+### fugue_set_tags (New - Tag Management)
 
 ```json
 {
-  "name": "ccmux_set_tags",
+  "name": "fugue_set_tags",
   "description": "Add or remove tags on a session for routing purposes",
   "inputSchema": {
     "type": "object",
@@ -198,11 +198,11 @@ While the protocol is now generic, these are common conventions:
 }
 ```
 
-### ccmux_get_tags (New - Tag Query)
+### fugue_get_tags (New - Tag Query)
 
 ```json
 {
-  "name": "ccmux_get_tags",
+  "name": "fugue_get_tags",
   "description": "Get tags from a session",
   "inputSchema": {
     "type": "object",
@@ -216,11 +216,11 @@ While the protocol is now generic, these are common conventions:
 }
 ```
 
-### ccmux_report_status (convenience)
+### fugue_report_status (convenience)
 
 ```json
 {
-  "name": "ccmux_report_status",
+  "name": "fugue_report_status",
   "description": "Report current session status to orchestrator (sends to sessions tagged 'orchestrator')",
   "inputSchema": {
     "type": "object",

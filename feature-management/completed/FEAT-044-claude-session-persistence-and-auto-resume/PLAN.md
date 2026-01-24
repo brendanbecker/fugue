@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-044
 
 **Work Item**: [FEAT-044: Claude Session Persistence and Auto-Resume](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P1
 **Created**: 2026-01-10
 
 ## Overview
 
-Enable ccmux to track Claude session IDs and automatically resume them on server restart, preserving AI conversation continuity.
+Enable fugue to track Claude session IDs and automatically resume them on server restart, preserving AI conversation continuity.
 
 ## Architecture Decisions
 
@@ -167,11 +167,11 @@ fn has_session_flag(cmd: &str) -> bool {
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/session/pane.rs | Add fields | Low |
-| ccmux-server/src/pty/spawn.rs | Command modification | Medium |
-| ccmux-server/src/pty/restore.rs | Resume logic | Medium |
-| ccmux-server/src/persistence/state.rs | Serialize new fields | Low |
-| ccmux-server/src/config.rs | Add claude config | Low |
+| fugue-server/src/session/pane.rs | Add fields | Low |
+| fugue-server/src/pty/spawn.rs | Command modification | Medium |
+| fugue-server/src/pty/restore.rs | Resume logic | Medium |
+| fugue-server/src/persistence/state.rs | Serialize new fields | Low |
+| fugue-server/src/config.rs | Add claude config | Low |
 
 ## Implementation Order
 

@@ -1,8 +1,8 @@
-# Deep Research Prompt: ccmux
+# Deep Research Prompt: fugue
 
 ## Context
 
-I'm building **ccmux**, a Claude Code-aware terminal multiplexer in Rust. The core insight is that traditional terminal multiplexers (tmux, screen) are blind to what's running inside them—they see only raw byte streams. ccmux will understand Claude Code's state (thinking, waiting, complete, crashed) and enable intelligent orchestration, crash recovery, and session management.
+I'm building **fugue**, a Claude Code-aware terminal multiplexer in Rust. The core insight is that traditional terminal multiplexers (tmux, screen) are blind to what's running inside them—they see only raw byte streams. fugue will understand Claude Code's state (thinking, waiting, complete, crashed) and enable intelligent orchestration, crash recovery, and session management.
 
 ## Research Objectives
 
@@ -194,17 +194,17 @@ Please provide comprehensive research on each of the following areas. For each t
 - Can you use Claude Code's skills/CLAUDE.md to define output protocols?
 
 **Protocol Design:**
-- What should a `<ccmux:spawn>` block look like?
+- What should a `<fugue:spawn>` block look like?
 - Should it be inline in output or use a sideband channel?
 - How do you handle nesting (spawn within spawn)?
 - Error handling for malformed blocks
 
 **Example Protocol:**
 ```
-<ccmux:spawn layout="vertical" focus="new">
+<fugue:spawn layout="vertical" focus="new">
   <command>claude "Implement the auth module"</command>
   <env>CONTEXT_FILE=./context.md</env>
-</ccmux:spawn>
+</fugue:spawn>
 ```
 
 **Reliability:**
@@ -266,7 +266,7 @@ For each section, please provide:
 
 1. **Executive Summary** (2-3 sentences on the key findings)
 2. **Detailed Analysis** (comprehensive coverage of the questions)
-3. **Recommended Approach** (what you'd suggest for ccmux specifically)
+3. **Recommended Approach** (what you'd suggest for fugue specifically)
 4. **Code Examples** (Rust preferred, but pseudocode acceptable)
 5. **References** (links to crates, repos, documentation)
 6. **Open Questions** (things that need further investigation or prototyping)

@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-012
 
 **Work Item**: [FEAT-012: Session Management - Session/Window/Pane Hierarchy](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P1
 **Created**: 2026-01-08
 **Status**: Completed
@@ -55,10 +55,10 @@ Protocol types (SessionInfo, WindowInfo, PaneInfo) are separate from internal ty
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/session/manager.rs | Major - new SessionManager | Medium |
-| ccmux-server/src/session/session.rs | Major - new Session struct | Medium |
-| ccmux-server/src/session/window.rs | Major - new Window struct | Medium |
-| ccmux-server/src/session/pane.rs | Major - new Pane struct | Medium |
+| fugue-server/src/session/manager.rs | Major - new SessionManager | Medium |
+| fugue-server/src/session/session.rs | Major - new Session struct | Medium |
+| fugue-server/src/session/window.rs | Major - new Window struct | Medium |
+| fugue-server/src/session/pane.rs | Major - new Pane struct | Medium |
 
 ## Dependencies
 

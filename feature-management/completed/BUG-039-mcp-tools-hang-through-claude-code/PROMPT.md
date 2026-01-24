@@ -10,7 +10,7 @@
 MCP tool calls (list_sessions, create_window, list_windows, etc.) frequently hang when called through Claude Code's MCP integration, requiring manual abort. However, the exact same operations work reliably when calling the mcp-bridge directly via bash:
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"ccmux_list_sessions","arguments":{}}}' | timeout 3 ccmux-server mcp-bridge
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"fugue_list_sessions","arguments":{}}}' | timeout 3 fugue-server mcp-bridge
 ```
 
 ## Evidence
@@ -18,7 +18,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"ccmux_list
 ### Observations
 - Multiple stale mcp-bridge processes accumulate (seen 10+ orphaned processes)
 - The daemon itself is running and responsive
-- Socket exists at correct location (`/run/user/1000/ccmux/ccmux.sock`)
+- Socket exists at correct location (`/run/user/1000/fugue/fugue.sock`)
 - Direct bash invocation works every time
 - Claude Code MCP calls hang unpredictably
 
@@ -28,9 +28,9 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"ccmux_list
 
 ## Steps to Reproduce
 
-1. Configure ccmux MCP server in Claude Code settings
-2. Start ccmux daemon (`ccmux-server start`)
-3. Use Claude Code to invoke MCP tools like `ccmux_list_sessions`
+1. Configure fugue MCP server in Claude Code settings
+2. Start fugue daemon (`fugue-server start`)
+3. Use Claude Code to invoke MCP tools like `fugue_list_sessions`
 4. Observe intermittent hangs requiring manual abort
 5. Check for orphaned mcp-bridge processes: `ps aux | grep mcp-bridge`
 
@@ -81,8 +81,8 @@ The response may be buffered and not flushed to stdout, causing Claude Code to w
 - [ ] Check for any mutex/lock contention with daemon communication
 
 ### Section 3: Comparison Testing
-- [ ] Compare behavior with `cat | ccmux-server mcp-bridge` (interactive)
-- [ ] Test with `timeout 5 ccmux-server mcp-bridge` and slow input
+- [ ] Compare behavior with `cat | fugue-server mcp-bridge` (interactive)
+- [ ] Test with `timeout 5 fugue-server mcp-bridge` and slow input
 - [ ] Test multiple rapid requests to check for state accumulation
 
 ## Implementation Tasks
@@ -123,9 +123,9 @@ The response may be buffered and not flushed to stdout, causing Claude Code to w
 
 | File | Reason |
 |------|--------|
-| `ccmux-server/src/mcp/bridge.rs` | Main mcp-bridge implementation |
-| `ccmux-server/src/mcp/mod.rs` | MCP module organization |
-| `ccmux-server/src/bin/ccmux-server.rs` | Entry point for mcp-bridge subcommand |
+| `fugue-server/src/mcp/bridge.rs` | Main mcp-bridge implementation |
+| `fugue-server/src/mcp/mod.rs` | MCP module organization |
+| `fugue-server/src/bin/fugue-server.rs` | Entry point for mcp-bridge subcommand |
 
 ## Related Bugs
 
@@ -134,6 +134,6 @@ The response may be buffered and not flushed to stdout, causing Claude Code to w
 
 ## Notes
 
-This bug significantly impacts the primary use case of ccmux - AI-assisted terminal management through Claude Code. Priority should be high as it breaks the core value proposition.
+This bug significantly impacts the primary use case of fugue - AI-assisted terminal management through Claude Code. Priority should be high as it breaks the core value proposition.
 
 The fact that direct bash invocation works perfectly suggests the issue is specific to how Claude Code maintains MCP connections, not a fundamental problem with the daemon or protocol implementation.

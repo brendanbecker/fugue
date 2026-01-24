@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-056",
   "title": "User Priority Lockout for MCP Focus Control",
-  "component": "ccmux-server, ccmux-client, ccmux-protocol",
+  "component": "fugue-server, fugue-client, fugue-protocol",
   "priority": "P2",
   "status": "new",
   "type": "new_feature",
@@ -11,7 +11,7 @@
   "tags": ["mcp", "tui", "input", "ux", "focus-management"],
   "estimated_effort": "medium",
   "dependencies": ["FEAT-046"],
-  "description": "Add a user priority lockout system that prevents MCP focus operations (ccmux_focus_pane, ccmux_select_window, ccmux_select_session) from conflicting with user keyboard commands. When a user enters command mode (prefix key like Ctrl+B), the server should temporarily block or defer MCP focus-changing operations until the user completes their command or the timeout expires.",
+  "description": "Add a user priority lockout system that prevents MCP focus operations (fugue_focus_pane, fugue_select_window, fugue_select_session) from conflicting with user keyboard commands. When a user enters command mode (prefix key like Ctrl+B), the server should temporarily block or defer MCP focus-changing operations until the user completes their command or the timeout expires.",
   "business_value": "medium",
   "technical_complexity": "medium",
   "user_impact": "Prevents frustrating UX where MCP agents 'fight' with users over focus control. Users can reliably navigate without MCP operations unexpectedly changing their view."

@@ -19,7 +19,7 @@ The spinner animation (pulsing snowflake/flower that expands and contracts down 
 
 ## Evidence
 
-**File**: `ccmux-server/src/agents/claude/mod.rs` (lines 127-143)
+**File**: `fugue-server/src/agents/claude/mod.rs` (lines 127-143)
 
 The fix applied:
 ```rust
@@ -47,7 +47,7 @@ This correctly prevents returning state on every call. However, the inner `Claud
 
 ## Steps to Reproduce
 
-1. Start ccmux and attach to a session
+1. Start fugue and attach to a session
 2. Launch Claude Code in a pane (`claude-code` or `cc`)
 3. Wait for Claude Code to be detected
 4. Submit a prompt that requires thinking time

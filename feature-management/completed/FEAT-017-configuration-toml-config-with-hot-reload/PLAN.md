@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-017
 
 **Work Item**: [FEAT-017: Configuration - TOML Config with Hot Reload](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P2
 **Created**: 2026-01-08
 **Status**: Completed
@@ -48,19 +48,19 @@ pub fn current() -> Guard<Arc<Config>> {
 
 ### XDG Path Resolution Order
 
-1. `$CCMUX_CONFIG` environment variable
-2. `$XDG_CONFIG_HOME/ccmux/config.toml`
-3. `~/.config/ccmux/config.toml`
-4. `/etc/ccmux/config.toml`
+1. `$FUGUE_CONFIG` environment variable
+2. `$XDG_CONFIG_HOME/fugue/config.toml`
+3. `~/.config/fugue/config.toml`
+4. `/etc/fugue/config.toml`
 5. Built-in defaults
 
 ## Affected Components
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/config/loader.rs | New - Config loading and hot-reload | Medium |
-| ccmux-server/src/config/schema.rs | New - Configuration schema | Low |
-| ccmux-server/src/config/mod.rs | New - Module exports | Low |
+| fugue-server/src/config/loader.rs | New - Config loading and hot-reload | Medium |
+| fugue-server/src/config/schema.rs | New - Configuration schema | Low |
+| fugue-server/src/config/mod.rs | New - Module exports | Low |
 
 ## Dependencies
 
@@ -114,7 +114,7 @@ pub fn current() -> Guard<Arc<Config>> {
 
 If implementation causes issues:
 1. Revert commits associated with this work item
-2. Remove config module from ccmux-server
+2. Remove config module from fugue-server
 3. Document what went wrong in comments.md
 
 ## Testing Strategy

@@ -1,7 +1,7 @@
 {
   "bug_id": "BUG-015",
   "title": "Layout doesn't recalculate when panes are closed - remaining pane stays at partial size",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "severity": "medium",
   "priority": "P2",
   "status": "new",
@@ -12,9 +12,9 @@
   "affected_versions": ["0.1.0"],
   "environment": "Linux terminal (WSL2)",
   "reproducibility": "always",
-  "description": "When multiple panes exist (e.g., quadrant layout with 4 panes) and some panes are closed, the remaining pane(s) do not expand to fill the available window space. Instead, the remaining pane stays at its previous size (e.g., top half of window) leaving empty/unused space. This is a functional issue affecting usability but has a workaround (restart ccmux).",
+  "description": "When multiple panes exist (e.g., quadrant layout with 4 panes) and some panes are closed, the remaining pane(s) do not expand to fill the available window space. Instead, the remaining pane stays at its previous size (e.g., top half of window) leaving empty/unused space. This is a functional issue affecting usability but has a workaround (restart fugue).",
   "steps_to_reproduce": [
-    "Start ccmux with a single pane (fills full window)",
+    "Start fugue with a single pane (fills full window)",
     "Create a vertical split (2 side-by-side panes)",
     "Create horizontal splits on each side (4 quadrant panes)",
     "Close 3 of the 4 panes",
@@ -30,5 +30,5 @@
     }
   ],
   "root_cause": "To be determined. Likely causes: the TUI layout system does not trigger a recalculation when panes are closed, or the layout tree is not being pruned/simplified when nodes are removed.",
-  "impact": "Wastes screen space and requires user to restart ccmux to restore full-window pane. Workaround exists (restart) but disrupts workflow."
+  "impact": "Wastes screen space and requires user to restart fugue to restore full-window pane. Workaround exists (restart) but disrupts workflow."
 }

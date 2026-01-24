@@ -1,7 +1,7 @@
 # FEAT-020: Session Isolation - Per-Pane CLAUDE_CONFIG_DIR
 
 **Priority**: P1
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: small
 **Business Value**: high
@@ -14,7 +14,7 @@ CLAUDE_CONFIG_DIR per pane for concurrent Claude instances, preventing config fi
 ## Requirements
 
 - Unique CLAUDE_CONFIG_DIR per pane running Claude
-- Directory structure: ~/.ccmux/claude/{pane-id}/
+- Directory structure: ~/.fugue/claude/{pane-id}/
 - Environment variable injection at PTY spawn
 - Cleanup of config directories on pane close
 - Prevent concurrent Claude instances from conflicting
@@ -22,9 +22,9 @@ CLAUDE_CONFIG_DIR per pane for concurrent Claude instances, preventing config fi
 
 ## Affected Files
 
-- `ccmux-server/src/pty/config.rs`
-- `ccmux-server/src/claude/isolation.rs`
-- `ccmux-server/src/session/pane.rs`
+- `fugue-server/src/pty/config.rs`
+- `fugue-server/src/claude/isolation.rs`
+- `fugue-server/src/session/pane.rs`
 
 ## Implementation Tasks
 
@@ -35,7 +35,7 @@ CLAUDE_CONFIG_DIR per pane for concurrent Claude instances, preventing config fi
 - [ ] Document session ID isolation approach
 
 ### Section 2: Directory Management
-- [ ] Implement isolation directory creation (~/.ccmux/claude/{pane-id}/)
+- [ ] Implement isolation directory creation (~/.fugue/claude/{pane-id}/)
 - [ ] Handle directory permissions (700 for security)
 - [ ] Implement directory existence checks
 - [ ] Add error handling for filesystem operations
@@ -81,7 +81,7 @@ CLAUDE_CONFIG_DIR per pane for concurrent Claude instances, preventing config fi
 
 ## Notes
 
-- Directory structure follows XDG conventions (~/.ccmux/)
+- Directory structure follows XDG conventions (~/.fugue/)
 - Permissions should be restrictive (700) for security
 - Consider cleanup strategies for crash scenarios
 - Session ID should be stable for --resume support

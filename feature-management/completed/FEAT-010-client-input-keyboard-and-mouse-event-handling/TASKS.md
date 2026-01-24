@@ -10,7 +10,7 @@
 - [ ] Review PLAN.md and update if needed
 - [ ] Verify FEAT-009 is complete (dependency)
 - [ ] Review crossterm documentation and examples
-- [ ] Review existing ccmux-client structure
+- [ ] Review existing fugue-client structure
 
 ## Design Tasks
 

@@ -37,11 +37,11 @@
 - [ ] Implement ParserState enum (Passthrough, TagStart, etc.)
 - [ ] Implement process_byte() method for streaming parsing
 - [ ] Implement process_chunk() for bulk processing
-- [ ] Implement tag detection (`<ccmux:` prefix)
+- [ ] Implement tag detection (`<fugue:` prefix)
 - [ ] Implement attribute parsing (key="value" pairs)
 - [ ] Implement self-closing tag handling (`/>`)
 - [ ] Implement content extraction for tags with body
-- [ ] Implement closing tag matching (`</ccmux:*>`)
+- [ ] Implement closing tag matching (`</fugue:*>`)
 
 ### Error Handling
 - [ ] Define ParseError enum

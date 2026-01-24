@@ -7,7 +7,7 @@
 
 ## Overview
 
-Document and validate the complete SSH tunnel-based remote workflow for ccmux, integrating FEAT-066 (daemon TCP) and FEAT-067 (client TCP) into a secure, production-ready remote access solution.
+Document and validate the complete SSH tunnel-based remote workflow for fugue, integrating FEAT-066 (daemon TCP) and FEAT-067 (client TCP) into a secure, production-ready remote access solution.
 
 ## Architecture Decisions
 
@@ -36,7 +36,7 @@ Document and validate the complete SSH tunnel-based remote workflow for ccmux, i
 1. `docs/remote-access.md` - Primary detailed guide
 2. `examples/remote-configs/` - Configuration examples
 3. `README.md` updates - Quick start reference
-4. Optional: `scripts/ccmux-remote` wrapper
+4. Optional: `scripts/fugue-remote` wrapper
 
 **Rationale**: Users need different entry points depending on use case.
 
@@ -60,20 +60,20 @@ Document and validate the complete SSH tunnel-based remote workflow for ccmux, i
 # listen_tcp = "127.0.0.1:9999"
 
 # 2. Remote host: Start daemon
-ccmux-server
+fugue-server
 
 # 3. Local machine: Create SSH tunnel
 ssh -L 9999:localhost:9999 user@remote-host
 
 # 4. Local machine: Connect client
-ccmux-client --addr tcp://localhost:9999
+fugue-client --addr tcp://localhost:9999
 ```
 
 ### Security Model
 
 - **Encryption**: Provided by SSH protocol
 - **Authentication**: SSH key-based authentication
-- **Authorization**: System-level (SSH access = ccmux access)
+- **Authorization**: System-level (SSH access = fugue access)
 - **Firewall**: TCP listener on localhost only (127.0.0.1)
 
 ## Validation Plan
@@ -181,7 +181,7 @@ Documentation changes are low-risk. If issues are found:
 - Verify troubleshooting steps
 
 ### Phase 3: Helper Scripts (Optional)
-- ccmux-remote wrapper
+- fugue-remote wrapper
 - SSH tunnel management
 - Connection testing utilities
 

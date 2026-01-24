@@ -142,7 +142,7 @@ pub async fn run(&mut self, request: RunPipelineRequest) -> Result<...> {
 
 ### Section 1: Create OrchestrationContext
 
-File: `ccmux-server/src/mcp/bridge/orchestration_context.rs`
+File: `fugue-server/src/mcp/bridge/orchestration_context.rs`
 
 - [ ] Define `OrchestrationConfig` struct
 - [ ] Define `Layout` enum
@@ -185,4 +185,4 @@ File: `ccmux-server/src/mcp/bridge/orchestration_context.rs`
 - **FEAT-099**: Dynamic session naming (depends on this)
 - **FEAT-094**: run_parallel implementation
 - **FEAT-095**: run_pipeline implementation
-- `ccmux-server/src/mcp/bridge/orchestration.rs`
+- `fugue-server/src/mcp/bridge/orchestration.rs`

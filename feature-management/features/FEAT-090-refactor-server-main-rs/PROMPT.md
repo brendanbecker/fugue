@@ -1,7 +1,7 @@
-# FEAT-090: Refactor ccmux-server/src/main.rs
+# FEAT-090: Refactor fugue-server/src/main.rs
 
 **Priority**: P3
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: refactor
 **Estimated Effort**: medium
 **Current Size**: 18.3k tokens (1966 lines)
@@ -27,7 +27,7 @@ The file likely contains:
 ## Proposed Module Structure
 
 ```
-ccmux-server/src/
+fugue-server/src/
 ├── main.rs             # Entry point, CLI, high-level coordination (<5k)
 ├── init.rs             # Server initialization, config loading
 ├── signals.rs          # Signal handling, shutdown coordination

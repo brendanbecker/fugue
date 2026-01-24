@@ -1,13 +1,13 @@
 # BUG-032: MCP Handlers Missing TUI Broadcasts
 
 **Priority**: P0
-**Component**: ccmux-server (handlers/mcp_bridge.rs)
+**Component**: fugue-server (handlers/mcp_bridge.rs)
 **Severity**: critical
 **Status**: new
 
 ## Problem Statement
 
-Multiple MCP handlers in `ccmux-server/src/handlers/mcp_bridge.rs` create panes, windows, or layouts but fail to broadcast state changes to TUI clients. This causes the TUI to become out of sync with the daemon's actual state.
+Multiple MCP handlers in `fugue-server/src/handlers/mcp_bridge.rs` create panes, windows, or layouts but fail to broadcast state changes to TUI clients. This causes the TUI to become out of sync with the daemon's actual state.
 
 When an MCP client (e.g., Claude orchestrator) creates a split pane, window, or layout, the operation succeeds on the server but the TUI never receives the notification. The user sees stale state until they disconnect and reconnect.
 
@@ -42,10 +42,10 @@ HandlerResult::ResponseWithBroadcast {
 
 ## Steps to Reproduce
 
-1. Start ccmux TUI: `ccmux`
+1. Start fugue TUI: `fugue`
 2. Attach to or create a session
-3. From another Claude session, call `ccmux_split_pane` on the current pane
-4. **Observe**: The daemon shows 2 panes (verified via `ccmux_list_panes`)
+3. From another Claude session, call `fugue_split_pane` on the current pane
+4. **Observe**: The daemon shows 2 panes (verified via `fugue_list_panes`)
 5. **Observe**: The TUI still shows only 1 pane at full width
 6. Press `Ctrl+B o` - the new pane is not accessible because TUI doesn't know about it
 
@@ -116,10 +116,10 @@ This is likely an oversight from when these handlers were added - they may have 
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_split_pane` results in immediate TUI update showing the new pane
-- [ ] `ccmux_create_window` results in TUI awareness of the new window
-- [ ] `ccmux_create_layout` results in TUI rendering the complete layout
-- [ ] `ccmux_resize_pane_delta` results in TUI updating pane dimensions
+- [ ] `fugue_split_pane` results in immediate TUI update showing the new pane
+- [ ] `fugue_create_window` results in TUI awareness of the new window
+- [ ] `fugue_create_layout` results in TUI rendering the complete layout
+- [ ] `fugue_resize_pane_delta` results in TUI updating pane dimensions
 - [ ] All existing tests continue to pass
 - [ ] New integration tests cover MCP-to-TUI broadcast for all four handlers
 - [ ] `Ctrl+B o` cycles through all panes including those created via MCP
@@ -134,9 +134,9 @@ This is likely an oversight from when these handlers were added - they may have 
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/handlers/mcp_bridge.rs` | Add broadcasts to 4 handlers |
-| `ccmux-protocol/src/messages.rs` | May need `WindowCreated` broadcast message |
-| `ccmux-client/src/ui/app.rs` | May need `WindowCreated` handler |
+| `fugue-server/src/handlers/mcp_bridge.rs` | Add broadcasts to 4 handlers |
+| `fugue-protocol/src/messages.rs` | May need `WindowCreated` broadcast message |
+| `fugue-client/src/ui/app.rs` | May need `WindowCreated` handler |
 
 ## Notes
 

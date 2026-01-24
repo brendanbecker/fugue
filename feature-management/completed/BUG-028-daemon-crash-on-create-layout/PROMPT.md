@@ -1,13 +1,13 @@
-# BUG-028: Daemon Crashes on ccmux_create_layout
+# BUG-028: Daemon Crashes on fugue_create_layout
 
 ## Summary
-Calling `ccmux_create_layout` with a nested layout specification causes the daemon to crash, resulting in "Daemon connection lost" errors for all subsequent MCP calls.
+Calling `fugue_create_layout` with a nested layout specification causes the daemon to crash, resulting in "Daemon connection lost" errors for all subsequent MCP calls.
 
 ## Steps to Reproduce
 
-1. Start ccmux and connect Claude Code
-2. Create a new session: `ccmux_create_session` with name "dev-qa" - **succeeds**
-3. Call `ccmux_create_layout` with the following layout:
+1. Start fugue and connect Claude Code
+2. Create a new session: `fugue_create_session` with name "dev-qa" - **succeeds**
+3. Call `fugue_create_layout` with the following layout:
 ```json
 {
   "direction": "horizontal",
@@ -42,16 +42,16 @@ Calling `ccmux_create_layout` with a nested layout specification causes the daem
 - Error: `MCP error -32603: Daemon connection lost`
 
 ## Environment
-- ccmux version: current main branch
+- fugue version: current main branch
 - Platform: Linux (WSL2)
 - Triggered during: QA demo run
 
 ## Impact
 - **Severity**: P0 - Blocks all MCP functionality after trigger
 - **Affected Component**: daemon, create_layout handler
-- **Workaround**: Restart ccmux daemon (loses all sessions)
+- **Workaround**: Restart fugue daemon (loses all sessions)
 
 ## Notes
-- The `ccmux_create_session` call succeeded immediately before this
+- The `fugue_create_session` call succeeded immediately before this
 - The session "dev-qa" was created with session_id `878c67c0-3198-4a50-8590-95a06863f107`
 - The layout spec appears valid per the API documentation

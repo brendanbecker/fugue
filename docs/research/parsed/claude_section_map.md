@@ -1,12 +1,12 @@
-# ccmux Research Document - Section Map (Claude)
+# fugue Research Document - Section Map (Claude)
 
-> Source: `/home/becker/projects/tools/ccmux/docs/research/claude_research.md`
+> Source: `/home/becker/projects/tools/fugue/docs/research/claude_research.md`
 > Total: ~4500 tokens | 633 lines | 7 major sections
 
 ## Navigation Tree
 
 ```
-ccmux Research Document (~4500 tokens)
+fugue Research Document (~4500 tokens)
 │
 ├── Executive Summary (180 tokens) [L1-5]
 │   └── Key insight: portable-pty + vt100 + Ratatui architecture
@@ -33,7 +33,7 @@ ccmux Research Document (~4500 tokens)
 │   ├── 4.1 tmux's battle-tested foundations (130 tokens) [L253-261]
 │   ├── 4.2 Zellij's modern Rust architecture (170 tokens) [L263-277]
 │   ├── 4.3 Comparison matrix (100 tokens) [L279-288]
-│   └── 4.4 Recommended ccmux structure (120 tokens) [L290-300]
+│   └── 4.4 Recommended fugue structure (120 tokens) [L290-300]
 │
 ├── 5. Configuration Hot-Reload (620 tokens) [L303-407]
 │   ├── 5.1 File watching implementation (320 tokens) [L307-346]
@@ -42,7 +42,7 @@ ccmux Research Document (~4500 tokens)
 │
 ├── 6. Claude Skills Protocol (600 tokens) [L410-506]
 │   ├── 6.1 Protocol design using namespaced XML (180 tokens) [L414-433]
-│   ├── 6.2 SKILL.md definition for ccmux (170 tokens) [L435-458]
+│   ├── 6.2 SKILL.md definition for fugue (170 tokens) [L435-458]
 │   ├── 6.3 Streaming parser with recovery (200 tokens) [L460-491]
 │   └── 6.4 Nesting recommendation (50 tokens) [L493-506]
 │

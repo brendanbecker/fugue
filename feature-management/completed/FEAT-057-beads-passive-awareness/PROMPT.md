@@ -1,18 +1,18 @@
 # FEAT-057: Beads Passive Awareness - Auto-Detection and Environment Setup
 
 **Priority**: P2
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: medium
 
 ## Overview
 
-Add passive beads awareness to ccmux that automatically detects when panes are operating in beads-tracked repositories and configures them appropriately. Currently, using beads with ccmux requires manual configuration of environment variables (BEADS_DIR, BEADS_NO_DAEMON) for each session/pane. This is error-prone and tedious, especially in multi-agent workflows where many panes are created dynamically.
+Add passive beads awareness to fugue that automatically detects when panes are operating in beads-tracked repositories and configures them appropriately. Currently, using beads with fugue requires manual configuration of environment variables (BEADS_DIR, BEADS_NO_DAEMON) for each session/pane. This is error-prone and tedious, especially in multi-agent workflows where many panes are created dynamically.
 
 ## Problem Statement
 
-When working with beads-tracked repositories in ccmux:
+When working with beads-tracked repositories in fugue:
 
 1. Each pane must have BEADS_DIR manually configured to point to the `.beads/` directory
 2. Worktree panes often need BEADS_NO_DAEMON=true to avoid daemon conflicts
@@ -60,7 +60,7 @@ Add visual feedback in the pane status area showing beads awareness:
 
 ### 4. Configuration Options
 
-Add a new `[beads]` section to the ccmux config:
+Add a new `[beads]` section to the fugue config:
 
 ```toml
 [beads]
@@ -135,21 +135,21 @@ no_daemon_default = false
 
 | File | Change |
 |------|--------|
-| `ccmux-server/src/pty/manager.rs` | Add detection on pane spawn |
-| `ccmux-server/src/session/pane.rs` | Store beads metadata |
-| `ccmux-server/src/config/schema.rs` | Add beads config section |
-| `ccmux-client/src/ui/status.rs` | Add beads indicator |
+| `fugue-server/src/pty/manager.rs` | Add detection on pane spawn |
+| `fugue-server/src/session/pane.rs` | Store beads metadata |
+| `fugue-server/src/config/schema.rs` | Add beads config section |
+| `fugue-client/src/ui/status.rs` | Add beads indicator |
 
 ## Dependencies
 
-- **FEAT-047** (ccmux_set_environment): COMPLETED - Environment variable infrastructure
+- **FEAT-047** (fugue_set_environment): COMPLETED - Environment variable infrastructure
 - **FEAT-050** (Session Metadata Storage): COMPLETED - Can store beads detection state in session metadata
 
 ## Leveraging Completed Features
 
 ### FEAT-050 Session Metadata (Completed)
 
-The `ccmux_set_metadata` and `ccmux_get_metadata` tools can be used to store beads detection state:
+The `fugue_set_metadata` and `fugue_get_metadata` tools can be used to store beads detection state:
 
 ```rust
 // When beads is detected, store in session metadata

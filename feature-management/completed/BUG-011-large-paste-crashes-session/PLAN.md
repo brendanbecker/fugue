@@ -1,13 +1,13 @@
 # Implementation Plan: BUG-011
 
 **Work Item**: [BUG-011: Large Paste Input Crashes Session](PROMPT.md)
-**Component**: ccmux-client / ccmux-server
+**Component**: fugue-client / fugue-server
 **Priority**: P2
 **Created**: 2026-01-10
 
 ## Overview
 
-Large paste input causes ccmux session to crash. The input path flows from TUI client through Unix socket to server and finally to PTY. The crash could occur at any point in this pipeline when the input size exceeds some limit or overwhelms a buffer.
+Large paste input causes fugue session to crash. The input path flows from TUI client through Unix socket to server and finally to PTY. The crash could occur at any point in this pipeline when the input size exceeds some limit or overwhelms a buffer.
 
 ## Architecture Decisions
 
@@ -61,13 +61,13 @@ After investigation, choose from:
 
 | File | Purpose | Risk Level |
 |------|---------|------------|
-| `ccmux-client/src/input/mod.rs` | Client input handling | High |
-| `ccmux-client/src/input/keys.rs` | Keystroke processing | Medium |
-| `ccmux-client/src/socket.rs` | Client socket communication | High |
-| `ccmux-protocol/src/lib.rs` | Message definitions | High |
-| `ccmux-protocol/src/frame.rs` | Message framing (if exists) | High |
-| `ccmux-server/src/handlers/mod.rs` | Server message handlers | High |
-| `ccmux-server/src/pty/mod.rs` | PTY management | High |
+| `fugue-client/src/input/mod.rs` | Client input handling | High |
+| `fugue-client/src/input/keys.rs` | Keystroke processing | Medium |
+| `fugue-client/src/socket.rs` | Client socket communication | High |
+| `fugue-protocol/src/lib.rs` | Message definitions | High |
+| `fugue-protocol/src/frame.rs` | Message framing (if exists) | High |
+| `fugue-server/src/handlers/mod.rs` | Server message handlers | High |
+| `fugue-server/src/pty/mod.rs` | PTY management | High |
 
 ## Risk Assessment
 
@@ -93,13 +93,13 @@ If implementation causes issues:
 
 **Code Flow Analysis:**
 
-1. **Client Paste Handling** (`ccmux-client/src/input/mod.rs:232-235`):
+1. **Client Paste Handling** (`fugue-client/src/input/mod.rs:232-235`):
    ```rust
    Event::Paste(text) => InputAction::SendToPane(text.into_bytes())
    ```
    - No size validation - entire paste is converted to bytes immediately
 
-2. **App Input Handling** (`ccmux-client/src/ui/app.rs:322-327`):
+2. **App Input Handling** (`fugue-client/src/ui/app.rs:322-327`):
    ```rust
    InputAction::SendToPane(data) => {
        self.connection.send(ClientMessage::Input { pane_id, data }).await?;
@@ -107,7 +107,7 @@ If implementation causes issues:
    ```
    - Sends entire paste as a single `ClientMessage::Input`
 
-3. **Connection Task** (`ccmux-client/src/connection/client.rs:154-158`):
+3. **Connection Task** (`fugue-client/src/connection/client.rs:154-158`):
    ```rust
    if let Err(e) = framed.send(msg).await {
        tracing::error!("Failed to send message: {}", e);
@@ -116,11 +116,11 @@ If implementation causes issues:
    ```
    - On codec error, breaks the entire connection task causing session disconnect
 
-4. **Protocol Codec** (`ccmux-protocol/src/codec.rs:129-137`):
+4. **Protocol Codec** (`fugue-protocol/src/codec.rs:129-137`):
    - Max message size: 16 MB (`MAX_MESSAGE_SIZE = 16 * 1024 * 1024`)
    - Returns `CodecError::MessageTooLarge` if exceeded
 
-5. **Server PTY Write** (`ccmux-server/src/pty/handle.rs:47-52`):
+5. **Server PTY Write** (`fugue-server/src/pty/handle.rs:47-52`):
    - `write_all()` attempts to write entire buffer at once
    - No chunking - could block if kernel PTY buffer is full
 
@@ -159,9 +159,9 @@ This is the best approach because:
 5. **Add user feedback** when paste is rejected or chunked
 
 **Key Files to Modify:**
-- `ccmux-client/src/ui/app.rs` - Chunk input in `handle_input_action()`
-- `ccmux-client/src/connection/client.rs` - Improve error handling (don't break on all errors)
-- `ccmux-client/src/input/mod.rs` - Add size constants
+- `fugue-client/src/ui/app.rs` - Chunk input in `handle_input_action()`
+- `fugue-client/src/connection/client.rs` - Improve error handling (don't break on all errors)
+- `fugue-client/src/input/mod.rs` - Add size constants
 
 **Acceptance Criteria Mapping:**
 - [x] Root cause identified and documented
@@ -176,7 +176,7 @@ This is the best approach because:
 
 **Changes made:**
 
-1. **`ccmux-client/src/ui/app.rs`**:
+1. **`fugue-client/src/ui/app.rs`**:
    - Added `MAX_INPUT_CHUNK_SIZE` (64KB) and `MAX_PASTE_SIZE` (10MB) constants
    - Modified `handle_input_action()` to chunk large pastes and reject extremely large ones
    - Shows user feedback: status message for large pastes being chunked or rejected

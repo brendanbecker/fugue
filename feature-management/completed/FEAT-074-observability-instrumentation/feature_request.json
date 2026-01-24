@@ -1,7 +1,7 @@
 {
   "id": "FEAT-074",
   "title": "Observability instrumentation (metrics, tracing, status)",
-  "component": "ccmux-server",
+  "component": "fugue-server",
   "priority": "P2",
   "status": "in_progress",
   "created_date": "2026-01-13",

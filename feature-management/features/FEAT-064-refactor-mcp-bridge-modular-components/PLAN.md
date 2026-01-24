@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-064
 
 **Work Item**: [FEAT-064: Refactor MCP bridge.rs into modular components](PROMPT.md)
-**Component**: ccmux-server (mcp module)
+**Component**: fugue-server (mcp module)
 **Priority**: P2
 **Created**: 2026-01-13
 
 ## Overview
 
-The MCP bridge implementation (`ccmux-server/src/mcp/bridge.rs`) has grown to over 33,000 tokens and needs to be refactored into smaller, more maintainable modules. This is a pure refactoring task with no behavior changes.
+The MCP bridge implementation (`fugue-server/src/mcp/bridge.rs`) has grown to over 33,000 tokens and needs to be refactored into smaller, more maintainable modules. This is a pure refactoring task with no behavior changes.
 
 ## Architecture Decisions
 
@@ -51,12 +51,12 @@ The refactoring follows a "separation by concern" approach:
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-server/src/mcp/bridge.rs` | Primary - major reduction | Medium |
-| `ccmux-server/src/mcp/connection.rs` | New module | Low |
-| `ccmux-server/src/mcp/health.rs` | New module | Low |
-| `ccmux-server/src/mcp/mod.rs` | Update exports | Low |
-| `ccmux-server/src/mcp/protocol.rs` | Possible expansion | Low |
-| `ccmux-server/src/mcp/handlers.rs` | Possible refactoring | Medium |
+| `fugue-server/src/mcp/bridge.rs` | Primary - major reduction | Medium |
+| `fugue-server/src/mcp/connection.rs` | New module | Low |
+| `fugue-server/src/mcp/health.rs` | New module | Low |
+| `fugue-server/src/mcp/mod.rs` | Update exports | Low |
+| `fugue-server/src/mcp/protocol.rs` | Possible expansion | Low |
+| `fugue-server/src/mcp/handlers.rs` | Possible refactoring | Medium |
 
 ## Dependencies
 
@@ -108,7 +108,7 @@ The recommended extraction order minimizes risk:
 ### Current Module Structure (Before)
 
 ```
-ccmux-server/src/mcp/
+fugue-server/src/mcp/
 ├── mod.rs
 ├── bridge.rs      # ~33k tokens - TOO LARGE
 ├── protocol.rs
@@ -119,7 +119,7 @@ ccmux-server/src/mcp/
 ### Target Module Structure (After)
 
 ```
-ccmux-server/src/mcp/
+fugue-server/src/mcp/
 ├── mod.rs         # Updated exports
 ├── bridge.rs      # <500 lines - orchestration only
 ├── connection.rs  # NEW - connection management

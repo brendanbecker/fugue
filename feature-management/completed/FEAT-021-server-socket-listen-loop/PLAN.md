@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-021
 
 **Work Item**: [FEAT-021: Server Socket Listen Loop](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P0 (Critical - blocks everything)
 **Created**: 2026-01-09
 
@@ -13,8 +13,8 @@ Implement the main server event loop that listens for client connections on a Un
 
 ### Socket Location
 
-Use `ccmux_utils::socket_path()` for consistent socket location:
-- Default: `$XDG_RUNTIME_DIR/ccmux/ccmux.sock` or `~/.ccmux/ccmux.sock`
+Use `fugue_utils::socket_path()` for consistent socket location:
+- Default: `$XDG_RUNTIME_DIR/fugue/fugue.sock` or `~/.fugue/fugue.sock`
 - Ensures client and server use the same path
 
 ### Accept Loop Pattern
@@ -98,9 +98,9 @@ async fn handle_client(stream: UnixStream, server: Arc<Server>) {
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/main.rs | Major - Add listen loop | Medium |
-| ccmux-server/src/server.rs | Modify - Add client tracking | Low |
-| ccmux-server/src/client.rs | New - Client handler task | Low |
+| fugue-server/src/main.rs | Major - Add listen loop | Medium |
+| fugue-server/src/server.rs | Modify - Add client tracking | Low |
+| fugue-server/src/client.rs | New - Client handler task | Low |
 
 ## Dependencies
 
@@ -131,7 +131,7 @@ None - this feature has no dependencies and unblocks all other features.
 
 ### Phase 3: Client Handler (1.5 hours)
 - Implement per-client message pump
-- Integrate with MessageCodec from ccmux-protocol
+- Integrate with MessageCodec from fugue-protocol
 - Handle message routing (stub for now)
 - Implement disconnect detection and cleanup
 

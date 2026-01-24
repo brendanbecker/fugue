@@ -22,7 +22,7 @@
 
 ### Phase 1: Core Scroll Action Handler
 
-- [ ] Open `ccmux-client/src/ui/app.rs`
+- [ ] Open `fugue-client/src/ui/app.rs`
 - [ ] Locate `handle_input_action()` method
 - [ ] Modify `InputAction::ScrollUp { lines }` handler:
   - [ ] Get mutable reference to active pane from pane_manager
@@ -36,7 +36,7 @@
 
 ### Phase 2: Rendering Integration (if needed)
 
-- [ ] Open `ccmux-client/src/ui/pane.rs`
+- [ ] Open `fugue-client/src/ui/pane.rs`
 - [ ] Verify `render_pane()` uses `pane.scroll_offset`
 - [ ] If tui-term supports offset:
   - [ ] Configure PseudoTerminal with scroll offset
@@ -54,7 +54,7 @@
 
 ## Testing Tasks
 
-- [ ] Build and run ccmux client with changes
+- [ ] Build and run fugue client with changes
 - [ ] Test: Generate terminal output (e.g., `ls -la /usr/bin`)
 - [ ] Test: Scroll up with mouse wheel - verify older content shows
 - [ ] Test: Scroll down with mouse wheel - verify return to live

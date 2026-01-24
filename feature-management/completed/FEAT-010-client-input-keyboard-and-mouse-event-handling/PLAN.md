@@ -1,13 +1,13 @@
 # Implementation Plan: FEAT-010
 
 **Work Item**: [FEAT-010: Client Input - Keyboard and Mouse Event Handling](PROMPT.md)
-**Component**: ccmux-client
+**Component**: fugue-client
 **Priority**: P1
 **Created**: 2026-01-08
 
 ## Overview
 
-Keyboard and mouse event handling via crossterm, prefix key support (tmux-style), and input routing to active pane. This feature enables all user interaction with the ccmux client.
+Keyboard and mouse event handling via crossterm, prefix key support (tmux-style), and input routing to active pane. This feature enables all user interaction with the fugue client.
 
 ## Architecture Decisions
 
@@ -134,10 +134,10 @@ fn parse_key_spec(s: &str) -> Result<KeySpec, ParseError>;
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-client/src/input.rs | New - core input handling | Medium |
-| ccmux-client/src/keybindings.rs | New - binding config | Low |
-| ccmux-client/src/lib.rs | Medium - integrate input | Low |
-| ccmux-client/Cargo.toml | Minor - add crossterm | Low |
+| fugue-client/src/input.rs | New - core input handling | Medium |
+| fugue-client/src/keybindings.rs | New - binding config | Low |
+| fugue-client/src/lib.rs | Medium - integrate input | Low |
+| fugue-client/Cargo.toml | Minor - add crossterm | Low |
 
 ## Dependencies
 

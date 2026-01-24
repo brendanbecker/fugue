@@ -1,7 +1,7 @@
 # FEAT-043: MCP Session Rename Tool
 
 **Priority**: P2
-**Component**: ccmux-server (MCP)
+**Component**: fugue-server (MCP)
 **Type**: enhancement
 **Estimated Effort**: small
 **Business Value**: medium
@@ -13,11 +13,11 @@ Add the ability to rename sessions via MCP. Currently sessions get auto-generate
 
 ## Problem Statement
 
-When ccmux creates sessions, they receive auto-generated names based on UUIDs. These names are:
+When fugue creates sessions, they receive auto-generated names based on UUIDs. These names are:
 - Hard to remember and distinguish
 - Not meaningful in multi-session workflows
 - Difficult to reference in MCP commands
-- Cluttered in `ccmux_list_sessions` output
+- Cluttered in `fugue_list_sessions` output
 
 ### Current Behavior
 
@@ -39,13 +39,13 @@ dev-backend
 
 ## Requirements
 
-### 1. New MCP Tool: `ccmux_rename_session`
+### 1. New MCP Tool: `fugue_rename_session`
 
 Add a new tool to rename sessions:
 
 ```rust
 Tool {
-    name: "ccmux_rename_session".into(),
+    name: "fugue_rename_session".into(),
     description: "Rename a session for easier identification".into(),
     input_schema: serde_json::json!({
         "type": "object",
@@ -73,7 +73,7 @@ Session names must be unique:
 
 ### 3. Updated List Output
 
-`ccmux_list_sessions` should show the user-assigned name:
+`fugue_list_sessions` should show the user-assigned name:
 
 ```json
 {
@@ -125,24 +125,24 @@ Name sessions by project or task:
 
 Instead of:
 ```
-ccmux_create_pane --session session-c21daf06519f410a...
+fugue_create_pane --session session-c21daf06519f410a...
 ```
 
 Users can:
 ```
-ccmux_create_pane --session Orchestrator
+fugue_create_pane --session Orchestrator
 ```
 
 ## Files Affected
 
 | File | Changes |
 |------|---------|
-| `ccmux-server/src/mcp/tools.rs` | Add `ccmux_rename_session` tool definition |
-| `ccmux-server/src/mcp/bridge.rs` | Implement rename handler function |
-| `ccmux-server/src/mcp/server.rs` | Add routing for new tool |
-| `ccmux-server/src/session/mod.rs` | Add `rename_session()` method to SessionManager |
-| `ccmux-server/src/session/session.rs` | Add `rename()` or `set_name()` method to Session |
-| `ccmux-server/src/persistence/` | Ensure name changes are persisted |
+| `fugue-server/src/mcp/tools.rs` | Add `fugue_rename_session` tool definition |
+| `fugue-server/src/mcp/bridge.rs` | Implement rename handler function |
+| `fugue-server/src/mcp/server.rs` | Add routing for new tool |
+| `fugue-server/src/session/mod.rs` | Add `rename_session()` method to SessionManager |
+| `fugue-server/src/session/session.rs` | Add `rename()` or `set_name()` method to Session |
+| `fugue-server/src/persistence/` | Ensure name changes are persisted |
 
 ## Implementation Tasks
 
@@ -153,7 +153,7 @@ ccmux_create_pane --session Orchestrator
 - [ ] Update session's internal name field
 
 ### Section 2: MCP Tool Definition
-- [ ] Add `ccmux_rename_session` to tools.rs with schema
+- [ ] Add `fugue_rename_session` to tools.rs with schema
 - [ ] Define input parameters: `session` (UUID or name), `name` (new name)
 - [ ] Mark both parameters as required
 
@@ -184,11 +184,11 @@ ccmux_create_pane --session Orchestrator
 
 ## Acceptance Criteria
 
-- [ ] New `ccmux_rename_session` tool available in MCP
+- [ ] New `fugue_rename_session` tool available in MCP
 - [ ] Session can be renamed by UUID
 - [ ] Session can be renamed by current name
 - [ ] Duplicate names are rejected with clear error
-- [ ] `ccmux_list_sessions` shows updated name
+- [ ] `fugue_list_sessions` shows updated name
 - [ ] Other MCP tools can target session by new name
 - [ ] Session name persists across server restart
 - [ ] All existing tests pass
@@ -200,7 +200,7 @@ ccmux_create_pane --session Orchestrator
 **Request**:
 ```json
 {
-  "tool": "ccmux_rename_session",
+  "tool": "fugue_rename_session",
   "arguments": {
     "session": "session-c21daf06519f410aaeadd1bb0ed9705f",
     "name": "Orchestrator"
@@ -223,7 +223,7 @@ ccmux_create_pane --session Orchestrator
 **Request**:
 ```json
 {
-  "tool": "ccmux_rename_session",
+  "tool": "fugue_rename_session",
   "arguments": {
     "session": "Orchestrator",
     "name": "Main-Orchestrator"
@@ -236,7 +236,7 @@ ccmux_create_pane --session Orchestrator
 **Request**:
 ```json
 {
-  "tool": "ccmux_rename_session",
+  "tool": "fugue_rename_session",
   "arguments": {
     "session": "Worker-2",
     "name": "Orchestrator"

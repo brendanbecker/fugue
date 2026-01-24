@@ -1,6 +1,6 @@
 {
   "bug_id": "BUG-047",
-  "title": "Clean up compiler warnings across ccmux crates",
+  "title": "Clean up compiler warnings across fugue crates",
   "component": "build",
   "severity": "low",
   "priority": "P3",
@@ -12,9 +12,9 @@
   "affected_versions": [],
   "environment": "development",
   "reproducibility": "always",
-  "description": "The build produces 51+ warnings across ccmux-server, ccmux-client, and ccmux-protocol. These should be cleaned up to maintain code quality and prevent important warnings from being buried in noise.",
+  "description": "The build produces 51+ warnings across fugue-server, fugue-client, and fugue-protocol. These should be cleaned up to maintain code quality and prevent important warnings from being buried in noise.",
   "steps_to_reproduce": [
-    "Run `cargo build` or `cargo check` in the ccmux workspace",
+    "Run `cargo build` or `cargo check` in the fugue workspace",
     "Observe 51+ warnings across the three crates"
   ],
   "expected_behavior": "Clean build with zero warnings (or minimal intentional ones)",
@@ -36,10 +36,10 @@
         "count": 5,
         "note": "PaneState::Claude should use PaneState::Agent",
         "locations": [
-          "ccmux-protocol/src/types.rs:527",
-          "ccmux-client/src/ui/app.rs:1882",
-          "ccmux-server/src/handlers/mcp_bridge.rs:57",
-          "ccmux-server/src/persistence/restoration.rs:308, 354"
+          "fugue-protocol/src/types.rs:527",
+          "fugue-client/src/ui/app.rs:1882",
+          "fugue-server/src/handlers/mcp_bridge.rs:57",
+          "fugue-server/src/persistence/restoration.rs:308, 354"
         ]
       },
       "dead_code": {
@@ -68,7 +68,7 @@
           "agents/claude/mod.rs:67: text",
           "handlers/pane.rs:469: pane",
           "mcp/handlers.rs:1112: split_direction",
-          "ccmux-client/src/ui/app.rs:2213: ui_pane"
+          "fugue-client/src/ui/app.rs:2213: ui_pane"
         ]
       }
     },

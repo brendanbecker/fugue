@@ -18,7 +18,7 @@ Once Claude Code is detected in a pane, every keystroke causes the entire screen
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| `ccmux-server/src/agents/claude/mod.rs` | Bug fix | Low |
+| `fugue-server/src/agents/claude/mod.rs` | Bug fix | Low |
 
 ## Dependencies
 

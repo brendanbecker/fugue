@@ -7,7 +7,7 @@
 
 ## Overview
 
-Per-session logging with configurable levels (spawns, signals, prompts, full) stored in `.ccmux/logs/{session_id}/`. Includes log rotation, structured format, runtime level changes, and audit trail separation.
+Per-session logging with configurable levels (spawns, signals, prompts, full) stored in `.fugue/logs/{session_id}/`. Includes log rotation, structured format, runtime level changes, and audit trail separation.
 
 ## Architecture Decisions
 
@@ -27,7 +27,7 @@ full:    prompts + [all_output, input, state_changes]
 ### Directory Structure
 
 ```
-~/.ccmux/logs/
+~/.fugue/logs/
   {session_id}/
     session.log      # Main session log (level-filtered)
     audit_user.log   # User actions only
@@ -55,10 +55,10 @@ JSON Lines format for easy parsing:
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-utils/src/logging.rs | Major - new SessionLogger | Medium |
-| ccmux-server/src/config/schema.rs | Minor - add log level config | Low |
-| ccmux-server/src/session/manager.rs | Medium - integrate SessionLogger | Medium |
-| ccmux-server/src/session/session.rs | Minor - log level accessors | Low |
+| fugue-utils/src/logging.rs | Major - new SessionLogger | Medium |
+| fugue-server/src/config/schema.rs | Minor - add log level config | Low |
+| fugue-server/src/session/manager.rs | Medium - integrate SessionLogger | Medium |
+| fugue-server/src/session/session.rs | Minor - log level accessors | Low |
 
 ## Dependencies
 

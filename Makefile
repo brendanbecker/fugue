@@ -10,10 +10,10 @@ release:
 
 # Install to ~/.cargo/bin (release mode)
 install:
-	cargo install --path ccmux-client
-	cargo install --path ccmux-server
-	cargo install --path ccmux-compat
-	cargo install --path ccmux-sandbox
+	cargo install --path fugue-client
+	cargo install --path fugue-server
+	cargo install --path fugue-compat
+	cargo install --path fugue-sandbox
 
 # Run all tests
 test:

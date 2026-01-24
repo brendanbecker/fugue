@@ -8,23 +8,23 @@
 
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
-- [ ] Review ClaudeActivity enum in ccmux-protocol/src/types.rs
+- [ ] Review ClaudeActivity enum in fugue-protocol/src/types.rs
 - [ ] Review sideband protocol design in docs/architecture/ADR/002-claude-communication.md
 - [ ] Review existing pane.rs implementation
 
 ## Phase 1: Protocol Layer
 
-- [ ] Add PaneTarget enum to ccmux-protocol/src/types.rs
+- [ ] Add PaneTarget enum to fugue-protocol/src/types.rs
   ```rust
   pub enum PaneTarget {
       ByName(String),
       ById(Uuid),
   }
   ```
-- [ ] Add ReplyMessage struct to ccmux-protocol/src/messages.rs
+- [ ] Add ReplyMessage struct to fugue-protocol/src/messages.rs
 - [ ] Add ReplyResponse struct for acknowledgment
 - [ ] Implement Serialize/Deserialize for new types
-- [ ] Update ccmux-protocol/src/lib.rs exports
+- [ ] Update fugue-protocol/src/lib.rs exports
 - [ ] Add unit tests for serialization round-trip
 
 ## Phase 2: Server State Query

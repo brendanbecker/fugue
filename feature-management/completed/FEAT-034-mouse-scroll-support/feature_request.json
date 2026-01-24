@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-034",
   "title": "Mouse Scroll Support",
-  "component": "ccmux-client",
+  "component": "fugue-client",
   "priority": "P2",
   "status": "new",
   "type": "enhancement",
@@ -11,7 +11,7 @@
   "tags": ["tui", "input", "scroll", "mouse", "ux"],
   "estimated_effort": "small",
   "dependencies": ["FEAT-010"],
-  "description": "Scrolling with the scrollwheel/trackpad doesn't work in ccmux. Users should be able to scroll through terminal output using mouse scroll events in the pane output view.",
+  "description": "Scrolling with the scrollwheel/trackpad doesn't work in fugue. Users should be able to scroll through terminal output using mouse scroll events in the pane output view.",
   "business_value": "medium",
   "technical_complexity": "low",
   "user_impact": "Enables intuitive scrollback navigation using mouse/trackpad scroll, matching user expectations from native terminals"

@@ -47,7 +47,7 @@ The daemon wraps responses in `ServerMessage::Sequenced` for WAL persistence tra
 ### Step 1: Locate and Understand Current Implementation
 
 ```
-ccmux-server/src/mcp/bridge/connection.rs
+fugue-server/src/mcp/bridge/connection.rs
 - Line ~390-427: is_broadcast_message()
 - recv_response_from_daemon() - find exact location
 ```

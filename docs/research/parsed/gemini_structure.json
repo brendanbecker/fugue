@@ -1,7 +1,7 @@
 {
   "document": {
-    "title": "Architectural Blueprint for ccmux: A Semantic Terminal Multiplexer for Claude Code",
-    "source_path": "/home/becker/projects/tools/ccmux/docs/research/gemini_research.md",
+    "title": "Architectural Blueprint for fugue: A Semantic Terminal Multiplexer for Claude Code",
+    "source_path": "/home/becker/projects/tools/fugue/docs/research/gemini_research.md",
     "total_lines": 528,
     "estimated_total_tokens": 8500,
     "parsing_metadata": {
@@ -26,7 +26,7 @@
           "children": [
             {"id": "1.1.1", "title": "State of the Art: portable-pty", "level": 4, "line_range": [11, 27], "token_estimate": 180},
             {"id": "1.1.2", "title": "Bidirectional I/O and Resizing", "level": 4, "line_range": [28, 45], "token_estimate": 180},
-            {"id": "1.1.3", "title": "Implementation Strategy for ccmux", "level": 4, "line_range": [46, 63], "token_estimate": 340}
+            {"id": "1.1.3", "title": "Implementation Strategy for fugue", "level": 4, "line_range": [46, 63], "token_estimate": 340}
           ]
         },
         {
@@ -128,7 +128,7 @@
           "line_range": [304, 322],
           "token_estimate": 260,
           "children": [
-            {"id": "6.1.1", "title": "ccmux as an MCP Server", "level": 4, "line_range": [308, 322], "token_estimate": 200}
+            {"id": "6.1.1", "title": "fugue as an MCP Server", "level": 4, "line_range": [308, 322], "token_estimate": 200}
           ]
         },
         {"id": "6.2", "title": "Fallback Protocol: The Sideband", "level": 3, "line_range": [323, 334], "token_estimate": 160},

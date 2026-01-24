@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-096",
-  "title": "ccmux_expect - Pattern-Based Wait",
-  "component": "ccmux-server/mcp",
+  "title": "fugue_expect - Pattern-Based Wait",
+  "component": "fugue-server/mcp",
   "priority": "P1",
   "status": "new",
   "type": "new_feature",

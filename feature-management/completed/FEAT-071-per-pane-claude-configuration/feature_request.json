@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-071",
   "title": "Per-pane Claude configuration on spawn",
-  "component": "ccmux-server, ccmux-protocol",
+  "component": "fugue-server, fugue-protocol",
   "priority": "P2",
   "status": "new",
   "type": "enhancement",
@@ -20,5 +20,5 @@
   "description": "Allow panes to specify custom Claude Code configuration on spawn, including model selection, context limits, and other Claude settings. This enables fine-grained control over Claude instances per-pane, supporting use cases like mixed Haiku/Sonnet/Opus agents, custom context limits, and specialized configurations.",
   "business_value": "high",
   "technical_complexity": "medium",
-  "user_impact": "Enables cost optimization (Haiku for simple tasks), specialized agents (Opus for architecture), and flexible multi-agent workflows. Users can create heterogeneous agent configurations within a single ccmux session."
+  "user_impact": "Enables cost optimization (Haiku for simple tasks), specialized agents (Opus for architecture), and flexible multi-agent workflows. Users can create heterogeneous agent configurations within a single fugue session."
 }

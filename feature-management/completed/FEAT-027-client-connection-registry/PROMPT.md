@@ -1,7 +1,7 @@
 # FEAT-027: Client Connection Registry
 
 **Priority**: P0 (Critical - FEAT-022 and FEAT-023 depend on it)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: small (1-2 hours)
 **Business Value**: high
@@ -27,9 +27,9 @@ Implement a server-side registry that tracks connected clients and their session
 
 ## Location
 
-Primary implementation target: `/home/becker/projects/tools/ccmux/ccmux-server/src/registry.rs`
+Primary implementation target: `/home/becker/projects/tools/fugue/fugue-server/src/registry.rs`
 
-Alternative: `/home/becker/projects/tools/ccmux/ccmux-server/src/connection/registry.rs` (if using a connection module)
+Alternative: `/home/becker/projects/tools/fugue/fugue-server/src/connection/registry.rs` (if using a connection module)
 
 ## Technical Notes
 
@@ -57,9 +57,9 @@ pub struct ClientRegistry {
 
 ## Affected Files
 
-- `ccmux-server/src/registry.rs` - New file with registry implementation
-- `ccmux-server/src/lib.rs` or `main.rs` - Export registry module
-- `ccmux-server/src/server.rs` - Integrate registry with Server struct
+- `fugue-server/src/registry.rs` - New file with registry implementation
+- `fugue-server/src/lib.rs` or `main.rs` - Export registry module
+- `fugue-server/src/server.rs` - Integrate registry with Server struct
 
 ## Implementation Tasks
 
@@ -125,5 +125,5 @@ pub struct ClientRegistry {
 - DashMap provides better concurrency than RwLock<HashMap> for this use case
 - Consider using `try_send()` vs `send()` for non-blocking message delivery
 - The registry is the central coordination point for all client communication
-- Session ID should match the `SessionId` type from ccmux-server session management
+- Session ID should match the `SessionId` type from fugue-server session management
 - Consider adding metrics (client count, session counts) for observability

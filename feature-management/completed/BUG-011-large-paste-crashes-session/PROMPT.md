@@ -1,13 +1,13 @@
-# BUG-011: Large Paste Input Crashes ccmux Session
+# BUG-011: Large Paste Input Crashes fugue Session
 
 **Priority**: P2 (Medium)
-**Component**: ccmux-client / ccmux-server
+**Component**: fugue-client / fugue-server
 **Status**: resolved
 **Created**: 2026-01-10
 
 ## Summary
 
-Pasting an extremely large amount of text into a ccmux terminal session causes the session to crash. There is no graceful handling or error message - the session simply dies.
+Pasting an extremely large amount of text into a fugue terminal session causes the session to crash. There is no graceful handling or error message - the session simply dies.
 
 ## Symptoms
 
@@ -18,7 +18,7 @@ Pasting an extremely large amount of text into a ccmux terminal session causes t
 
 ## Data Flow to Investigate
 
-The input flow in ccmux is:
+The input flow in fugue is:
 
 ```
 TUI client -> Unix socket -> Server -> PTY
@@ -26,21 +26,21 @@ TUI client -> Unix socket -> Server -> PTY
 
 Key components in this path:
 
-1. **TUI Client Input Handling** (`ccmux-client/src/input/`)
+1. **TUI Client Input Handling** (`fugue-client/src/input/`)
    - Receives paste events from terminal
    - Converts to `PtyInput` messages
    - Sends over Unix socket
 
-2. **Unix Socket Protocol** (`ccmux-protocol/`)
+2. **Unix Socket Protocol** (`fugue-protocol/`)
    - Uses bincode serialization
    - May have message size limits
    - Framing/length-prefixed messages
 
-3. **Server Message Handler** (`ccmux-server/src/handlers/`)
+3. **Server Message Handler** (`fugue-server/src/handlers/`)
    - Receives `PtyInput` messages
    - Routes to appropriate pane
 
-4. **PTY Write** (`ccmux-server/src/pty/`)
+4. **PTY Write** (`fugue-server/src/pty/`)
    - Writes input to PTY master
    - May have buffer limitations
 
@@ -51,15 +51,15 @@ Key components in this path:
 The client may be creating an extremely large buffer when processing paste input without any size limits.
 
 **Files to check:**
-- `ccmux-client/src/input/mod.rs`
-- `ccmux-client/src/input/keys.rs`
+- `fugue-client/src/input/mod.rs`
+- `fugue-client/src/input/keys.rs`
 
 ### 2. Message Size Limit Exceeded on Unix Socket Protocol
 
 The protocol may have implicit or explicit message size limits. Bincode serialization of a huge payload could fail or the socket write could fail.
 
 **Files to check:**
-- `ccmux-protocol/src/lib.rs`
+- `fugue-protocol/src/lib.rs`
 - Socket framing code (length-prefixed messages)
 
 ### 3. PTY Write Buffer Overwhelmed (No Chunking)
@@ -67,8 +67,8 @@ The protocol may have implicit or explicit message size limits. Bincode serializ
 Writing a massive amount of data to the PTY master in a single write could overwhelm the kernel buffer or block indefinitely.
 
 **Files to check:**
-- `ccmux-server/src/pty/mod.rs`
-- `ccmux-server/src/pty/output.rs`
+- `fugue-server/src/pty/mod.rs`
+- `fugue-server/src/pty/output.rs`
 - PTY write handling code
 
 ### 4. Bincode Serialization Failing on Huge Payloads
@@ -77,7 +77,7 @@ Bincode may have limitations on payload size or may allocate excessive memory tr
 
 **Files to check:**
 - Serialization/deserialization code
-- Message types in `ccmux-protocol/`
+- Message types in `fugue-protocol/`
 
 ### 5. Memory Exhaustion from Allocating Large Input Buffer
 

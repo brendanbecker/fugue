@@ -2,7 +2,7 @@
 
 ## Overview
 
-Integrate `ccmux-sandbox` as a transparent wrapper for pane commands, enabling per-pane Landlock filesystem sandboxing. When enabled, panes are restricted to their working directory plus explicitly allowed paths.
+Integrate `fugue-sandbox` as a transparent wrapper for pane commands, enabling per-pane Landlock filesystem sandboxing. When enabled, panes are restricted to their working directory plus explicitly allowed paths.
 
 ## Motivation
 
@@ -12,18 +12,18 @@ Integrate `ccmux-sandbox` as a transparent wrapper for pane commands, enabling p
 
 ## Current State
 
-- `ccmux-sandbox` binary exists with hardcoded paths
+- `fugue-sandbox` binary exists with hardcoded paths
 - FEAT-081 spec exists but was not fully implemented
 - Landlock works on the system (Linux 5.15, tested)
 
 ## Requirements
 
-### Phase 1: Enhance ccmux-sandbox CLI
+### Phase 1: Enhance fugue-sandbox CLI
 
-Add configurable path arguments to `ccmux-sandbox`:
+Add configurable path arguments to `fugue-sandbox`:
 
 ```bash
-ccmux-sandbox \
+fugue-sandbox \
   --allow-ro ~/.local \
   --allow-ro ~/.cargo \
   --allow-ro ~/.rustup \
@@ -47,11 +47,11 @@ ccmux-sandbox \
 ### Phase 2: Add Sandbox Config to PtyConfig
 
 ```rust
-// In ccmux-server/src/pty/config.rs
+// In fugue-server/src/pty/config.rs
 
 #[derive(Debug, Clone, Default)]
 pub struct SandboxConfig {
-    /// Enable Landlock sandboxing via ccmux-sandbox wrapper
+    /// Enable Landlock sandboxing via fugue-sandbox wrapper
     pub enabled: bool,
     /// Additional read-only paths beyond defaults
     pub allow_ro: Vec<PathBuf>,
@@ -71,7 +71,7 @@ impl PtyConfig {
 
 ### Phase 3: Integrate Wrapper in PtyManager
 
-In `ccmux-server/src/pty/manager.rs`, when sandbox is enabled:
+In `fugue-server/src/pty/manager.rs`, when sandbox is enabled:
 
 ```rust
 pub fn spawn(&mut self, pane_id: Uuid, config: PtyConfig) -> Result<&PtyHandle> {
@@ -109,13 +109,13 @@ fn wrap_with_sandbox(&self, config: &PtyConfig, sandbox: &SandboxConfig) -> (Str
     args.push(config.command.clone());
     args.extend(config.args.clone());
 
-    ("ccmux-sandbox".to_string(), args)
+    ("fugue-sandbox".to_string(), args)
 }
 ```
 
 ### Phase 4: Preset Integration
 
-Add sandbox config to presets in `~/.ccmux/config.toml`:
+Add sandbox config to presets in `~/.fugue/config.toml`:
 
 ```toml
 [presets.sandboxed-worker]
@@ -131,11 +131,11 @@ cwd_write = true
 
 ### Phase 5: MCP Tool Support
 
-Add `sandbox` parameter to `ccmux_create_pane` and `ccmux_create_session`:
+Add `sandbox` parameter to `fugue_create_pane` and `fugue_create_session`:
 
 ```json
 {
-  "tool": "ccmux_create_pane",
+  "tool": "fugue_create_pane",
   "input": {
     "command": "claude --dangerously-skip-permissions",
     "cwd": "/path/to/worktree",
@@ -151,7 +151,7 @@ Add `sandbox` parameter to `ccmux_create_pane` and `ccmux_create_session`:
 Or via preset:
 ```json
 {
-  "tool": "ccmux_create_pane",
+  "tool": "fugue_create_pane",
   "preset": "sandboxed-worker",
   "cwd": "/path/to/worktree"
 }
@@ -159,7 +159,7 @@ Or via preset:
 
 ## Tasks
 
-### Section 1: Enhance ccmux-sandbox CLI
+### Section 1: Enhance fugue-sandbox CLI
 - [ ] Add `clap` arguments for `--allow-ro`, `--allow-rw`, `--cwd-rw`, `--no-cwd-rw`
 - [ ] Parse paths and expand `~` to home directory
 - [ ] Update `apply_landlock()` to use configurable paths
@@ -167,14 +167,14 @@ Or via preset:
 - [ ] Test with various path configurations
 
 ### Section 2: PtyConfig Sandbox Support
-- [ ] Add `SandboxConfig` struct to `ccmux-server/src/pty/config.rs`
+- [ ] Add `SandboxConfig` struct to `fugue-server/src/pty/config.rs`
 - [ ] Add `with_sandbox()` builder method
 - [ ] Add sandbox field to `PtyConfig`
 
 ### Section 3: PtyManager Integration
 - [ ] Add `wrap_with_sandbox()` helper method
 - [ ] Modify `spawn()` to detect and apply sandbox wrapper
-- [ ] Ensure `ccmux-sandbox` binary is found (PATH or absolute)
+- [ ] Ensure `fugue-sandbox` binary is found (PATH or absolute)
 - [ ] Add tests for sandbox wrapping logic
 
 ### Section 4: Preset Integration
@@ -183,8 +183,8 @@ Or via preset:
 - [ ] Test preset-based sandbox spawning
 
 ### Section 5: MCP Tool Integration
-- [ ] Add `sandbox` parameter to `ccmux_create_pane` schema
-- [ ] Add `sandbox` parameter to `ccmux_create_session` schema
+- [ ] Add `sandbox` parameter to `fugue_create_pane` schema
+- [ ] Add `sandbox` parameter to `fugue_create_session` schema
 - [ ] Parse and apply sandbox config in handlers
 - [ ] Update tool documentation
 
@@ -197,8 +197,8 @@ Or via preset:
 
 ## Acceptance Criteria
 
-- [ ] `ccmux-sandbox --allow-ro ~/.local -- cat ~/.bashrc` fails (not in allowed paths)
-- [ ] `ccmux-sandbox --allow-ro ~/.local -- ls ~/.local/bin` succeeds
+- [ ] `fugue-sandbox --allow-ro ~/.local -- cat ~/.bashrc` fails (not in allowed paths)
+- [ ] `fugue-sandbox --allow-ro ~/.local -- ls ~/.local/bin` succeeds
 - [ ] Pane created with `sandbox.enabled = true` cannot write to `~`
 - [ ] Pane created with `preset: "sandboxed-worker"` is sandboxed
 - [ ] Claude with `--dangerously-skip-permissions` runs in sandbox
@@ -207,7 +207,7 @@ Or via preset:
 ## Dependencies
 
 - Landlock-enabled Linux kernel (5.13+)
-- `ccmux-sandbox` binary in PATH or configured location
+- `fugue-sandbox` binary in PATH or configured location
 
 ## Security Considerations
 

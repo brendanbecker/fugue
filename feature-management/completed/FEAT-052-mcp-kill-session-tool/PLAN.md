@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-052
 
-**Work Item**: [FEAT-052: Add ccmux_kill_session MCP tool](PROMPT.md)
-**Component**: ccmux-server (MCP)
+**Work Item**: [FEAT-052: Add fugue_kill_session MCP tool](PROMPT.md)
+**Component**: fugue-server (MCP)
 **Priority**: P1
 **Created**: 2026-01-10
 
@@ -16,7 +16,7 @@ Expose the existing `DestroySession` protocol message as an MCP tool so agents c
 **Choice**: Reuse existing session resolution pattern from other MCP tools.
 
 **Rationale**:
-- `ccmux_create_pane` and other tools already resolve sessions by UUID or name
+- `fugue_create_pane` and other tools already resolve sessions by UUID or name
 - Consistent behavior across all session-targeting tools
 - No new code paths needed
 
@@ -30,7 +30,7 @@ Expose the existing `DestroySession` protocol message as an MCP tool so agents c
 **Choice**: Return success/error JSON matching existing MCP tool patterns.
 
 **Rationale**:
-- Consistent with other ccmux MCP tools
+- Consistent with other fugue MCP tools
 - Provides session context for verification
 - Clear error messages for debugging
 
@@ -61,8 +61,8 @@ Expose the existing `DestroySession` protocol message as an MCP tool so agents c
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/mcp/tools.rs | Add tool definition | Low |
-| ccmux-server/src/mcp/handlers.rs | Add handler function | Low |
+| fugue-server/src/mcp/tools.rs | Add tool definition | Low |
+| fugue-server/src/mcp/handlers.rs | Add handler function | Low |
 
 ## Implementation Order
 
@@ -146,8 +146,8 @@ pub async fn handle_kill_session(
 
 ```rust
 Tool {
-    name: "ccmux_kill_session".into(),
-    description: "Kill/destroy a ccmux session and all its windows and panes".into(),
+    name: "fugue_kill_session".into(),
+    description: "Kill/destroy a fugue session and all its windows and panes".into(),
     input_schema: serde_json::json!({
         "type": "object",
         "properties": {

@@ -1,7 +1,7 @@
 # FEAT-033: tmux-like Auto-Start Behavior
 
 **Priority**: P1
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: enhancement
 **Estimated Effort**: small
 **Business Value**: high
@@ -9,16 +9,16 @@
 
 ## Overview
 
-When user runs `ccmux`, the client should automatically start the server daemon if it's not already running, then connect. This provides the same UX as tmux where a single command handles everything.
+When user runs `fugue`, the client should automatically start the server daemon if it's not already running, then connect. This provides the same UX as tmux where a single command handles everything.
 
 ## Problem Statement
 
-Currently, users must manually start `ccmux-server` before running the `ccmux` client. This creates friction in the user experience:
+Currently, users must manually start `fugue-server` before running the `fugue` client. This creates friction in the user experience:
 
-1. User runs `ccmux`
+1. User runs `fugue`
 2. Connection fails because server isn't running
-3. User must open another terminal, run `ccmux-server`
-4. User goes back to original terminal and runs `ccmux` again
+3. User must open another terminal, run `fugue-server`
+4. User goes back to original terminal and runs `fugue` again
 
 This is a poor UX compared to tmux, which "just works" with a single command.
 
@@ -28,7 +28,7 @@ Implement auto-start behavior in the client:
 
 1. Client attempts to connect to the Unix socket
 2. If connection fails (ECONNREFUSED, ENOENT), assume server not running
-3. Fork/spawn `ccmux-server` as a background daemon
+3. Fork/spawn `fugue-server` as a background daemon
 4. Wait briefly for server to initialize (e.g., 100-500ms with retries)
 5. Retry connection to Unix socket
 6. Proceed with normal client behavior
@@ -72,7 +72,7 @@ async fn connect_with_auto_start(socket_path: &Path) -> Result<Connection> {
 fn start_server_daemon() -> Result<()> {
     use std::process::Command;
 
-    // Find ccmux-server binary (same directory as client, or in PATH)
+    // Find fugue-server binary (same directory as client, or in PATH)
     let server_path = find_server_binary()?;
 
     // Spawn as daemon (detached, no stdin/stdout/stderr)
@@ -95,7 +95,7 @@ Detect "server not running" from these error conditions:
 
 ### Configuration Options
 
-Add optional config in `~/.config/ccmux/config.toml`:
+Add optional config in `~/.config/fugue/config.toml`:
 
 ```toml
 [client]
@@ -115,21 +115,21 @@ Add `--no-auto-start` flag to disable this behavior:
 
 ```bash
 # Normal usage - auto-starts if needed
-ccmux
+fugue
 
 # Disable auto-start (fail if server not running)
-ccmux --no-auto-start
+fugue --no-auto-start
 ```
 
 ## Files to Modify
 
-### ccmux-client/src/main.rs or connection module
+### fugue-client/src/main.rs or connection module
 
 - Add `start_server_daemon()` function
 - Modify connection logic to retry with auto-start
 - Add CLI flag `--no-auto-start`
 
-### ccmux-client/src/config.rs (if exists)
+### fugue-client/src/config.rs (if exists)
 
 - Add `auto_start_server`, `server_start_timeout`, `connection_retries` options
 
@@ -141,7 +141,7 @@ ccmux --no-auto-start
 - [ ] Handle both socket-not-found and connection-refused cases
 
 ### Section 2: Server Spawning
-- [ ] Add function to find ccmux-server binary (same dir, PATH, or config)
+- [ ] Add function to find fugue-server binary (same dir, PATH, or config)
 - [ ] Implement daemon spawning with detached process
 - [ ] Ensure spawned server doesn't inherit client's stdin/stdout/stderr
 - [ ] Handle platform differences (Unix daemonization)
@@ -165,8 +165,8 @@ ccmux --no-auto-start
 
 ## Acceptance Criteria
 
-- [ ] Running `ccmux` when server is not running automatically starts the server
-- [ ] Running `ccmux` when server is already running connects normally (no duplicate servers)
+- [ ] Running `fugue` when server is not running automatically starts the server
+- [ ] Running `fugue` when server is already running connects normally (no duplicate servers)
 - [ ] Server starts as a proper daemon (doesn't tie up terminal)
 - [ ] Clear error message if server binary cannot be found
 - [ ] Clear error message if server fails to start within timeout
@@ -186,8 +186,8 @@ ccmux --no-auto-start
 
 3. **Permission issues**: Socket directory might not be writable, or server binary might not be executable.
 
-4. **Server binary location**: Need strategy for finding `ccmux-server`:
-   - Same directory as `ccmux` binary
+4. **Server binary location**: Need strategy for finding `fugue-server`:
+   - Same directory as `fugue` binary
    - In `$PATH`
    - Configurable path in config file
 
@@ -196,6 +196,6 @@ ccmux --no-auto-start
 ## Notes
 
 - This is a common pattern - tmux, screen, and most client/server tools do this
-- Consider adding a `ccmux --server` subcommand as alternative to separate `ccmux-server` binary
-- May want to add `ccmux kill-server` command for stopping the daemon
+- Consider adding a `fugue --server` subcommand as alternative to separate `fugue-server` binary
+- May want to add `fugue kill-server` command for stopping the daemon
 - Log file location for daemonized server should be documented

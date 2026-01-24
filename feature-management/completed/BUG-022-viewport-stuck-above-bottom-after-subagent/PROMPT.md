@@ -7,16 +7,16 @@
 
 ## Problem Statement
 
-When a Claude Code subagent finishes in ccmux, the viewport sometimes doesn't render all the way to the bottom - it appears offset a few lines above where it should be. The issue is intermittent and doesn't happen every time.
+When a Claude Code subagent finishes in fugue, the viewport sometimes doesn't render all the way to the bottom - it appears offset a few lines above where it should be. The issue is intermittent and doesn't happen every time.
 
 ## Evidence
 
-- **Files Modified**: `ccmux-client/src/ui/pane.rs`
+- **Files Modified**: `fugue-client/src/ui/pane.rs`
 - **Root Cause Location**: `resize()` and `process_output()` methods in Pane struct
 
 ## Steps to Reproduce
 
-1. Run ccmux with Claude Code session
+1. Run fugue with Claude Code session
 2. Have Claude Code spawn a subagent task
 3. Wait for the subagent to complete
 4. Observe that the viewport may be stuck showing content from a few lines above the actual bottom
@@ -63,7 +63,7 @@ The issue appears to be related to scrollback synchronization when the VT100 par
 
 ## Fix Implemented
 
-Two changes made in `ccmux-client/src/ui/pane.rs`:
+Two changes made in `fugue-client/src/ui/pane.rs`:
 
 ### 1. `resize()` now guards against unnecessary resizes and resets scrollback
 

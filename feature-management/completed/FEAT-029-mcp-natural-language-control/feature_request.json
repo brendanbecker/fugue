@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-029",
   "title": "MCP Natural Language Terminal Control",
-  "component": "ccmux-server (MCP)",
+  "component": "fugue-server (MCP)",
   "priority": "P1",
   "status": "new",
   "type": "new_feature",
@@ -11,7 +11,7 @@
   "tags": ["mcp", "tools", "natural-language", "terminal-control"],
   "estimated_effort": "medium",
   "dependencies": ["BUG-003"],
-  "description": "Expand MCP tools to enable natural language terminal control. Fix broken split direction in ccmux_create_pane, and add new tools for creating windows, sessions, and listing them - enabling Claude to respond to commands like 'launch a new window' or 'split this pane horizontally'.",
+  "description": "Expand MCP tools to enable natural language terminal control. Fix broken split direction in fugue_create_pane, and add new tools for creating windows, sessions, and listing them - enabling Claude to respond to commands like 'launch a new window' or 'split this pane horizontally'.",
   "business_value": "high",
   "technical_complexity": "low",
   "user_impact": "Enables full natural language control of terminal multiplexer operations through Claude, completing the MCP integration story"

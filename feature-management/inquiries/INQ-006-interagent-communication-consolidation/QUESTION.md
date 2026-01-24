@@ -2,21 +2,21 @@
 
 ## Core Question
 
-How should ccmux consolidate its multiple inter-agent communication mechanisms into a reliable, coherent system?
+How should fugue consolidate its multiple inter-agent communication mechanisms into a reliable, coherent system?
 
 ## Background
 
 ### Current State
 
-ccmux has accumulated multiple overlapping mechanisms for agent-to-agent communication:
+fugue has accumulated multiple overlapping mechanisms for agent-to-agent communication:
 
 | Mechanism | Purpose | Status |
 |-----------|---------|--------|
-| `ccmux_send_orchestration` | Send messages by tag/session/broadcast | Unreliable (BUG-069) |
-| `ccmux_report_status` | Convenience wrapper for status to orchestrator | Depends on above |
-| `ccmux_request_help` | Convenience wrapper for help requests | Depends on above |
-| `ccmux_poll_messages` | Receive queued messages | May not receive sent messages |
-| `ccmux_broadcast` | Broadcast to all sessions | Unknown reliability |
+| `fugue_send_orchestration` | Send messages by tag/session/broadcast | Unreliable (BUG-069) |
+| `fugue_report_status` | Convenience wrapper for status to orchestrator | Depends on above |
+| `fugue_request_help` | Convenience wrapper for help requests | Depends on above |
+| `fugue_poll_messages` | Receive queued messages | May not receive sent messages |
+| `fugue_broadcast` | Broadcast to all sessions | Unknown reliability |
 | Tag-based routing | Route by session tags | Partial functionality |
 | Native watchdog timer | Periodic check messages | Working but limited |
 
@@ -32,10 +32,10 @@ ccmux has accumulated multiple overlapping mechanisms for agent-to-agent communi
 
 From BUG-069:
 ```
-ccmux_send_orchestration returns:
+fugue_send_orchestration returns:
   {"delivered_count": 1, "success": true}
 
-But ccmux_poll_messages returns: nothing
+But fugue_poll_messages returns: nothing
 ```
 
 The message is "delivered" but never receivable.
@@ -44,8 +44,8 @@ The message is "delivered" but never receivable.
 
 ### 1. Current Implementation Audit
 
-- Trace `ccmux_send_orchestration` from MCP handler to delivery
-- Trace `ccmux_poll_messages` from queue to response
+- Trace `fugue_send_orchestration` from MCP handler to delivery
+- Trace `fugue_poll_messages` from queue to response
 - Identify where messages are lost
 - Document the actual message flow vs intended flow
 
@@ -64,7 +64,7 @@ The message is "delivered" but never receivable.
 - Document when to use each
 
 **Option B: Single unified mechanism**
-- One `ccmux_message` tool for all communication
+- One `fugue_message` tool for all communication
 - Deprecate convenience wrappers
 - Simplify mental model
 
@@ -76,7 +76,7 @@ The message is "delivered" but never receivable.
 **Option D: External integration**
 - Integrate mcp-agent-mail or similar
 - Delegate messaging to specialized system
-- ccmux focuses on terminal multiplexing
+- fugue focuses on terminal multiplexing
 
 ### 4. Reliability Requirements
 
@@ -114,7 +114,7 @@ The message is "delivered" but never receivable.
 - Trace message flow through codebase
 - Identify where BUG-069 messages are lost
 - Document actual vs expected behavior
-- Files: `ccmux-server/src/mcp/bridge/handlers.rs`, session management
+- Files: `fugue-server/src/mcp/bridge/handlers.rs`, session management
 
 ### Agent 2: Architecture Options
 - Evaluate consolidation options A-D

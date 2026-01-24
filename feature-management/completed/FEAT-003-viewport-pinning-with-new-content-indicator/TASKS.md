@@ -9,7 +9,7 @@
 - [ ] Read and understand PROMPT.md
 - [ ] Review PLAN.md and update if needed
 - [ ] Verify no blocking dependencies
-- [ ] Review current pane rendering code in ccmux-client
+- [ ] Review current pane rendering code in fugue-client
 
 ## Design Tasks
 
@@ -23,7 +23,7 @@
 ## Implementation Tasks
 
 ### Protocol Extension
-- [ ] Add viewport-related types to ccmux-protocol
+- [ ] Add viewport-related types to fugue-protocol
 - [ ] Define ViewportState struct (if shared)
 - [ ] Update protocol version if needed
 

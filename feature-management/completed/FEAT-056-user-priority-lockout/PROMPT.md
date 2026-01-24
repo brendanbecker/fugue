@@ -1,7 +1,7 @@
 # FEAT-056: User Priority Lockout for MCP Focus Control
 
 **Priority**: P2
-**Component**: ccmux-server, ccmux-client, ccmux-protocol
+**Component**: fugue-server, fugue-client, fugue-protocol
 **Type**: new_feature
 **Estimated Effort**: medium
 **Business Value**: medium
@@ -14,15 +14,15 @@ Add a user priority lockout system that prevents MCP focus operations from confl
 
 ## Problem Statement
 
-ccmux has two control paths that can conflict:
+fugue has two control paths that can conflict:
 
 1. **TUI Client**: User presses Ctrl+B (prefix key) which enters `PrefixPending` mode for 500ms, then the next key executes a command (pane navigation, window switching, etc.)
 
-2. **MCP Server**: Claude agents can call `ccmux_focus_pane`, `ccmux_select_window`, `ccmux_select_session` to change focus
+2. **MCP Server**: Claude agents can call `fugue_focus_pane`, `fugue_select_window`, `fugue_select_session` to change focus
 
 When both paths operate simultaneously, the user's intended target can change unexpectedly. For example:
 - User presses Ctrl+B intending to press `n` for next window
-- During the 500ms timeout, MCP agent calls `ccmux_select_pane`
+- During the 500ms timeout, MCP agent calls `fugue_select_pane`
 - Focus changes to MCP's target
 - User presses `n` which now operates on the wrong context
 
@@ -105,7 +105,7 @@ impl UserPriorityState {
 Modify focus-changing MCP handlers to check the lock:
 
 ```rust
-// In handlers.rs for ccmux_focus_pane, ccmux_select_window, ccmux_select_session
+// In handlers.rs for fugue_focus_pane, fugue_select_window, fugue_select_session
 
 async fn focus_pane(&self, params: FocusPaneParams) -> Result<FocusPaneResponse, McpError> {
     // Check user priority lock
@@ -136,7 +136,7 @@ async fn focus_pane(&self, params: FocusPaneParams) -> Result<FocusPaneResponse,
 Update input handling to send lock messages:
 
 ```rust
-// In ccmux-client/src/input/mod.rs
+// In fugue-client/src/input/mod.rs
 
 fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
     match &self.state {
@@ -224,13 +224,13 @@ Or with warn behavior:
 
 | File | Changes |
 |------|---------|
-| `ccmux-protocol/src/lib.rs` | Add `UserCommandModeEntered`, `UserCommandModeExited` messages |
-| `ccmux-server/src/session/mod.rs` | Add `UserPriorityState` tracking |
-| `ccmux-server/src/mcp/handlers.rs` | Add lock checking to focus operations (lines 610-690) |
-| `ccmux-server/src/handlers/client.rs` | Handle new client messages |
-| `ccmux-server/src/config.rs` | Add user_priority configuration |
-| `ccmux-client/src/input/mod.rs` | Send lock messages on prefix key (around line 278) |
-| `ccmux-client/src/ui/app.rs` | Wire up sending the new messages |
+| `fugue-protocol/src/lib.rs` | Add `UserCommandModeEntered`, `UserCommandModeExited` messages |
+| `fugue-server/src/session/mod.rs` | Add `UserPriorityState` tracking |
+| `fugue-server/src/mcp/handlers.rs` | Add lock checking to focus operations (lines 610-690) |
+| `fugue-server/src/handlers/client.rs` | Handle new client messages |
+| `fugue-server/src/config.rs` | Add user_priority configuration |
+| `fugue-client/src/input/mod.rs` | Send lock messages on prefix key (around line 278) |
+| `fugue-client/src/ui/app.rs` | Wire up sending the new messages |
 
 ## Use Cases
 
@@ -239,11 +239,11 @@ Or with warn behavior:
 ```
 User: Presses Ctrl+B (enters command mode)
 Server: Receives UserCommandModeEntered, sets lock for 500ms
-MCP: Calls ccmux_focus_pane
+MCP: Calls fugue_focus_pane
 Server: Rejects with user_priority_active error
 User: Presses 'n' (next window)
 Server: Receives UserCommandModeExited, releases lock
-MCP: Retries ccmux_focus_pane
+MCP: Retries fugue_focus_pane
 Server: Success (lock released)
 ```
 
@@ -254,7 +254,7 @@ User: Presses Ctrl+B (enters command mode)
 Server: Sets lock for 500ms
 User: Gets distracted, doesn't press anything
 Server: Lock expires after 500ms
-MCP: Calls ccmux_focus_pane
+MCP: Calls fugue_focus_pane
 Server: Success (lock expired)
 ```
 
@@ -264,7 +264,7 @@ Server: Success (lock expired)
 Client A: Presses Ctrl+B
 Server: Sets lock for Client A
 Client B: Using normally
-MCP: Calls ccmux_focus_pane
+MCP: Calls fugue_focus_pane
 Server: Rejects (Client A has lock)
 ```
 
@@ -289,9 +289,9 @@ Server: Rejects (Client A has lock)
 - [ ] Log lock state changes for debugging
 
 ### Section 4: MCP Handler Updates
-- [ ] Add lock check to `ccmux_focus_pane`
-- [ ] Add lock check to `ccmux_select_window`
-- [ ] Add lock check to `ccmux_select_session`
+- [ ] Add lock check to `fugue_focus_pane`
+- [ ] Add lock check to `fugue_select_window`
+- [ ] Add lock check to `fugue_select_session`
 - [ ] Implement reject behavior
 - [ ] Implement wait behavior (optional)
 - [ ] Implement warn behavior (optional)

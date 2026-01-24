@@ -1,4 +1,4 @@
-# BUG-072: ccmux_kill_session hang regression
+# BUG-072: fugue_kill_session hang regression
 
 **Priority**: P1
 **Component**: mcp, client, server
@@ -7,7 +7,7 @@
 
 ## Problem
 
-`ccmux_kill_session` is causing client hangs again, despite the fix in BUG-058 (commit `9fd2481`). This is a regression of the original issue.
+`fugue_kill_session` is causing client hangs again, despite the fix in BUG-058 (commit `9fd2481`). This is a regression of the original issue.
 
 ## Background
 
@@ -18,7 +18,7 @@ Original fix commit: `9fd2481bae9e07ab0d2d366088a285b8936ef960`
 ## Reproduction Steps
 
 1. Have multiple sessions running (orchestrator workflow with workers)
-2. Orchestrator calls `ccmux_kill_session` via MCP to kill a worker session
+2. Orchestrator calls `fugue_kill_session` via MCP to kill a worker session
 3. ~50% chance: Client hangs
 
 ## Expected Behavior
@@ -32,7 +32,7 @@ Client hangs after session is killed, similar to original BUG-058 symptoms.
 ### Detailed Observations (2026-01-23)
 
 **Trigger context:**
-- Using ccmux as orchestrator
+- Using fugue as orchestrator
 - Orchestrator kills worker sessions when work is complete
 - ~50/50 chance of hang occurring per kill operation
 - **Does not matter which session the user is viewing** - hang can occur regardless
@@ -91,7 +91,7 @@ Since `Ctrl+b s` works but entering a session doesn't, the issue may be in the s
 
 ## Acceptance Criteria
 
-- [ ] `ccmux_kill_session` completes without hanging the client
+- [ ] `fugue_kill_session` completes without hanging the client
 - [ ] Root cause of regression identified and documented
 - [ ] Fix addresses regression without breaking original fix
 - [ ] Client remains fully operational after session kill (can select sessions, create new ones)
@@ -100,10 +100,10 @@ Since `Ctrl+b s` works but entering a session doesn't, the issue may be in the s
 
 ## Related Files
 
-- `ccmux-server/src/session/manager.rs` - Session destruction logic
-- `ccmux-server/src/mcp/bridge/handlers.rs` - kill_session MCP handler
-- `ccmux-client/src/ui/app.rs` - Client state management
-- `ccmux-protocol/src/messages.rs` - SessionEnded message
+- `fugue-server/src/session/manager.rs` - Session destruction logic
+- `fugue-server/src/mcp/bridge/handlers.rs` - kill_session MCP handler
+- `fugue-client/src/ui/app.rs` - Client state management
+- `fugue-protocol/src/messages.rs` - SessionEnded message
 
 ## Related Issues
 

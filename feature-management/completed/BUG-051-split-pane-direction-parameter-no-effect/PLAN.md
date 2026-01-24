@@ -16,19 +16,19 @@ The split pane direction parameter is being ignored, resulting in all splits pro
 
 ## Investigation Path
 
-1. **MCP Handler** (`crates/ccmux-mcp-bridge/src/handlers/`)
+1. **MCP Handler** (`crates/fugue-mcp-bridge/src/handlers/`)
    - Check `split_pane` handler for direction parameter handling
    - Verify direction is passed to the daemon
 
-2. **Protocol Messages** (`crates/ccmux-protocol/`)
+2. **Protocol Messages** (`crates/fugue-protocol/`)
    - Check `SplitPane` request struct includes direction
    - Verify direction enum is properly defined
 
-3. **Daemon Handler** (`crates/ccmux-daemon/`)
+3. **Daemon Handler** (`crates/fugue-daemon/`)
    - Check how split requests are processed
    - Verify direction is used when creating the split
 
-4. **Layout Engine** (`crates/ccmux-tui/` or similar)
+4. **Layout Engine** (`crates/fugue-tui/` or similar)
    - Check how panes are positioned
    - Verify direction affects the layout calculation
 

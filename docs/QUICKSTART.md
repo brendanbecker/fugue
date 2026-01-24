@@ -1,6 +1,6 @@
-# ccmux Quickstart Guide
+# fugue Quickstart Guide
 
-Get up and running with ccmux in 5 minutes.
+Get up and running with fugue in 5 minutes.
 
 ## Prerequisites
 
@@ -10,25 +10,25 @@ Get up and running with ccmux in 5 minutes.
 ## Build
 
 ```bash
-cd /path/to/ccmux
+cd /path/to/fugue
 cargo build --release
 ```
 
 This produces two binaries:
-- `target/release/ccmux` - The client (what you run)
-- `target/release/ccmux-server` - The daemon (starts automatically)
+- `target/release/fugue` - The client (what you run)
+- `target/release/fugue-server` - The daemon (starts automatically)
 
 ## First Run
 
 ```bash
-./target/release/ccmux
+./target/release/fugue
 ```
 
 You'll see the **session picker**:
 
 ```
 ┌─────────────────────────────────────┐
-│         ccmux Sessions              │
+│         fugue Sessions              │
 ├─────────────────────────────────────┤
 │   (no sessions)                     │
 │                                     │
@@ -67,7 +67,7 @@ All commands use the **prefix key** `Ctrl+b` (same as tmux).
 
 ## Example Workflow
 
-1. **Start ccmux**: `./target/release/ccmux`
+1. **Start fugue**: `./target/release/fugue`
 2. **Create session**: Press `n`
 3. **Split for editor + terminal**:
    - `Ctrl+b %` (vertical split)
@@ -75,20 +75,20 @@ All commands use the **prefix key** `Ctrl+b` (same as tmux).
    - `Ctrl+b l` (move to right pane)
    - Right pane: `cargo watch -x check`
 4. **Detach**: `Ctrl+b d`
-5. **Later, reattach**: `./target/release/ccmux` and select your session
+5. **Later, reattach**: `./target/release/fugue` and select your session
 
 ## Running Claude
 
 ### Option 1: Launch Claude in a session
 
 ```bash
-# Start ccmux with Claude as the default command
-./target/release/ccmux claude
+# Start fugue with Claude as the default command
+./target/release/fugue claude
 ```
 
 ### Option 2: Configure default command
 
-Create `~/.config/ccmux/config.toml`:
+Create `~/.config/fugue/config.toml`:
 
 ```toml
 [general]
@@ -100,12 +100,12 @@ Now every new session starts Claude automatically.
 ### Option 3: Resume a Claude session
 
 ```bash
-./target/release/ccmux claude --resume
+./target/release/fugue claude --resume
 ```
 
 This resumes your most recent Claude conversation.
 
-## MCP Integration (Claude controls ccmux)
+## MCP Integration (Claude controls fugue)
 
 To let Claude create panes, run commands, and read output:
 
@@ -114,8 +114,8 @@ To let Claude create panes, run commands, and read output:
 ```json
 {
   "mcpServers": {
-    "ccmux": {
-      "command": "/absolute/path/to/ccmux-server",
+    "fugue": {
+      "command": "/absolute/path/to/fugue-server",
       "args": ["mcp-bridge"]
     }
   }
@@ -124,7 +124,7 @@ To let Claude create panes, run commands, and read output:
 
 2. Restart Claude Code
 
-3. Claude now has access to 18 MCP tools for controlling ccmux
+3. Claude now has access to 18 MCP tools for controlling fugue
 
 Example prompt: "Create a split layout with vim on the left and run the tests on the right"
 
@@ -151,7 +151,7 @@ Sessions survive:
 
 ### Running multiple Claudes
 
-ccmux automatically isolates each Claude instance with its own config directory. No conflicts when running multiple Claude panes.
+fugue automatically isolates each Claude instance with its own config directory. No conflicts when running multiple Claude panes.
 
 ## Next Steps
 

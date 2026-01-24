@@ -1,6 +1,6 @@
 # Gemini Research Document - Section Abstracts
 
-> Source: `/home/becker/projects/tools/ccmux/docs/research/gemini_research.md`
+> Source: `/home/becker/projects/tools/fugue/docs/research/gemini_research.md`
 > Each abstract: 100-200 tokens summarizing section content
 
 ---
@@ -8,14 +8,14 @@
 ## 1. Terminal Emulation in Rust
 **Lines 3-119 | ~1,450 tokens**
 
-Comprehensive guide to building terminal emulation in Rust for ccmux. Covers PTY spawning via `portable-pty` crate from WezTerm, which provides cross-platform abstraction over Unix/Windows PTY interfaces. Details the four-step PTY dance (open master, grant/unlock, spawn child, handshake) and async I/O integration with Tokio. Recommends `alacritty_terminal` over `vt100` for state parsing due to superior handling of alternate screen buffers and edge cases. Explains the adapter pattern needed to bridge Alacritty's Cell type to Ratatui's Buffer, including color mapping and dirty-rect optimization for 60fps with 10+ panes.
+Comprehensive guide to building terminal emulation in Rust for fugue. Covers PTY spawning via `portable-pty` crate from WezTerm, which provides cross-platform abstraction over Unix/Windows PTY interfaces. Details the four-step PTY dance (open master, grant/unlock, spawn child, handshake) and async I/O integration with Tokio. Recommends `alacritty_terminal` over `vt100` for state parsing due to superior handling of alternate screen buffers and edge cases. Explains the adapter pattern needed to bridge Alacritty's Cell type to Ratatui's Buffer, including color mapping and dirty-rect optimization for 60fps with 10+ panes.
 
 ---
 
 ## 2. Claude Code Internals
 **Lines 120-176 | ~850 tokens**
 
-Documents Claude Code's observable behaviors for building "Claude Awareness" in ccmux. Identifies visual telemetry states (Thinking/Channelling, Synthesizing, Discombobulating, Waiting) detectable via carriage return patterns in the byte stream. Recommends `--output-format stream-json` for spawning managed Claude panes, enabling real-time parsing of token usage and cognitive state without screen clutter. Details session resume mechanism via `claude --resume <session_id>` with state stored in `~/.claude/`. Notes absence of formal IPC socket - interaction limited to STDIN injection, filesystem watchers, or future MCP.
+Documents Claude Code's observable behaviors for building "Claude Awareness" in fugue. Identifies visual telemetry states (Thinking/Channelling, Synthesizing, Discombobulating, Waiting) detectable via carriage return patterns in the byte stream. Recommends `--output-format stream-json` for spawning managed Claude panes, enabling real-time parsing of token usage and cognitive state without screen clutter. Details session resume mechanism via `claude --resume <session_id>` with state stored in `~/.claude/`. Notes absence of formal IPC socket - interaction limited to STDIN injection, filesystem watchers, or future MCP.
 
 ---
 
@@ -29,7 +29,7 @@ Establishes the Daemon-Client architecture as mandatory for session persistence.
 ## 4. Prior Art in Terminal Multiplexers
 **Lines 219-258 | ~520 tokens**
 
-Analyzes four terminal multiplexers for ccmux design lessons. **tmux**: Validates client/server separation as essential. **Zellij**: Rust-based with WASM plugins; adopt KDL layout format. **WezTerm**: Proves Rust viability for high-performance terminal emulation; source of `portable-pty`. **shpool**: Demonstrates session persistence as distinct problem; potential dependency for "keep alive" functionality. Comparison matrix shows ccmux targets deep Claude semantic awareness vs limited/none in existing tools, with MCP+Rust extensibility vs WASM or custom DSL.
+Analyzes four terminal multiplexers for fugue design lessons. **tmux**: Validates client/server separation as essential. **Zellij**: Rust-based with WASM plugins; adopt KDL layout format. **WezTerm**: Proves Rust viability for high-performance terminal emulation; source of `portable-pty`. **shpool**: Demonstrates session persistence as distinct problem; potential dependency for "keep alive" functionality. Comparison matrix shows fugue targets deep Claude semantic awareness vs limited/none in existing tools, with MCP+Rust extensibility vs WASM or custom DSL.
 
 ---
 
@@ -43,7 +43,7 @@ Patterns for modifying keybindings and layouts without restart. Use `notify` cra
 ## 6. Claude Code Skills for Structured Output
 **Lines 300-339 | ~520 tokens**
 
-Strategies for formal Claude-ccmux communication beyond regex scraping. Primary recommendation: ccmux as MCP Server using `mcp-rust-sdk` (rmcp), exposing tools like `create_pane()`, `read_pane_output()`, `list_panes()`. Claude sees these tools and can call them for deterministic layout changes. Fallback: XML-like sideband protocol defined in CLAUDE.md (e.g., `<ccmux-action type="spawn">`), parsed from stream and hidden from display. Notes that stream-json preferred over JSON mode for incremental text display with structured control signals.
+Strategies for formal Claude-fugue communication beyond regex scraping. Primary recommendation: fugue as MCP Server using `mcp-rust-sdk` (rmcp), exposing tools like `create_pane()`, `read_pane_output()`, `list_panes()`. Claude sees these tools and can call them for deterministic layout changes. Fallback: XML-like sideband protocol defined in CLAUDE.md (e.g., `<fugue-action type="spawn">`), parsed from stream and hidden from display. Notes that stream-json preferred over JSON mode for incremental text display with structured control signals.
 
 ---
 
@@ -64,14 +64,14 @@ Three-phase roadmap. **Phase 1 (Foundation)**: Daemon/Client with Tokio + portab
 ## Code Examples
 **Lines 389-474 | ~900 tokens**
 
-Two production-ready code samples. **Alacritty-Ratatui Adapter**: Function `render_grid_to_buffer()` using Alacritty's `display_iter()` for optimized sparse iteration, mapping Cell attributes (fg, bg, flags) to Ratatui Style including TrueColor RGB preservation. **Hot-Reload Config**: `ArcSwap<AppConfig>` static with `notify-debouncer-full` watching ccmux.toml, 500ms debounce, atomic store on change.
+Two production-ready code samples. **Alacritty-Ratatui Adapter**: Function `render_grid_to_buffer()` using Alacritty's `display_iter()` for optimized sparse iteration, mapping Cell attributes (fg, bg, flags) to Ratatui Style including TrueColor RGB preservation. **Hot-Reload Config**: `ArcSwap<AppConfig>` static with `notify-debouncer-full` watching fugue.toml, 500ms debounce, atomic store on change.
 
 ---
 
 ## Conclusion
 **Lines 475-478 | ~180 tokens**
 
-Positions ccmux as "smart containers" vs "dumb pipes" - a bidirectional control surface for developer-AI collaboration. Core stack: portable-pty + alacritty_terminal + Actor model + MCP integration. Daemon/Client split with shpool-inspired persistence ensures daily-driver reliability.
+Positions fugue as "smart containers" vs "dumb pipes" - a bidirectional control surface for developer-AI collaboration. Core stack: portable-pty + alacritty_terminal + Actor model + MCP integration. Daemon/Client split with shpool-inspired persistence ensures daily-driver reliability.
 
 ---
 

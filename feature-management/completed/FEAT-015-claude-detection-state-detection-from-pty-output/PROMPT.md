@@ -1,7 +1,7 @@
 # FEAT-015: Claude Detection - State Detection from PTY Output
 
 **Priority**: P1
-**Component**: ccmux-server
+**Component**: fugue-server
 **Type**: new_feature
 **Estimated Effort**: large
 **Business Value**: high
@@ -23,9 +23,9 @@ Detect Claude Code state from PTY output (thinking, idle, tool use), capture ses
 
 ## Affected Files
 
-- `ccmux-server/src/claude/detector.rs`
-- `ccmux-server/src/claude/state.rs`
-- `ccmux-server/src/claude/mod.rs`
+- `fugue-server/src/claude/detector.rs`
+- `fugue-server/src/claude/state.rs`
+- `fugue-server/src/claude/mod.rs`
 
 ## Implementation Tasks
 

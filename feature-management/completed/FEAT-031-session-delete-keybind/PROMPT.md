@@ -1,7 +1,7 @@
 # FEAT-031: Session Delete/Kill Keybind in Session Select UI
 
 **Priority**: P2
-**Component**: ccmux-client
+**Component**: fugue-client
 **Type**: enhancement
 **Estimated Effort**: small (1-2 hours)
 **Business Value**: medium
@@ -41,7 +41,7 @@ Add the ability to delete/kill sessions from the session selection UI screen. Us
 
 ## Current State
 
-The session selection UI exists in `ccmux-client/src/ui/app.rs`:
+The session selection UI exists in `fugue-client/src/ui/app.rs`:
 - `handle_session_select_input()` handles keyboard input for session select
 - Current keybinds: Up/Down/j/k (navigate), Enter (attach), n (new), r (refresh), q (quit)
 - No delete/kill functionality exists yet
@@ -50,17 +50,17 @@ The protocol layer may need a new `DestroySession` message type.
 
 ## Location
 
-- **Primary file**: `ccmux-client/src/ui/app.rs`
+- **Primary file**: `fugue-client/src/ui/app.rs`
 - **Handler**: `handle_session_select_input()`
-- **Protocol**: `ccmux-protocol/src/lib.rs` (for new message type)
-- **Server handler**: `ccmux-server/src/server.rs` (to handle destroy request)
+- **Protocol**: `fugue-protocol/src/lib.rs` (for new message type)
+- **Server handler**: `fugue-server/src/server.rs` (to handle destroy request)
 
 ## Affected Files
 
-- `ccmux-client/src/ui/app.rs` - Add Ctrl+D/X handler in session select
-- `ccmux-protocol/src/lib.rs` - Add `DestroySession` message type (if not exists)
-- `ccmux-server/src/server.rs` - Handle destroy session request
-- `ccmux-server/src/session.rs` - Session destruction logic
+- `fugue-client/src/ui/app.rs` - Add Ctrl+D/X handler in session select
+- `fugue-protocol/src/lib.rs` - Add `DestroySession` message type (if not exists)
+- `fugue-server/src/server.rs` - Handle destroy session request
+- `fugue-server/src/session.rs` - Session destruction logic
 
 ## Implementation Tasks
 

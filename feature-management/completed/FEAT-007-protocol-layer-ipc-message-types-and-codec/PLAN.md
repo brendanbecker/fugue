@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-007
 
 **Work Item**: [FEAT-007: Protocol Layer - IPC Message Types and Codec](PROMPT.md)
-**Component**: ccmux-protocol
+**Component**: fugue-protocol
 **Priority**: P1
 **Created**: 2026-01-08
 **Status**: Completed
@@ -61,8 +61,8 @@ Bincode selected for:
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-protocol/src/lib.rs | New - message types | Low |
-| ccmux-protocol/src/codec.rs | New - tokio codec | Low |
+| fugue-protocol/src/lib.rs | New - message types | Low |
+| fugue-protocol/src/codec.rs | New - tokio codec | Low |
 
 ## Dependencies
 

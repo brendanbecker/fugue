@@ -12,9 +12,9 @@ Mirror panes created across sessions show no output. The mirror pane is created 
 ## Reproduction Steps
 
 1. Have an orchestrator in `session-0`
-2. Create a worker session: `ccmux_create_session(name: "worker")`
+2. Create a worker session: `fugue_create_session(name: "worker")`
 3. Get the worker's pane ID
-4. From session-0, create a mirror: `ccmux_mirror_pane(source_pane_id: "<worker-pane>", direction: "horizontal")`
+4. From session-0, create a mirror: `fugue_mirror_pane(source_pane_id: "<worker-pane>", direction: "horizontal")`
 5. Observe: Mirror pane appears in session-0 but is blank
 6. Read worker pane: Has content (Claude thinking spinner, output, etc.)
 7. Read mirror pane: Empty
@@ -38,9 +38,9 @@ The mirror pane implementation needs to:
 
 ## Relevant Code
 
-- `ccmux-server/src/handlers/pane.rs` - `handle_create_mirror`
-- `ccmux-server/src/session/` - Session and pane management
-- `ccmux-server/src/pty/` - PTY output handling
+- `fugue-server/src/handlers/pane.rs` - `handle_create_mirror`
+- `fugue-server/src/session/` - Session and pane management
+- `fugue-server/src/pty/` - PTY output handling
 
 ## Acceptance Criteria
 
@@ -58,7 +58,7 @@ This bug significantly reduces the value of the mirror pane feature for "plate s
 
 ## Workarounds
 
-1. Use `ccmux_read_pane` to periodically poll worker output
+1. Use `fugue_read_pane` to periodically poll worker output
 2. Switch to the worker session directly
 3. Create mirror panes within the same session (limited use)
 
@@ -77,14 +77,14 @@ Found during Session 14 QA while attempting to monitor bug-065-worker agent via 
 
 Fixed in Session 15 by implementing cross-session output forwarding in two places:
 
-### 1. Output Forwarding (`ccmux-server/src/pty/output.rs`)
+### 1. Output Forwarding (`fugue-server/src/pty/output.rs`)
 
 Added logic to the `flush()` method of `PtyOutputPoller` to check if the source pane has any mirrors in other sessions. When forwarding output:
 - Query the `MirrorRegistry` for all mirrors of the source pane
 - For each mirror in a different session, create an `Output` message with the **mirror's pane_id**
 - Broadcast to the mirror's session so the TUI routes it correctly
 
-### 2. Initial Scrollback (`ccmux-server/src/handlers/pane.rs`)
+### 2. Initial Scrollback (`fugue-server/src/handlers/pane.rs`)
 
 Added logic to `handle_create_mirror()` to copy existing scrollback content when a mirror is created:
 - Read the source pane's scrollback lines

@@ -17,7 +17,7 @@ Enable dynamic, agent-driven configuration of individual panes or sessions when 
 ## Design
 ### Sideband Syntax
 ```xml
-<ccmux:spawn pane command="llm chat -m gemini-2.0-flash" config='{"cwd":"/tmp/agent-xyz","env":{"API_KEY":"sk-...","LLM_TIMEOUT":"120"},"isolate":true,"readonly":true,"timeout_secs":300}'>
+<fugue:spawn pane command="llm chat -m gemini-2.0-flash" config='{"cwd":"/tmp/agent-xyz","env":{"API_KEY":"sk-...","LLM_TIMEOUT":"120"},"isolate":true,"readonly":true,"timeout_secs":300}'>
 ```
 
 ### Supported Config Keys (Initial Set)
@@ -41,7 +41,7 @@ Enable dynamic, agent-driven configuration of individual panes or sessions when 
 - [ ] Implement safe JSON parsing using `serde_json`.
 
 ### Section 2: Server Implementation
-- [ ] Apply configuration before `Command::new()` in `ccmux-server`.
+- [ ] Apply configuration before `Command::new()` in `fugue-server`.
   - [ ] `cwd` handling.
   - [ ] `env` merging/overriding.
   - [ ] `isolate_fs` implementation (tempdir).
@@ -49,8 +49,8 @@ Enable dynamic, agent-driven configuration of individual panes or sessions when 
 - [ ] Implement fallback logging for invalid JSON.
 
 ### Section 3: MCP Tools (Optional/Phase 2)
-- [ ] Add `ccmux_create_pane_with_config` MCP tool.
-- [ ] Add `ccmux_set_pane_config` MCP tool.
+- [ ] Add `fugue_create_pane_with_config` MCP tool.
+- [ ] Add `fugue_set_pane_config` MCP tool.
 
 ### Section 4: Testing & Documentation
 - [ ] Add integration tests for configured spawns.

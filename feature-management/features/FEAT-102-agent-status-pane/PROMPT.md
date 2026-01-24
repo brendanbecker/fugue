@@ -2,11 +2,11 @@
 
 ## Summary
 
-A dedicated status pane that displays real-time agent activity across all ccmux sessions. Unlike the full-screen dashboard (FEAT-073), this is a **pane** that lives alongside other panes, enabling "orchestrator + status view" layouts for multi-agent supervision.
+A dedicated status pane that displays real-time agent activity across all fugue sessions. Unlike the full-screen dashboard (FEAT-073), this is a **pane** that lives alongside other panes, enabling "orchestrator + status view" layouts for multi-agent supervision.
 
 ## Problem Statement
 
-When orchestrating multiple AI agents across ccmux sessions, the orchestrator needs continuous visibility into agent states without switching away from their working context. The existing dashboard (prefix + D) is a full-screen view mode that replaces the terminal view, forcing a context switch.
+When orchestrating multiple AI agents across fugue sessions, the orchestrator needs continuous visibility into agent states without switching away from their working context. The existing dashboard (prefix + D) is a full-screen view mode that replaces the terminal view, forcing a context switch.
 
 **Target Layout:**
 ```
@@ -51,21 +51,21 @@ When orchestrating multiple AI agents across ccmux sessions, the orchestrator ne
 
 ### Data Sources
 
-All data comes from existing ccmux primitives (no new protocol required):
+All data comes from existing fugue primitives (no new protocol required):
 
 | Data | Source |
 |------|--------|
-| Agent list | `ccmux_list_panes` (filter `is_claude` or `state: agent`) |
+| Agent list | `fugue_list_panes` (filter `is_claude` or `state: agent`) |
 | Cognitive state | `PaneInfo.state` → `AgentState.activity` |
-| Session tags | `ccmux_get_tags` |
+| Session tags | `fugue_get_tags` |
 | Beads assignment | Session metadata (`beads.current_issue`) |
-| Recent output | `ccmux_read_pane` (tail) |
+| Recent output | `fugue_read_pane` (tail) |
 
 ### MCP Tool
 
 ```json
 {
-  "name": "ccmux_create_status_pane",
+  "name": "fugue_create_status_pane",
   "description": "Create an agent status pane showing real-time activity across all sessions",
   "inputSchema": {
     "type": "object",
@@ -134,7 +134,7 @@ Create a regular pane running a status script that polls and renders.
 
 **Pros:**
 - No core changes needed
-- Could be a separate binary (`ccmux-status`)
+- Could be a separate binary (`fugue-status`)
 
 **Cons:**
 - Higher resource usage (polling loop)
@@ -142,7 +142,7 @@ Create a regular pane running a status script that polls and renders.
 
 ## Acceptance Criteria
 
-1. [ ] `ccmux_create_status_pane` tool creates a split pane showing agent status
+1. [ ] `fugue_create_status_pane` tool creates a split pane showing agent status
 2. [ ] Status pane displays all detected agents with cognitive state
 3. [ ] Cognitive state includes duration timer (e.g., "Thinking (45s)")
 4. [ ] Activity feed shows recent tool calls and file operations

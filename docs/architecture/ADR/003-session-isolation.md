@@ -6,7 +6,7 @@
 
 ## Context
 
-Claude Code writes state to `~/.claude.json` at approximately 1.5 writes per second during active use. When running multiple Claude instances (e.g., in different ccmux panes), this causes race conditions:
+Claude Code writes state to `~/.claude.json` at approximately 1.5 writes per second during active use. When running multiple Claude instances (e.g., in different fugue panes), this causes race conditions:
 
 ```
 Time    Instance A              Instance B              ~/.claude.json
@@ -47,7 +47,7 @@ HOME=/tmp/claude-instance-1 claude
 Set `CLAUDE_CONFIG_DIR` to a per-instance directory:
 
 ```bash
-CLAUDE_CONFIG_DIR=~/.ccmux/claude-configs/pane-abc123 claude
+CLAUDE_CONFIG_DIR=~/.fugue/claude-configs/pane-abc123 claude
 ```
 
 **Pros:**
@@ -91,7 +91,7 @@ claude --session-id unique-id-per-pane
    - Git config, SSH keys accessible
 
 2. **Clean isolation**: Only Claude's state isolated
-   - Each pane gets: `~/.ccmux/claude-configs/pane-<uuid>/`
+   - Each pane gets: `~/.fugue/claude-configs/pane-<uuid>/`
    - Contains: `.claude.json`, session files
    - No interference between instances
 
@@ -109,7 +109,7 @@ claude --session-id unique-id-per-pane
 impl Pane {
     /// Get isolated config directory for this pane's Claude instance
     pub fn claude_config_dir(&self) -> PathBuf {
-        ccmux_utils::state_dir()
+        fugue_utils::state_dir()
             .join("claude-configs")
             .join(format!("pane-{}", self.id))
     }
@@ -141,7 +141,7 @@ impl Pane {
 ### Directory Structure
 
 ```
-~/.ccmux/
+~/.fugue/
 └── claude-configs/
     ├── pane-550e8400-e29b-41d4-a716-446655440000/
     │   ├── .claude.json          # This pane's session state
@@ -160,7 +160,7 @@ For cases where CLAUDE_CONFIG_DIR doesn't work:
 ```rust
 impl Pane {
     pub fn spawn_claude_with_home_isolation(&mut self) -> Result<()> {
-        let isolated_home = ccmux_utils::state_dir()
+        let isolated_home = fugue_utils::state_dir()
             .join("claude-homes")
             .join(format!("pane-{}", self.id));
 
@@ -212,7 +212,7 @@ impl Pane {
 ### Configuration
 
 ```toml
-# ~/.ccmux/config/ccmux.toml
+# ~/.fugue/config/fugue.toml
 
 [claude.isolation]
 # Isolation method: config_dir, home, none

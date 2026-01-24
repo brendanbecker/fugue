@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-016
 
 **Work Item**: [FEAT-016: Persistence - Checkpoint and WAL for Crash Recovery](PROMPT.md)
-**Component**: ccmux-server
+**Component**: fugue-server
 **Priority**: P2
 **Created**: 2026-01-08
 **Status**: Not Started
@@ -43,7 +43,7 @@ The persistence layer uses a two-tier approach:
               v                             v
     +---------+----------------------------+----------+
     |              Persistence Directory              |
-    |  /run/ccmux/{session-id}/                       |
+    |  /run/fugue/{session-id}/                       |
     |    - wal/                                       |
     |    - checkpoints/                               |
     |    - scrollback/                                |
@@ -136,7 +136,7 @@ struct PaneSnapshot {
 ```toml
 [persistence]
 enabled = true
-directory = "/run/ccmux"
+directory = "/run/fugue"
 checkpoint_interval_secs = 300  # 5 minutes
 wal_flush_interval_ms = 100
 max_wal_size_mb = 100
@@ -148,13 +148,13 @@ scrollback_max_lines = 10000
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/persistence/mod.rs | New module | Low |
-| ccmux-server/src/persistence/wal.rs | New - WAL implementation | High |
-| ccmux-server/src/persistence/checkpoint.rs | New - Checkpoint logic | High |
-| ccmux-server/src/persistence/recovery.rs | New - Recovery logic | High |
-| ccmux-server/src/persistence/serialization.rs | New - Serde helpers | Medium |
-| ccmux-server/src/session/manager.rs | Modification - WAL integration | Medium |
-| ccmux-server/src/config/schema.rs | Modification - Persistence config | Low |
+| fugue-server/src/persistence/mod.rs | New module | Low |
+| fugue-server/src/persistence/wal.rs | New - WAL implementation | High |
+| fugue-server/src/persistence/checkpoint.rs | New - Checkpoint logic | High |
+| fugue-server/src/persistence/recovery.rs | New - Recovery logic | High |
+| fugue-server/src/persistence/serialization.rs | New - Serde helpers | Medium |
+| fugue-server/src/session/manager.rs | Modification - WAL integration | Medium |
+| fugue-server/src/config/schema.rs | Modification - Persistence config | Low |
 
 ## Dependencies
 

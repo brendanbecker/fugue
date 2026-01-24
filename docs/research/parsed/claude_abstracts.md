@@ -1,6 +1,6 @@
-# ccmux Research Document - Section Abstracts (Claude)
+# fugue Research Document - Section Abstracts (Claude)
 
-> Source: `/home/becker/projects/tools/ccmux/docs/research/claude_research.md`
+> Source: `/home/becker/projects/tools/fugue/docs/research/claude_research.md`
 > Each abstract: 100-200 tokens summarizing section content
 
 ---
@@ -31,7 +31,7 @@ Terminal state includes primary/alternate screens, scrollback, cursor, modes. Ru
 
 ## Section 4: Prior Art & Architecture (L249-300)
 
-Terminal multiplexers use client-server for persistence. **tmux**: 6MB baseline, Server→Sessions→Windows→Panes hierarchy, Unix sockets with imsg, grid uses 4-byte cells. Pain points: external persistence plugins, complex syntax. **Zellij**: 80MB footprint, multi-crate workspace (client/server/utils/tile), WASM plugins with explicit permissions. Better UI/restore/floating panes, but 13x memory. Recommended ccmux structure: ccmux-client, ccmux-server, ccmux-utils, ccmux-protocol. Adopt tmux hierarchy with Zellij crate separation.
+Terminal multiplexers use client-server for persistence. **tmux**: 6MB baseline, Server→Sessions→Windows→Panes hierarchy, Unix sockets with imsg, grid uses 4-byte cells. Pain points: external persistence plugins, complex syntax. **Zellij**: 80MB footprint, multi-crate workspace (client/server/utils/tile), WASM plugins with explicit permissions. Better UI/restore/floating panes, but 13x memory. Recommended fugue structure: fugue-client, fugue-server, fugue-utils, fugue-protocol. Adopt tmux hierarchy with Zellij crate separation.
 
 ---
 
@@ -43,13 +43,13 @@ Use **notify** crate with debouncing for atomic writes and rapid saves. Watch pa
 
 ## Section 6: Claude Skills Protocol (L410-506)
 
-SKILL.md and CLAUDE.md define ccmux output protocol. XML-like namespaced tags (`<ccmux:spawn>`) preferred over JSON: streams naturally, tolerates partial output, integrates with prose, ~95-98% compliance vs 60-90% for JSON. Protocol: `<ccmux:spawn layout="vertical" pane-id="worker-1">`, `<ccmux:input to="worker-1">`, `<ccmux:control action="close">`. Store SKILL.md in `.claude/skills/ccmux/`. Streaming parser with 5s timeout recovery for truncated tags. Disallow direct nesting; use flat structure with parent references.
+SKILL.md and CLAUDE.md define fugue output protocol. XML-like namespaced tags (`<fugue:spawn>`) preferred over JSON: streams naturally, tolerates partial output, integrates with prose, ~95-98% compliance vs 60-90% for JSON. Protocol: `<fugue:spawn layout="vertical" pane-id="worker-1">`, `<fugue:input to="worker-1">`, `<fugue:control action="close">`. Store SKILL.md in `.claude/skills/fugue/`. Streaming parser with 5s timeout recovery for truncated tags. Disallow direct nesting; use flat structure with parent references.
 
 ---
 
 ## Section 7: Recursion Control & Supervision (L509-624)
 
-Prevent runaway spawns via environment variable depth tracking (`CCMUX_SESSION_DEPTH`), cgroups limits, and OTP supervision. Max depth: 3-5 levels with explicit errors. Session tree tracks nodes with parent/children, status (Running/Completed/Crashed/Timeout). Erlang strategies: one_for_one for independent tasks, simple_one_for_one for worker pools. Restart intensity: 3 per 60s. cgroups via **cgroups-rs**: 2GB memory, 50% CPU, 100 processes per session. Fan-out with semaphore for max parallelism. Defaults: depth 5, concurrent 8-16, timeout 300s.
+Prevent runaway spawns via environment variable depth tracking (`FUGUE_SESSION_DEPTH`), cgroups limits, and OTP supervision. Max depth: 3-5 levels with explicit errors. Session tree tracks nodes with parent/children, status (Running/Completed/Crashed/Timeout). Erlang strategies: one_for_one for independent tasks, simple_one_for_one for worker pools. Restart intensity: 3 per 60s. cgroups via **cgroups-rs**: 2GB memory, 50% CPU, 100 processes per session. Fan-out with semaphore for max parallelism. Defaults: depth 5, concurrent 8-16, timeout 300s.
 
 ---
 

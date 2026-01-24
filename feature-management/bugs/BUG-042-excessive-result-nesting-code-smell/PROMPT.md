@@ -1,7 +1,7 @@
 # BUG-042: Excessive Result Nesting (Ok(Ok(...))) in MCP Handlers
 
 ## Overview
-During the FEAT-064 refactor and subsequent merges, we observed pattern matching on `Ok(Ok(ServerMessage::Error { ... }))` in `ccmux-server/src/mcp/bridge/handlers.rs`. This indicates that `recv_response_from_daemon` or the handler logic is double-wrapping results, forcing verbose and brittle matching.
+During the FEAT-064 refactor and subsequent merges, we observed pattern matching on `Ok(Ok(ServerMessage::Error { ... }))` in `fugue-server/src/mcp/bridge/handlers.rs`. This indicates that `recv_response_from_daemon` or the handler logic is double-wrapping results, forcing verbose and brittle matching.
 
 ## Impact
 - **Maintainability**: Harder to read and modify handler logic.

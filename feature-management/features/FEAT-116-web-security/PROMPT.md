@@ -1,14 +1,14 @@
 # FEAT-116: Web Security and Authentication
 
 **Priority**: P2
-**Component**: ccmux-web
+**Component**: fugue-web
 **Effort**: Medium
 **Status**: new
 **Depends On**: FEAT-113
 
 ## Summary
 
-Add security features to the ccmux web interface: TLS/HTTPS support, token-based authentication, and origin validation. Required before exposing ccmux-web beyond localhost.
+Add security features to the fugue web interface: TLS/HTTPS support, token-based authentication, and origin validation. Required before exposing fugue-web beyond localhost.
 
 ## Related Features
 
@@ -16,7 +16,7 @@ Add security features to the ccmux web interface: TLS/HTTPS support, token-based
 
 ## Motivation
 
-- **Remote Access**: Safely expose ccmux over the network
+- **Remote Access**: Safely expose fugue over the network
 - **Access Control**: Prevent unauthorized terminal access
 - **Data Protection**: Encrypt terminal traffic in transit
 - **Production Ready**: Meet minimum security standards for deployment
@@ -39,14 +39,14 @@ Add security features to the ccmux web interface: TLS/HTTPS support, token-based
 ┌─────────────────────────────────────────────────────┐
 │ Untrusted: Internet                                 │
 │                                                     │
-│   Browser ──── TLS ────► ccmux-web                  │
+│   Browser ──── TLS ────► fugue-web                  │
 │              (encrypted)    │                       │
 │                             │ Auth required         │
 │                             ▼                       │
 │   ┌─────────────────────────────────────────────┐   │
 │   │ Trusted: Local system                       │   │
 │   │                                             │   │
-│   │   ccmux-web ──► ccmux-client ──► ccmux-server  │
+│   │   fugue-web ──► fugue-client ──► fugue-server  │
 │   │            (unix socket, local PTY)         │   │
 │   └─────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────┘
@@ -59,14 +59,14 @@ Add security features to the ccmux web interface: TLS/HTTPS support, token-based
 Enable HTTPS with user-provided certificates.
 
 ```toml
-# ~/.ccmux/config.toml
+# ~/.fugue/config.toml
 [web.tls]
 enabled = true
 cert_path = "/path/to/cert.pem"
 key_path = "/path/to/key.pem"
 ```
 
-**Implementation** (`ccmux-web/src/tls.rs`):
+**Implementation** (`fugue-web/src/tls.rs`):
 ```rust
 use axum_server::tls_rustls::RustlsConfig;
 
@@ -104,13 +104,13 @@ Simple token-based auth for single-user scenarios.
 **Token Generation**:
 ```bash
 # Generate a random token
-ccmux-web --generate-token
+fugue-web --generate-token
 # Output: token: abc123def456...
 
 # Or specify in config
 [web.auth]
 enabled = true
-token = "abc123def456..."  # Or use CCMUX_WEB_TOKEN env var
+token = "abc123def456..."  # Or use FUGUE_WEB_TOKEN env var
 ```
 
 **Authentication Flow**:
@@ -123,7 +123,7 @@ token = "abc123def456..."  # Or use CCMUX_WEB_TOKEN env var
 6. WebSocket upgrade checks cookie
 ```
 
-**Implementation** (`ccmux-web/src/auth.rs`):
+**Implementation** (`fugue-web/src/auth.rs`):
 ```rust
 use axum::{
     extract::State,
@@ -164,7 +164,7 @@ pub async fn auth_middleware<B>(
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ccmux - Login</title>
+    <title>fugue - Login</title>
     <style>
         body {
             background: #1a1a1a;
@@ -205,7 +205,7 @@ pub async fn auth_middleware<B>(
 </head>
 <body>
     <form class="login-form" method="POST" action="/login">
-        <h2>ccmux</h2>
+        <h2>fugue</h2>
         <input type="password" name="token" placeholder="Access token" autofocus>
         <button type="submit">Connect</button>
     </form>
@@ -281,12 +281,12 @@ port = 8443
 
 [web.tls]
 enabled = true
-cert_path = "/etc/ccmux/cert.pem"
-key_path = "/etc/ccmux/key.pem"
+cert_path = "/etc/fugue/cert.pem"
+key_path = "/etc/fugue/key.pem"
 
 [web.auth]
 enabled = true
-token = ""                    # If empty, use CCMUX_WEB_TOKEN env var
+token = ""                    # If empty, use FUGUE_WEB_TOKEN env var
 session_timeout = 86400       # 24 hours in seconds
 
 [web.security]
@@ -307,7 +307,7 @@ rate_limit_per_minute = 5     # Login attempts
 ### Reverse Proxy Example (Caddy)
 
 ```
-ccmux.example.com {
+fugue.example.com {
     reverse_proxy localhost:8080
     # Caddy handles TLS automatically
 }
@@ -318,10 +318,10 @@ ccmux.example.com {
 ```nginx
 server {
     listen 443 ssl;
-    server_name ccmux.example.com;
+    server_name fugue.example.com;
 
-    ssl_certificate /etc/letsencrypt/live/ccmux.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/ccmux.example.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/fugue.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/fugue.example.com/privkey.pem;
 
     location / {
         proxy_pass http://localhost:8080;

@@ -1,13 +1,13 @@
 # Implementation Plan: BUG-040
 
-**Work Item**: [BUG-040: ccmux_create_window returns success but doesn't actually create windows](PROMPT.md)
+**Work Item**: [BUG-040: fugue_create_window returns success but doesn't actually create windows](PROMPT.md)
 **Component**: mcp
 **Priority**: P1
 **Created**: 2026-01-11
 
 ## Overview
 
-The `ccmux_create_window` MCP tool returns a successful response with `window_id` and `pane_id`, but the window is not actually created. This is suspected to be a regression from the BUG-034 fix which modified how `create_window` handles the session parameter.
+The `fugue_create_window` MCP tool returns a successful response with `window_id` and `pane_id`, but the window is not actually created. This is suspected to be a regression from the BUG-034 fix which modified how `create_window` handles the session parameter.
 
 ## Architecture Decisions
 
@@ -19,8 +19,8 @@ The `ccmux_create_window` MCP tool returns a successful response with `window_id
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/mcp/handlers.rs | Primary Investigation | Medium |
-| ccmux-server/src/session/manager.rs | Primary Investigation | Medium |
+| fugue-server/src/mcp/handlers.rs | Primary Investigation | Medium |
+| fugue-server/src/session/manager.rs | Primary Investigation | Medium |
 
 ## Dependencies
 

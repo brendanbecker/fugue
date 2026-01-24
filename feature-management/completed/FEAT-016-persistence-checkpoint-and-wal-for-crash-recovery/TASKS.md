@@ -26,11 +26,11 @@
 ## Implementation Tasks
 
 ### Persistence Module Setup
-- [ ] Create `ccmux-server/src/persistence/mod.rs`
-- [ ] Create `ccmux-server/src/persistence/wal.rs`
-- [ ] Create `ccmux-server/src/persistence/checkpoint.rs`
-- [ ] Create `ccmux-server/src/persistence/recovery.rs`
-- [ ] Create `ccmux-server/src/persistence/serialization.rs`
+- [ ] Create `fugue-server/src/persistence/mod.rs`
+- [ ] Create `fugue-server/src/persistence/wal.rs`
+- [ ] Create `fugue-server/src/persistence/checkpoint.rs`
+- [ ] Create `fugue-server/src/persistence/recovery.rs`
+- [ ] Create `fugue-server/src/persistence/serialization.rs`
 - [ ] Add okaywal dependency to Cargo.toml
 - [ ] Add bincode dependency to Cargo.toml
 - [ ] Define PersistenceError enum

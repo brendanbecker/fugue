@@ -1,6 +1,6 @@
 # ChatGPT Research Document - Section Abstracts
 
-> Source: `/home/becker/projects/tools/ccmux/docs/research/chatgpt_research.pdf`
+> Source: `/home/becker/projects/tools/fugue/docs/research/chatgpt_research.pdf`
 > Each abstract: 100-200 tokens summarizing section content
 
 ---
@@ -22,7 +22,7 @@ Documents Claude Code as Node/NPM agentic CLI with session state in `~/.claude.j
 ## 3. Crash Recovery for Terminal Multiplexers
 **Pages 24-32 | ~2,200 tokens**
 
-Establishes that true process recovery requires OS-level CRIU (impractical). State to persist: screen contents with attributes, scrollback history, cursor position, mode flags, pane layout. For Claude: save session ID for `--resume`; for shells: cannot recover - start fresh. Three persistence strategies: (1) Continuous WAL with I/O overhead, (2) Periodic snapshots losing inter-snapshot data, (3) **Hybrid recommended**: WAL + periodic compressed snapshots with log position markers. Recommends **client-server architecture**: fork at startup with parent as server (holds PTYs) and child as UI client via Unix socket. Periodic checkpointing to `~/.ccmux/last_session.json` with atomic writes. On recovery: restore Claude via `--resume`, show shell screens as "ghost image". References abduco/dtach for PTY-holding patterns and tmux-resurrect for layout restoration.
+Establishes that true process recovery requires OS-level CRIU (impractical). State to persist: screen contents with attributes, scrollback history, cursor position, mode flags, pane layout. For Claude: save session ID for `--resume`; for shells: cannot recover - start fresh. Three persistence strategies: (1) Continuous WAL with I/O overhead, (2) Periodic snapshots losing inter-snapshot data, (3) **Hybrid recommended**: WAL + periodic compressed snapshots with log position markers. Recommends **client-server architecture**: fork at startup with parent as server (holds PTYs) and child as UI client via Unix socket. Periodic checkpointing to `~/.fugue/last_session.json` with atomic writes. On recovery: restore Claude via `--resume`, show shell screens as "ghost image". References abduco/dtach for PTY-holding patterns and tmux-resurrect for layout restoration.
 
 ---
 

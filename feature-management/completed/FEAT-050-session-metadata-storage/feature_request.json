@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-050",
   "title": "Session Metadata Storage for Agent Identity",
-  "component": "ccmux-server (MCP)",
+  "component": "fugue-server (MCP)",
   "priority": "P3",
   "status": "new",
   "type": "new_feature",

@@ -1,7 +1,7 @@
 {
   "id": "FEAT-077",
   "title": "Human-control mode UX indicator and MCP error details",
-  "component": "ccmux-client, ccmux-server",
+  "component": "fugue-client, fugue-server",
   "priority": "P2",
   "status": "new",
   "created_date": "2026-01-13",

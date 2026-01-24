@@ -1,6 +1,6 @@
-# Building ccmux: A Claude Code-Aware Terminal Multiplexer in Rust
+# Building fugue: A Claude Code-Aware Terminal Multiplexer in Rust
 
-The most viable architecture for ccmux combines **portable-pty** for PTY management, **vt100** for terminal state parsing, and **Ratatui** for rendering—all coordinated through a client-server model inspired by Zellij's multi-crate workspace. Claude Code integration requires PTY-based output monitoring (no native IPC exists) combined with **stream-json** output format for structured data, while crash recovery should use a **hybrid checkpoint + WAL strategy** that persists both terminal state and Claude session IDs separately. The critical insight is that Claude Code stores sessions as JSONL files in `~/.claude/projects/`, making session resume via `--resume <session-id>` the primary recovery mechanism after crashes.
+The most viable architecture for fugue combines **portable-pty** for PTY management, **vt100** for terminal state parsing, and **Ratatui** for rendering—all coordinated through a client-server model inspired by Zellij's multi-crate workspace. Claude Code integration requires PTY-based output monitoring (no native IPC exists) combined with **stream-json** output format for structured data, while crash recovery should use a **hybrid checkpoint + WAL strategy** that persists both terminal state and Claude session IDs separately. The critical insight is that Claude Code stores sessions as JSONL files in `~/.claude/projects/`, making session resume via `--resume <session-id>` the primary recovery mechanism after crashes.
 
 ---
 
@@ -64,7 +64,7 @@ parser.process(new_data);
 let diff = parser.screen().contents_diff(&old_screen);
 ```
 
-The tradeoff: **alacritty_terminal** provides fuller xterm emulation with damage tracking, kitty keyboard protocol, and hyperlink support, but requires implementing an `EventListener` trait and managing a separate VTE parser. For ccmux, vt100's **simpler API** and built-in diff support make it the recommended choice.
+The tradeoff: **alacritty_terminal** provides fuller xterm emulation with damage tracking, kitty keyboard protocol, and hyperlink support, but requires implementing an `EventListener` trait and managing a separate VTE parser. For fugue, vt100's **simpler API** and built-in diff support make it the recommended choice.
 
 ### Rendering at 60fps with Ratatui
 
@@ -242,7 +242,7 @@ Detection logic: If `status.code()` returns `None` on Unix, the process was kill
 
 ### Zellij's approach as reference
 
-Zellij serializes every **1 second** to `~/.cache/zellij/<version>/session_info/<session>/` in human-readable KDL format. Commands are placed behind a **"Press ENTER to run..."** banner on recovery—a safety feature ccmux should adopt. Known issues include inconsistent tab restoration and first-pane bugs, suggesting ccmux should include comprehensive recovery tests.
+Zellij serializes every **1 second** to `~/.cache/zellij/<version>/session_info/<session>/` in human-readable KDL format. Commands are placed behind a **"Press ENTER to run..."** banner on recovery—a safety feature fugue should adopt. Known issues include inconsistent tab restoration and first-pane bugs, suggesting fugue should include comprehensive recovery tests.
 
 ---
 
@@ -286,14 +286,14 @@ The multi-crate workspace separates concerns cleanly:
 | Config format | tmux.conf | **KDL** | Lua |
 | Learning curve | Steep | **Gentle** | Moderate |
 
-### Recommended ccmux structure
+### Recommended fugue structure
 
 ```
-ccmux/
-├── ccmux-client/      # Input, Ratatui rendering
-├── ccmux-server/      # PTY management, state
-├── ccmux-utils/       # IPC, config, shared types
-└── ccmux-protocol/    # Claude protocol definitions
+fugue/
+├── fugue-client/      # Input, Ratatui rendering
+├── fugue-server/      # PTY management, state
+├── fugue-utils/       # IPC, config, shared types
+└── fugue-protocol/    # Claude protocol definitions
 ```
 
 Adopt tmux's hierarchical data model (simpler than Zellij's flat pane approach) with Zellij's crate separation for maintainability.
@@ -409,70 +409,70 @@ Always validate before applying and **keep previous config for rollback** on err
 
 ## Section 6: Teaching Claude structured output via skills system
 
-Claude Code's **SKILL.md** and **CLAUDE.md** files provide the ideal mechanism for defining ccmux's output protocol. XML-like namespaced tags (`<ccmux:spawn>`) are preferred over JSON because they parse naturally during streaming, tolerate partial output, and integrate with prose.
+Claude Code's **SKILL.md** and **CLAUDE.md** files provide the ideal mechanism for defining fugue's output protocol. XML-like namespaced tags (`<fugue:spawn>`) are preferred over JSON because they parse naturally during streaming, tolerate partial output, and integrate with prose.
 
 ### Protocol design using namespaced XML
 
 ```xml
 <!-- Spawn new pane -->
-<ccmux:spawn layout="vertical" focus="new" pane-id="worker-1">
+<fugue:spawn layout="vertical" focus="new" pane-id="worker-1">
   <command>claude "Implement auth module"</command>
   <cwd>/project/src</cwd>
   <env>CONTEXT_FILE=./context.md</env>
-</ccmux:spawn>
+</fugue:spawn>
 
 <!-- Send input to existing pane -->
-<ccmux:input to="worker-1">
+<fugue:input to="worker-1">
 yes
-</ccmux:input>
+</fugue:input>
 
 <!-- Control pane -->
-<ccmux:control pane="worker-1" action="close" />
+<fugue:control pane="worker-1" action="close" />
 ```
 
 **Why XML over JSON**: Claude's training data heavily features XML/HTML, achieving **~95-98% compliance** with well-prompted XML versus ~60-90% for unprompted JSON. XML also streams naturally—you can parse tags incrementally as tokens arrive.
 
-### SKILL.md definition for ccmux
+### SKILL.md definition for fugue
 
 ```markdown
 ---
-name: ccmux-control
-description: Control ccmux terminal multiplexer. Use when spawning panes, managing layouts, or coordinating parallel tasks.
+name: fugue-control
+description: Control fugue terminal multiplexer. Use when spawning panes, managing layouts, or coordinating parallel tasks.
 allowed-tools: Bash, Read, Write
 ---
 
-# ccmux Control Protocol
+# fugue Control Protocol
 
 When spawning sessions or controlling the multiplexer, emit XML tags:
 
-<ccmux:spawn layout="vertical|horizontal" focus="new|current">
+<fugue:spawn layout="vertical|horizontal" focus="new|current">
   <command>command to run</command>
-</ccmux:spawn>
+</fugue:spawn>
 
 Rules:
 - Always close tags properly
-- Use ccmux: namespace prefix
+- Use fugue: namespace prefix
 - Commands execute on tag completion
 ```
 
-Store in `.claude/skills/ccmux/SKILL.md` for project scope or `~/.claude/skills/ccmux/SKILL.md` for global.
+Store in `.claude/skills/fugue/SKILL.md` for project scope or `~/.claude/skills/fugue/SKILL.md` for global.
 
 ### Streaming parser with recovery
 
 ```rust
 use htmlparser::Parser;
 
-fn create_ccmux_parser<F: FnMut(CcmuxCommand)>(mut on_command: F) -> Parser {
+fn create_fugue_parser<F: FnMut(CcmuxCommand)>(mut on_command: F) -> Parser {
     let mut current: Option<CcmuxCommand> = None;
     let mut timeout = None;
     
     Parser::new(move |event| {
         match event {
-            Event::Start(tag) if tag.name.starts_with("ccmux:") => {
+            Event::Start(tag) if tag.name.starts_with("fugue:") => {
                 current = Some(CcmuxCommand::from_tag(tag));
                 timeout = Some(Instant::now() + Duration::from_secs(5));
             }
-            Event::End(tag) if tag.name.starts_with("ccmux:") => {
+            Event::End(tag) if tag.name.starts_with("fugue:") => {
                 if let Some(cmd) = current.take() {
                     on_command(cmd);
                 }
@@ -495,13 +495,13 @@ fn create_ccmux_parser<F: FnMut(CcmuxCommand)>(mut on_command: F) -> Parser {
 **Disallow direct nesting**; use flat structure with references instead. This is more robust to parsing failures:
 
 ```xml
-<ccmux:spawn pane-id="parent-1">
+<fugue:spawn pane-id="parent-1">
   <command>claude "Coordinate implementation"</command>
-</ccmux:spawn>
+</fugue:spawn>
 
-<ccmux:spawn parent="parent-1" pane-id="child-1">
+<fugue:spawn parent="parent-1" pane-id="child-1">
   <command>claude "Write tests"</command>
-</ccmux:spawn>
+</fugue:spawn>
 ```
 
 ---
@@ -513,11 +513,11 @@ Preventing runaway spawns in nested Claude sessions requires **environment varia
 ### Depth enforcement across processes
 
 ```rust
-const CCMUX_DEPTH_VAR: &str = "CCMUX_SESSION_DEPTH";
+const FUGUE_DEPTH_VAR: &str = "FUGUE_SESSION_DEPTH";
 const MAX_DEPTH: u32 = 5;
 
 fn spawn_child_session(task: &str) -> Result<Child, Error> {
-    let current_depth: u32 = std::env::var(CCMUX_DEPTH_VAR)
+    let current_depth: u32 = std::env::var(FUGUE_DEPTH_VAR)
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
@@ -531,8 +531,8 @@ fn spawn_child_session(task: &str) -> Result<Child, Error> {
     
     Command::new("claude")
         .arg(task)
-        .env(CCMUX_DEPTH_VAR, (current_depth + 1).to_string())
-        .env("CCMUX_PARENT_ID", &session_id)
+        .env(FUGUE_DEPTH_VAR, (current_depth + 1).to_string())
+        .env("FUGUE_PARENT_ID", &session_id)
         .spawn()
 }
 ```
@@ -563,7 +563,7 @@ pub enum SessionStatus {
 }
 ```
 
-### Erlang OTP supervision strategies for ccmux
+### Erlang OTP supervision strategies for fugue
 
 | Strategy | Behavior | Use Case |
 |----------|----------|----------|
@@ -626,7 +626,7 @@ async fn fan_out(tasks: Vec<String>, max_parallel: usize) -> Vec<SessionResult> 
 
 ## Conclusion
 
-Building ccmux requires integrating mature Rust crates (**portable-pty**, **vt100**, **ratatui**) with Claude Code's file-based session system and a robust supervision architecture. The **critical path** involves: (1) implementing PTY management with proper blocking I/O handling, (2) designing the XML-based Claude protocol via SKILL.md files, and (3) building hybrid checkpoint+WAL persistence that stores Claude session IDs separately for independent recovery.
+Building fugue requires integrating mature Rust crates (**portable-pty**, **vt100**, **ratatui**) with Claude Code's file-based session system and a robust supervision architecture. The **critical path** involves: (1) implementing PTY management with proper blocking I/O handling, (2) designing the XML-based Claude protocol via SKILL.md files, and (3) building hybrid checkpoint+WAL persistence that stores Claude session IDs separately for independent recovery.
 
 **Key open questions** remain around Claude Code's internal spinner detection (exact Unicode characters undocumented), bidirectional communication patterns (how child output flows back to parents without context explosion), and cross-machine session distribution. Prototype the core PTY+vt100+Ratatui rendering loop first—that architectural foundation will inform solutions to the remaining challenges.
 

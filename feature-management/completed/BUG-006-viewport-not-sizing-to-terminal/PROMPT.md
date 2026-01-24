@@ -2,7 +2,7 @@
 
 ## Summary
 
-When ccmux-client starts in a full-screen terminal, the viewport renders at approximately quarter-screen size (80x24). The bug only manifests when attaching to an existing session; it works correctly if the terminal is already at the expected size.
+When fugue-client starts in a full-screen terminal, the viewport renders at approximately quarter-screen size (80x24). The bug only manifests when attaching to an existing session; it works correctly if the terminal is already at the expected size.
 
 ## Symptom Details
 
@@ -19,7 +19,7 @@ The root cause is a **chicken-and-egg problem** in the session creation and atta
 
 #### 1. Pane Default Dimensions (Server-side)
 
-In `ccmux-server/src/session/pane.rs` (lines 86-88):
+In `fugue-server/src/session/pane.rs` (lines 86-88):
 ```rust
 impl Pane {
     pub fn with_scrollback(...) -> Self {
@@ -36,7 +36,7 @@ When a pane is created, it defaults to 80x24. This is correct behavior for a new
 
 #### 2. Session Creation Flow (Server-side)
 
-In `ccmux-server/src/handlers/session.rs` (lines 69-78):
+In `fugue-server/src/handlers/session.rs` (lines 69-78):
 ```rust
 // Spawn PTY for the default pane
 let mut pty_config = if let Some(ref cmd) = self.config.general.default_command {
@@ -50,7 +50,7 @@ The PTY is spawned with the pane's default dimensions (80x24), not the client's 
 
 #### 3. Client Terminal Size Detection (Client-side)
 
-In `ccmux-client/src/ui/app.rs` (lines 137-141):
+In `fugue-client/src/ui/app.rs` (lines 137-141):
 ```rust
 pub async fn run(&mut self) -> Result<()> {
     let mut terminal = Terminal::new()?;
@@ -63,7 +63,7 @@ The client **does** correctly detect its terminal size at startup.
 
 #### 4. AttachSession Response (Server-side)
 
-In `ccmux-server/src/handlers/session.rs` (lines 150-178):
+In `fugue-server/src/handlers/session.rs` (lines 150-178):
 ```rust
 let panes: Vec<_> = session
     .windows()
@@ -81,7 +81,7 @@ The server sends pane info with the stored dimensions (80x24).
 
 #### 5. Client Pane Manager Setup (Client-side)
 
-In `ccmux-client/src/ui/app.rs` (lines 634-646):
+In `fugue-client/src/ui/app.rs` (lines 634-646):
 ```rust
 ServerMessage::Attached { ... } => {
     // Create UI panes for all panes in the session
@@ -96,7 +96,7 @@ ServerMessage::Attached { ... } => {
 
 #### 6. Resize Only Sent for Active Pane (Client-side)
 
-In `ccmux-client/src/ui/app.rs` (lines 201-222):
+In `fugue-client/src/ui/app.rs` (lines 201-222):
 ```rust
 AppEvent::Resize { cols, rows } => {
     // Resize all UI panes
@@ -143,7 +143,7 @@ The terminal then displays correctly.
 
 ### Option A: Client sends resize immediately after attach (Recommended)
 
-In `ccmux-client/src/ui/app.rs`, after handling `ServerMessage::Attached`:
+In `fugue-client/src/ui/app.rs`, after handling `ServerMessage::Attached`:
 
 ```rust
 ServerMessage::Attached { session, windows, panes } => {
@@ -213,16 +213,16 @@ Add a new response type that includes resize instructions, or have server send r
 
 ## Files to Modify
 
-1. `ccmux-client/src/ui/app.rs`
+1. `fugue-client/src/ui/app.rs`
    - In `handle_server_message()`, `ServerMessage::Attached` handler
    - Create UI panes at terminal size, not server-reported size
    - Send resize messages to server after attach
 
 ## Test Plan
 
-1. Start ccmux-server
+1. Start fugue-server
 2. Create a session from a small terminal (80x24)
-3. Start ccmux-client in a large terminal (e.g., full-screen)
+3. Start fugue-client in a large terminal (e.g., full-screen)
 4. Verify viewport fills the terminal correctly
 5. Verify PTY programs see correct dimensions (`stty size`)
 6. Test with multiple clients of different sizes
@@ -232,10 +232,10 @@ Add a new response type that includes resize instructions, or have server send r
 
 | File | Role |
 |------|------|
-| `ccmux-client/src/ui/app.rs` | Client state, event handling, UI pane creation |
-| `ccmux-client/src/ui/pane.rs` | UI pane management and rendering |
-| `ccmux-client/src/ui/terminal.rs` | Terminal size detection |
-| `ccmux-server/src/session/pane.rs` | Server-side pane model (default 80x24) |
-| `ccmux-server/src/handlers/session.rs` | AttachSession handler |
-| `ccmux-server/src/handlers/pane.rs` | Resize handler |
-| `ccmux-protocol/src/messages.rs` | ClientMessage::Resize definition |
+| `fugue-client/src/ui/app.rs` | Client state, event handling, UI pane creation |
+| `fugue-client/src/ui/pane.rs` | UI pane management and rendering |
+| `fugue-client/src/ui/terminal.rs` | Terminal size detection |
+| `fugue-server/src/session/pane.rs` | Server-side pane model (default 80x24) |
+| `fugue-server/src/handlers/session.rs` | AttachSession handler |
+| `fugue-server/src/handlers/pane.rs` | Resize handler |
+| `fugue-protocol/src/messages.rs` | ClientMessage::Resize definition |

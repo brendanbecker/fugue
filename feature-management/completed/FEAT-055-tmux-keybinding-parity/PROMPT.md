@@ -1,14 +1,14 @@
 # FEAT-055: tmux Keybinding Parity in TUI
 
 **Priority**: P2
-**Component**: ccmux-client (TUI)
+**Component**: fugue-client (TUI)
 **Type**: enhancement
 **Estimated Effort**: medium
 **Business Value**: high
 
 ## Overview
 
-Implement tmux-compatible keybindings in the ccmux TUI client so users familiar with tmux can navigate windows and panes using the same keyboard shortcuts.
+Implement tmux-compatible keybindings in the fugue TUI client so users familiar with tmux can navigate windows and panes using the same keyboard shortcuts.
 
 ### Context
 

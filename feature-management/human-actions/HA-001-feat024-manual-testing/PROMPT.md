@@ -24,10 +24,10 @@ FEAT-024 (Session Selection UI) implementation is complete but requires manual t
 
 ```bash
 # Terminal 1: Start server
-cargo run --bin ccmux-server
+cargo run --bin fugue-server
 
 # Terminal 2: Start client
-cargo run --bin ccmux
+cargo run --bin fugue
 ```
 
 ### Test Cases

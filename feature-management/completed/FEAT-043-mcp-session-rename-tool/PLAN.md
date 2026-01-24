@@ -1,7 +1,7 @@
 # Implementation Plan: FEAT-043
 
 **Work Item**: [FEAT-043: MCP Session Rename Tool](PROMPT.md)
-**Component**: ccmux-server (MCP)
+**Component**: fugue-server (MCP)
 **Priority**: P2
 **Created**: 2026-01-10
 
@@ -107,11 +107,11 @@ pub fn rename_session(&mut self, session_id: SessionId, new_name: String) -> Res
 
 | Component | Type of Change | Risk Level |
 |-----------|----------------|------------|
-| ccmux-server/src/mcp/tools.rs | Add tool definition | Low |
-| ccmux-server/src/mcp/bridge.rs | Add handler function | Low |
-| ccmux-server/src/mcp/server.rs | Add routing | Low |
-| ccmux-server/src/session/mod.rs | Add rename_session method | Low |
-| ccmux-server/src/persistence/ | Verify name persistence | Low |
+| fugue-server/src/mcp/tools.rs | Add tool definition | Low |
+| fugue-server/src/mcp/bridge.rs | Add handler function | Low |
+| fugue-server/src/mcp/server.rs | Add routing | Low |
+| fugue-server/src/session/mod.rs | Add rename_session method | Low |
+| fugue-server/src/persistence/ | Verify name persistence | Low |
 
 ## Implementation Order
 
@@ -125,7 +125,7 @@ pub fn rename_session(&mut self, session_id: SessionId, new_name: String) -> Res
 
 ### Phase 2: MCP Tool Definition
 
-1. Add `ccmux_rename_session` to tools.rs
+1. Add `fugue_rename_session` to tools.rs
 2. Define input schema with `session` and `name` parameters
 3. Mark both as required
 4. Write clear description
@@ -142,7 +142,7 @@ pub fn rename_session(&mut self, session_id: SessionId, new_name: String) -> Res
 
 ### Phase 4: Routing Integration
 
-1. Add case for `ccmux_rename_session` in server.rs
+1. Add case for `fugue_rename_session` in server.rs
 2. Route to handler function
 3. **Deliverable**: Full end-to-end functionality
 
@@ -194,7 +194,7 @@ If implementation causes issues:
 ### Manual Testing
 
 - Rename session via MCP
-- Verify `ccmux_list_sessions` shows new name
+- Verify `fugue_list_sessions` shows new name
 - Create pane in renamed session using new name
 - Restart server and verify name persists
 
@@ -204,7 +204,7 @@ If implementation causes issues:
 
 ```rust
 Tool {
-    name: "ccmux_rename_session".into(),
+    name: "fugue_rename_session".into(),
     description: "Rename a session for easier identification. Session names must be unique.".into(),
     input_schema: serde_json::json!({
         "type": "object",
