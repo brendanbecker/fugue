@@ -1,6 +1,6 @@
 [package]
-name = "ccmux-utils"
-description = "Common utilities for ccmux"
+name = "fugue-utils"
+description = "Common utilities for fugue"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

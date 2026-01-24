@@ -1,18 +1,18 @@
 [package]
-name = "ccmux-compat"
-description = "tmux-compatible CLI wrapper for ccmux"
+name = "fugue-compat"
+description = "tmux-compatible CLI wrapper for fugue"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
 [[bin]]
-name = "ccmux-compat"
+name = "fugue-compat"
 path = "src/main.rs"
 
 [dependencies]
-ccmux-protocol = { path = "../ccmux-protocol" }
-ccmux-utils = { path = "../ccmux-utils" }
+fugue-protocol = { path = "../fugue-protocol" }
+fugue-utils = { path = "../fugue-utils" }
 
 # Async
 tokio = { workspace = true }

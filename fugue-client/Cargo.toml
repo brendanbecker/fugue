@@ -1,18 +1,18 @@
 [package]
-name = "ccmux-client"
-description = "Terminal UI client for ccmux"
+name = "fugue-client"
+description = "Terminal UI client for fugue"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
 [[bin]]
-name = "ccmux"
+name = "fugue"
 path = "src/main.rs"
 
 [dependencies]
-ccmux-protocol = { path = "../ccmux-protocol" }
-ccmux-utils = { path = "../ccmux-utils" }
+fugue-protocol = { path = "../fugue-protocol" }
+fugue-utils = { path = "../fugue-utils" }
 
 # TUI framework
 ratatui = "0.29"

@@ -1,18 +1,18 @@
 [package]
-name = "ccmux-server"
-description = "Background daemon for ccmux"
+name = "fugue-server"
+description = "Background daemon for fugue"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
 [[bin]]
-name = "ccmux-server"
+name = "fugue-server"
 path = "src/main.rs"
 
 [dependencies]
-ccmux-protocol = { path = "../ccmux-protocol" }
-ccmux-utils = { path = "../ccmux-utils" }
+fugue-protocol = { path = "../fugue-protocol" }
+fugue-utils = { path = "../fugue-utils" }
 
 # PTY management
 portable-pty = "0.9"

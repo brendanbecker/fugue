@@ -1,6 +1,6 @@
 [package]
-name = "ccmux-sandbox"
-description = "Sandbox launcher for ccmux"
+name = "fugue-sandbox"
+description = "Sandbox launcher for fugue"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

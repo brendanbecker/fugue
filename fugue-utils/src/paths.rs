@@ -1,4 +1,4 @@
-//! Path utilities for ccmux
+//! Path utilities for fugue
 //!
 //! Handles XDG Base Directory specification compliance for config,
 //! state, cache, and runtime directories.
@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use directories::ProjectDirs;
 
 /// Application identifier for XDG directories
-const APP_NAME: &str = "ccmux";
+const APP_NAME: &str = "fugue";
 
 /// Get project directories (cached)
 fn project_dirs() -> Option<ProjectDirs> {
@@ -16,14 +16,14 @@ fn project_dirs() -> Option<ProjectDirs> {
 
 /// Get the Unix socket path for client-server communication
 ///
-/// Location: `$XDG_RUNTIME_DIR/ccmux.sock` or `/tmp/ccmux-$UID/ccmux.sock`
+/// Location: `$XDG_RUNTIME_DIR/fugue.sock` or `/tmp/fugue-$UID/fugue.sock`
 pub fn socket_path() -> PathBuf {
-    runtime_dir().join("ccmux.sock")
+    runtime_dir().join("fugue.sock")
 }
 
 /// Get the runtime directory
 ///
-/// Location: `$XDG_RUNTIME_DIR/ccmux` or `/tmp/ccmux-$UID`
+/// Location: `$XDG_RUNTIME_DIR/fugue` or `/tmp/fugue-$UID`
 pub fn runtime_dir() -> PathBuf {
     if let Ok(xdg_runtime) = std::env::var("XDG_RUNTIME_DIR") {
         PathBuf::from(xdg_runtime).join(APP_NAME)
@@ -37,7 +37,7 @@ pub fn runtime_dir() -> PathBuf {
 
 /// Get the configuration directory
 ///
-/// Location: `$XDG_CONFIG_HOME/ccmux` or `~/.config/ccmux`
+/// Location: `$XDG_CONFIG_HOME/fugue` or `~/.config/fugue`
 pub fn config_dir() -> PathBuf {
     project_dirs()
         .map(|p| p.config_dir().to_path_buf())
@@ -46,14 +46,14 @@ pub fn config_dir() -> PathBuf {
 
 /// Get the main configuration file path
 ///
-/// Location: `$XDG_CONFIG_HOME/ccmux/config.toml`
+/// Location: `$XDG_CONFIG_HOME/fugue/config.toml`
 pub fn config_file() -> PathBuf {
     config_dir().join("config.toml")
 }
 
 /// Get the state directory (persistent state like session data)
 ///
-/// Location: `$XDG_STATE_HOME/ccmux` or `~/.local/state/ccmux`
+/// Location: `$XDG_STATE_HOME/fugue` or `~/.local/state/fugue`
 pub fn state_dir() -> PathBuf {
     project_dirs()
         .and_then(|p| p.state_dir().map(|d| d.to_path_buf()))
@@ -62,7 +62,7 @@ pub fn state_dir() -> PathBuf {
 
 /// Get the data directory (persistent data like checkpoints)
 ///
-/// Location: `$XDG_DATA_HOME/ccmux` or `~/.local/share/ccmux`
+/// Location: `$XDG_DATA_HOME/fugue` or `~/.local/share/fugue`
 pub fn data_dir() -> PathBuf {
     project_dirs()
         .map(|p| p.data_local_dir().to_path_buf())
@@ -71,7 +71,7 @@ pub fn data_dir() -> PathBuf {
 
 /// Get the cache directory (temporary data, safe to delete)
 ///
-/// Location: `$XDG_CACHE_HOME/ccmux` or `~/.cache/ccmux`
+/// Location: `$XDG_CACHE_HOME/fugue` or `~/.cache/fugue`
 pub fn cache_dir() -> PathBuf {
     project_dirs()
         .map(|p| p.cache_dir().to_path_buf())
@@ -80,37 +80,37 @@ pub fn cache_dir() -> PathBuf {
 
 /// Get the log directory
 ///
-/// Location: `$XDG_STATE_HOME/ccmux/log` or `~/.local/state/ccmux/log`
+/// Location: `$XDG_STATE_HOME/fugue/log` or `~/.local/state/fugue/log`
 pub fn log_dir() -> PathBuf {
     state_dir().join("log")
 }
 
 /// Get the session-specific log directory
 ///
-/// Location: `$XDG_STATE_HOME/ccmux/log/{session_id}`
+/// Location: `$XDG_STATE_HOME/fugue/log/{session_id}`
 pub fn session_log_dir(session_id: uuid::Uuid) -> PathBuf {
     log_dir().join(session_id.to_string())
 }
 
 /// Get the checkpoints directory (for persistence)
 ///
-/// Location: `$XDG_DATA_HOME/ccmux/checkpoints`
+/// Location: `$XDG_DATA_HOME/fugue/checkpoints`
 pub fn checkpoints_dir() -> PathBuf {
     data_dir().join("checkpoints")
 }
 
 /// Get the WAL directory (for persistence)
 ///
-/// Location: `$XDG_DATA_HOME/ccmux/wal`
+/// Location: `$XDG_DATA_HOME/fugue/wal`
 pub fn wal_dir() -> PathBuf {
     data_dir().join("wal")
 }
 
 /// Get the PID file path (for daemon)
 ///
-/// Location: `$XDG_RUNTIME_DIR/ccmux/ccmux.pid`
+/// Location: `$XDG_RUNTIME_DIR/fugue/fugue.pid`
 pub fn pid_file() -> PathBuf {
-    runtime_dir().join("ccmux.pid")
+    runtime_dir().join("fugue.pid")
 }
 
 /// Ensure a directory exists, creating it if necessary
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn test_socket_path() {
         let path = socket_path();
-        assert!(path.to_string_lossy().contains("ccmux.sock"));
+        assert!(path.to_string_lossy().contains("fugue.sock"));
     }
 
     #[test]
@@ -179,15 +179,15 @@ mod tests {
     #[test]
     fn test_socket_path_has_correct_filename() {
         let path = socket_path();
-        assert_eq!(path.file_name().unwrap().to_str().unwrap(), "ccmux.sock");
+        assert_eq!(path.file_name().unwrap().to_str().unwrap(), "fugue.sock");
     }
 
     // ==================== Runtime Dir Tests ====================
 
     #[test]
-    fn test_runtime_dir_contains_ccmux() {
+    fn test_runtime_dir_contains_fugue() {
         let path = runtime_dir();
-        assert!(path.to_string_lossy().contains("ccmux"));
+        assert!(path.to_string_lossy().contains("fugue"));
     }
 
     #[test]
@@ -198,7 +198,7 @@ mod tests {
         // Set custom value
         env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
         let path = runtime_dir();
-        assert_eq!(path, PathBuf::from("/run/user/1000/ccmux"));
+        assert_eq!(path, PathBuf::from("/run/user/1000/fugue"));
 
         // Restore original
         match original {
@@ -216,9 +216,9 @@ mod tests {
         env::remove_var("XDG_RUNTIME_DIR");
         let path = runtime_dir();
 
-        // Should be /tmp/ccmux-UID
+        // Should be /tmp/fugue-UID
         let path_str = path.to_string_lossy();
-        assert!(path_str.starts_with("/tmp/ccmux-"));
+        assert!(path_str.starts_with("/tmp/fugue-"));
 
         // Restore original
         if let Some(val) = original {
@@ -231,7 +231,7 @@ mod tests {
     #[test]
     fn test_config_dir() {
         let path = config_dir();
-        assert!(path.to_string_lossy().contains("ccmux"));
+        assert!(path.to_string_lossy().contains("fugue"));
     }
 
     #[test]
@@ -270,9 +270,9 @@ mod tests {
     // ==================== State Dir Tests ====================
 
     #[test]
-    fn test_state_dir_contains_ccmux() {
+    fn test_state_dir_contains_fugue() {
         let path = state_dir();
-        assert!(path.to_string_lossy().contains("ccmux"));
+        assert!(path.to_string_lossy().contains("fugue"));
     }
 
     #[test]
@@ -290,9 +290,9 @@ mod tests {
     // ==================== Data Dir Tests ====================
 
     #[test]
-    fn test_data_dir_contains_ccmux() {
+    fn test_data_dir_contains_fugue() {
         let path = data_dir();
-        assert!(path.to_string_lossy().contains("ccmux"));
+        assert!(path.to_string_lossy().contains("fugue"));
     }
 
     #[test]
@@ -310,9 +310,9 @@ mod tests {
     // ==================== Cache Dir Tests ====================
 
     #[test]
-    fn test_cache_dir_contains_ccmux() {
+    fn test_cache_dir_contains_fugue() {
         let path = cache_dir();
-        assert!(path.to_string_lossy().contains("ccmux"));
+        assert!(path.to_string_lossy().contains("fugue"));
     }
 
     #[test]
@@ -384,7 +384,7 @@ mod tests {
     #[test]
     fn test_pid_file_name() {
         let path = pid_file();
-        assert_eq!(path.file_name().unwrap().to_str().unwrap(), "ccmux.pid");
+        assert_eq!(path.file_name().unwrap().to_str().unwrap(), "fugue.pid");
     }
 
     // ==================== ensure_dir Tests ====================
@@ -456,7 +456,7 @@ mod tests {
     }
 
     #[test]
-    fn test_all_paths_contain_ccmux() {
+    fn test_all_paths_contain_fugue() {
         let paths = [
             socket_path(),
             runtime_dir(),
@@ -474,8 +474,8 @@ mod tests {
         for path in paths {
             let path_str = path.to_string_lossy();
             assert!(
-                path_str.contains("ccmux"),
-                "Path should contain 'ccmux': {:?}",
+                path_str.contains("fugue"),
+                "Path should contain 'fugue': {:?}",
                 path
             );
         }
@@ -504,28 +504,28 @@ mod tests {
     fn test_fallback_config_dir() {
         let path = fallback_config_dir();
         assert!(path.to_string_lossy().contains(".config"));
-        assert!(path.to_string_lossy().contains("ccmux"));
+        assert!(path.to_string_lossy().contains("fugue"));
     }
 
     #[test]
     fn test_fallback_state_dir() {
         let path = fallback_state_dir();
         assert!(path.to_string_lossy().contains(".local/state"));
-        assert!(path.to_string_lossy().contains("ccmux"));
+        assert!(path.to_string_lossy().contains("fugue"));
     }
 
     #[test]
     fn test_fallback_data_dir() {
         let path = fallback_data_dir();
         assert!(path.to_string_lossy().contains(".local/share"));
-        assert!(path.to_string_lossy().contains("ccmux"));
+        assert!(path.to_string_lossy().contains("fugue"));
     }
 
     #[test]
     fn test_fallback_cache_dir() {
         let path = fallback_cache_dir();
         assert!(path.to_string_lossy().contains(".cache"));
-        assert!(path.to_string_lossy().contains("ccmux"));
+        assert!(path.to_string_lossy().contains("fugue"));
     }
 
     #[test]

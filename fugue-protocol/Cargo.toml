@@ -1,6 +1,6 @@
 [package]
-name = "ccmux-protocol"
-description = "Shared IPC definitions for ccmux"
+name = "fugue-protocol"
+description = "Shared IPC definitions for fugue"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
