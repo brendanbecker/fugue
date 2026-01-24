@@ -319,6 +319,7 @@ When you receive "check":
 5. If any workers need attention (complete, waiting, stuck, errored):
    - fugue_send_orchestration to tag:orchestrator with summary
 6. If all workers healthy and working, respond briefly: "All N workers healthy"
+7. After completing the cycle: type "/clear" to reset context (see Context Management)
 
 Be concise. The orchestrator is busy - only interrupt when necessary.
 Summarize, don't dump raw output.
@@ -342,6 +343,32 @@ Alert format (use fugue_send_orchestration):
     ]
   }
 }
+
+## Context Management (FEAT-111)
+
+After completing each monitoring cycle, clear your conversation context:
+
+1. Verify all notifications sent successfully
+   - Check that each fugue_send_orchestration call returned success
+   - If any notification failed, retry up to 3 times
+2. Once all notifications confirmed (or retries exhausted):
+   - Type "/clear" to reset your context
+   - This keeps your context minimal and API costs low
+   - You will receive the next "check" trigger with fresh context
+
+IMPORTANT: Always clear after each cycle. Do not accumulate history.
+Your monitoring state is stateless - you rediscover workers each cycle.
+
+What gets preserved after /clear:
+- System prompt (these instructions)
+- MCP tools (all fugue tools remain available)
+- Session identity (same session, same tags)
+
+What gets cleared:
+- Conversation history (previous checks, responses)
+- Tool call results from prior cycles
+
+This is intentional - you don't need history. Each cycle is independent.
 ```
 
 ---
@@ -377,6 +404,9 @@ Environment variables (set via session metadata or environment):
 | `WATCHDOG_INTERVAL` | 90 | Seconds between checks |
 | `WATCHDOG_MODEL` | haiku | Model for watchdog agent |
 | `WORKER_IDLE_THRESHOLD` | 300 | Seconds before worker considered stuck |
+| `WATCHDOG_AUTO_CLEAR` | true | Clear context after each cycle (FEAT-111) |
+| `WATCHDOG_NOTIFICATION_RETRIES` | 3 | Max notification retry attempts |
+| `WATCHDOG_CLEAR_ON_ERROR` | true | Clear even if notifications failed |
 
 ---
 
