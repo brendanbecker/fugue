@@ -19,6 +19,18 @@ use uuid::Uuid;
 
 use ccmux_protocol::{AgentActivity, AgentState, ClaudeActivity, PaneState};
 
+/// Abbreviate home directory to ~ for display
+fn abbreviate_home(path: &str) -> String {
+    if let Some(home) = dirs::home_dir() {
+        if let Some(home_str) = home.to_str() {
+            if path.starts_with(home_str) {
+                return path.replacen(home_str, "~", 1);
+            }
+        }
+    }
+    path.to_string()
+}
+
 /// Visual mode type for text selection
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VisualMode {
@@ -382,7 +394,12 @@ impl Pane {
 
     /// Build the title string for display
     pub fn display_title(&self) -> String {
-        let base_title = self.title.as_deref().unwrap_or("pane");
+        // Fallback chain: explicit title -> cwd (with ~ abbreviation) -> "pane"
+        let base_title = self.title.as_deref()
+            .map(|s| s.to_string())
+            .or_else(|| self.cwd.as_ref().map(|cwd| abbreviate_home(cwd)))
+            .unwrap_or_else(|| "pane".to_string());
+        let base_title = base_title.as_str();
 
         match &self.pane_state {
             PaneState::Normal => base_title.to_string(),
