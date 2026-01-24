@@ -159,8 +159,9 @@ async fn watchdog_timer_task(
 
                         // Small delay so TUI sees Enter as separate event
                         drop(pty_mgr); // Release lock during sleep
-                        // BUG-071: Increased delay to 100ms and added explicit flushes
-                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                        // BUG-071: Increased delay to 200ms to match send_input (BUG-054)
+                        // 100ms was not sufficient for some TUI apps like Claude Code and Gemini CLI
+                        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
 
                         // Send carriage return to submit
                         let pty_mgr = pty_manager.read().await;
