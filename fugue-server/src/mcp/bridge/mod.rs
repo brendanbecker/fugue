@@ -664,15 +664,22 @@ impl McpBridge {
                 )
                 .await
             }
-            // FEAT-104: Watchdog Timer
+            // FEAT-104: Watchdog Timer + FEAT-114: Named Watchdogs
             "fugue_watchdog_start" => {
                 let pane_id = parse_uuid(arguments, "pane_id")?;
                 let interval_secs = arguments["interval_secs"].as_u64();
                 let message = arguments["message"].as_str().map(String::from);
-                handlers.tool_watchdog_start(pane_id, interval_secs, message).await
+                let name = arguments["name"].as_str().map(String::from);
+                handlers.tool_watchdog_start(pane_id, interval_secs, message, name).await
             }
-            "fugue_watchdog_stop" => handlers.tool_watchdog_stop().await,
-            "fugue_watchdog_status" => handlers.tool_watchdog_status().await,
+            "fugue_watchdog_stop" => {
+                let name = arguments["name"].as_str().map(String::from);
+                handlers.tool_watchdog_stop(name).await
+            }
+            "fugue_watchdog_status" => {
+                let name = arguments["name"].as_str().map(String::from);
+                handlers.tool_watchdog_status(name).await
+            }
             // FEAT-109: Drain Messages Tool
             "fugue_drain_messages" => handlers.tool_drain_messages(),
             _ => Err(McpError::UnknownTool(name.into())),

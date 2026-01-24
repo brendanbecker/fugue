@@ -2095,8 +2095,9 @@ impl App {
             }
 
             // FEAT-104: Watchdog timer responses (only handled by MCP bridge)
+            // FEAT-114: Named watchdogs
             ServerMessage::WatchdogStarted { .. } => {}
-            ServerMessage::WatchdogStopped => {}
+            ServerMessage::WatchdogStopped { .. } => {}
             ServerMessage::WatchdogStatusResponse { .. } => {}
         }
         break;
