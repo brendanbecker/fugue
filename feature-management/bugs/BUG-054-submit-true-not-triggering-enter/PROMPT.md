@@ -3,7 +3,7 @@
 **Priority**: P2
 **Component**: mcp
 **Severity**: medium
-**Status**: fixed
+**Status**: open
 
 ## Problem
 
@@ -35,6 +35,12 @@ The PTY line discipline might buffer the combined write differently than separat
 
 ### 3. Input Event Detection
 TUI frameworks often read raw input via `crossterm::event::read()` which returns discrete events. A combined write might not generate the expected key event for Enter.
+
+### 4. Race Condition (2026-01-24)
+The ~20% failure rate suggests a race condition rather than fundamental incompatibility:
+- If the fix (separate writes with flush) is in place, maybe the flush isn't always completing before the Enter is sent
+- The TUI app's input polling might sometimes miss the Enter event if it arrives too quickly after the text
+- Could need a small delay (e.g., 1-5ms) between text write and Enter write
 
 ## Investigation Steps
 
@@ -127,6 +133,7 @@ This mirrors what the workaround does (two separate calls) but internally, givin
 - 2026-01-17: Originally marked "fixed" but fix only documented workaround
 - 2026-01-17: Reopened after QA testing confirmed `submit:true` still fails with Gemini CLI
 - Verified: separate `key: "Enter"` call works, so Option A should work
+- 2026-01-24: Reopened again - still fails ~20% of the time. Works most of the time but intermittently requires manual Enter. This suggests a race condition rather than a complete failure.
 
 ## Related
 
