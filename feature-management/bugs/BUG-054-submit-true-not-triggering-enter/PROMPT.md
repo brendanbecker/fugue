@@ -42,6 +42,19 @@ The ~20% failure rate suggests a race condition rather than fundamental incompat
 - The TUI app's input polling might sometimes miss the Enter event if it arrives too quickly after the text
 - Could need a small delay (e.g., 1-5ms) between text write and Enter write
 
+### 5. Two Code Paths - Root Cause Found (2026-01-24)
+**There are TWO separate MCP implementations with different behavior:**
+
+| Mode | File | Has delay? |
+|------|------|------------|
+| Bridge | `mcp/bridge/handlers.rs:461-463` | ✅ 200ms delay |
+| Server | `mcp/handlers.rs:806-808` | ❌ No delay |
+
+The bridge mode (`tool_send_input`) has the 200ms delay fix.
+The server mode (`send_input_with_key`) does NOT have the delay.
+
+This explains the intermittent ~20% failure rate - depending on which MCP mode is active, you get different behavior. The server mode needs the same delay added.
+
 ## Investigation Steps
 
 ### Section 1: Verify Byte-Level Behavior
