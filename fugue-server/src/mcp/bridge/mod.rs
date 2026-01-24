@@ -643,10 +643,8 @@ impl McpBridge {
                 handlers.tool_get_worker_status(worker_id).await
             }
             "fugue_poll_messages" => {
-                let worker_id = arguments["worker_id"]
-                    .as_str()
-                    .ok_or_else(|| McpError::InvalidParams("Missing 'worker_id' parameter".into()))?
-                    .to_string();
+                // BUG-069 FIX: worker_id is now optional - if omitted, polls attached session
+                let worker_id = arguments["worker_id"].as_str().map(String::from);
                 handlers.tool_poll_messages(worker_id).await
             }
             "fugue_create_status_pane" => {

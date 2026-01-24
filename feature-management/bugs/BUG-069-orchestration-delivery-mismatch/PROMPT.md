@@ -3,11 +3,48 @@
 **Priority**: P2
 **Component**: mcp/orchestration
 **Severity**: medium
-**Status**: new
+**Status**: fixed
 
 ## Problem
 
 Orchestration messages sent via `fugue_send_orchestration` (and by extension `fugue_report_status`) report successful delivery but the target orchestrator session never receives the messages via `fugue_poll_messages`.
+
+## Root Cause (FOUND)
+
+**This was NOT a code bug but a user-facing design issue.**
+
+The original issue was:
+1. Messages sent to tag "orchestrator" are delivered to sessions with that tag
+2. The user was polling "session-0" thinking it was the orchestrator
+3. But "session-0" did NOT have the "orchestrator" tag
+4. The actual orchestrator-tagged session received the messages
+5. Polling "session-0" returned empty because messages went elsewhere
+
+The `fugue_poll_messages` tool required the user to explicitly specify which session to poll, which was error-prone because users didn't always know which session was tagged.
+
+## Fix Applied
+
+1. **Made `worker_id` parameter optional** in `fugue_poll_messages`
+   - If omitted, polls the caller's attached session automatically
+   - This makes it impossible to poll the "wrong" session
+
+2. **Improved tool documentation**
+   - Clarified that `worker_id` specifies "which session's inbox to poll"
+   - Added tip about ensuring the polled session has the correct tag
+
+3. **Added comprehensive tests** verifying:
+   - Messages go to the correct tagged session
+   - Polling the wrong session returns empty (expected behavior)
+   - Polling with `None` uses the attached session
+   - Polling with `None` when not attached returns error
+
+## Files Changed
+
+- `fugue-protocol/src/messages.rs` - Made `PollMessages.worker_id` optional
+- `fugue-server/src/handlers/orchestration.rs` - Updated handler to support `None`
+- `fugue-server/src/mcp/bridge/mod.rs` - Updated tool call routing
+- `fugue-server/src/mcp/bridge/handlers.rs` - Updated MCP handler signature
+- `fugue-server/src/mcp/tools.rs` - Updated tool schema and description
 
 ## Observed Behavior (from __watchdog session)
 
@@ -35,60 +72,40 @@ The response indicated success:
 
 However, the orchestrator (session-0) never received this message via `fugue_poll_messages`.
 
-## Reproduction Steps
-
-1. Create orchestrator session tagged with `orchestrator`
-2. Create watchdog session tagged with `watchdog`
-3. From watchdog, call `fugue_send_orchestration` targeting `{"tag": "orchestrator"}`
-4. Observe: Response shows `delivered_count: 1, success: true`
-5. In orchestrator, call `fugue_poll_messages`
-6. Observe: No messages received despite "successful" delivery
-
-## Expected Behavior
-
-When `fugue_send_orchestration` returns `delivered_count: 1`, the target session should actually receive the message via `fugue_poll_messages`.
-
-## Actual Behavior
-
-- Send returns success with `delivered_count: 1`
-- Target session's `fugue_poll_messages` returns no messages
-- Message is lost somewhere between "delivery" and poll queue
-
-## Root Cause Analysis
-
-Possible causes:
-1. **Delivery vs queue mismatch**: Message is "delivered" to session but not added to poll queue
-2. **Wrong session targeted**: `delivered_count: 1` may be counting wrong session
-3. **Poll queue clearing**: Messages may be cleared before orchestrator polls
-4. **Session attachment issue**: Orchestrator may need explicit attachment to receive messages
-5. **Worker ID mismatch**: `fugue_poll_messages(worker_id)` may expect different ID format
-
-## Relevant Code
-
-- `fugue-server/src/mcp/bridge/handlers.rs` - `handle_report_status` implementation
-- `fugue-server/src/mcp/bridge/handlers.rs` - `handle_poll_messages` implementation
-- `fugue-server/src/session/` - Tag-based routing logic
-- Orchestration message infrastructure
-
 ## Acceptance Criteria
 
-- [ ] `fugue_report_status` successfully delivers messages to `orchestrator`-tagged sessions
-- [ ] `fugue_poll_messages` returns status updates sent via `fugue_report_status`
-- [ ] Status updates include the status enum and message text
-- [ ] Works in the watchdog -> orchestrator communication pattern
+- [x] `fugue_report_status` successfully delivers messages to `orchestrator`-tagged sessions
+- [x] `fugue_poll_messages` returns status updates sent via `fugue_report_status`
+- [x] Status updates include the status enum and message text
+- [x] Works in the watchdog -> orchestrator communication pattern
+- [x] `fugue_poll_messages` with no `worker_id` polls the attached session
+
+## How to Use (After Fix)
+
+**Before (error-prone):**
+```json
+// User had to know the exact session name
+{"tool": "fugue_poll_messages", "input": {"worker_id": "session-0"}}
+```
+
+**After (recommended):**
+```json
+// Just poll your attached session - no need to know the name
+{"tool": "fugue_poll_messages", "input": {}}
+```
+
+**Or explicitly if needed:**
+```json
+// Still works if you need to poll a specific session
+{"tool": "fugue_poll_messages", "input": {"worker_id": "orchestrator-session"}}
+```
 
 ## Impact
 
-This bug breaks the core watchdog monitoring pattern documented in AGENTS.md and CLAUDE.md:
-- Watchdogs cannot alert orchestrators when workers complete
-- Orchestrators cannot be notified of worker status changes
-- The automated monitoring workflow is non-functional
-
-## Workarounds
-
-1. Use `fugue_send_orchestration` directly with explicit target
-2. Use `fugue_read_pane` to poll worker output manually
-3. Orchestrator manually checks worker sessions periodically
+This fix restores the core watchdog monitoring pattern documented in AGENTS.md and CLAUDE.md:
+- Watchdogs can now reliably alert orchestrators when workers complete
+- Orchestrators can be notified of worker status changes
+- The automated monitoring workflow is functional
 
 ## Related
 

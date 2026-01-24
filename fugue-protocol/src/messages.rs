@@ -427,10 +427,14 @@ pub enum ClientMessage {
         worker_id: Option<String>,
     },
 
-    /// Poll for messages in a worker's inbox
+    /// Poll for messages in a session's inbox (FEAT-097, BUG-069 fix)
+    ///
+    /// When worker_id is None, polls the caller's attached session's inbox.
+    /// This makes it easier for sessions to poll their own inbox without
+    /// needing to know their own session name/ID.
     PollMessages {
-        /// Worker ID (session UUID or name)
-        worker_id: String,
+        /// Session UUID or name to poll. If None, uses the caller's attached session.
+        worker_id: Option<String>,
     },
 
     // ==================== FEAT-102: Agent Status Pane ====================

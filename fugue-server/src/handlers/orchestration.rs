@@ -222,28 +222,56 @@ impl HandlerContext {
         }
     }
 
-    /// Handle PollMessages message (FEAT-097)
-    pub async fn handle_poll_messages(&self, worker_id: String) -> HandlerResult {
+    /// Handle PollMessages message (FEAT-097, BUG-069 fix)
+    ///
+    /// When `worker_id` is None, polls the current client's attached session.
+    /// This fixes BUG-069 where users would poll the wrong session because they
+    /// didn't know which session was tagged "orchestrator".
+    pub async fn handle_poll_messages(&self, worker_id: Option<String>) -> HandlerResult {
         let mut session_manager = self.session_manager.write().await;
 
-        let session_id = if let Ok(uuid) = uuid::Uuid::parse_str(&worker_id) {
-            uuid
-        } else if let Some(session) = session_manager.get_session_by_name(&worker_id) {
-            session.id()
-        } else {
-            return HandlerContext::error(
-                ErrorCode::SessionNotFound,
-                format!("Worker '{}' not found", worker_id),
-            );
+        // BUG-069 FIX: If no worker_id specified, use the client's attached session
+        let session_id = match worker_id {
+            Some(ref id) => {
+                if let Ok(uuid) = uuid::Uuid::parse_str(id) {
+                    uuid
+                } else if let Some(session) = session_manager.get_session_by_name(id) {
+                    session.id()
+                } else {
+                    return HandlerContext::error(
+                        ErrorCode::SessionNotFound,
+                        format!("Session '{}' not found", id),
+                    );
+                }
+            }
+            None => {
+                // Use the client's attached session
+                match self.registry.get_client_session(self.client_id) {
+                    Some(id) => id,
+                    None => {
+                        return HandlerContext::error(
+                            ErrorCode::InvalidOperation,
+                            "Must specify worker_id or be attached to a session to poll messages",
+                        );
+                    }
+                }
+            }
         };
 
         if let Some(session) = session_manager.get_session_mut(session_id) {
+            let session_name = session.name().to_string();
             let messages = session.poll_messages();
+            debug!(
+                "BUG-069: Polled {} messages from session '{}' ({})",
+                messages.len(),
+                session_name,
+                session_id
+            );
             HandlerResult::Response(ServerMessage::MessagesPolled { messages })
         } else {
             HandlerContext::error(
                 ErrorCode::SessionNotFound,
-                format!("Worker '{}' not found", worker_id),
+                format!("Session '{}' not found", worker_id.unwrap_or_else(|| session_id.to_string())),
             )
         }
     }
@@ -557,6 +585,373 @@ mod tests {
                 assert_eq!(received_message, message);
             }
             _ => panic!("Expected OrchestrationReceived message"),
+        }
+    }
+
+    // ==================== BUG-069: Inbox/Poll Messages Tests ====================
+
+    #[tokio::test]
+    async fn test_send_orchestration_to_tagged_stores_in_inbox() {
+        let ctx = create_test_context();
+
+        // Create sender session (watchdog) and attach
+        let sender_session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("watchdog").unwrap().id();
+            session_manager.get_session_mut(session_id).unwrap().add_tag("watchdog");
+            session_id
+        };
+        ctx.registry.attach_to_session(ctx.client_id, sender_session_id);
+
+        // Create orchestrator session with tag (NO client attached to demonstrate inbox works independently)
+        let orchestrator_session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("orchestrator-session").unwrap().id();
+            session_manager.get_session_mut(session_id).unwrap().add_tag("orchestrator");
+            session_id
+        };
+
+        // Send message from watchdog to tag "orchestrator"
+        let message = create_test_message();
+        let send_result = ctx
+            .handle_send_orchestration(
+                OrchestrationTarget::Tagged("orchestrator".to_string()),
+                message.clone(),
+            )
+            .await;
+
+        // Verify delivery count
+        match send_result {
+            HandlerResult::Response(ServerMessage::OrchestrationDelivered { delivered_count }) => {
+                assert_eq!(delivered_count, 1, "Should deliver to 1 orchestrator session");
+            }
+            _ => panic!("Expected OrchestrationDelivered response"),
+        }
+
+        // Verify message is stored in the inbox (directly check session state)
+        {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session = session_manager.get_session_mut(orchestrator_session_id).unwrap();
+            let inbox_messages = session.poll_messages();
+
+            assert_eq!(inbox_messages.len(), 1, "Should have 1 message in inbox");
+            let (from_id, msg) = &inbox_messages[0];
+            assert_eq!(*from_id, sender_session_id, "Message should be from sender session");
+            assert_eq!(msg.msg_type, "status.update", "Message type should match");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_poll_messages_returns_inbox_contents() {
+        let ctx = create_test_context();
+
+        // Create sender session (watchdog) and attach
+        let sender_session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("watchdog").unwrap().id();
+            session_manager.get_session_mut(session_id).unwrap().add_tag("watchdog");
+            session_id
+        };
+        ctx.registry.attach_to_session(ctx.client_id, sender_session_id);
+
+        // Create orchestrator session with tag
+        let _orchestrator_session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("orch-session").unwrap().id();
+            session_manager.get_session_mut(session_id).unwrap().add_tag("orchestrator");
+            session_id
+        };
+
+        // Send message from watchdog to tag "orchestrator"
+        let message = create_test_message();
+        let _ = ctx
+            .handle_send_orchestration(
+                OrchestrationTarget::Tagged("orchestrator".to_string()),
+                message.clone(),
+            )
+            .await;
+
+        // Now call poll_messages via the handler (simulating what MCP client does)
+        let poll_result = ctx.handle_poll_messages(Some("orch-session".to_string())).await;
+
+        match poll_result {
+            HandlerResult::Response(ServerMessage::MessagesPolled { messages }) => {
+                assert_eq!(messages.len(), 1, "Should poll 1 message");
+                let (from_id, msg) = &messages[0];
+                assert_eq!(*from_id, sender_session_id, "Message should be from sender session");
+                assert_eq!(msg.msg_type, "status.update", "Message type should match");
+            }
+            HandlerResult::Response(ServerMessage::Error { code, message, .. }) => {
+                panic!("Got error response: {:?} - {}", code, message);
+            }
+            _ => panic!("Expected MessagesPolled response"),
+        }
+
+        // Verify inbox is now empty (poll clears it)
+        let poll_result2 = ctx.handle_poll_messages(Some("orch-session".to_string())).await;
+        match poll_result2 {
+            HandlerResult::Response(ServerMessage::MessagesPolled { messages }) => {
+                assert!(messages.is_empty(), "Second poll should return empty (inbox drained)");
+            }
+            _ => panic!("Expected MessagesPolled response"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_poll_messages_by_session_uuid() {
+        let ctx = create_test_context();
+
+        // Create sender session (watchdog) and attach
+        let sender_session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("watchdog").unwrap().id();
+            session_manager.get_session_mut(session_id).unwrap().add_tag("watchdog");
+            session_id
+        };
+        ctx.registry.attach_to_session(ctx.client_id, sender_session_id);
+
+        // Create orchestrator session with tag
+        let orchestrator_session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("orch-session").unwrap().id();
+            session_manager.get_session_mut(session_id).unwrap().add_tag("orchestrator");
+            session_id
+        };
+
+        // Send message
+        let message = create_test_message();
+        let _ = ctx
+            .handle_send_orchestration(
+                OrchestrationTarget::Tagged("orchestrator".to_string()),
+                message.clone(),
+            )
+            .await;
+
+        // Poll using UUID string instead of name
+        let poll_result = ctx.handle_poll_messages(Some(orchestrator_session_id.to_string())).await;
+
+        match poll_result {
+            HandlerResult::Response(ServerMessage::MessagesPolled { messages }) => {
+                assert_eq!(messages.len(), 1, "Should poll 1 message by UUID");
+            }
+            _ => panic!("Expected MessagesPolled response"),
+        }
+    }
+
+    /// BUG-069: Test the exact scenario from the bug report
+    /// This verifies that polling the WRONG session returns empty (expected behavior)
+    /// and polling the CORRECT session returns the message
+    #[tokio::test]
+    async fn test_poll_wrong_session_returns_empty() {
+        let ctx = create_test_context();
+
+        // Create sender session (watchdog) and attach
+        let sender_session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("watchdog").unwrap().id();
+            session_manager.get_session_mut(session_id).unwrap().add_tag("watchdog");
+            session_id
+        };
+        ctx.registry.attach_to_session(ctx.client_id, sender_session_id);
+
+        // Create TWO sessions: one with tag, one without
+        // session-0: NO orchestrator tag (like in the bug report scenario)
+        let _session_0_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("session-0").unwrap().id();
+            // Note: session-0 does NOT have orchestrator tag!
+            session_id
+        };
+
+        // orchestrator-session: HAS orchestrator tag
+        let _orchestrator_session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("orchestrator-session").unwrap().id();
+            session_manager.get_session_mut(session_id).unwrap().add_tag("orchestrator");
+            session_id
+        };
+
+        // Send message to tag "orchestrator"
+        // This goes to orchestrator-session, NOT session-0
+        let message = create_test_message();
+        let send_result = ctx
+            .handle_send_orchestration(
+                OrchestrationTarget::Tagged("orchestrator".to_string()),
+                message.clone(),
+            )
+            .await;
+
+        // Verify delivery (to orchestrator-session)
+        match send_result {
+            HandlerResult::Response(ServerMessage::OrchestrationDelivered { delivered_count }) => {
+                assert_eq!(delivered_count, 1, "Should deliver to 1 session");
+            }
+            _ => panic!("Expected OrchestrationDelivered"),
+        }
+
+        // BUG-069 scenario: poll session-0 (which does NOT have the tag)
+        // This should return EMPTY because messages went to orchestrator-session
+        let poll_wrong = ctx.handle_poll_messages(Some("session-0".to_string())).await;
+        match poll_wrong {
+            HandlerResult::Response(ServerMessage::MessagesPolled { messages }) => {
+                assert!(messages.is_empty(), "BUG-069: session-0 should have NO messages (it's not tagged)");
+            }
+            _ => panic!("Expected MessagesPolled response"),
+        }
+
+        // Poll the correct session (orchestrator-session)
+        // This should return the message
+        let poll_correct = ctx.handle_poll_messages(Some("orchestrator-session".to_string())).await;
+        match poll_correct {
+            HandlerResult::Response(ServerMessage::MessagesPolled { messages }) => {
+                assert_eq!(messages.len(), 1, "orchestrator-session should have 1 message");
+            }
+            _ => panic!("Expected MessagesPolled response"),
+        }
+    }
+
+    /// Test that multiple sessions with same tag each get their own copy of the message
+    #[tokio::test]
+    async fn test_multiple_sessions_with_same_tag() {
+        let ctx = create_test_context();
+
+        // Create sender session and attach
+        let sender_session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("sender").unwrap().id();
+            session_id
+        };
+        ctx.registry.attach_to_session(ctx.client_id, sender_session_id);
+
+        // Create TWO sessions both tagged "orchestrator"
+        let _orch1_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("orch-1").unwrap().id();
+            session_manager.get_session_mut(session_id).unwrap().add_tag("orchestrator");
+            session_id
+        };
+
+        let _orch2_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("orch-2").unwrap().id();
+            session_manager.get_session_mut(session_id).unwrap().add_tag("orchestrator");
+            session_id
+        };
+
+        // Send to tag "orchestrator"
+        let message = create_test_message();
+        let send_result = ctx
+            .handle_send_orchestration(
+                OrchestrationTarget::Tagged("orchestrator".to_string()),
+                message.clone(),
+            )
+            .await;
+
+        // Should deliver to BOTH sessions
+        match send_result {
+            HandlerResult::Response(ServerMessage::OrchestrationDelivered { delivered_count }) => {
+                assert_eq!(delivered_count, 2, "Should deliver to 2 orchestrator sessions");
+            }
+            _ => panic!("Expected OrchestrationDelivered"),
+        }
+
+        // Both sessions should have their own copy of the message
+        let poll1 = ctx.handle_poll_messages(Some("orch-1".to_string())).await;
+        match poll1 {
+            HandlerResult::Response(ServerMessage::MessagesPolled { messages }) => {
+                assert_eq!(messages.len(), 1, "orch-1 should have 1 message");
+            }
+            _ => panic!("Expected MessagesPolled"),
+        }
+
+        let poll2 = ctx.handle_poll_messages(Some("orch-2".to_string())).await;
+        match poll2 {
+            HandlerResult::Response(ServerMessage::MessagesPolled { messages }) => {
+                assert_eq!(messages.len(), 1, "orch-2 should also have 1 message");
+            }
+            _ => panic!("Expected MessagesPolled"),
+        }
+    }
+
+    /// BUG-069 FIX: Test polling with None worker_id uses the attached session
+    #[tokio::test]
+    async fn test_poll_messages_none_uses_attached_session() {
+        let ctx = create_test_context();
+
+        // Create sender session (watchdog) and attach
+        let sender_session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("watchdog").unwrap().id();
+            session_manager.get_session_mut(session_id).unwrap().add_tag("watchdog");
+            session_id
+        };
+        ctx.registry.attach_to_session(ctx.client_id, sender_session_id);
+
+        // Create orchestrator session with tag
+        let orchestrator_session_id = {
+            let mut session_manager = ctx.session_manager.write().await;
+            let session_id = session_manager.create_session("orch-session").unwrap().id();
+            session_manager.get_session_mut(session_id).unwrap().add_tag("orchestrator");
+            session_id
+        };
+
+        // Send message to orchestrator
+        let message = create_test_message();
+        let _ = ctx
+            .handle_send_orchestration(
+                OrchestrationTarget::Tagged("orchestrator".to_string()),
+                message.clone(),
+            )
+            .await;
+
+        // Now create a second client attached to the orchestrator session
+        let (tx2, _rx2) = mpsc::channel(10);
+        let client_id_2 = ctx.registry.register_client(tx2);
+        ctx.registry.attach_to_session(client_id_2, orchestrator_session_id);
+
+        // Create a new context for client_id_2
+        let ctx2 = HandlerContext::new(
+            Arc::clone(&ctx.session_manager),
+            Arc::clone(&ctx.pty_manager),
+            Arc::clone(&ctx.registry),
+            Arc::clone(&ctx.config),
+            client_id_2,
+            ctx.pane_closed_tx.clone(),
+            Arc::clone(&ctx.command_executor),
+            Arc::clone(&ctx.arbitrator),
+            None,
+            Arc::clone(&ctx.watchdog),
+        );
+
+        // BUG-069 FIX: Poll with None - should use the attached session (orch-session)
+        let poll_result = ctx2.handle_poll_messages(None).await;
+        match poll_result {
+            HandlerResult::Response(ServerMessage::MessagesPolled { messages }) => {
+                assert_eq!(messages.len(), 1, "Should poll 1 message from attached session");
+                let (from_id, _msg) = &messages[0];
+                assert_eq!(*from_id, sender_session_id, "Message should be from sender session");
+            }
+            HandlerResult::Response(ServerMessage::Error { code, message, .. }) => {
+                panic!("Got error response: {:?} - {}", code, message);
+            }
+            _ => panic!("Expected MessagesPolled response"),
+        }
+    }
+
+    /// BUG-069 FIX: Test polling with None when not attached returns error
+    #[tokio::test]
+    async fn test_poll_messages_none_not_attached_returns_error() {
+        let ctx = create_test_context();
+
+        // Don't attach the client to any session
+
+        // Poll with None - should return error since not attached
+        let poll_result = ctx.handle_poll_messages(None).await;
+        match poll_result {
+            HandlerResult::Response(ServerMessage::Error { code, .. }) => {
+                assert_eq!(code, ErrorCode::InvalidOperation);
+            }
+            _ => panic!("Expected Error response for unattached client polling with None"),
         }
     }
 }

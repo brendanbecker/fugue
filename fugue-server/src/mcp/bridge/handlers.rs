@@ -1734,9 +1734,10 @@ impl<'a> ToolHandlers<'a> {
     }
 
     // BUG-065 FIX: Use atomic send_and_recv to prevent response mismatches
+    // BUG-069 FIX: worker_id is now optional - if None, polls the attached session
     pub async fn tool_poll_messages(
         &mut self,
-        worker_id: String,
+        worker_id: Option<String>,
     ) -> Result<ToolResult, McpError> {
         match self.connection.send_and_recv(ClientMessage::PollMessages { worker_id }).await? {
             ServerMessage::MessagesPolled { messages } => {

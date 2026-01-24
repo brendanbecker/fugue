@@ -951,16 +951,15 @@ pub fn get_tool_definitions() -> Vec<Tool> {
         },
         Tool {
             name: "fugue_poll_messages".into(),
-            description: "Allows a worker to check for new messages in its inbox.".into(),
+            description: "Poll for messages in a session's inbox. If worker_id is omitted, polls the caller's attached session (BUG-069 fix).".into(),
             input_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
                     "worker_id": {
                         "type": "string",
-                        "description": "Worker ID (session UUID or name)"
+                        "description": "Session UUID or name to poll. If omitted, uses the caller's attached session. TIP: To receive messages sent to tag 'orchestrator', your session must have that tag AND you must poll THAT session (not a different one)."
                     }
-                },
-                "required": ["worker_id"]
+                }
             }),
         },
         // ==================== FEAT-102: Agent Status Pane ====================
