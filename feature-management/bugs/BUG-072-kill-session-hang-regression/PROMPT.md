@@ -3,7 +3,7 @@
 **Priority**: P1
 **Component**: mcp, client, server
 **Severity**: high
-**Status**: open
+**Status**: resolved
 
 ## Problem
 
@@ -127,6 +127,54 @@ The `Ctrl+b` keybindings may work because they're handled locally before hitting
 - `fugue-server/src/mcp/bridge/handlers.rs` - kill_session MCP handler
 - `fugue-client/src/ui/app.rs` - Client state management
 - `fugue-protocol/src/messages.rs` - SessionEnded message
+
+## Root Cause Analysis (2026-01-24)
+
+**H5 was correct: Client Receive Loop Deadlocked**
+
+The deadlock occurs due to a circular dependency between two bounded channels in the client's `Connection` module:
+
+1. **`outgoing` channel** (100 messages): Main loop → connection_task → socket
+2. **`incoming` channel** (100 messages): Socket → connection_task → main loop
+
+In `connection_task`:
+```rust
+tokio::select! {
+    Some(msg) = outgoing.recv() => { ... }
+    result = framed.next() => {
+        if incoming.send(msg).await.is_err() {  // <-- Can BLOCK here
+            break;
+        }
+    }
+}
+```
+
+When `incoming.send(msg).await` blocks (channel full), the task can't poll `outgoing.recv()`. Meanwhile, the main loop's message handlers call `connection.send()` which blocks if `outgoing` is full.
+
+**Deadlock scenario:**
+1. Server sends burst of messages (e.g., during session kill, many PaneClosed/Output messages)
+2. `incoming` channel fills up (100 messages)
+3. `connection_task` blocks on `incoming.send()`
+4. Main loop processes a message (e.g., `SessionEnded`), calls `connection.send(ListSessions)`
+5. If `outgoing` accumulates enough pending sends, `connection.send()` blocks
+6. Main loop can't drain `incoming` because it's blocked on `connection.send()`
+7. DEADLOCK
+
+The ~50% occurrence rate matches a race condition - sometimes the timing allows normal flow, sometimes it triggers the deadlock.
+
+## Resolution
+
+Changed the `incoming` channel from bounded (100 messages) to unbounded. This ensures `incoming.send()` never blocks, breaking the deadlock potential.
+
+**File changed:** `fugue-client/src/connection/client.rs`
+- Changed `mpsc::channel::<ServerMessage>(100)` to `mpsc::unbounded_channel::<ServerMessage>()`
+- Changed `mpsc::Sender<ServerMessage>` to `mpsc::UnboundedSender<ServerMessage>`
+- Changed `incoming.send(msg).await` to `incoming.send(msg)` (unbounded send is synchronous)
+
+**Trade-off:** Unbounded channels can grow indefinitely under memory pressure. However:
+- The daemon rate-limits output
+- Tick-based processing (50 messages/tick at 100ms) keeps up with normal traffic
+- Memory pressure from messages is unlikely in practice
 
 ## Related Issues
 
