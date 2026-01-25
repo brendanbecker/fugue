@@ -4,21 +4,26 @@
 **Last Updated**: 2026-01-19
 
 ## Summary Statistics
-- Total Bugs: 66
-- Open: 0
+- Total Bugs: 67
+- Open: 1
 - Resolved: 65
 - Deprecated: 1
 
 ## Active Bugs
 
-None! All bugs resolved.
+| ID | Description | Priority | Severity | Status |
+|----|-------------|----------|----------|--------|
+| BUG-073 | fugue_get_tags returns wrong session's tags | P1 | Medium | new |
 
 ## Priority Queue
 
-Empty - all bugs fixed.
+| Priority | ID | Description |
+|----------|----|-------------|
+| P1 | BUG-073 | fugue_get_tags({}) returns wrong session's tags (attached session instead of caller) |
 
 ## Recent Activity
 
+- 2026-01-24: Filed BUG-073 - fugue_get_tags returns wrong session's tags (attached session fallback)
 - 2026-01-19: Fixed BUG-066 - Mirror pane cross-session output forwarding (commit 5fa9ee7)
 - 2026-01-19: Fixed BUG-065 - Parallel MCP request serialization (commit a358bf1) - verified after rebuild
 - 2026-01-19: Filed BUG-066 - Mirror panes don't forward output across sessions

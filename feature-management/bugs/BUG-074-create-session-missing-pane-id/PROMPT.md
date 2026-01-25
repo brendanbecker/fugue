@@ -1,4 +1,4 @@
-# BUG-073: fugue_create_session Should Reliably Return Pane ID
+# BUG-074: fugue_create_session Should Reliably Return Pane ID
 
 **Priority**: P1
 **Component**: mcp/session
