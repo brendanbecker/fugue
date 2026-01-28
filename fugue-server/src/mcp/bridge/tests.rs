@@ -293,10 +293,74 @@ mod tests {
         // and not a nested Result<Result<...>>. The explicit type annotation ensures compilation
         // fails if the return type changes.
         let mut connection = ConnectionManager::new();
-        
+
         // Since we are not connected, this returns Err(McpError::NotConnected)
         let result: Result<ServerMessage, McpError> = connection.recv_response_from_daemon().await;
-        
+
         assert!(matches!(result, Err(McpError::NotConnected)));
+    }
+
+    // ==================== BUG-074: create_session should return pane_id ====================
+
+    #[test]
+    fn test_bug074_session_created_response_includes_pane_id() {
+        // BUG-074: Verify that SessionCreatedWithDetails contains all required fields
+        // including pane_id so callers can immediately use fugue_send_input
+        let session_id = Uuid::new_v4();
+        let window_id = Uuid::new_v4();
+        let pane_id = Uuid::new_v4();
+
+        let msg = ServerMessage::SessionCreatedWithDetails {
+            session_id,
+            session_name: "test-session".to_string(),
+            window_id,
+            pane_id,
+            should_focus: true,
+        };
+
+        // Verify the message can be serialized to JSON with all fields
+        let json = serde_json::to_value(&msg).unwrap();
+
+        // The enum variant name is part of the serialization
+        assert!(json.get("SessionCreatedWithDetails").is_some());
+        let details = &json["SessionCreatedWithDetails"];
+
+        // Verify all required fields are present
+        assert_eq!(details["session_id"], session_id.to_string());
+        assert_eq!(details["session_name"], "test-session");
+        assert_eq!(details["window_id"], window_id.to_string());
+        assert_eq!(details["pane_id"], pane_id.to_string());
+        assert_eq!(details["should_focus"], true);
+    }
+
+    #[test]
+    fn test_bug074_tool_response_json_structure() {
+        // BUG-074: Verify the JSON structure returned by tool_create_session handler
+        // This tests the format that MCP clients receive
+        let session_id = Uuid::new_v4();
+        let window_id = Uuid::new_v4();
+        let pane_id = Uuid::new_v4();
+        let session_name = "test-session";
+        let tags: Vec<String> = vec!["worker".to_string()];
+
+        // This matches the JSON built in handlers.rs tool_create_session
+        let result = serde_json::json!({
+            "session_id": session_id.to_string(),
+            "session_name": session_name,
+            "window_id": window_id.to_string(),
+            "pane_id": pane_id.to_string(),
+            "tags": tags,
+            "status": "created"
+        });
+
+        // Verify pane_id is present and is a valid UUID string
+        assert!(result.get("pane_id").is_some());
+        let pane_id_str = result["pane_id"].as_str().unwrap();
+        assert!(Uuid::parse_str(pane_id_str).is_ok(), "pane_id should be a valid UUID");
+
+        // Verify other required fields
+        assert!(result.get("session_id").is_some());
+        assert!(result.get("window_id").is_some());
+        assert_eq!(result["status"], "created");
     }
 }

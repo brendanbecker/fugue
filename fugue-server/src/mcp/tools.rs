@@ -212,9 +212,10 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 }
             }),
         },
+        // BUG-074: Documented that pane_id is returned and immediately usable
         Tool {
             name: "fugue_create_session".into(),
-            description: "Create a new terminal session".into(),
+            description: "Create a new terminal session. Returns session_id, session_name, window_id, and pane_id. The pane_id can be used immediately with fugue_send_input - no need to call fugue_list_panes first.".into(),
             input_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
