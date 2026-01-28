@@ -1927,5 +1927,112 @@ impl<'a> ToolHandlers<'a> {
             .map_err(|e| McpError::Internal(e.to_string()))?;
         Ok(ToolResult::text(json))
     }
+
+    // ==================== FEAT-125: MCP Mail Commands ====================
+
+    /// Get caller identity (session name) for mail 'from' field
+    ///
+    /// Uses the first available session name as the identity.
+    /// In most cases, agents run in their own session, so this works well.
+    async fn get_caller_identity(&mut self) -> Result<String, McpError> {
+        match self.connection.send_and_recv(ClientMessage::ListSessions).await? {
+            ServerMessage::SessionList { sessions } => {
+                if let Some(session) = sessions.first() {
+                    Ok(session.name.clone())
+                } else {
+                    Ok("unknown".to_string())
+                }
+            }
+            ServerMessage::Error { code, message, .. } => {
+                Err(McpError::Internal(format!("{:?}: {}", code, message)))
+            }
+            _ => Ok("unknown".to_string()),
+        }
+    }
+
+    /// Send a mail message
+    #[allow(clippy::too_many_arguments)]
+    pub async fn tool_mail_send(
+        &mut self,
+        to: &str,
+        msg_type: &str,
+        subject: &str,
+        body: &str,
+        needs_response: Option<bool>,
+        priority: Option<&str>,
+        tags: Vec<String>,
+        in_reply_to: Option<&str>,
+    ) -> Result<ToolResult, McpError> {
+        // Auto-set 'from' based on caller identity
+        let from = self.get_caller_identity().await?;
+
+        super::mail::mail_send(
+            &from,
+            to,
+            msg_type,
+            subject,
+            body,
+            needs_response,
+            priority,
+            tags,
+            in_reply_to,
+        )
+    }
+
+    /// Check mailbox for unread messages
+    pub async fn tool_mail_check(
+        &mut self,
+        mailbox: Option<&str>,
+        type_filter: Option<&str>,
+        priority: Option<&str>,
+        needs_response: Option<bool>,
+    ) -> Result<ToolResult, McpError> {
+        // Default to caller's mailbox if not specified
+        let mailbox_name = match mailbox {
+            Some(m) => m.to_string(),
+            None => self.get_caller_identity().await?,
+        };
+
+        super::mail::mail_check(&mailbox_name, type_filter, priority, needs_response)
+    }
+
+    /// Read a specific message
+    pub async fn tool_mail_read(
+        &mut self,
+        mailbox: &str,
+        filename: &str,
+        mark_read: bool,
+    ) -> Result<ToolResult, McpError> {
+        super::mail::mail_read(mailbox, filename, mark_read)
+    }
+
+    /// List messages in a mailbox
+    pub async fn tool_mail_list(
+        &mut self,
+        mailbox: Option<&str>,
+        include_read: bool,
+        from_filter: Option<&str>,
+        type_filter: Option<&str>,
+        since: Option<&str>,
+        limit: usize,
+    ) -> Result<ToolResult, McpError> {
+        // Default to caller's mailbox if not specified
+        let mailbox_name = match mailbox {
+            Some(m) => m.to_string(),
+            None => self.get_caller_identity().await?,
+        };
+
+        super::mail::mail_list(&mailbox_name, include_read, from_filter, type_filter, since, limit)
+    }
+
+    /// Delete or archive a message
+    pub async fn tool_mail_delete(
+        &mut self,
+        mailbox: &str,
+        filename: &str,
+        archive: bool,
+    ) -> Result<ToolResult, McpError> {
+        super::mail::mail_delete(mailbox, filename, archive)
+    }
             }
             

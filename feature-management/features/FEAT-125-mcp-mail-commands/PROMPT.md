@@ -3,7 +3,7 @@
 **Priority**: P1
 **Component**: mcp/mail
 **Effort**: Medium
-**Status**: new
+**Status**: complete
 
 ## Summary
 
@@ -258,14 +258,14 @@ When checking mail, agent should check:
 
 ## Acceptance Criteria
 
-- [ ] `fugue_mail_send` creates properly formatted messages
-- [ ] `fugue_mail_check` returns unread message summaries
-- [ ] `fugue_mail_read` returns full message content
-- [ ] `fugue_mail_list` supports filtering options
-- [ ] `fugue_mail_delete` archives by default
-- [ ] Automatic `from` field based on caller identity
-- [ ] Tools handle missing directories gracefully
-- [ ] Atomic file operations prevent corruption
+- [x] `fugue_mail_send` creates properly formatted messages
+- [x] `fugue_mail_check` returns unread message summaries
+- [x] `fugue_mail_read` returns full message content
+- [x] `fugue_mail_list` supports filtering options
+- [x] `fugue_mail_delete` archives by default
+- [x] Automatic `from` field based on caller identity
+- [x] Tools handle missing directories gracefully
+- [x] Atomic file operations prevent corruption
 
 ## Related
 
