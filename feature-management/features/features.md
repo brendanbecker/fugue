@@ -1,124 +1,116 @@
 # Feature Tracking
 
 **Project**: fugue
-**Last Updated**: 2026-01-18
+**Last Updated**: 2026-01-28
 
 ## Summary Statistics
 
-- **Total Features**: 104
-- **Completed**: 102
-- **Backlog**: 2
+- **Total Features**: 126
+- **Completed**: 115
+- **Backlog**: 11
 
 ## Current Status
 
-Core terminal multiplexer fully functional with MCP integration, multi-agent orchestration, remote access, and observability. Agent detection supports Claude and Gemini. Ten features remain in backlog: agent status pane (FEAT-102), Codex detection, orchestration improvements, and refactoring tasks.
+Core terminal multiplexer fully functional with MCP integration, multi-agent orchestration, remote access, and observability. Agent detection supports Claude, Gemini, and Codex. Watchdog system implemented with named watchdogs, auto-clear, and orchestration skill. Mail system specified but not yet implemented.
 
 ## Active Backlog
 
 ### High Priority (P1)
 
-| ID | Title | Component | Priority | Status |
-|----|-------|-----------|----------|--------|
-| FEAT-104 | Watchdog Orchestration Skill | skill/orchestration | P1 | new |
-| FEAT-103 | Visualization Architecture Review | fugue-client/rendering | P1 | new |
-| FEAT-094 | fugue_run_parallel - Parallel Command Execution | fugue-server/mcp | P1 | done |
-| FEAT-095 | fugue_run_pipeline - Sequential Command Pipeline | fugue-server/mcp | P1 | done |
-| FEAT-096 | fugue_expect - Pattern-Based Wait | fugue-server/mcp | P1 | done |
-| FEAT-097 | fugue_get_worker_status / fugue_poll_messages | fugue-server/mcp | P1 | done |
+| ID | Title | Component | Status |
+|----|-------|-----------|--------|
+| FEAT-124 | Mail Storage Format | mail | new |
+| FEAT-125 | MCP Mail Commands | mcp/mail | new |
+| FEAT-126 | Watchdog Mail Checking | orchestration/watchdog | new |
 
 ### Medium Priority (P2)
 
-| ID | Title | Component | Priority | Status |
-|----|-------|-----------|----------|--------|
-| FEAT-102 | Agent Status Pane | fugue-client | P2 | new |
-| FEAT-101 | Codex CLI agent detection | fugue-server/agents | P2 | new |
-| FEAT-100 | OrchestrationContext abstraction | fugue-server/mcp | P2 | new |
-| FEAT-099 | Dynamic orchestration session naming | fugue-server/mcp | P2 | blocked (FEAT-100) |
-| FEAT-064 | Refactor MCP bridge.rs into modular components | fugue-server | P2 | ready |
-| FEAT-065 | Refactor handlers in MCP bridge modules | fugue-server | P2 | ready |
+| ID | Title | Component | Status |
+|----|-------|-----------|--------|
+| FEAT-112 | Orchestrator Context Handoff | orchestration | new |
+| FEAT-115 | Hierarchical Session List | mcp/session | new |
 
 ### Lower Priority (P3)
 
-| ID | Title | Component | Priority | Status |
-|----|-------|-----------|----------|--------|
-| FEAT-069 | TLS/auth for direct TCP connections | fugue-server | P3 | backlog |
-| FEAT-072 | Per-pane MCP mode control | fugue-server | P3 | backlog |
-| FEAT-087 | Refactor client app.rs | fugue-client | P3 | ready |
-| FEAT-088 | Refactor handlers/mcp_bridge.rs | fugue-server | P3 | done |
-| FEAT-089 | Refactor protocol types.rs | fugue-protocol | P3 | done |
-| FEAT-090 | Refactor server main.rs | fugue-server | P3 | ready |
-| FEAT-091 | Refactor mcp_handlers.rs | fugue-server | P3 | ready |
-| FEAT-092 | Refactor protocol messages.rs | fugue-protocol | P3 | ready |
+| ID | Title | Component | Status |
+|----|-------|-----------|--------|
+| FEAT-064 | Refactor MCP bridge.rs | fugue-server | ready |
+| FEAT-065 | Refactor handlers in MCP bridge | fugue-server | ready |
+| FEAT-087 | Refactor client app.rs | fugue-client | ready |
+| FEAT-090 | Refactor server main.rs | fugue-server | ready |
+| FEAT-091 | Refactor mcp_handlers.rs | fugue-server | ready |
+| FEAT-113-116 | Web Interface Features | web | new |
 
-## Recommended Work Order
+## Recently Completed (2026-01-28)
 
-### Phase 1: Complete Orchestration (Next)
-1. **FEAT-097** (fugue_get_worker_status) - Orchestrator message polling (Completed)
+| ID | Title | Commit |
+|----|-------|--------|
+| FEAT-114 | Named/Multiple Watchdogs | 01d290f |
+| FEAT-111 | Watchdog Auto-Clear Cycle | 13c872e |
+| FEAT-110 | Watchdog Monitor Agent | 3a9ddf0 |
+| FEAT-104 | Watchdog Orchestration Skill | 5b0e86a |
 
-### Phase 2: Refactoring (Optional)
-2. FEAT-064, FEAT-065 - MCP bridge cleanup
-3. Other P3 refactoring as time permits
+## Completed Features (by Category)
 
-### Completed Orchestration Tools
-- **FEAT-096** (fugue_expect) - Foundation primitive ✓
-- **FEAT-094** (fugue_run_parallel) - Parallel execution ✓
-- **FEAT-095** (fugue_run_pipeline) - Sequential pipelines ✓
-- **FEAT-097** (fugue_get_worker_status) - Message polling ✓
+### Orchestration & Multi-Agent
+| ID | Title | Commit |
+|----|-------|--------|
+| FEAT-114 | Named/Multiple Watchdogs | 01d290f |
+| FEAT-111 | Watchdog Auto-Clear Cycle | 13c872e |
+| FEAT-110 | Watchdog Monitor Agent | 3a9ddf0 |
+| FEAT-109 | drain_messages MCP tool | ee5b2b3 |
+| FEAT-106 | Session Creation Tags | feb8e72 |
+| FEAT-105 | Universal Agent Presets | 578654d |
+| FEAT-104 | Watchdog Orchestration Skill | f19363b |
+| FEAT-102 | Agent Status Pane | 1d5cfa2 |
+| FEAT-101 | Codex CLI Agent Detection | 2d602a6 |
+| FEAT-100 | OrchestrationContext Abstraction | 1f2eb29 |
+| FEAT-097 | get_worker_status/poll_messages | 8e4ed1d |
+| FEAT-096 | fugue_expect Pattern Wait | done |
+| FEAT-095 | fugue_run_pipeline | done |
+| FEAT-094 | fugue_run_parallel | done |
 
-These tools reduce orchestrator context consumption by 70-90%.
+### MCP Tools
+| ID | Title | Commit |
+|----|-------|--------|
+| FEAT-121 | cwd in Pane Title | 1da9bd4 |
+| FEAT-117 | strip_escapes for read_pane | cabd0d9 |
+| FEAT-093 | Special Keys Support | 7b9cd2c |
+| FEAT-062 | Mirror Pane | 4325e86 |
 
-## Parallel Workstream Candidates
-
-These have no interdependencies:
-
-**Workstream A - Orchestration Completion:**
-- Orchestration tooling complete.
-
-**Workstream B - MCP Bridge Refactoring:**
-- FEAT-064, FEAT-065, FEAT-088, FEAT-091
-
-**Workstream C - Protocol Refactoring:**
-- FEAT-089, FEAT-092
-
-**Workstream D - Client Refactoring:**
-- FEAT-087, FEAT-090
-
-**Workstream E - New Capabilities:**
-- FEAT-072 (per-pane MCP mode)
-
-## Recent Completions (2026-01-18)
-
+### Infrastructure
 | ID | Title | Commit |
 |----|-------|--------|
 | FEAT-089 | Refactor protocol types.rs | 2d4f1db |
+| FEAT-088 | Refactor handlers/mcp_bridge.rs | done |
+| FEAT-086 | Environment Variable Persistence | 06055a8 |
+| FEAT-081 | Landlock Sandboxing | 8497e08 |
+| FEAT-080 | Per-pane/session Config | 9086333 |
+| FEAT-073 | Visibility Dashboard | b6d43c0 |
+| FEAT-074 | Observability Instrumentation | 40c3b1b |
 
-## Recent Completions (2026-01-17)
-
+### Networking
 | ID | Title | Commit |
 |----|-------|--------|
-| BUG-051 | Split pane direction parameter | e3d83f0 |
-| FEAT-097 | Orchestration message receive | 8e4ed1d |
+| FEAT-070 | Remote Pane Support | 64387fa |
+| FEAT-068 | SSH Tunnel Documentation | 0525712 |
+| FEAT-067 | Client TCP Connection | 83fa28a |
+| FEAT-066 | TCP Listener Support | 6b977a5 |
 
-## Recent Completions (2026-01-16)
+## Recommended Work Order
 
-| ID | Title | Commit |
-|----|-------|--------|
-| FEAT-093 | Special keys support (Escape, Ctrl, function keys) | 7b9cd2c |
-| FEAT-062 | Mirror Pane (picture-in-picture) | 4325e86 |
-| FEAT-073 | Visibility dashboard | b6d43c0 |
-| FEAT-074 | Observability instrumentation | 40c3b1b |
-| FEAT-082 | Multi-tier routing logic | 4eb45dd |
-| FEAT-083 | Generic widget system | f421cad |
-| FEAT-084 | Abstract agent state | d5ef0f8 |
-| FEAT-085 | ADR: Dumb Pipe Strategy | e9e84e2 |
-| FEAT-086 | Environment variable persistence | 06055a8 |
-| FEAT-066 | TCP listener support | 6b977a5 |
-| FEAT-067 | Client TCP connection | 83fa28a |
-| FEAT-068 | SSH tunnel documentation | 0525712 |
-| FEAT-070 | Gastown remote pane support | 64387fa |
-| FEAT-071 | Per-pane Claude configuration | 8497e08 |
-| FEAT-080 | Per-pane/session config via sideband | 9086333 |
-| FEAT-081 | Landlock sandboxing integration | 8497e08 |
+### Phase 1: Mail System (Next)
+1. **FEAT-124** - Define .mail/ storage format
+2. **FEAT-125** - Implement MCP mail commands
+3. **FEAT-126** - Integrate mail checking into watchdog
+
+### Phase 2: Quality of Life
+4. **FEAT-115** - Hierarchical session list view
+5. **FEAT-112** - Orchestrator context handoff
+
+### Phase 3: Refactoring (Optional)
+- FEAT-064, FEAT-065 - MCP bridge cleanup
+- Other P3 refactoring as time permits
 
 ## Architecture
 
@@ -133,4 +125,4 @@ Multi-crate workspace:
 
 ## Test Coverage
 
-**Total**: 1,676+ tests across all crates
+**Total**: 1,700+ tests across all crates

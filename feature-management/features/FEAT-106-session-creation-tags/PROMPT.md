@@ -3,7 +3,7 @@
 **Priority**: P2
 **Component**: mcp/tools
 **Effort**: Small
-**Status**: new
+**Status**: done
 
 ## Summary
 

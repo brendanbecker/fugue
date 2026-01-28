@@ -3,7 +3,7 @@
 **Priority**: P1
 **Component**: pty
 **Severity**: high
-**Status**: new
+**Status**: fixed
 
 ## Problem
 

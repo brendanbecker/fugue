@@ -3,7 +3,7 @@
 **Priority**: P3
 **Component**: agents
 **Severity**: low
-**Status**: new
+**Status**: fixed
 
 ## Problem
 

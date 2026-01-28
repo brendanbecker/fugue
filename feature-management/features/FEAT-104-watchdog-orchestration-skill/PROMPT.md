@@ -3,7 +3,7 @@
 **Priority**: P1
 **Component**: skill/orchestration
 **Effort**: Medium
-**Status**: new
+**Status**: done
 
 ## Summary
 

@@ -3,7 +3,7 @@
 **Priority**: P1
 **Component**: mcp/bridge
 **Severity**: high
-**Status**: new
+**Status**: fixed
 
 ## Problem
 

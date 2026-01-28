@@ -3,7 +3,7 @@
 **Priority**: P1
 **Component**: session
 **Severity**: critical
-**Status**: new
+**Status**: fixed
 
 ## Problem
 

@@ -3,7 +3,7 @@
 **Priority**: P3
 **Component**: mcp
 **Severity**: medium
-**Status**: new
+**Status**: fixed
 
 ## Problem
 

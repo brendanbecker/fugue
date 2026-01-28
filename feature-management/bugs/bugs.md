@@ -1,79 +1,74 @@
 # Bug Reports
 
 **Project**: fugue
-**Last Updated**: 2026-01-19
+**Last Updated**: 2026-01-28
 
 ## Summary Statistics
-- Total Bugs: 67
-- Open: 1
-- Resolved: 65
+- Total Bugs: 74
+- Open: 4
+- Resolved: 69
 - Deprecated: 1
 
 ## Active Bugs
 
 | ID | Description | Priority | Severity | Status |
 |----|-------------|----------|----------|--------|
-| BUG-073 | fugue_get_tags returns wrong session's tags | P1 | Medium | new |
+| BUG-067 | Mirror pane splits in wrong direction | P3 | Low | new |
+| BUG-068 | fugue_focus_pane returns AbortError | P2 | Medium | new |
+| BUG-073 | fugue_get_tags returns wrong session's tags | P1 | High | new |
+| BUG-074 | fugue_create_session should return pane ID | P1 | Medium | new |
 
 ## Priority Queue
 
 | Priority | ID | Description |
 |----------|----|-------------|
-| P1 | BUG-073 | fugue_get_tags({}) returns wrong session's tags (attached session instead of caller) |
+| P1 | BUG-073 | fugue_get_tags({}) returns attached session's tags instead of caller's |
+| P1 | BUG-074 | fugue_create_session should reliably return pane ID for immediate use |
+| P2 | BUG-068 | fugue_focus_pane returns AbortError |
+| P3 | BUG-067 | Mirror pane splits in wrong direction |
 
 ## Recent Activity
 
-- 2026-01-24: Filed BUG-073 - fugue_get_tags returns wrong session's tags (attached session fallback)
+- 2026-01-28: Fixed BUG-069 - Orchestration delivery mismatch (made worker_id optional) (commit bae0bb8)
+- 2026-01-28: Fixed BUG-071 - Watchdog timer submit (increased delay to 200ms) (commit 5a4b989)
+- 2026-01-28: Filed BUG-074 - fugue_create_session should return pane ID
+- 2026-01-24: Filed BUG-073 - fugue_get_tags returns wrong session's tags
+- 2026-01-24: Fixed BUG-072 - kill_session hang regression (unbounded channel) (commit 868535a)
 - 2026-01-19: Fixed BUG-066 - Mirror pane cross-session output forwarding (commit 5fa9ee7)
-- 2026-01-19: Fixed BUG-065 - Parallel MCP request serialization (commit a358bf1) - verified after rebuild
-- 2026-01-19: Filed BUG-066 - Mirror panes don't forward output across sessions
-- 2026-01-19: Filed BUG-065 - Parallel MCP requests cause response mismatches (discovered during QA)
-- 2026-01-19: Fixed BUG-064 - MCP response off-by-one (drain pending after timeout) (commit a6a3563)
-- 2026-01-19: Fixed BUG-063 - Mirror pane cross-session (commit 93f5c87)
-- 2026-01-19: Fixed BUG-062 - Mirror pane close timeout (commit 3b22ce0)
-- 2026-01-19: Fixed BUG-047 - Compiler warnings cleanup (commit 1612e07)
-- 2026-01-18: Fixed BUG-064 - MCP response off-by-one after timeout (stale responses in channel)
-- 2026-01-18: Fixed BUG-061 - send_orchestration target parsing (commit b298b26)
+- 2026-01-19: Fixed BUG-065 - Parallel MCP request serialization (commit a358bf1)
+- 2026-01-19: Fixed BUG-064 - MCP response off-by-one (commit a6a3563)
+- 2026-01-19: Fixed BUG-063 - Mirror pane cross-session (commit 36bd961)
+- 2026-01-19: Fixed BUG-062 - Mirror pane close timeout (commit 798dbdc)
+- 2026-01-19: Fixed BUG-061 - send_orchestration target parsing (commit b298b26)
+- 2026-01-19: Fixed BUG-047 - Compiler warnings cleanup (commit bbd5276)
 - 2026-01-18: Fixed BUG-057 - Agent detection cross-contamination (commit 2ebec74)
-- 2026-01-18: Fixed BUG-058, BUG-059, BUG-060 - Demo blockers resolved (Session 10)
-- 2026-01-18: Fixed BUG-042 - Result nesting flattened in recv_from_daemon_with_timeout
-- 2026-01-18: Filed BUG-058, BUG-059, BUG-060 - Issues from multi-agent orchestration demo
-- 2026-01-18: Fixed BUG-054 - Add 50ms delay before Enter for TUI compatibility (commit 6abb547, Gemini)
-- 2026-01-17: Filed BUG-057 - Agent detection cross-contamination discovered during QA
-- 2026-01-17: Fixed BUG-053 - DSR [6n] cursor position handling (commit cb1839c)
-- 2026-01-17: Resolved BUG-052 - tested and confirmed working (Gemini connects to fugue MCP)
-- 2026-01-17: Archived BUG-051 - fixed direction mapping (commit e3d83f0)
-- 2026-01-16: Fixed BUG-050 - cwd inheritance, merged to main, archived
-- 2026-01-16: Verified BUG-038 already fixed (commit 99d024e), archived
-- 2026-01-16: Fixed BUG-048, BUG-049, FEAT-093 - merged to main, archived
+- 2026-01-18: Fixed BUG-059 - Mirror pane AbortError (commit 578ace5)
+- 2026-01-18: Fixed BUG-042 - Result nesting flattened (commit b6b93ff)
+- 2026-01-18: Fixed BUG-054 - submit:true Enter delay (commit b0ca2d5)
+- 2026-01-17: Fixed BUG-053 - Codex CLI cursor position DSR handling (commit 37d3e33)
 
 ## Resolved Bugs (Recent)
 
 | ID | Description | Resolution | Commit |
 |----|-------------|------------|--------|
-| BUG-066 | Mirror panes don't forward output across sessions | Fixed - forward output + copy scrollback | 5fa9ee7 |
-| BUG-065 | Parallel MCP requests cause response mismatches | Fixed - request_lock mutex serialization | a358bf1 |
-| BUG-064 | MCP response off-by-one after timeout | Fixed - drain pending messages after timeout | a6a3563 |
-| BUG-063 | Mirror panes can't view other sessions | Fixed - create mirror in caller's attached session | 93f5c87 |
-| BUG-062 | fugue_close_pane times out for mirror panes | Fixed - RespondWithBroadcast for mirror close | 3b22ce0 |
-| BUG-061 | send_orchestration target parsing fails | Fixed - parse target as JSON string or object | b298b26 |
-| BUG-057 | Agent detection cross-contamination | Fixed - reset state between agent checks | 2ebec74 |
-| BUG-047 | Compiler warnings across crates | Fixed - addressed 51+ warnings | 1612e07 |
-| BUG-042 | Excessive Result Nesting (Ok(Ok(...))) code smell | Fixed - flatten Result in recv_from_daemon_with_timeout | b6b93ff |
-| BUG-054 | submit:true doesn't trigger Enter in TUI apps | Fixed - 50ms delay before Enter | 6abb547 |
-| BUG-053 | Codex CLI cursor position error (DSR [6n]) | Fixed - handle DSR escape sequence in PTY | cb1839c |
-| BUG-052 | Nested agents cannot connect to MCP | Verified working - no longer reproduces | N/A |
-| BUG-051 | Split pane direction parameter has no effect | Fixed - direction mapping in handlers | e3d83f0 |
-| BUG-050 | pane/session/window cwd inheritance | Fixed - pass cwd through MCP chain | ca1dcc9 |
-| BUG-049 | send_input submit: true unreliable | Fixed - PTY write ordering | 4af3599 |
-| BUG-048 | TUI flickers during spinner | Fixed - debounce state changes | 39ad9fc |
-| BUG-046 | MCP select commands don't control TUI view | Fixed - notify TUI in target session | 1ccf693 |
-| BUG-045 | Windows rendered as horizontal splits | Fixed - render only active window panes | fa137ab |
-| BUG-044 | MCP bridge hangs, stops reading stdin | Fixed - async stdin | 07474c4 |
-| BUG-043 | MCP handlers fail to unwrap Sequenced wrapper | Fixed - unwrap in recv_filtered | d995d55 |
-| BUG-041 | Claude Code crashes on paste | Fixed - bracketed paste handling | 936aba7 |
-| BUG-037 | close_pane returns AbortError | Fixed - unbounded channel | 4be5a93 |
-| BUG-031 | Metadata not persisting | Fixed - log to persistence layer | 2286aab |
+| BUG-072 | kill_session hang regression | Fixed - unbounded incoming channel | 868535a |
+| BUG-071 | Watchdog timer submit not working | Fixed - 200ms delay for TUI | 5a4b989 |
+| BUG-070 | Session switch rendering corruption | Fixed | 6f447c9 |
+| BUG-069 | Orchestration messages not delivered | Fixed - optional worker_id in poll | bae0bb8 |
+| BUG-066 | Mirror panes don't forward output | Fixed - forward output + scrollback | 5fa9ee7 |
+| BUG-065 | Parallel MCP response mismatches | Fixed - request_lock serialization | a358bf1 |
+| BUG-064 | MCP response off-by-one | Fixed - drain pending after timeout | a6a3563 |
+| BUG-063 | Mirror panes can't view other sessions | Fixed - create in attached session | 36bd961 |
+| BUG-062 | close_pane timeout for mirrors | Fixed - don't filter PaneClosed | 798dbdc |
+| BUG-061 | send_orchestration target parsing | Fixed - parse JSON string/object | b298b26 |
+| BUG-060 | Orchestration tools need attachment | Fixed | completed |
+| BUG-059 | Mirror pane AbortError | Fixed | 578ace5 |
+| BUG-058 | kill_session client hang | Fixed | completed |
+| BUG-057 | Agent detection cross-contamination | Fixed - reset between checks | 2ebec74 |
+| BUG-054 | submit:true not triggering Enter | Fixed - 200ms delay all paths | b0ca2d5 |
+| BUG-053 | Codex CLI cursor position error | Fixed - DSR [6n] handling | 37d3e33 |
+| BUG-047 | Compiler warnings | Fixed - 51+ warnings addressed | bbd5276 |
+| BUG-042 | Excessive Result nesting | Fixed - flatten in recv | b6b93ff |
 
 ## Deprecated Bugs
 
