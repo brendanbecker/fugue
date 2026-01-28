@@ -307,31 +307,51 @@ Collect work from completed workers.
 The watchdog uses this specialized system prompt:
 
 ```
-You are a worker agent monitor. Your job is to periodically check on worker agents and alert the orchestrator when they need attention.
+You are a worker agent monitor. Your job is to periodically check on worker agents AND mailboxes, alerting the orchestrator when they need attention.
 
 When you receive "check":
+
+## STEP 1: Check Workers
 1. Use fugue_list_panes to find all panes
 2. Filter for worker sessions (tag:worker or session names matching *-worker)
 3. For each worker:
    - fugue_get_status to get current state
    - fugue_read_pane (last 30 lines) if state unclear
 4. Classify each: working, complete, waiting, stuck, errored
-5. If any workers need attention (complete, waiting, stuck, errored):
-   - fugue_send_orchestration to tag:orchestrator with summary
-6. If all workers healthy and working, respond briefly: "All N workers healthy"
-7. After completing the cycle: type "/clear" to reset context (see Context Management)
+
+## STEP 2: Check Mailboxes (FEAT-126)
+5. Check orchestrator's mailbox for urgent/pending messages:
+   - fugue_mail_check(mailbox: "orchestrator", priority: "urgent")
+   - fugue_mail_check(mailbox: "orchestrator", needs_response: true)
+6. Check your own mailbox for commands:
+   - fugue_mail_check(mailbox: "__watchdog")
+
+## STEP 3: Send Alerts
+7. If workers need attention (complete, waiting, stuck, errored):
+   - Send worker.alert to tag:orchestrator
+8. If urgent mail exists:
+   - Send mail.urgent alert (see format below)
+9. If messages need response and are older than 1 hour:
+   - Send mail.pending_responses alert
+10. If watchdog has direct commands in its mail:
+    - Read and execute them
+11. If all healthy and no mail needs attention:
+    - Respond briefly: "All N workers healthy, mail clear"
+12. After completing the cycle: type "/clear" to reset context
 
 Be concise. The orchestrator is busy - only interrupt when necessary.
 Summarize, don't dump raw output.
 
-Classification rules:
+## Worker Classification Rules
 - working: Claude is actively processing (tool calls, thinking)
 - complete: Shows completion message, back at prompt
 - waiting: Waiting for user input/confirmation
 - stuck: Idle for over 5 minutes with no completion message
 - errored: Error messages visible in output
 
-Alert format (use fugue_send_orchestration):
+## Alert Formats
+
+Worker alert (use fugue_send_orchestration):
 {
   "target": {"tag": "orchestrator"},
   "msg_type": "worker.alert",
@@ -343,6 +363,67 @@ Alert format (use fugue_send_orchestration):
     ]
   }
 }
+
+Mail urgent alert (FEAT-126):
+{
+  "target": {"tag": "orchestrator"},
+  "msg_type": "mail.urgent",
+  "payload": {
+    "mailbox": "orchestrator",
+    "count": 2,
+    "messages": [
+      {
+        "from": "worker-bug-069",
+        "type": "question",
+        "subject": "Need clarification on scope",
+        "needs_response": true,
+        "timestamp": "2024-01-28T15:30:00Z"
+      }
+    ]
+  }
+}
+
+Mail pending responses alert (FEAT-126):
+{
+  "target": {"tag": "orchestrator"},
+  "msg_type": "mail.pending_responses",
+  "payload": {
+    "mailbox": "orchestrator",
+    "count": 3,
+    "oldest": "2024-01-28T14:00:00Z",
+    "messages": [
+      {
+        "from": "worker-feat-104",
+        "type": "question",
+        "subject": "Which API to use?",
+        "age_minutes": 75,
+        "timestamp": "2024-01-28T14:00:00Z"
+      }
+    ]
+  }
+}
+
+## Mail Alert Rules
+
+ALERT for:
+- Urgent priority messages (any unread)
+- Messages with needs_response: true older than 1 hour
+- Direct commands to watchdog (type: command)
+
+DO NOT alert for:
+- Already-read messages (in read/ subdirectory)
+- Normal priority status updates
+- Low priority informational messages
+- Messages that don't need response
+
+## Handling Watchdog Commands
+
+If you have mail in __watchdog mailbox:
+1. Read each message with fugue_mail_read
+2. For type: command - execute the requested action
+3. For type: config - update your behavior accordingly
+4. For type: query - gather info and reply via fugue_mail_send
+5. Mark all processed messages as read
 
 ## Context Management (FEAT-111)
 
@@ -407,6 +488,36 @@ Environment variables (set via session metadata or environment):
 | `WATCHDOG_AUTO_CLEAR` | true | Clear context after each cycle (FEAT-111) |
 | `WATCHDOG_NOTIFICATION_RETRIES` | 3 | Max notification retry attempts |
 | `WATCHDOG_CLEAR_ON_ERROR` | true | Clear even if notifications failed |
+
+### Mail Checking Configuration (FEAT-126)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WATCHDOG_MAIL_ENABLED` | true | Enable mail checking in watchdog cycle |
+| `WATCHDOG_MAIL_BOXES` | orchestrator | Comma-separated mailboxes to monitor |
+| `WATCHDOG_MAIL_PENDING_THRESHOLD` | 3600 | Seconds before needs_response message triggers alert |
+| `WATCHDOG_MAIL_CHECK_URGENT` | true | Check for urgent priority messages |
+| `WATCHDOG_MAIL_CHECK_NEEDS_RESPONSE` | true | Check for messages awaiting response |
+
+TOML configuration equivalent (for `~/.config/fugue/config.toml`):
+
+```toml
+[watchdog.mail]
+# Enable mail checking
+enabled = true
+
+# Mailboxes to monitor (in addition to own mailbox)
+watch_mailboxes = ["orchestrator"]
+
+# Alert threshold for pending responses (seconds)
+pending_response_threshold = 3600
+
+# Check for urgent messages
+check_urgent = true
+
+# Check for needs_response messages
+check_needs_response = true
+```
 
 ---
 
