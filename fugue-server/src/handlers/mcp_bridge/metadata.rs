@@ -213,6 +213,11 @@ impl HandlerContext {
     }
 
     /// Handle GetTags - get tags from a session
+    ///
+    /// BUG-073 FIX: Session parameter is now required. Previously, when session
+    /// was omitted, this used `active_session()` which returned the globally
+    /// focused session - not the caller's session. This caused agents to see
+    /// wrong tags (e.g., workers seeing orchestrator tags) and misidentify their role.
     pub async fn handle_get_tags(
         &self,
         session_filter: Option<String>,
@@ -222,18 +227,26 @@ impl HandlerContext {
             self.client_id, session_filter
         );
 
+        // BUG-073 FIX: Require explicit session parameter
+        // MCP clients aren't attached to sessions, so we can't infer the caller's session.
+        // Falling back to active_session() returned the wrong session's tags.
+        let filter = match session_filter {
+            Some(f) => f,
+            None => {
+                return HandlerContext::error(
+                    ErrorCode::InvalidOperation,
+                    "Session parameter is required. MCP clients must specify which session's tags to retrieve.".to_string(),
+                );
+            }
+        };
+
         let session_manager = self.session_manager.read().await;
 
         // Find the session by UUID or name
-        let session = if let Some(ref filter) = session_filter {
-            if let Ok(uuid) = Uuid::parse_str(filter) {
-                session_manager.get_session(uuid)
-            } else {
-                session_manager.get_session_by_name(filter)
-            }
+        let session = if let Ok(uuid) = Uuid::parse_str(&filter) {
+            session_manager.get_session(uuid)
         } else {
-            // Use active session if not specified (BUG-034 fix)
-            session_manager.active_session()
+            session_manager.get_session_by_name(&filter)
         };
 
         let session = match session {
@@ -241,9 +254,7 @@ impl HandlerContext {
             None => {
                 return HandlerContext::error(
                     ErrorCode::SessionNotFound,
-                    session_filter
-                        .map(|s| format!("Session '{}' not found", s))
-                        .unwrap_or_else(|| "No sessions exist".to_string()),
+                    format!("Session '{}' not found", filter),
                 );
             }
         };

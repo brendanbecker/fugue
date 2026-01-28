@@ -3,7 +3,7 @@
 **Priority**: P1
 **Component**: mcp, server
 **Severity**: medium
-**Status**: new
+**Status**: fixed
 
 ## Problem
 
@@ -80,19 +80,36 @@ Manually instruct agents to ignore `fugue_get_tags` results and rely on other si
 
 ## Investigation Steps
 
-- [ ] Review `fugue_get_tags` implementation in `handlers.rs`
-- [ ] Identify how "attached session" is used and why it's the fallback
-- [ ] Determine if MCP context can carry caller session identity
-- [ ] Evaluate Option A vs Option B for fix approach
-- [ ] Implement chosen solution
+- [x] Review `fugue_get_tags` implementation in `handlers.rs`
+- [x] Identify how "attached session" is used and why it's the fallback
+- [x] Determine if MCP context can carry caller session identity
+- [x] Evaluate Option A vs Option B for fix approach
+- [x] Implement chosen solution
 
 ## Acceptance Criteria
 
-- [ ] `fugue_get_tags({})` does NOT return a different session's tags
-- [ ] Either: returns caller's session tags OR errors when session not specified
-- [ ] Agents can reliably determine their own role via tags
-- [ ] No regression in orchestration message routing (attached session still works for that)
-- [ ] Add test case for this scenario
+- [x] `fugue_get_tags({})` does NOT return a different session's tags
+- [x] Either: returns caller's session tags OR errors when session not specified
+- [x] Agents can reliably determine their own role via tags
+- [x] No regression in orchestration message routing (attached session still works for that)
+- [x] Add test case for this scenario
+
+## Resolution
+
+**Implemented Option A: Require explicit session parameter**
+
+The root cause was in `fugue-server/src/handlers/mcp_bridge/metadata.rs:handle_get_tags()`. When `session_filter` was `None`, it fell back to `session_manager.active_session()` which returns the globally focused session - not the caller's session. MCP clients are global and not attached to specific sessions, so there's no way to infer which session they "belong to".
+
+**Changes made:**
+
+1. **`fugue-server/src/handlers/mcp_bridge/metadata.rs`**: `handle_get_tags()` now returns `ErrorCode::InvalidOperation` with a clear error message when session parameter is missing.
+
+2. **`fugue-server/src/mcp/tools.rs`**: Updated `fugue_get_tags` tool schema to mark `session` as required.
+
+3. **`fugue-server/src/handlers/mcp_bridge/tests.rs`**: Updated tests and added `test_get_tags_requires_session_parameter` to verify the fix.
+
+**Impact on agents:**
+Agents must now explicitly specify which session's tags to retrieve. When setting up workers, orchestrators should pass the session name/ID to workers so they can query their own tags. This is more explicit and prevents the role misidentification bug.
 
 ## Related Files
 

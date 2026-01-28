@@ -792,16 +792,20 @@ async fn test_set_tags_add_and_remove() {
     }
 }
 
+// BUG-073: Session parameter is now required for get_tags
 #[tokio::test]
-async fn test_get_tags_no_sessions() {
+async fn test_get_tags_requires_session_parameter() {
     let ctx = create_test_context();
     let result = ctx.handle_get_tags(None).await;
 
+    // BUG-073 FIX: Should return InvalidOperation when session is not specified
+    // Previously this would return SessionNotFound or the wrong session's tags
     match result {
-        HandlerResult::Response(ServerMessage::Error { code, .. }) => {
-            assert_eq!(code, ErrorCode::SessionNotFound);
+        HandlerResult::Response(ServerMessage::Error { code, message, .. }) => {
+            assert_eq!(code, ErrorCode::InvalidOperation);
+            assert!(message.contains("Session parameter is required"));
         }
-        _ => panic!("Expected Error response"),
+        _ => panic!("Expected InvalidOperation error when session is not specified"),
     }
 }
 
@@ -810,13 +814,14 @@ async fn test_get_tags_empty() {
     let ctx = create_test_context();
     create_session_with_pane(&ctx).await;
 
-    let result = ctx.handle_get_tags(None).await;
+    // BUG-073: Must specify session explicitly
+    let result = ctx.handle_get_tags(Some("test".to_string())).await;
 
     match result {
         HandlerResult::Response(ServerMessage::TagsList {
             session_name,
             tags,
-            .. 
+            ..
         }) => {
             assert_eq!(session_name, "test");
             assert!(tags.is_empty());
@@ -831,16 +836,17 @@ async fn test_get_tags_with_tags() {
     create_session_with_pane(&ctx).await;
 
     // Add some tags first
-    ctx.handle_set_tags(None, vec!["worker".to_string(), "stream-a".to_string()], vec![])
+    ctx.handle_set_tags(Some("test".to_string()), vec!["worker".to_string(), "stream-a".to_string()], vec![])
         .await;
 
-    let result = ctx.handle_get_tags(None).await;
+    // BUG-073: Must specify session explicitly
+    let result = ctx.handle_get_tags(Some("test".to_string())).await;
 
     match result {
         HandlerResult::Response(ServerMessage::TagsList {
             session_name,
             tags,
-            .. 
+            ..
         }) => {
             assert_eq!(session_name, "test");
             assert!(tags.contains("worker"));

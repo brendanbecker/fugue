@@ -631,6 +631,7 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 }
             }),
         },
+        // BUG-073: Session parameter is now required to prevent returning wrong session's tags
         Tool {
             name: "fugue_get_tags".into(),
             description: "Get tags from a session".into(),
@@ -639,9 +640,10 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 "properties": {
                     "session": {
                         "type": "string",
-                        "description": "Session UUID or name. Uses active session if omitted."
+                        "description": "Session UUID or name"
                     }
-                }
+                },
+                "required": ["session"]
             }),
         },
         Tool {
