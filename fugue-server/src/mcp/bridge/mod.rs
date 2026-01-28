@@ -6,6 +6,7 @@
 pub mod connection;
 pub mod handlers;
 pub mod health;
+pub mod mail;
 pub mod orchestration;
 
 #[cfg(test)]
@@ -682,6 +683,69 @@ impl McpBridge {
             }
             // FEAT-109: Drain Messages Tool
             "fugue_drain_messages" => handlers.tool_drain_messages(),
+            // FEAT-125: MCP Mail Commands
+            "fugue_mail_send" => {
+                let to = arguments["to"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'to' parameter".into()))?;
+                let msg_type = arguments["type"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'type' parameter".into()))?;
+                let subject = arguments["subject"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'subject' parameter".into()))?;
+                let body = arguments["body"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'body' parameter".into()))?;
+                let needs_response = arguments["needs_response"].as_bool();
+                let priority = arguments["priority"].as_str();
+                let tags = arguments["tags"]
+                    .as_array()
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default();
+                let in_reply_to = arguments["in_reply_to"].as_str();
+                handlers.tool_mail_send(to, msg_type, subject, body, needs_response, priority, tags, in_reply_to).await
+            }
+            "fugue_mail_check" => {
+                let mailbox = arguments["mailbox"].as_str();
+                let type_filter = arguments["type"].as_str();
+                let priority = arguments["priority"].as_str();
+                let needs_response = arguments["needs_response"].as_bool();
+                handlers.tool_mail_check(mailbox, type_filter, priority, needs_response).await
+            }
+            "fugue_mail_read" => {
+                let mailbox = arguments["mailbox"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'mailbox' parameter".into()))?;
+                let filename = arguments["filename"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'filename' parameter".into()))?;
+                let mark_read = arguments["mark_read"].as_bool().unwrap_or(true);
+                handlers.tool_mail_read(mailbox, filename, mark_read).await
+            }
+            "fugue_mail_list" => {
+                let mailbox = arguments["mailbox"].as_str();
+                let include_read = arguments["include_read"].as_bool().unwrap_or(false);
+                let from_filter = arguments["from"].as_str();
+                let type_filter = arguments["type"].as_str();
+                let since = arguments["since"].as_str();
+                let limit = arguments["limit"].as_u64().unwrap_or(50) as usize;
+                handlers.tool_mail_list(mailbox, include_read, from_filter, type_filter, since, limit).await
+            }
+            "fugue_mail_delete" => {
+                let mailbox = arguments["mailbox"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'mailbox' parameter".into()))?;
+                let filename = arguments["filename"]
+                    .as_str()
+                    .ok_or_else(|| McpError::InvalidParams("Missing 'filename' parameter".into()))?;
+                let archive = arguments["archive"].as_bool().unwrap_or(true);
+                handlers.tool_mail_delete(mailbox, filename, archive).await
+            }
             _ => Err(McpError::UnknownTool(name.into())),
         }
     }

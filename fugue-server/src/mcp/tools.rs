@@ -1098,6 +1098,160 @@ pub fn get_tool_definitions() -> Vec<Tool> {
                 }
             }),
         },
+        // ==================== FEAT-125: MCP Mail Commands ====================
+        Tool {
+            name: "fugue_mail_send".into(),
+            description: "Send an async message to another agent's mailbox. Messages are stored in .mail/{recipient}/ and persist across sessions.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "to": {
+                        "type": "string",
+                        "description": "Recipient session name or tag (e.g., 'orchestrator', 'worker-bug-069')"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": ["status", "alert", "task", "question", "response"],
+                        "description": "Message type"
+                    },
+                    "subject": {
+                        "type": "string",
+                        "description": "Brief subject line"
+                    },
+                    "body": {
+                        "type": "string",
+                        "description": "Message body (markdown)"
+                    },
+                    "needs_response": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Whether a response is expected"
+                    },
+                    "priority": {
+                        "type": "string",
+                        "enum": ["urgent", "normal", "low"],
+                        "default": "normal",
+                        "description": "Message priority"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Tags for filtering/categorization"
+                    },
+                    "in_reply_to": {
+                        "type": "string",
+                        "description": "Filename of message being replied to"
+                    }
+                },
+                "required": ["to", "type", "subject", "body"]
+            }),
+        },
+        Tool {
+            name: "fugue_mail_check".into(),
+            description: "Check mailbox for unread messages. Returns summaries without full content.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "mailbox": {
+                        "type": "string",
+                        "description": "Mailbox to check (defaults to caller's session name)"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "Filter by message type"
+                    },
+                    "priority": {
+                        "type": "string",
+                        "description": "Filter by priority"
+                    },
+                    "needs_response": {
+                        "type": "boolean",
+                        "description": "Filter to messages expecting response"
+                    }
+                }
+            }),
+        },
+        Tool {
+            name: "fugue_mail_read".into(),
+            description: "Read a specific message from a mailbox.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "mailbox": {
+                        "type": "string",
+                        "description": "Mailbox containing the message"
+                    },
+                    "filename": {
+                        "type": "string",
+                        "description": "Message filename to read"
+                    },
+                    "mark_read": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Move to read/ subdirectory after reading"
+                    }
+                },
+                "required": ["mailbox", "filename"]
+            }),
+        },
+        Tool {
+            name: "fugue_mail_list".into(),
+            description: "List messages in a mailbox with optional filters.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "mailbox": {
+                        "type": "string",
+                        "description": "Mailbox to list (defaults to caller's session name)"
+                    },
+                    "include_read": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Include messages from read/ subdirectory"
+                    },
+                    "from": {
+                        "type": "string",
+                        "description": "Filter by sender"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "Filter by message type"
+                    },
+                    "since": {
+                        "type": "string",
+                        "description": "ISO timestamp, only messages after this time"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Max messages to return"
+                    }
+                }
+            }),
+        },
+        Tool {
+            name: "fugue_mail_delete".into(),
+            description: "Delete or archive a message from a mailbox.".into(),
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "mailbox": {
+                        "type": "string",
+                        "description": "Mailbox containing the message"
+                    },
+                    "filename": {
+                        "type": "string",
+                        "description": "Message filename to delete/archive"
+                    },
+                    "archive": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Move to archive instead of deleting permanently"
+                    }
+                },
+                "required": ["mailbox", "filename"]
+            }),
+        },
     ]
 }
 
@@ -1197,5 +1351,11 @@ mod tests {
         assert!(names.contains(&"fugue_watchdog_status"));
         // FEAT-109: Drain messages tool
         assert!(names.contains(&"fugue_drain_messages"));
+        // FEAT-125: MCP Mail Commands
+        assert!(names.contains(&"fugue_mail_send"));
+        assert!(names.contains(&"fugue_mail_check"));
+        assert!(names.contains(&"fugue_mail_read"));
+        assert!(names.contains(&"fugue_mail_list"));
+        assert!(names.contains(&"fugue_mail_delete"));
     }
 }

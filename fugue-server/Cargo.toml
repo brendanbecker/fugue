@@ -36,8 +36,10 @@ dashmap = "5"
 # Serialization
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_yaml = "0.9"
 bincode = { workspace = true }
 uuid = { workspace = true }
+chrono = { version = "0.4", features = ["serde"] }
 
 # Configuration
 notify = "6"

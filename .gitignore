@@ -39,3 +39,6 @@ tarpaulin-report.html
 
 # Session tracking (worker-local, not committed)
 SESSION.md
+
+# Mail directory (runtime data, not committed)
+.mail/
