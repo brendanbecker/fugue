@@ -3,7 +3,7 @@
 **Priority**: P1
 **Component**: mail
 **Effort**: Small
-**Status**: new
+**Status**: done
 
 ## Summary
 
@@ -100,12 +100,17 @@ When sending to a tag, the message goes to `.mail/{tag}/` directory. Any session
 
 ## Acceptance Criteria
 
-- [ ] Directory structure documented and standardized
-- [ ] YAML frontmatter schema defined
-- [ ] Filename convention documented
-- [ ] Message lifecycle states defined
-- [ ] Mailbox resolution rules documented (name vs tag)
-- [ ] Example messages provided
+- [x] Directory structure documented and standardized
+- [x] YAML frontmatter schema defined
+- [x] Filename convention documented
+- [x] Message lifecycle states defined
+- [x] Mailbox resolution rules documented (name vs tag)
+- [x] Example messages provided
+
+## Deliverables
+
+- **Design Doc**: `docs/design/MAIL_STORAGE.md` - Comprehensive specification
+- **Examples**: `examples/` directory with 6 sample messages demonstrating all message types
 
 ## Related
 
