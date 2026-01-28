@@ -6,22 +6,14 @@
 ## Summary Statistics
 
 - **Total Features**: 126
-- **Completed**: 115
-- **Backlog**: 11
+- **Completed**: 118
+- **Backlog**: 8
 
 ## Current Status
 
-Core terminal multiplexer fully functional with MCP integration, multi-agent orchestration, remote access, and observability. Agent detection supports Claude, Gemini, and Codex. Watchdog system implemented with named watchdogs, auto-clear, and orchestration skill. Mail system specified but not yet implemented.
+Core terminal multiplexer fully functional with MCP integration, multi-agent orchestration, remote access, and observability. Agent detection supports Claude, Gemini, and Codex. Watchdog system implemented with named watchdogs, auto-clear, and orchestration skill. Mail system implemented with filesystem-based storage and MCP commands.
 
 ## Active Backlog
-
-### High Priority (P1)
-
-| ID | Title | Component | Status |
-|----|-------|-----------|--------|
-| FEAT-124 | Mail Storage Format | mail | new |
-| FEAT-125 | MCP Mail Commands | mcp/mail | new |
-| FEAT-126 | Watchdog Mail Checking | orchestration/watchdog | new |
 
 ### Medium Priority (P2)
 
@@ -45,12 +37,22 @@ Core terminal multiplexer fully functional with MCP integration, multi-agent orc
 
 | ID | Title | Commit |
 |----|-------|--------|
+| FEAT-126 | Watchdog Mail Checking | a1e3ca9 |
+| FEAT-125 | MCP Mail Commands | 43896e6 |
+| FEAT-124 | Mail Storage Format | 1de3624 |
 | FEAT-114 | Named/Multiple Watchdogs | 01d290f |
 | FEAT-111 | Watchdog Auto-Clear Cycle | 13c872e |
 | FEAT-110 | Watchdog Monitor Agent | 3a9ddf0 |
 | FEAT-104 | Watchdog Orchestration Skill | 5b0e86a |
 
 ## Completed Features (by Category)
+
+### Mail System
+| ID | Title | Commit |
+|----|-------|--------|
+| FEAT-126 | Watchdog Mail Checking | a1e3ca9 |
+| FEAT-125 | MCP Mail Commands | 43896e6 |
+| FEAT-124 | Mail Storage Format | 1de3624 |
 
 ### Orchestration & Multi-Agent
 | ID | Title | Commit |
@@ -99,16 +101,11 @@ Core terminal multiplexer fully functional with MCP integration, multi-agent orc
 
 ## Recommended Work Order
 
-### Phase 1: Mail System (Next)
-1. **FEAT-124** - Define .mail/ storage format
-2. **FEAT-125** - Implement MCP mail commands
-3. **FEAT-126** - Integrate mail checking into watchdog
+### Phase 1: Quality of Life (Next)
+1. **FEAT-115** - Hierarchical session list view
+2. **FEAT-112** - Orchestrator context handoff
 
-### Phase 2: Quality of Life
-4. **FEAT-115** - Hierarchical session list view
-5. **FEAT-112** - Orchestrator context handoff
-
-### Phase 3: Refactoring (Optional)
+### Phase 2: Refactoring (Optional)
 - FEAT-064, FEAT-065 - MCP bridge cleanup
 - Other P3 refactoring as time permits
 

@@ -5,8 +5,8 @@
 
 ## Summary Statistics
 - Total Bugs: 74
-- Open: 4
-- Resolved: 69
+- Open: 2
+- Resolved: 71
 - Deprecated: 1
 
 ## Active Bugs
@@ -15,20 +15,18 @@
 |----|-------------|----------|----------|--------|
 | BUG-067 | Mirror pane splits in wrong direction | P3 | Low | new |
 | BUG-068 | fugue_focus_pane returns AbortError | P2 | Medium | new |
-| BUG-073 | fugue_get_tags returns wrong session's tags | P1 | High | new |
-| BUG-074 | fugue_create_session should return pane ID | P1 | Medium | new |
 
 ## Priority Queue
 
 | Priority | ID | Description |
 |----------|----|-------------|
-| P1 | BUG-073 | fugue_get_tags({}) returns attached session's tags instead of caller's |
-| P1 | BUG-074 | fugue_create_session should reliably return pane ID for immediate use |
 | P2 | BUG-068 | fugue_focus_pane returns AbortError |
 | P3 | BUG-067 | Mirror pane splits in wrong direction |
 
 ## Recent Activity
 
+- 2026-01-28: Fixed BUG-073 - get_tags now requires explicit session param (commit 975952a)
+- 2026-01-28: Fixed BUG-074 - verified create_session returns pane_id (commit f6ec2ba)
 - 2026-01-28: Fixed BUG-069 - Orchestration delivery mismatch (made worker_id optional) (commit bae0bb8)
 - 2026-01-28: Fixed BUG-071 - Watchdog timer submit (increased delay to 200ms) (commit 5a4b989)
 - 2026-01-28: Filed BUG-074 - fugue_create_session should return pane ID
@@ -51,6 +49,8 @@
 
 | ID | Description | Resolution | Commit |
 |----|-------------|------------|--------|
+| BUG-074 | create_session pane_id verified | Fixed - already returns pane_id properly | f6ec2ba |
+| BUG-073 | get_tags wrong session | Fixed - require explicit session param | 975952a |
 | BUG-072 | kill_session hang regression | Fixed - unbounded incoming channel | 868535a |
 | BUG-071 | Watchdog timer submit not working | Fixed - 200ms delay for TUI | 5a4b989 |
 | BUG-070 | Session switch rendering corruption | Fixed | 6f447c9 |
