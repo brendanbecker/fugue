@@ -1,13 +1,13 @@
 # Feature Tracking
 
 **Project**: fugue
-**Last Updated**: 2026-01-28
+**Last Updated**: 2026-01-30
 
 ## Summary Statistics
 
-- **Total Features**: 126
+- **Total Features**: 134
 - **Completed**: 118
-- **Backlog**: 8
+- **Backlog**: 16
 
 ## Current Status
 
@@ -15,12 +15,25 @@ Core terminal multiplexer fully functional with MCP integration, multi-agent orc
 
 ## Active Backlog
 
+### High Priority (P1) - Multi-Server Support
+
+| ID | Title | Component | Status | Depends |
+|----|-------|-----------|--------|---------|
+| FEAT-127 | Server Config Schema | config | new | - |
+| FEAT-128 | Client --server Flag | fugue-client/cli | new | FEAT-127 |
+| FEAT-129 | Auto SSH Tunneling | fugue-client/connection | new | FEAT-127, 128 |
+| FEAT-130 | Multi-Connection Client | fugue-client | new | FEAT-127, 128 |
+| FEAT-131 | Namespaced Session IDs | fugue-protocol | new | FEAT-130 |
+| FEAT-133 | MCP Server Parameter | fugue-server/mcp | new | FEAT-130 |
+
 ### Medium Priority (P2)
 
-| ID | Title | Component | Status |
-|----|-------|-----------|--------|
-| FEAT-112 | Orchestrator Context Handoff | orchestration | new |
-| FEAT-115 | Hierarchical Session List | mcp/session | new |
+| ID | Title | Component | Status | Depends |
+|----|-------|-----------|--------|---------|
+| FEAT-132 | TUI Server Awareness | fugue-client/ui | new | FEAT-130, 131 |
+| FEAT-134 | Cross-Server Routing | orchestration | new | FEAT-130, 133 |
+| FEAT-112 | Orchestrator Context Handoff | orchestration | new | - |
+| FEAT-115 | Hierarchical Session List | mcp/session | new | - |
 
 ### Lower Priority (P3)
 
@@ -101,11 +114,25 @@ Core terminal multiplexer fully functional with MCP integration, multi-agent orc
 
 ## Recommended Work Order
 
-### Phase 1: Quality of Life (Next)
-1. **FEAT-115** - Hierarchical session list view
-2. **FEAT-112** - Orchestrator context handoff
+### Phase 1: Multi-Server Foundation (Next)
+1. **FEAT-127** - Server config schema (`[servers.<name>]`)
+2. **FEAT-128** - Client `--server` CLI flag
+3. **FEAT-129** - Auto SSH tunneling
 
-### Phase 2: Refactoring (Optional)
+### Phase 2: Multi-Connection Architecture
+4. **FEAT-130** - Multi-connection client (large)
+5. **FEAT-131** - Namespaced session identifiers
+6. **FEAT-133** - MCP server parameter
+
+### Phase 3: Multi-Server UI & Routing
+7. **FEAT-132** - TUI server awareness
+8. **FEAT-134** - Cross-server message routing
+
+### Phase 4: Quality of Life
+9. **FEAT-115** - Hierarchical session list view
+10. **FEAT-112** - Orchestrator context handoff
+
+### Phase 5: Refactoring (Optional)
 - FEAT-064, FEAT-065 - MCP bridge cleanup
 - Other P3 refactoring as time permits
 
