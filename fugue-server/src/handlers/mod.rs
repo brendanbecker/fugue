@@ -304,6 +304,7 @@ impl HandlerContext {
                 claude_model,
                 claude_config,
                 preset,
+                tags,
             } => {
                 self.handle_create_session_with_options(
                     name,
@@ -312,6 +313,7 @@ impl HandlerContext {
                     claude_model,
                     claude_config.map(|j| j.into_inner()),
                     preset,
+                    tags,
                 )
                 .await
             }

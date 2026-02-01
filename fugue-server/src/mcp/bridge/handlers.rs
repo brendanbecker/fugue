@@ -252,6 +252,9 @@ impl<'a> ToolHandlers<'a> {
     preset: Option<String>,
     tags: Vec<String>,
     ) -> Result<ToolResult, McpError> {
+    // Convert tags Vec to Option<Vec> for the message
+    let tags_opt = if tags.is_empty() { None } else { Some(tags.clone()) };
+
     match self.connection.send_and_recv(ClientMessage::CreateSessionWithOptions {
     name,
     command,
@@ -259,6 +262,7 @@ impl<'a> ToolHandlers<'a> {
     claude_model,
     claude_config: claude_config.map(Into::into),
     preset,
+    tags: tags_opt,
     }).await? {
             ServerMessage::SessionCreatedWithDetails {
                 session_id,
@@ -267,24 +271,8 @@ impl<'a> ToolHandlers<'a> {
                 pane_id,
                 ..
             } => {
-    // FEAT-106: Apply tags if provided
-    let applied_tags = if !tags.is_empty() {
-        match self.connection.send_and_recv(ClientMessage::SetTags {
-            session_filter: Some(session_id.to_string()),
-            add: tags,
-            remove: vec![],
-        }).await {
-            Ok(ServerMessage::TagsSet { tags: set_tags, .. }) => {
-                set_tags.into_iter().collect::<Vec<_>>()
-            }
-            Ok(_) | Err(_) => {
-                // Tags failed to apply, but session was created - return empty tags
-                vec![]
-            }
-        }
-    } else {
-        vec![]
-    };
+    // Tags are now applied directly by the server via CreateSessionWithOptions
+    let applied_tags = tags;
 
     let result = serde_json::json!({
     "session_id": session_id.to_string(),

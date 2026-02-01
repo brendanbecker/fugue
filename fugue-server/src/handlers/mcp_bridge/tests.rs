@@ -210,7 +210,7 @@ async fn test_get_pane_status_success() {
 #[tokio::test]
 async fn test_create_session_with_options() {
     let ctx = create_test_context();
-    let result = ctx.handle_create_session_with_options(Some("my-session".to_string()), None, None, None, None, None).await;
+    let result = ctx.handle_create_session_with_options(Some("my-session".to_string()), None, None, None, None, None, None).await;
 
     match result {
         HandlerResult::ResponseWithGlobalBroadcast {
@@ -230,7 +230,7 @@ async fn test_create_session_with_options() {
 #[tokio::test]
 async fn test_create_session_with_auto_name() {
     let ctx = create_test_context();
-    let result = ctx.handle_create_session_with_options(None, None, None, None, None, None).await;
+    let result = ctx.handle_create_session_with_options(None, None, None, None, None, None, None).await;
 
     match result {
         HandlerResult::ResponseWithGlobalBroadcast {
@@ -883,7 +883,7 @@ async fn test_handle_create_layout_simple_pane() {
     let ctx = create_test_context();
 
     // Create a session first
-    let _ = ctx.handle_create_session_with_options(Some("test".to_string()), None, None, None, None, None).await;
+    let _ = ctx.handle_create_session_with_options(Some("test".to_string()), None, None, None, None, None, None).await;
 
     let layout = serde_json::json!({
         "pane": {"name": "test-pane"}
@@ -907,7 +907,7 @@ async fn test_handle_create_layout_horizontal_split() {
     let ctx = create_test_context();
 
     // Create a session first
-    let _ = ctx.handle_create_session_with_options(Some("test".to_string()), None, None, None, None, None).await;
+    let _ = ctx.handle_create_session_with_options(Some("test".to_string()), None, None, None, None, None, None).await;
 
     let layout = serde_json::json!({
         "direction": "horizontal",
@@ -936,7 +936,7 @@ async fn test_handle_create_layout_nested_bug028() {
     let ctx = create_test_context();
 
     // Create a session first
-    let _ = ctx.handle_create_session_with_options(Some("test".to_string()), None, None, None, None, None).await;
+    let _ = ctx.handle_create_session_with_options(Some("test".to_string()), None, None, None, None, None, None).await;
 
     let layout = serde_json::json!({
         "direction": "horizontal",
@@ -981,7 +981,7 @@ async fn test_response_type_consistency_under_load_bug035() {
     let ctx = create_test_context();
 
     // Create a session with multiple windows and panes to have actual data
-    let _ = ctx.handle_create_session_with_options(Some("stress-test".to_string()), None, None, None, None, None).await;
+    let _ = ctx.handle_create_session_with_options(Some("stress-test".to_string()), None, None, None, None, None, None).await;
     let _ = ctx.handle_create_window_with_options(Some("stress-test".to_string()), Some("window-2".to_string()), None, None).await;
     let _ = ctx.handle_create_window_with_options(Some("stress-test".to_string()), Some("window-3".to_string()), None, None).await;
 

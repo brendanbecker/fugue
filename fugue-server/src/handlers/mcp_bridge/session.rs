@@ -13,10 +13,11 @@ impl HandlerContext {
         claude_model: Option<String>,
         claude_config: Option<serde_json::Value>,
         preset: Option<String>,
+        tags: Option<Vec<String>>,
     ) -> HandlerResult {
         info!(
-            "CreateSessionWithOptions request from {} (name: {:?}, command: {:?}, cwd: {:?}, model: {:?}, preset: {:?})", 
-            self.client_id, name, command, cwd, claude_model, preset
+            "CreateSessionWithOptions request from {} (name: {:?}, command: {:?}, cwd: {:?}, model: {:?}, preset: {:?}, tags: {:?})",
+            self.client_id, name, command, cwd, claude_model, preset, tags
         );
 
         let mut session_manager = self.session_manager.write().await;
@@ -37,6 +38,16 @@ impl HandlerContext {
             }
         };
         let session_id = session.id();
+
+        // Apply tags if provided (FEAT-compat-tags)
+        if let Some(tag_list) = tags {
+            if let Some(session) = session_manager.get_session_mut(session_id) {
+                for tag in tag_list {
+                    session.add_tag(&tag);
+                    debug!("Added tag '{}' to session {}", tag, session_id);
+                }
+            }
+        }
 
         // Create default window with pane
         let session = match session_manager.get_session_mut(session_id) {

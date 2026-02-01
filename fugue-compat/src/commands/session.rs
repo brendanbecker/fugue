@@ -10,6 +10,7 @@ pub async fn new_session(
     name: Option<String>,
     detached: bool,
     cwd: Option<String>,
+    tags: Vec<String>,
     command: Vec<String>,
 ) -> Result<i32> {
     let mut client = connect().await?;
@@ -21,6 +22,9 @@ pub async fn new_session(
         Some(command.join(" "))
     };
 
+    // Convert tags to Option<Vec<String>>
+    let tags_opt = if tags.is_empty() { None } else { Some(tags) };
+
     let msg = ClientMessage::CreateSessionWithOptions {
         name,
         command: cmd,
@@ -28,6 +32,7 @@ pub async fn new_session(
         claude_model: None,
         claude_config: None,
         preset: None,
+        tags: tags_opt,
     };
 
     match client.request(msg).await? {
@@ -103,6 +108,13 @@ pub async fn list_sessions(format: Option<&str>) -> Result<i32> {
                     ""
                 };
 
+                // Format tags as comma-separated string
+                let tags_str: String = {
+                    let mut tags: Vec<_> = session.tags.iter().collect();
+                    tags.sort();
+                    tags.into_iter().cloned().collect::<Vec<_>>().join(",")
+                };
+
                 if let Some(fmt) = format {
                     // Support basic format strings
                     let output = fmt
@@ -112,12 +124,18 @@ pub async fn list_sessions(format: Option<&str>) -> Result<i32> {
                         .replace(
                             "#{session_attached}",
                             &session.attached_clients.to_string(),
-                        );
+                        )
+                        .replace("#{session_tags}", &tags_str);
                     println!("{}", output);
                 } else {
+                    let tags_display = if tags_str.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" [{}]", tags_str)
+                    };
                     println!(
-                        "{}: {} windows {} {}",
-                        session.name, session.window_count, attached, session.id
+                        "{}: {} windows {}{} {}",
+                        session.name, session.window_count, attached, tags_display, session.id
                     );
                 }
             }

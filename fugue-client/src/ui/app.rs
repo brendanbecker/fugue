@@ -818,6 +818,7 @@ impl App {
                         claude_model: None,
                         claude_config: None,
                         preset: None,
+                        tags: None,
                     })
                     .await?;
             }
@@ -1348,6 +1349,7 @@ impl App {
                         claude_model: None,
                         claude_config: None,
                         preset: None,
+                        tags: None,
                     })
                     .await?;
             }

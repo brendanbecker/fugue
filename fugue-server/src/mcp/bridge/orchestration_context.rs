@@ -103,6 +103,7 @@ impl OrchestrationContext {
                             claude_model: None,
                             claude_config: None,
                             preset: None,
+                            tags: None,
                         }).await?;
 
                         match conn.recv_response_from_daemon().await? {

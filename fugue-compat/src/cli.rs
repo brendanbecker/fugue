@@ -37,6 +37,10 @@ pub enum Command {
         #[arg(short = 'c', long)]
         cwd: Option<String>,
 
+        /// Tags for the session (comma-separated or repeated)
+        #[arg(long, value_delimiter = ',')]
+        tags: Vec<String>,
+
         /// Command to run (positional arguments after options)
         #[arg(trailing_var_arg = true)]
         command: Vec<String>,

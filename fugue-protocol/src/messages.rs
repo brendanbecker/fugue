@@ -226,6 +226,8 @@ pub enum ClientMessage {
         claude_config: Option<crate::types::JsonValue>,
         /// Configuration preset (FEAT-071)
         preset: Option<String>,
+        /// Tags to apply to the session (FEAT-compat-tags)
+        tags: Option<Vec<String>>,
     },
 
     /// Create a new window with options (for MCP bridge)

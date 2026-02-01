@@ -23,8 +23,9 @@ pub async fn execute(command: Command, addr: Option<String>) -> Result<i32> {
             name,
             detached,
             cwd,
+            tags,
             command,
-        } => session::new_session(name, detached, cwd, command).await,
+        } => session::new_session(name, detached, cwd, tags, command).await,
 
         Command::KillSession { target } => session::kill_session(&target).await,
 
